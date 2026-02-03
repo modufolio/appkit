@@ -1,0 +1,55 @@
+<?php
+
+declare(strict_types = 1);
+
+namespace Modufolio\Appkit\Tests\App;
+
+use Modufolio\Appkit\Tests\App\Repository\UserRepository;
+use Modufolio\Appkit\Core\AppInterface;
+use Modufolio\Appkit\Routing\Loader\ArrayRouteLoader;
+use Modufolio\Appkit\Routing\Loader\AttributeClassLoader;
+use Modufolio\Appkit\Routing\Loader\FlatFileRouteLoader;
+use Modufolio\Appkit\Routing\Loader\JsonApiRouteLoader;
+use Modufolio\Appkit\Security\SecurityConfigurator;
+use Modufolio\Appkit\Toolkit\F;
+use Symfony\Component\Config\FileLocator;
+use Symfony\Component\Config\Loader\DelegatingLoader;
+use Symfony\Component\Config\Loader\LoaderResolver;
+use Symfony\Component\Routing\Loader\AttributeDirectoryLoader;
+use Symfony\Component\Routing\Loader\PhpFileLoader;
+
+class AppFactory
+{
+    public static function create(string $baseDir, ?string $env = null): AppInterface
+    {
+        $locator = new FileLocator([$baseDir . '/config']);
+        $routeLoader = new DelegatingLoader(new LoaderResolver(
+            [
+                new PhpFileLoader($locator),
+                new ArrayRouteLoader($locator),
+            ]
+        ));
+
+
+        // Configure Security
+        $securityConfigurator = new SecurityConfigurator();
+        $securityClosure = require $baseDir . '/config/security.php';
+
+        $securityClosure($securityConfigurator);
+
+
+        return (new App(
+            baseDir: $baseDir,
+            routeLoader: $routeLoader,
+            userProviderClass: UserRepository::class,
+            authenticators: [],
+            controllers: [],
+            factories: [],
+            fileMap: [
+                'doctrine' => $baseDir . '/config/test/doctrine.php',
+                'interfaces' => $baseDir . '/config/interfaces.php',
+            ],
+            repositories: [],
+        ))->configureSecurity($securityConfigurator);
+    }
+}

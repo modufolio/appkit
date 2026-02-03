@@ -1,0 +1,81 @@
+# Public
+# ---------------
+/public/media
+
+# Temporary files
+# ---------------
+/var/*
+!/var/index.html
+*.cache
+/tests/var
+/tests/coverage
+/coverage-report*
+/storage/logs/*.log
+
+# Config files
+# ---------------
+.env
+*.lock
+
+# Database
+# ---------------
+*.sqlite
+*.sqlite3
+*.db
+
+#-------------------------
+# Composer
+#-------------------------
+vendor/
+
+#-------------------------
+# Node.js
+#-------------------------
+node_modules/
+
+#-------------------------
+# IDE / Development Files
+#-------------------------
+
+
+# Jetbrains editors (PHPStorm, etc)
+.idea/
+*.iml
+
+# Visual Studio Code
+.vscode/
+
+# Php Unit
+/phpunit*.xml
+/.phpunit.*.cache
+
+package-lock.json
+clover.xml
+public/.DS_Store
+.DS_Store
+/uploads
+/content
+
+database/data.db-shm
+database/data.db-wal
+/.run
+
+#-------------------------
+# Storybook
+#-------------------------
+storybook-static/
+
+#-------------------------
+# Benchmarking / Testing
+#-------------------------
+# RoadRunner binary and downloads
+rr
+rr.tar.gz
+roadrunner-*/
+
+# Temporary test files
+public/bench-test.php
+public/test.json.php
+
+# Benchmark results
+benchmark-results-*/

@@ -1,0 +1,236 @@
+<?php
+
+declare(strict_types = 1);
+
+namespace Modufolio\Appkit\Tests\Unit\Toolkit;
+
+use Modufolio\Appkit\Toolkit\Xml;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\TestCase;
+
+#[CoversClass(Xml::class)]
+class XmlTest extends TestCase
+{
+    public const FIXTURES = __DIR__ . '/fixtures/xml';
+
+    #[DataProvider('attrProvider')]
+    public function testAttr(
+        array $input,
+        bool|null $value,
+        string $expected
+    ): void {
+        $this->assertSame($expected, Xml::attr($input, $value));
+    }
+
+    public static function attrProvider(): array
+    {
+        return [
+            [[],                         null,  ''],
+            [['B' => 'b', 'A' => 'a'],   null,  'A="a" B="b"'],
+            [['B' => 'b', 'A' => 'a'],   true,  'A="a" B="b"'],
+            [['B' => 'b', 'A' => 'a'],   false, 'B="b" A="a"'],
+            [['a' => 'a', 'b' => true],  null,  'a="a" b="b"'],
+            [['a' => 'a', 'b' => ''],    null,  'a="a" b=""'],
+            [['a' => 'a', 'b' => false], null,  'a="a"'],
+            [['a' => 'a', 'b' => null],  null,  'a="a"'],
+            [['a' => 'a', 'b' => []],    null,  'a="a"'],
+            [['a', 'b' => true],         null,  'a="a" b="b"']
+        ];
+    }
+
+    public function testAttrArrayValue(): void
+    {
+        $result = Xml::attr('a', ['a', 'b']);
+        $this->assertSame('a="a b"', $result);
+
+        $result = Xml::attr('a', ['a', 1]);
+        $this->assertSame('a="a 1"', $result);
+
+        $result = Xml::attr('a', ['a', null]);
+        $this->assertSame('a="a"', $result);
+
+        $result = Xml::attr('a', ['value' => '&', 'escape' => true]);
+        $this->assertSame('a="&#38;"', $result);
+
+        $result = Xml::attr('a', ['value' => '&', 'escape' => false]);
+        $this->assertSame('a="&"', $result);
+    }
+
+    public function testParseSimplifyCreate(): void
+    {
+        $this->assertSame('<name>Homer</name>', Xml::create('Homer', 'name', false));
+        $this->assertSame('<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL . '<name>Homer</name>', Xml::create('Homer', 'name', true));
+
+        $this->assertSame('  <name>Homer</name>', Xml::create('Homer', 'name', false, '  ', 1));
+        $this->assertSame('    <name>Homer</name>', Xml::create('Homer', 'name', false, '    ', 1));
+        $this->assertSame('    <name>Homer</name>', Xml::create('Homer', 'name', false, '  ', 2));
+
+        $data = [
+            '@name'       => 'contact',
+            '@attributes' => ['type' => 'husband'],
+            '@value'      => 'Homer'
+        ];
+        $this->assertSame($data, Xml::parse(file_get_contents(static::FIXTURES . '/contact.xml')));
+        $this->assertStringEqualsFile(static::FIXTURES . '/contact.xml', Xml::create($data, 'contact'));
+
+        $data = [
+            '@name' => 'contacts',
+            'contact' => $contacts = [
+                [
+                    '@attributes' => [
+                        'type' => 'husband'
+                    ],
+                    '@value' => 'Homer'
+                ],
+                [
+                    '@attributes' => [
+                        'type' => 'daughter'
+                    ],
+                    '@value' => 'Lisa'
+                ]
+            ]
+        ];
+        $this->assertSame($data, Xml::parse(file_get_contents(static::FIXTURES . '/contacts.xml')));
+        $this->assertStringEqualsFile(static::FIXTURES . '/contacts_nowrapper.xml', Xml::create($contacts, 'contact', false));
+        $this->assertStringEqualsFile(static::FIXTURES . '/contacts.xml', Xml::create($data, 'contacts'));
+
+        $data = [
+            '@name' => 'simpsons',
+            '@namespaces' => [
+                '' => 'https://example.com/simpsons',
+                'simpson' => 'https://example.com/simpson',
+                'unused' => 'https://example.com/unused'
+            ],
+            'simpson' => [
+                [
+                    '@attributes' => [
+                        'type' => 'father'
+                    ],
+                    'name' => 'Homer'
+                ],
+                [
+                    '@attributes' => [
+                        'type' => 'mother'
+                    ],
+                    'name' => 'Marge',
+                    'simpson:contacts' => [
+                        'simpson:contact' => [
+                            '@attributes' => [
+                                'simpson:type' => 'husband'
+                            ],
+                            '@value' => 'Homer',
+                        ]
+                    ]
+                ]
+            ]
+        ];
+
+        $this->assertSame($data, Xml::parse(file_get_contents(static::FIXTURES . '/simpsons.xml')));
+        $this->assertStringEqualsFile(static::FIXTURES . '/simpsons.xml', Xml::create($data, 'invalid'));
+        $this->assertStringEqualsFile(static::FIXTURES . '/simpsons_4spaces.xml', Xml::create($data, 'invalid', true, '    '));
+
+        unset($data['@name']);
+        $this->assertStringEqualsFile(static::FIXTURES . '/simpsons.xml', Xml::create($data, 'simpsons'));
+
+        $this->assertNull(Xml::parse('<this>is invalid</that>'));
+    }
+
+    public function testParseEntities(): void
+    {
+        $xml   = '<!DOCTYPE d [<!ENTITY e "bar">]><x>this is a file: foo &e; (with entities)</x>';
+        $array = Xml::parse($xml);
+
+        $this->assertSame([
+            '@name'  => 'x',
+            '@value' => 'this is a file: foo bar (with entities)'
+        ], $array);
+    }
+
+    public function testParseRecursiveEntities(): void
+    {
+        $xml = file_get_contents(static::FIXTURES . '/billion-laughs.xml');
+        $this->assertNull(Xml::parse($xml));
+    }
+
+    public function testParseXXE(): void
+    {
+        $xml   = '<!DOCTYPE d [<!ENTITY e SYSTEM "' . __FILE__ . '">]><x>this is a file: &e; with an XXE vulnerability</x>';
+        $array = Xml::parse($xml);
+
+        $this->assertSame([
+            '@name' => 'x',
+            '@value' => 'this is a file:  with an XXE vulnerability'
+        ], $array);
+    }
+
+    public function testEncodeDecode(): void
+    {
+        $expected = 'S&#252;per &#214;nenc&#339;ded &#223;tring';
+        $this->assertSame($expected, Xml::encode('Süper Önencœded ßtring'));
+        $this->assertSame('Süper Önencœded ßtring', Xml::decode($expected));
+
+        $this->assertSame('S&#252;per Täst', Xml::encode('S&uuml;per Täst', false));
+
+        $this->assertSame('', Xml::decode(''));
+        $this->assertSame('', Xml::encode(''));
+    }
+
+    public function testEntities(): void
+    {
+        $this->assertSame(Xml::$entities, Xml::entities());
+    }
+
+    public function testTag(): void
+    {
+        $tag = Xml::tag('name', 'content');
+        $this->assertSame('<name>content</name>', $tag);
+
+        $tag = Xml::tag('name', 'content', [], '  ', 1);
+        $this->assertSame('  <name>content</name>', $tag);
+
+        $tag = Xml::tag('name', 'content', ['foo' => 'bar']);
+        $this->assertSame('<name foo="bar">content</name>', $tag);
+
+        $tag = Xml::tag('name', null, ['foo' => 'bar']);
+        $this->assertSame('<name foo="bar" />', $tag);
+
+        $tag = Xml::tag('name', 'String with <not> a tag & some text', ['foo' => 'bar']);
+        $this->assertSame('<name foo="bar"><![CDATA[String with <not> a tag & some text]]></name>', $tag);
+
+        $tag = Xml::tag('name', 'content', ['foo' => 'bar'], '  ', 1);
+        $this->assertSame('  <name foo="bar">content</name>', $tag);
+
+        $tag = Xml::tag('name', 'content', ['foo' => 'bar'], '    ', 1);
+        $this->assertSame('    <name foo="bar">content</name>', $tag);
+
+        $tag = Xml::tag('name', ['Test', 'Test2'], ['foo' => 'bar'], ' ', 2);
+        $this->assertSame('  <name foo="bar">' . PHP_EOL . '   Test' . PHP_EOL . '   Test2' . PHP_EOL . '  </name>', $tag);
+    }
+
+    #[DataProvider('valueProvider')]
+    public function testValue(
+        bool|int|string|null $input,
+        string|null $expected
+    ): void {
+        $this->assertSame($expected, Xml::value($input));
+    }
+
+    public static function valueProvider(): array
+    {
+        return [
+            [true, 'true'],
+            [false, 'false'],
+            [1, '1'],
+            [null, null],
+            ['', null],
+            ['<![CDATA[test]]>', '<![CDATA[test]]>'],
+            ['<![CDATA[String with <not> a tag & some text]]>', '<![CDATA[String with <not> a tag & some text]]>'],
+            ['test', 'test'],
+            ['String with <not> a tag & some text', '<![CDATA[String with <not> a tag & some text]]>'],
+            ['This is a <![CDATA[test]]> with CDATA', '<![CDATA[This is a <![CDATA[test]]]]><![CDATA[> with CDATA]]>'],
+            ['te]]>st', '<![CDATA[te]]]]><![CDATA[>st]]>'],
+            ['tö]]>st', '<![CDATA[tö]]]]><![CDATA[>st]]>']
+        ];
+    }
+}
