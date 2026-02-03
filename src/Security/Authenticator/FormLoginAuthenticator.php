@@ -2,8 +2,6 @@
 
 namespace Modufolio\Appkit\Security\Authenticator;
 
-use App\Entity\User;
-use App\Logger\Log;
 use Modufolio\Appkit\Security\BruteForce\BruteForceProtectionInterface;
 use Modufolio\Appkit\Security\Csrf\CsrfTokenManagerInterface;
 use Modufolio\Appkit\Security\Exception\AuthenticationException;
@@ -67,13 +65,6 @@ class FormLoginAuthenticator extends AbstractAuthenticator
             $remainingTime = $this->bruteForceProtection->getRemainingLockoutTime($identifier, $clientIp);
             $failureCount = $this->bruteForceProtection->getFailureCount($identifier, $clientIp);
 
-            Log::warning('Authentication blocked: Account temporarily locked due to too many failed attempts', [
-                'username' => $identifier,
-                'ip' => $clientIp,
-                'failure_count' => $failureCount,
-                'remaining_lockout_seconds' => $remainingTime,
-            ]);
-
             throw new AuthenticationException(
                 sprintf('Too many failed login attempts. Account is locked for %d more seconds.', $remainingTime)
             );
@@ -87,25 +78,11 @@ class FormLoginAuthenticator extends AbstractAuthenticator
 
             if (!$user instanceof PasswordAuthenticatedUserInterface) {
                 $this->bruteForceProtection->recordFailure($identifier, $clientIp);
-
-                Log::warning('Authentication failed: User does not support password authentication', [
-                    'username' => $identifier,
-                    'ip' => $clientIp,
-                    'user_agent' => $request->getHeaderLine('User-Agent'),
-                    'failure_count' => $this->bruteForceProtection->getFailureCount($identifier, $clientIp),
-                ]);
                 throw new AuthenticationException('User does not support password authentication.');
             }
 
             if (password_verify($password, $user->getPassword()) === false) {
                 $this->bruteForceProtection->recordFailure($identifier, $clientIp);
-
-                Log::warning('Authentication failed: Invalid credentials', [
-                    'username' => $identifier,
-                    'ip' => $clientIp,
-                    'user_agent' => $request->getHeaderLine('User-Agent'),
-                    'failure_count' => $this->bruteForceProtection->getFailureCount($identifier, $clientIp),
-                ]);
                 throw new AuthenticationException('Invalid credentials');
             }
 
@@ -116,14 +93,10 @@ class FormLoginAuthenticator extends AbstractAuthenticator
             $this->bruteForceProtection->recordSuccess($identifier, $clientIp);
 
             // Check if 2FA is enabled for this user
-            if ($this->totpService !== null && $user instanceof User) {
+            if ($this->totpService !== null && $user instanceof UserInterface) {
                 $totpSecret = $this->totpService->getTotpSecret($user);
 
                 if ($totpSecret !== null && $totpSecret->isEnabled()) {
-                    Log::info('Password verified, 2FA required', [
-                        'username' => $identifier,
-                        'ip' => $clientIp,
-                    ]);
 
                     // Create partial token for 2FA flow
                     $twoFactorToken = new TwoFactorToken($user, 'main');
@@ -141,24 +114,12 @@ class FormLoginAuthenticator extends AbstractAuthenticator
             }
 
             // No 2FA required - full authentication successful
-            Log::info('Successful login (no 2FA)', [
-                'username' => $identifier,
-                'ip' => $clientIp,
-                'user_agent' => $request->getHeaderLine('User-Agent'),
-            ]);
 
             return $user;
         } catch (AuthenticationException $e) {
             throw $e;
         } catch (\Exception $e) {
             $this->bruteForceProtection->recordFailure($identifier, $clientIp);
-
-            Log::error('Authentication error: ' . $e->getMessage(), [
-                'username' => $identifier,
-                'ip' => $clientIp,
-                'exception' => get_class($e),
-                'failure_count' => $this->bruteForceProtection->getFailureCount($identifier, $clientIp),
-            ]);
             throw new AuthenticationException('Authentication failed');
         }
     }
@@ -236,20 +197,10 @@ class FormLoginAuthenticator extends AbstractAuthenticator
         $csrfToken = $parsedBody[$this->options['csrf_parameter']] ?? null;
 
         if ($csrfToken === null) {
-            Log::warning('Login attempt without CSRF token', [
-                'ip' => $request->getServerParams()['REMOTE_ADDR'] ?? 'unknown',
-                'user_agent' => $request->getHeaderLine('User-Agent'),
-                'is_inertia' => $this->isInertiaRequest($request),
-            ]);
             throw new InvalidCsrfTokenException('CSRF token is missing');
         }
 
         if (!$this->csrfTokenManager->validateToken($this->options['csrf_token_id'], $csrfToken)) {
-            Log::warning('Login attempt with invalid CSRF token', [
-                'ip' => $request->getServerParams()['REMOTE_ADDR'] ?? 'unknown',
-                'user_agent' => $request->getHeaderLine('User-Agent'),
-                'is_inertia' => $this->isInertiaRequest($request),
-            ]);
             throw new InvalidCsrfTokenException('CSRF token is invalid');
         }
     }

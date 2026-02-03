@@ -15,6 +15,7 @@ use Modufolio\Appkit\Security\User\UserInterface;
 use Modufolio\Appkit\Security\User\UserProviderInterface;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Session\Flash\FlashBagInterface;
+use Symfony\Component\HttpFoundation\Session\FlashBagAwareSessionInterface;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;
 
 class FormLoginAuthenticatorTest extends TestCase
@@ -22,7 +23,7 @@ class FormLoginAuthenticatorTest extends TestCase
     private UserProviderInterface $userProvider;
     private BruteForceProtectionInterface $bruteForceProtection;
     private CsrfTokenManagerInterface $csrfTokenManager;
-    private SessionInterface $session;
+    private FlashBagAwareSessionInterface $session;
     private PasswordAuthenticatedUserInterface $user;
     private string $validPassword = 'secret123';
     private string $hashedPassword;
@@ -53,9 +54,8 @@ class FormLoginAuthenticatorTest extends TestCase
 
         // Create mock session with flash bag using stub
         $flashBag = $this->createMock(FlashBagInterface::class);
-        $this->session = $this->createStub(SessionInterface::class);
-        // Use reflection to add getFlashBag method since it's not in the interface
-        $this->session = new class($flashBag) implements SessionInterface {
+        // Create anonymous class implementing FlashBagAwareSessionInterface
+        $this->session = new class($flashBag) implements FlashBagAwareSessionInterface {
             private FlashBagInterface $flashBag;
             public function __construct(FlashBagInterface $flashBag) { $this->flashBag = $flashBag; }
             public function getFlashBag(): FlashBagInterface { return $this->flashBag; }
