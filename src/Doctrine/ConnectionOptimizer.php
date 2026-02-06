@@ -2,8 +2,6 @@
 
 namespace Modufolio\Appkit\Doctrine;
 
-use Modufolio\Appkit\Doctrine\Subscriber\Events;
-use Modufolio\Appkit\Doctrine\Subscriber\NullLogger;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Platforms\MySQLPlatform;
