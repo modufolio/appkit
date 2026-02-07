@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Modufolio\Appkit\Tests\Unit\Image;
 
 use Modufolio\Appkit\Image\DiskManager;
-use Modufolio\Appkit\Image\ImageVariant;
 use Modufolio\Appkit\Image\JsonJobStorage;
 use Modufolio\Appkit\Image\PhotoLab;
 use Modufolio\Appkit\Image\Storage;
@@ -43,8 +42,8 @@ class PhotoLabTest extends TestCase
         $photoLab = new PhotoLab(
             $this->testFile,
             'default',
-            null,
-            $this->storage
+            $this->storage,
+            new JsonJobStorage()
         );
 
         $this->assertInstanceOf(PhotoLab::class, $photoLab);
@@ -55,7 +54,6 @@ class PhotoLabTest extends TestCase
         $photoLab = new PhotoLab(
             $this->testFile,
             'default',
-            null,
             $this->storage,
             new JsonJobStorage()
         );
@@ -70,15 +68,18 @@ class PhotoLabTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
 
         new PhotoLab(
-            '/nonexistent/file.jpg',
-            storage: $this->storage
+            absolutePath: '/nonexistent/file.jpg',
+            disk: 'default',
+            storage: $this->storage,
+            jobStorage: new JsonJobStorage()
         );
     }
 
     public function testPhotoLabConvenienceMethodResize(): void
     {
         $photoLab = new PhotoLab(
-            $this->testFile,
+            absolutePath: $this->testFile,
+            disk: 'default',
             storage: $this->storage,
             jobStorage: new JsonJobStorage()
         );
@@ -92,7 +93,8 @@ class PhotoLabTest extends TestCase
     public function testPhotoLabConvenienceMethodCrop(): void
     {
         $photoLab = new PhotoLab(
-            $this->testFile,
+            absolutePath: $this->testFile,
+            disk: 'default',
             storage: $this->storage,
             jobStorage: new JsonJobStorage()
         );
@@ -105,7 +107,8 @@ class PhotoLabTest extends TestCase
     public function testPhotoLabConvenienceMethodBlur(): void
     {
         $photoLab = new PhotoLab(
-            $this->testFile,
+            absolutePath: $this->testFile,
+            disk: 'default',
             storage: $this->storage,
             jobStorage: new JsonJobStorage()
         );
@@ -118,7 +121,8 @@ class PhotoLabTest extends TestCase
     public function testPhotoLabConvenienceMethodQuality(): void
     {
         $photoLab = new PhotoLab(
-            $this->testFile,
+            absolutePath: $this->testFile,
+            disk: 'default',
             storage: $this->storage,
             jobStorage: new JsonJobStorage()
         );
@@ -131,7 +135,8 @@ class PhotoLabTest extends TestCase
     public function testPhotoLabConvenienceMethodGrayscale(): void
     {
         $photoLab = new PhotoLab(
-            $this->testFile,
+            absolutePath: $this->testFile,
+            disk: 'default',
             storage: $this->storage,
             jobStorage: new JsonJobStorage()
         );
@@ -144,7 +149,8 @@ class PhotoLabTest extends TestCase
     public function testPhotoLabBwAlias(): void
     {
         $photoLab = new PhotoLab(
-            $this->testFile,
+            absolutePath: $this->testFile,
+            disk: 'default',
             storage: $this->storage,
             jobStorage: new JsonJobStorage()
         );
@@ -157,7 +163,8 @@ class PhotoLabTest extends TestCase
     public function testPhotoLabGreyscaleAlias(): void
     {
         $photoLab = new PhotoLab(
-            $this->testFile,
+            absolutePath: $this->testFile,
+            disk: 'default',
             storage: $this->storage,
             jobStorage: new JsonJobStorage()
         );

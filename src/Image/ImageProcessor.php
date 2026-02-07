@@ -23,18 +23,15 @@ class ImageProcessor
     private FileInterface $file;
     private StorageInterface $storage;
     private JobStorageInterface $jobStorage;
-    private ?ImageJobService $jobService;
 
     public function __construct(
         FileInterface $file,
         StorageInterface $storage,
-        JobStorageInterface $jobStorage = new JsonJobStorage(),
-        ?ImageJobService $jobService = null
+        JobStorageInterface $jobStorage
     ) {
         $this->file = $file;
         $this->storage = $storage;
         $this->jobStorage = $jobStorage;
-        $this->jobService = $jobService;
     }
 
     /**
@@ -95,19 +92,8 @@ class ImageProcessor
                 'transformations' => $this->getTransformationNames(),
             ]);
 
-            if ($this->jobService !== null) {
-                try {
-                    $this->jobService->saveJob(
-                        $this->file->relativePathFromUploads(),
-                        $thumbName,
-                        $allOptions
-                    );
-                } catch (\Throwable) {
-                    $this->jobStorage->saveJob($mediaRoot, $thumbName, $jobOptions);
-                }
-            } else {
-                $this->jobStorage->saveJob($mediaRoot, $thumbName, $jobOptions);
-            }
+
+            $this->jobStorage->saveJob($mediaRoot, $thumbName, $jobOptions);
         }
 
         return new ImageVariant([

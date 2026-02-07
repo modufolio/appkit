@@ -30,22 +30,20 @@ class PhotoLab
     private FileInterface|null $file;
     private StorageInterface $storage;
     private JobStorageInterface $jobStorage;
-    private ?ImageJobService $jobService;
 
     public function __construct(
         string $absolutePath,
-        string $disk = 'default',
-        ?ImageJobService $jobService = null,
-        ?StorageInterface $storage = null,
-        ?JobStorageInterface $jobStorage = null
+        string $disk,
+        StorageInterface $storage,
+        JobStorageInterface $jobStorage,
+        ?DiskManager $diskManager = null
     ) {
         if (!file_exists($absolutePath)) {
             throw new \InvalidArgumentException("File does not exist: $absolutePath");
         }
-        $this->file = new File($absolutePath, $disk, $storage);
-        $this->storage = $storage ?? new Storage();
-        $this->jobStorage = $jobStorage ?? new JsonJobStorage();
-        $this->jobService = $jobService;
+        $this->file = new File($absolutePath, $disk, $storage, $diskManager);
+        $this->storage = $storage;
+        $this->jobStorage = $jobStorage;
     }
 
     /**
@@ -60,8 +58,7 @@ class PhotoLab
         return new ImageProcessor(
             $this->file,
             $this->storage,
-            $this->jobStorage,
-            $this->jobService
+            $this->jobStorage
         );
     }
 
