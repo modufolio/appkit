@@ -8,7 +8,8 @@ namespace Modufolio\Appkit\Attributes;
 class MapRequestPayload
 {
     public function __construct(
-        public ?string $name = null
+        public ?string $name = null,
+        public bool $throwOnError = true
     ) {
     }
 }

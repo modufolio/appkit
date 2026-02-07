@@ -7,7 +7,7 @@ namespace Modufolio\Appkit\Resolver;
 use Modufolio\Appkit\Attributes\MapFilter;
 use Modufolio\Appkit\Attributes\MapQueryString;
 use Modufolio\Appkit\Attributes\MapRequestPayload;
-use Modufolio\Appkit\Validation\AcceptsValidationErrorsInterface;
+use Modufolio\Appkit\Form\ValidationResult;
 use Psr\Http\Message\ServerRequestInterface;
 use Symfony\Component\Serializer\Exception\PartialDenormalizationException;
 use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
@@ -43,7 +43,7 @@ readonly class MapRequestPayloadResolver implements AttributeResolverInterface
         $mapFilter = $parameter->getAttributes(MapFilter::class)[0] ?? null;
 
         if ($mapRequestPayload) {
-            return $this->resolveRequestPayload($parameter);
+            return $this->resolveRequestPayload($parameter, $mapRequestPayload->newInstance());
         }
 
         if ($mapQueryString) {
@@ -61,7 +61,7 @@ readonly class MapRequestPayloadResolver implements AttributeResolverInterface
      * @throws \JsonException
      * @throws \Exception
      */
-    private function resolveRequestPayload(\ReflectionParameter $parameter): object
+    private function resolveRequestPayload(\ReflectionParameter $parameter, MapRequestPayload $attribute): object
     {
         $array = $this->request->getParsedBody() ?? [];
         $className = $this->getClassName($parameter);
@@ -78,12 +78,15 @@ readonly class MapRequestPayloadResolver implements AttributeResolverInterface
         $violations->addAll($this->validator->validate($payload));
 
         if ($violations->count() > 0) {
-            if ($payload instanceof AcceptsValidationErrorsInterface) {
-                $payload->setViolations($violations);
-                return $payload;
+            if (!$attribute->throwOnError) {
+                return new ResolvedPayload($payload, new ValidationResult($violations));
             }
 
             throw new ValidationFailedException($payload, $violations);
+        }
+
+        if (!$attribute->throwOnError) {
+            return new ResolvedPayload($payload);
         }
 
         return $payload;
@@ -103,12 +106,15 @@ readonly class MapRequestPayloadResolver implements AttributeResolverInterface
         $violations = $this->validator->validate($payload);
 
         if ($violations->count() > 0) {
-            if ($payload instanceof AcceptsValidationErrorsInterface) {
-                $payload->setViolations($violations);
-                return $payload;
+            if (!$attribute->throwOnError) {
+                return new ResolvedPayload($payload, new ValidationResult($violations));
             }
 
             throw new ValidationFailedException($payload, $violations);
+        }
+
+        if (!$attribute->throwOnError) {
+            return new ResolvedPayload($payload);
         }
 
         return $payload;
