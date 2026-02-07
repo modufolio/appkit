@@ -7,6 +7,7 @@ namespace Modufolio\Appkit\Resolver;
 use Modufolio\Appkit\Attributes\MapFilter;
 use Modufolio\Appkit\Attributes\MapQueryString;
 use Modufolio\Appkit\Attributes\MapRequestPayload;
+use Modufolio\Appkit\Validation\AcceptsValidationErrorsInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Symfony\Component\Serializer\Exception\PartialDenormalizationException;
 use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
@@ -77,6 +78,11 @@ readonly class MapRequestPayloadResolver implements AttributeResolverInterface
         $violations->addAll($this->validator->validate($payload));
 
         if ($violations->count() > 0) {
+            if ($payload instanceof AcceptsValidationErrorsInterface) {
+                $payload->setViolations($violations);
+                return $payload;
+            }
+
             throw new ValidationFailedException($payload, $violations);
         }
 
@@ -97,6 +103,11 @@ readonly class MapRequestPayloadResolver implements AttributeResolverInterface
         $violations = $this->validator->validate($payload);
 
         if ($violations->count() > 0) {
+            if ($payload instanceof AcceptsValidationErrorsInterface) {
+                $payload->setViolations($violations);
+                return $payload;
+            }
+
             throw new ValidationFailedException($payload, $violations);
         }
 
