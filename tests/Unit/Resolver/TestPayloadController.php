@@ -20,14 +20,14 @@ class TestPayloadController
     public function storeWithValidationResult(
         ServerRequestInterface $request,
         #[MapRequestPayload(throwOnError: false)] TestCreateUserDto $dto,
-        ?ValidationResult $result = null
+        ValidationResult $result
     ): void {
     }
 
     public function listWithValidationResult(
         ServerRequestInterface $request,
         #[MapQueryString(throwOnError: false)] TestCreateUserDto $query,
-        ?ValidationResult $result = null
+        ValidationResult $result
     ): void {
     }
 

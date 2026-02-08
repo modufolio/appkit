@@ -78,11 +78,11 @@ class MapRequestPayloadResolverTest extends TestCase
         $this->assertArrayHasKey('result', $result);
         $this->assertInstanceOf(TestCreateUserDto::class, $result['dto']);
         $this->assertInstanceOf(ValidationResult::class, $result['result']);
-        $this->assertTrue($result['result']->failed());
+        $this->assertTrue($result['result']->hasErrors());
         $this->assertNotEmpty($result['result']->errors());
     }
 
-    public function testThrowOnErrorFalseWithValidDataInjectsNull(): void
+    public function testThrowOnErrorFalseWithValidDataInjectsEmptyValidationResult(): void
     {
         $request = $this->createRequest(['name' => 'John', 'email' => 'john@example.com']);
 
@@ -100,7 +100,9 @@ class MapRequestPayloadResolverTest extends TestCase
         $this->assertArrayHasKey('dto', $result);
         $this->assertArrayHasKey('result', $result);
         $this->assertInstanceOf(TestCreateUserDto::class, $result['dto']);
-        $this->assertNull($result['result']);
+        $this->assertInstanceOf(ValidationResult::class, $result['result']);
+        $this->assertTrue($result['result']->isValid());
+        $this->assertFalse($result['result']->hasErrors());
         $this->assertSame('John', $result['dto']->name);
         $this->assertSame('john@example.com', $result['dto']->email);
     }
@@ -147,7 +149,7 @@ class MapRequestPayloadResolverTest extends TestCase
         $this->assertArrayHasKey('result', $result);
         $this->assertInstanceOf(TestCreateUserDto::class, $result['query']);
         $this->assertInstanceOf(ValidationResult::class, $result['result']);
-        $this->assertTrue($result['result']->failed());
+        $this->assertTrue($result['result']->hasErrors());
     }
 
     public function testValidationResultStaysNullWhenNoAttribute(): void

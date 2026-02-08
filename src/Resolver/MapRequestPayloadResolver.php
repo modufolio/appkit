@@ -79,14 +79,14 @@ readonly class MapRequestPayloadResolver implements AttributeResolverInterface
 
         if ($violations->count() > 0) {
             if (!$attribute->throwOnError) {
-                return new ResolvedPayload($payload, new ValidationResult($violations));
+                return new ResolvedPayload($payload, ValidationResult::fromViolations($violations));
             }
 
             throw new ValidationFailedException($payload, $violations);
         }
 
         if (!$attribute->throwOnError) {
-            return new ResolvedPayload($payload);
+            return new ResolvedPayload($payload, ValidationResult::empty());
         }
 
         return $payload;
@@ -107,14 +107,14 @@ readonly class MapRequestPayloadResolver implements AttributeResolverInterface
 
         if ($violations->count() > 0) {
             if (!$attribute->throwOnError) {
-                return new ResolvedPayload($payload, new ValidationResult($violations));
+                return new ResolvedPayload($payload, ValidationResult::fromViolations($violations));
             }
 
             throw new ValidationFailedException($payload, $violations);
         }
 
         if (!$attribute->throwOnError) {
-            return new ResolvedPayload($payload);
+            return new ResolvedPayload($payload, ValidationResult::empty());
         }
 
         return $payload;

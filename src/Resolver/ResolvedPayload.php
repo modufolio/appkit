@@ -10,7 +10,7 @@ final readonly class ResolvedPayload
 {
     public function __construct(
         public object $payload,
-        public ?ValidationResult $validationResult = null
+        public ValidationResult $validationResult
     ) {
     }
 }

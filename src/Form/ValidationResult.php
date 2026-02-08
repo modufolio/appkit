@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modufolio\Appkit\Form;
 
+use Symfony\Component\Validator\ConstraintViolationList;
 use Symfony\Component\Validator\ConstraintViolationListInterface;
 
 /**
@@ -18,24 +19,28 @@ use Symfony\Component\Validator\ConstraintViolationListInterface;
  */
 final readonly class ValidationResult
 {
-    public function __construct(
+    private function __construct(
         private ConstraintViolationListInterface $violations
     ) {}
 
-    /**
-     * Check if validation passed.
-     */
-    public function passed(): bool
+    public static function fromViolations(ConstraintViolationListInterface $violations): self
+    {
+        return new self($violations);
+    }
+
+    public static function empty(): self
+    {
+        return new self(new ConstraintViolationList());
+    }
+
+    public function isValid(): bool
     {
         return $this->violations->count() === 0;
     }
 
-    /**
-     * Check if validation failed.
-     */
-    public function failed(): bool
+    public function hasErrors(): bool
     {
-        return !$this->passed();
+        return !$this->isValid();
     }
 
     /**
@@ -108,7 +113,7 @@ final readonly class ValidationResult
      */
     public function throwIfFailed(): void
     {
-        if ($this->failed()) {
+        if ($this->hasErrors()) {
             throw new ValidationException($this);
         }
     }
