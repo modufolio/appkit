@@ -41,7 +41,7 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
  * $form = new CreateUserForm();
  * $result = $form->validate($request->all());
  *
- * if ($result->failed()) {
+ * if ($result->hasErrors()) {
  *     return $this->error('Validation failed', $result->errors());
  * }
  * ```
@@ -72,7 +72,7 @@ abstract class Form
     {
         $violations = $this->getValidator()->validate($data, $this->rules());
 
-        return new ValidationResult($violations);
+        return ValidationResult::fromViolations($violations);
     }
 
     /**
