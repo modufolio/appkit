@@ -54,12 +54,7 @@ class ImageProcessor
             return null;
         }
 
-        if (empty($this->transformations)) {
-            return $this->file;
-        }
-
         // Validate source file is processable
-        // This may throw ImageException if MIME type is invalid
         if (!$this->file->isResizable()) {
             return $this->file;
         }
@@ -73,6 +68,28 @@ class ImageProcessor
             throw ImageException::fileNotReadable($this->file->root());
         }
 
+        $mediaRoot = dirname($this->file->mediaRoot());
+
+        if (empty($this->transformations)) {
+            // No transformations — serve the original via the media path
+            $thumbName = $this->file->filename();
+            $thumbRoot = $mediaRoot . '/' . $thumbName;
+
+            if (!file_exists($thumbRoot)) {
+                $this->jobStorage->saveJob($mediaRoot, $thumbName, [
+                    'filename' => $this->file->relativePathFromUploads(),
+                    'transformations' => [],
+                ]);
+            }
+
+            return new ImageVariant([
+                'modifications' => [],
+                'original' => $this->file,
+                'root' => $thumbRoot,
+                'url' => dirname($this->file->mediaUrl()) . '/' . $thumbName,
+            ]);
+        }
+
         // Collect all transformation options
         $allOptions = [];
         foreach ($this->transformations as $transformation) {
@@ -80,7 +97,6 @@ class ImageProcessor
         }
 
         // Generate thumb path based on combined transformations
-        $mediaRoot = dirname($this->file->mediaRoot());
         $template = $mediaRoot . '/{{ name }}{{ attributes }}.{{ extension }}';
         $thumbRoot = (new CustomFilename($this->file->root(), $template, $allOptions))->toString();
         $thumbName = basename($thumbRoot);
@@ -91,7 +107,6 @@ class ImageProcessor
                 'filename' => $this->file->relativePathFromUploads(),
                 'transformations' => $this->getTransformationNames(),
             ]);
-
 
             $this->jobStorage->saveJob($mediaRoot, $thumbName, $jobOptions);
         }
