@@ -84,9 +84,15 @@ abstract class AbstractApplicationState implements ApplicationStateInterface
         $host   = $uri->getHost();
         $port   = $uri->getPort();
 
+        // If scheme or host is empty (e.g., in test environments with relative URIs),
+        // return empty string to use path-only URLs
+        if (empty($scheme) || empty($host)) {
+            return '';
+        }
+
         $base = $scheme . '://' . $host;
 
-        if (($scheme === 'http' && $port !== 80) || ($scheme === 'https' && $port !== 443)) {
+        if ($port !== null && (($scheme === 'http' && $port !== 80) || ($scheme === 'https' && $port !== 443))) {
             $base .= ':' . $port;
         }
 

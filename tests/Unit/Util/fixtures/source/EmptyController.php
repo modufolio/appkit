@@ -1,6 +1,6 @@
 <?php
 
-namespace Modufolio\Appkit\Tests\App\Controller;
+namespace App\Controller;
 
 class EmptyController
 {

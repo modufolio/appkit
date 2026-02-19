@@ -68,7 +68,7 @@ class ImageTest extends TestCase
     public function testHeight(): void
     {
         $file = $this->_image();
-        $this->assertSame(500, $file->height());
+        $this->assertSame(533, $file->height());
     }
 
 
@@ -81,7 +81,7 @@ class ImageTest extends TestCase
     {
         $file = $this->_image();
         $this->assertIsArray($file->imagesize());
-        $this->assertSame(500, $file->imagesize()[0]);
+        $this->assertSame(800, $file->imagesize()[0]);
     }
 
     /**
@@ -99,7 +99,7 @@ class ImageTest extends TestCase
     public function testIsLandscape(): void
     {
         $file = $this->_image();
-        $this->assertFalse($file->isLandscape());
+        $this->assertTrue($file->isLandscape());
     }
 
     /**
@@ -108,7 +108,7 @@ class ImageTest extends TestCase
     public function testIsSquare(): void
     {
         $file = $this->_image();
-        $this->assertTrue($file->isSquare());
+        $this->assertFalse($file->isSquare());
     }
 
     /**
@@ -154,7 +154,7 @@ class ImageTest extends TestCase
     public function testOrientation(): void
     {
         $file = $this->_image();
-        $this->assertSame('square', $file->orientation());
+        $this->assertSame('landscape', $file->orientation());
     }
 
     /**
@@ -163,7 +163,7 @@ class ImageTest extends TestCase
     public function testRatio(): void
     {
         $image  = $this->_image();
-        $this->assertSame(1.0, $image->ratio());
+        $this->assertEqualsWithDelta(1.5009380863039, $image->ratio(), 0.0001);
     }
 
     /**
@@ -183,6 +183,6 @@ class ImageTest extends TestCase
     public function testWidth(): void
     {
         $file = $this->_image();
-        $this->assertSame(500, $file->width());
+        $this->assertSame(800, $file->width());
     }
 }

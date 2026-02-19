@@ -1,8 +1,8 @@
 <?php
 
-namespace Modufolio\Appkit\Tests\App\Entity;
+namespace App\Entity;
 
-use Modufolio\Appkit\Tests\App\TraitAlreadyHere;
+use TraitAlreadyHere;
 
 class User
 {

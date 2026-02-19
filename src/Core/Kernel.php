@@ -730,12 +730,12 @@ abstract class Kernel implements AppInterface
             // Create minimal test request
             $request = new ServerRequest(
                 method: 'GET',
-                uri: new Uri('http://localhost'),
+                uri: new Uri('http://127.0.0.1'),
                 headers: [],
                 body: Stream::create(''),
                 version: '1.1',
                 serverParams: [
-                    'HTTP_HOST' => 'localhost',
+                    'HTTP_HOST' => '127.0.0.1',
                     'REQUEST_METHOD' => 'GET',
                     'REQUEST_URI' => '/',
                     'SERVER_PROTOCOL' => 'HTTP/1.1',

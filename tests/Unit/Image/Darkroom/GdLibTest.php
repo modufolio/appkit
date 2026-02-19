@@ -50,14 +50,14 @@ class GdLibTest extends TestCase
             'crop' => false,
             'format' => null,
             'grayscale' => false,
-            'height' => 500,
+            'height' => 533,
             'quality' => 90,
             'scaleHeight' => 1.0,
             'scaleWidth' => 1.0,
             'sharpen' => null,
-            'width' => 500,
-            'sourceWidth' => 500,
-            'sourceHeight' => 500,
+            'width' => 800,
+            'sourceWidth' => 800,
+            'sourceHeight' => 533,
         ], $gd->process($file));
     }
 

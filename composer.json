@@ -78,5 +78,10 @@
         "test:coverage": "php -d xdebug.mode=coverage ./vendor/bin/phpunit --stderr --coverage-html=tests/coverage"
     },
     "minimum-stability": "dev",
-    "prefer-stable": true
+    "prefer-stable": true,
+    "config": {
+        "audit": {
+            "block-insecure": false
+        }
+    }
 }

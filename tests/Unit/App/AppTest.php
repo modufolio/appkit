@@ -41,7 +41,7 @@ class AppTest extends AppTestCase
     {
         $baseUrl = $this->app()->baseUrl();
         $this->assertIsString($baseUrl);
-        $this->assertStringStartsWith('http', $baseUrl);
+        $this->assertSame('http://127.0.0.1', $baseUrl);
     }
 
     public function testUrlGeneration(): void

@@ -15,7 +15,7 @@ class UseStatementGeneratorTest extends TestCase
     {
         $unsorted = new UseStatementGenerator([
             Sorter::class,
-            \Modufolio\Appkit\Tests\App\Controller\SomeController::class,
+            \App\Controller\SomeController::class,
             \Symfony\Bundle\MakerBundle\Test\MakerTestCase::class,
         ]);
 
@@ -32,14 +32,14 @@ class UseStatementGeneratorTest extends TestCase
     {
         $unsorted = new UseStatementGenerator([
             \Symfony\Bundle\FrameworkBundle\Controller\AbstractController::class,
-            \Modufolio\Appkit\Tests\App\Form\RegistrationFormType::class,
-            \Modufolio\Appkit\Tests\App\Entity\User::class,
+            \App\Form\RegistrationFormType::class,
+            \App\Entity\User::class,
             \Symfony\Bridge\Twig\Mime\TemplatedEmail::class,
             \Symfony\Component\HttpFoundation\Request::class,
             \Symfony\Component\HttpFoundation\Response::class,
             \Symfony\Component\Routing\Attribute\Route::class,
             \Symfony\Component\Security\Core\Encoder\UserPasswordEncoderInterface::class,
-            \Modufolio\Appkit\Tests\App\Security\EmailVerifier::class,
+            \App\Security\EmailVerifier::class,
             \Symfony\Component\Mime\Address::class,
             \SymfonyCasts\Bundle\VerifyEmail\Exception\VerifyEmailExceptionInterface::class,
             \Doctrine\ORM\EntityManagerInterface::class,

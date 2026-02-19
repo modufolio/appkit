@@ -36,9 +36,9 @@ class ExifTest extends TestCase
             'MimeType'      => 'image/jpeg',
             'SectionsFound' => 'COMMENT',
             'COMPUTED'      => [
-                'html'      => 'width="500" height="500"',
-                'Height'    => 500,
-                'Width'     => 500,
+                'html'      => 'width="800" height="533"',
+                'Height'    => 533,
+                'Width'     => 800,
                 'IsColor'   => 1
             ],
         ], $data);

@@ -1,8 +1,8 @@
 <?php
 
-namespace Modufolio\Appkit\Tests\App\Entity;
+namespace App\Entity;
 
-use Modufolio\Appkit\Tests\App\TestTrait;
+use App\TestTrait;
 
 class User
 {

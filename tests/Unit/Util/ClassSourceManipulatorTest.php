@@ -319,7 +319,7 @@ class ClassSourceManipulatorTest extends TestCase
             'User_simple_not_nullable.php',
             new RelationManyToOne(
                 propertyName: 'category',
-                targetClassName: \Modufolio\Appkit\Tests\App\Entity\Category::class,
+                targetClassName: \App\Entity\Category::class,
                 targetPropertyName: 'foods',
                 isOwning: true,
             ),
@@ -330,7 +330,7 @@ class ClassSourceManipulatorTest extends TestCase
             'User_simple_nullable.php',
             new RelationManyToOne(
                 propertyName: 'category',
-                targetClassName: \Modufolio\Appkit\Tests\App\Entity\Category::class,
+                targetClassName: \App\Entity\Category::class,
                 targetPropertyName: 'foods',
                 isOwning: true,
                 isNullable: true,
@@ -366,7 +366,7 @@ class ClassSourceManipulatorTest extends TestCase
             'User_with_relation_same_and_other_namespaces.php',
             new RelationManyToOne(
                 propertyName: 'subCategory',
-                targetClassName: \Modufolio\Appkit\Tests\App\Entity\SubDirectory\Category::class,
+                targetClassName: \App\Entity\SubDirectory\Category::class,
                 targetPropertyName: 'foods',
                 isOwning: true,
                 isNullable: true,
@@ -378,7 +378,7 @@ class ClassSourceManipulatorTest extends TestCase
             'User_simple_no_inverse.php',
             new RelationManyToOne(
                 propertyName: 'category',
-                targetClassName: \Modufolio\Appkit\Tests\App\Entity\Category::class,
+                targetClassName: \App\Entity\Category::class,
                 targetPropertyName: 'foods',
                 mapInverseRelation: false,
                 isOwning: true,
@@ -420,7 +420,7 @@ class ClassSourceManipulatorTest extends TestCase
             'User_simple.php',
             new RelationOneToMany(
                 propertyName: 'avatarPhotos',
-                targetClassName: \Modufolio\Appkit\Tests\App\Entity\UserAvatarPhoto::class,
+                targetClassName: \App\Entity\UserAvatarPhoto::class,
                 targetPropertyName: 'user',
             ),
         ];
@@ -432,7 +432,7 @@ class ClassSourceManipulatorTest extends TestCase
             'User_with_use_statements.php',
             new RelationOneToMany(
                 propertyName: 'avatarPhotos',
-                targetClassName: \Modufolio\Appkit\Tests\App\Entity\UserAvatarPhoto::class,
+                targetClassName: \App\Entity\UserAvatarPhoto::class,
                 targetPropertyName: 'user',
             ),
         ];
@@ -442,7 +442,7 @@ class ClassSourceManipulatorTest extends TestCase
             'User_simple_orphan_removal.php',
             new RelationOneToMany(
                 propertyName: 'avatarPhotos',
-                targetClassName: \Modufolio\Appkit\Tests\App\Entity\UserAvatarPhoto::class,
+                targetClassName: \App\Entity\UserAvatarPhoto::class,
                 targetPropertyName: 'user',
                 orphanRemoval: true,
             ),
@@ -479,7 +479,7 @@ class ClassSourceManipulatorTest extends TestCase
             'User_simple_owning.php',
             new RelationManyToMany(
                 propertyName: 'recipes',
-                targetClassName: \Modufolio\Appkit\Tests\App\Entity\Recipe::class,
+                targetClassName: \App\Entity\Recipe::class,
                 targetPropertyName: 'foods',
                 isOwning: true,
             ),
@@ -490,7 +490,7 @@ class ClassSourceManipulatorTest extends TestCase
             'User_simple_inverse.php',
             new RelationManyToMany(
                 propertyName: 'recipes',
-                targetClassName: \Modufolio\Appkit\Tests\App\Entity\Recipe::class,
+                targetClassName: \App\Entity\Recipe::class,
                 targetPropertyName: 'foods',
             ),
         ];
@@ -500,7 +500,7 @@ class ClassSourceManipulatorTest extends TestCase
             'User_simple_no_inverse.php',
             new RelationManyToMany(
                 propertyName: 'recipes',
-                targetClassName: \Modufolio\Appkit\Tests\App\Entity\Recipe::class,
+                targetClassName: \App\Entity\Recipe::class,
                 targetPropertyName: 'foods',
                 mapInverseRelation: false,
                 isOwning: true,
@@ -531,15 +531,13 @@ class ClassSourceManipulatorTest extends TestCase
 
     public static function getAddOneToOneRelationTests(): \Generator
     {
-        /** @legacy - Remove when Doctrine/ORM 2.x is no longer supported. */
-        $isLegacy = !class_exists(FieldMapping::class);
 
         yield 'one_to_one_owning' => [
             'User_simple.php',
             'User_simple_owning.php',
             new RelationOneToOne(
                 propertyName: 'userProfile',
-                targetClassName: \Modufolio\Appkit\Tests\App\Entity\UserProfile::class,
+                targetClassName: \App\Entity\UserProfile::class,
                 targetPropertyName: 'user',
                 isOwning: true,
                 isNullable: true,
@@ -549,10 +547,10 @@ class ClassSourceManipulatorTest extends TestCase
         // a relationship to yourself - return type is self
         yield 'one_to_one_owning_self' => [
             'User_simple.php',
-            $isLegacy ? 'legacy/User_simple_self.php' : 'User_simple_self.php',
+            'User_simple_self.php',
             new RelationOneToOne(
                 propertyName: 'embeddedUser',
-                targetClassName: \Modufolio\Appkit\Tests\App\Entity\User::class,
+                targetClassName: \App\Entity\User::class,
                 targetPropertyName: 'user',
                 isOwning: true,
                 isNullable: true,
@@ -564,7 +562,7 @@ class ClassSourceManipulatorTest extends TestCase
             'UserProfile_simple_inverse.php',
             new RelationOneToOne(
                 propertyName: 'user',
-                targetClassName: \Modufolio\Appkit\Tests\App\Entity\User::class,
+                targetClassName: \App\Entity\User::class,
                 targetPropertyName: 'userProfile',
                 isNullable: true,
             ),
@@ -575,7 +573,7 @@ class ClassSourceManipulatorTest extends TestCase
             'UserProfile_simple_inverse_not_nullable.php',
             new RelationOneToOne(
                 propertyName: 'user',
-                targetClassName: \Modufolio\Appkit\Tests\App\Entity\User::class,
+                targetClassName: \App\Entity\User::class,
                 targetPropertyName: 'userProfile',
             ),
         ];
@@ -585,7 +583,7 @@ class ClassSourceManipulatorTest extends TestCase
             'User_simple_no_inverse.php',
             new RelationOneToOne(
                 propertyName: 'userProfile',
-                targetClassName: \Modufolio\Appkit\Tests\App\Entity\UserProfile::class,
+                targetClassName: \App\Entity\UserProfile::class,
                 mapInverseRelation: false,
                 isOwning: true,
                 isNullable: true,
@@ -597,7 +595,7 @@ class ClassSourceManipulatorTest extends TestCase
             'User_simple_no_inverse_not_nullable.php',
             new RelationOneToOne(
                 propertyName: 'userProfile',
-                targetClassName: \Modufolio\Appkit\Tests\App\Entity\UserProfile::class,
+                targetClassName: \App\Entity\UserProfile::class,
                 mapInverseRelation: false,
                 isOwning: true,
             ),
@@ -608,7 +606,7 @@ class ClassSourceManipulatorTest extends TestCase
             'User_with_use_statements_avoid_duplicate_use.php',
             new RelationOneToOne(
                 propertyName: 'userProfile',
-                targetClassName: \Modufolio\Appkit\Tests\App\OtherEntity\UserProfile::class,
+                targetClassName: \App\OtherEntity\UserProfile::class,
                 targetPropertyName: 'user',
                 isOwning: true,
                 isNullable: true,
@@ -620,7 +618,7 @@ class ClassSourceManipulatorTest extends TestCase
             'User_with_use_statements_avoid_duplicate_use_alias.php',
             new RelationOneToOne(
                 propertyName: 'category',
-                targetClassName: \Modufolio\Appkit\Tests\App\OtherEntity\Category::class,
+                targetClassName: \App\OtherEntity\Category::class,
                 targetPropertyName: 'user',
                 isOwning: true,
                 isNullable: true,
@@ -753,7 +751,7 @@ class ClassSourceManipulatorTest extends TestCase
 
         $manipulator = new ClassSourceManipulator($source);
 
-        $manipulator->addTrait('App\TraitAlreadyHere');
+        $manipulator->addTrait('TraitAlreadyHere');
 
         $this->assertSame($expectedSource, $manipulator->getSourceCode());
     }

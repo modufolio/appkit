@@ -1,9 +1,9 @@
 <?php
 
-namespace Modufolio\Appkit\Tests\App\Entity;
+namespace App\Entity;
 
-use Modufolio\Appkit\Tests\App\Repository\UserRepository;
 use Doctrine\ORM\Mapping as ORM;
+use App\Repository\UserRepository;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 class User

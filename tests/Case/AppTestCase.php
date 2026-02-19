@@ -225,8 +225,8 @@ abstract class AppTestCase extends BaseTestCase
             $request = $request->withHeader($name, $value);
         }
 
-        // Set parsed body for form data
-        if ($hasBody && $contentType === 'application/x-www-form-urlencoded') {
+        // Set parsed body for form data and JSON
+        if ($hasBody && in_array($contentType, ['application/x-www-form-urlencoded', 'application/json'], true)) {
             $request = $request->withParsedBody($data);
         }
 

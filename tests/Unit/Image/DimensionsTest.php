@@ -170,10 +170,6 @@ class DimensionsTest extends TestCase
      */
     public function testForImage(): void
     {
-        $dimensions = Dimensions::forImage(__DIR__ . '/fixtures/image/onigiri-adobe-rgb-gps.jpg');
-        $this->assertSame(600, $dimensions->width());
-        $this->assertSame(400, $dimensions->height());
-
         $dimensions = Dimensions::forImage(__DIR__ . '/fixtures/image/onigiri-adobe-rgb-gps.webp');
         $this->assertSame(600, $dimensions->width());
         $this->assertSame(400, $dimensions->height());

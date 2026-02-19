@@ -33,8 +33,6 @@ class LoginTest extends AppTestCase
 
     public function testLoginSuccessfullyStoresToken(): void
     {
-        $this->markTestSkipped('Requires URL generation fix for authentication redirects (scheme/host missing)');
-
         // ARRANGE - Set up test data and initial state
         $csrfToken = $this->app()->csrfTokenManager()->getToken('authenticate')->getValue();
 

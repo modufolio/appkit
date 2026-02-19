@@ -1,8 +1,8 @@
 <?php
 
-namespace Modufolio\Appkit\Tests\App\Entity;
+namespace App\Entity;
 
-use Modufolio\Appkit\Tests\App\Entity\SubDirectory\Category;
+use App\Entity\SubDirectory\Category;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity]

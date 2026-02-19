@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up PHP 8.4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: xdebug
+          extensions: curl, dom, exif, fileinfo, gd, intl, libxml, pdo, simplexml, sqlite3, zip
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Run tests with coverage
+        run: vendor/bin/phpunit --coverage-clover=coverage.xml
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: coverage.xml
+          fail_ci_if_error: true

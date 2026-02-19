@@ -1,9 +1,9 @@
 <?php
 
-namespace Modufolio\Appkit\Tests\App\Entity;
+namespace App\Entity;
 
-use Modufolio\Appkit\Security\User\UserInterface;
 use Doctrine\ORM\Mapping as ORM;
+use Modufolio\Appkit\Security\User\UserInterface;
 
 #[ORM\Entity]
 class User implements UserInterface

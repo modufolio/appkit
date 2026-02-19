@@ -172,7 +172,7 @@ class TxtTest extends TestCase
      */
     public function testEncodeFloatWithLocaleSetting()
     {
-        $currentLocale = setlocale(LC_ALL, 0);
+        $currentLocale = setlocale(LC_ALL, null);
         setlocale(LC_ALL, 'de_DE');
 
         $data = Txt::encode([

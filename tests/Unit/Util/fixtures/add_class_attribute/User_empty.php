@@ -1,6 +1,6 @@
 <?php
 
-namespace Modufolio\Appkit\Tests\App\Entity;
+namespace App\Entity;
 
 use Doctrine\ORM\Mapping\Entity;
 
