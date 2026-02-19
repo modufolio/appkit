@@ -810,6 +810,10 @@ final class ClassSourceManipulator
                         return $alias;
                     }
 
+                    if (str_starts_with($class, $alias)) {
+                        return $class;
+                    }
+
                     if ($alias === $shortClassName) {
                         // we have a conflicting alias!
                         // to be safe, use the fully-qualified class name

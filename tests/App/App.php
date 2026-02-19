@@ -22,6 +22,7 @@ use Modufolio\Appkit\Security\Csrf\CsrfTokenManager;
 use Modufolio\Appkit\Security\Csrf\CsrfTokenManagerInterface;
 use Modufolio\Appkit\Security\TwoFactor\TotpService;
 use Modufolio\Appkit\Security\User\UserProviderInterface;
+use Modufolio\Appkit\Tests\App\StubBruteForceProtection;
 use Doctrine\DBAL\Exception;
 use Symfony\Component\Config\Loader\LoaderInterface;
 use Symfony\Component\Serializer\Encoder\JsonEncoder;
@@ -46,6 +47,7 @@ class App extends Kernel
 {
     private ?CsrfTokenManagerInterface $csrfTokenManager = null;
     private ?UserProviderInterface $userProvider = null;
+    private ?BruteForceProtectionInterface $bruteForceProtection = null;
 
     public function __construct(
         string $baseDir,
@@ -88,6 +90,14 @@ class App extends Kernel
     public function csrfTokenManager(): CsrfTokenManagerInterface
     {
         return $this->csrfTokenManager ??= new CsrfTokenManager($this->session());
+    }
+
+    /**
+     * Get brute force protection service (stub for testing).
+     */
+    public function bruteForceProtection(): BruteForceProtectionInterface
+    {
+        return $this->bruteForceProtection ??= new StubBruteForceProtection();
     }
 
     // ============================================================================

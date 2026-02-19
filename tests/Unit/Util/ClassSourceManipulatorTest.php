@@ -751,7 +751,7 @@ class ClassSourceManipulatorTest extends TestCase
 
         $manipulator = new ClassSourceManipulator($source);
 
-        $manipulator->addTrait('TraitAlreadyHere');
+        $manipulator->addTrait('App\TestTrait');
 
         $this->assertSame($expectedSource, $manipulator->getSourceCode());
     }

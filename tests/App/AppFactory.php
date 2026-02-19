@@ -42,14 +42,14 @@ class AppFactory
             baseDir: $baseDir,
             routeLoader: $routeLoader,
             userProviderClass: UserRepository::class,
-            authenticators: [],
+            authenticators: F::load($baseDir . '/config/authenticators.php', []),
             controllers: [],
             factories: [],
             fileMap: [
                 'doctrine' => $baseDir . '/config/test/doctrine.php',
                 'interfaces' => $baseDir . '/config/interfaces.php',
             ],
-            repositories: [],
+            repositories: F::load($baseDir . '/config/repositories.php', []),
         ))->configureSecurity($securityConfigurator);
     }
 }

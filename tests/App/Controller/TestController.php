@@ -17,8 +17,13 @@ class TestController
 
     public function login(ServerRequestInterface $request): ResponseInterface
     {
-        // This is just a stub for routing tests
-        // Actual authentication is handled by the framework's authenticators
+        // If this is a POST request, authentication has already been handled by the framework
+        // If we reach here on POST, authentication succeeded - redirect to home
+        if ($request->getMethod() === 'POST') {
+            return Response::redirect('/');
+        }
+        
+        // GET request - show login page
         return new Response(200, [], 'Login page');
     }
 
