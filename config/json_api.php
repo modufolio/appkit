@@ -8,7 +8,7 @@ use Modufolio\JsonApi\JsonApiConfigurator;
 
 return function (JsonApiConfigurator $api) {
     // Configure Account entity
-    $api->resource('Modufolio\JsonApi\Tests\Fixtures\Entity\Account')
+    $api->resource('Modufolio\Appkit\Tests\App\Entity\Account')
         ->key('account')
         ->fields(['id', 'name', 'createdAt', 'updatedAt'])
         ->relationships(['organizations', 'contacts'])
@@ -21,7 +21,7 @@ return function (JsonApiConfigurator $api) {
         ]);
 
     // Configure Contact entity
-    $api->resource('Modufolio\JsonApi\Tests\Fixtures\Entity\Contact')
+    $api->resource('Modufolio\Appkit\Tests\App\Entity\Contact')
         ->key('contact')
         ->fields([
             'id',
@@ -48,7 +48,7 @@ return function (JsonApiConfigurator $api) {
         ]);
 
     // Configure Organization entity
-    $api->resource('Modufolio\JsonApi\Tests\Fixtures\Entity\Organization')
+    $api->resource('Modufolio\Appkit\Tests\App\Entity\Organization')
         ->key('organization')
         ->fields([
             'id',
