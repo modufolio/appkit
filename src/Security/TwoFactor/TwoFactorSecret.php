@@ -32,6 +32,9 @@ interface TwoFactorSecret
     public function setEnabled(bool $enabled): void;
 
 
+    public function getEnabledAt(): ?DateTimeImmutable;
+
+
     public function setConfirmed(bool $confirmed): void;
 
 
