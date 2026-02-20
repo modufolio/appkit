@@ -77,9 +77,9 @@ interface TwoFactorSecret
     /**
      * Get all backup codes (hashed)
      *
-     * @return array<string>
+     * @return array|null
      */
-    public function getBackupCodes(): array;
+    public function getBackupCodes(): ?array;
 
     public function removeBackupCode(string $code): void;
 

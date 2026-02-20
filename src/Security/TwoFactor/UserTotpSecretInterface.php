@@ -11,7 +11,7 @@ use Modufolio\Appkit\Security\User\UserInterface;
  *
  * Defines contract for managing user TOTP secrets
  */
-interface UserTotpSecretInterface
+interface UserTotpSecretInterface extends TwoFactorSecret
 {
     /**
      * Get the associated user
@@ -61,7 +61,7 @@ interface UserTotpSecretInterface
     /**
      * Set last used timestamp
      */
-    public function setLastUsedAt(\DateTimeImmutable $lastUsedAt): void;
+    public function setLastUsedAt(?\DateTimeImmutable $lastUsedAt): void;
 
     /**
      * Get failed attempts count
@@ -91,7 +91,7 @@ interface UserTotpSecretInterface
     /**
      * Set backup codes
      */
-    public function setBackupCodes(array $codes): void;
+    public function setBackupCodes(?array $backupCodes): void;
 
     /**
      * Remove a backup code
