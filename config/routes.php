@@ -8,4 +8,5 @@ use Symfony\Component\Routing\Loader\Configurator\RoutingConfigurator;
 return function (RoutingConfigurator $routes): void {
 
     $routes->import('../config/routes/test.php', 'array');
+    $routes->import('../config/json_api.php', 'json_api');
 };

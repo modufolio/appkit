@@ -7,7 +7,6 @@ namespace Modufolio\Appkit\Routing\Loader;
 
 use Doctrine\ORM\Mapping\Entity as DoctrineEntity;
 use Modufolio\JsonApi\JsonApiConfigurator;
-use Modufolio\JsonApi\JsonApiController;
 use ReflectionClass;
 use Symfony\Component\Config\FileLocatorInterface;
 use Symfony\Component\Config\Loader\Loader;
@@ -18,7 +17,7 @@ class JsonApiRouteLoader extends Loader
 {
     public function __construct(
         private FileLocatorInterface $fileLocator,
-        private readonly string $controllerClass = JsonApiController::class,
+        private readonly string $controllerClass,
         private readonly string $prefix = '/api',
         private readonly bool $debug = false
     ) {

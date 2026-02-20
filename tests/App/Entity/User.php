@@ -5,13 +5,12 @@ declare(strict_types=1);
 namespace Modufolio\Appkit\Tests\App\Entity;
 
 use Modufolio\Appkit\Security\User\PasswordAuthenticatedUserInterface;
-use Modufolio\Appkit\Security\User\UserInterface;
 use Modufolio\Appkit\Tests\App\Repository\UserRepository;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\Table(name: 'users')]
-class User implements PasswordAuthenticatedUserInterface, UserInterface
+class User implements PasswordAuthenticatedUserInterface
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]

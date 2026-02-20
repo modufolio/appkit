@@ -11,6 +11,7 @@ use Modufolio\Appkit\Doctrine\Middleware\Debug\DebugMiddleware;
 use Modufolio\Appkit\Doctrine\Middleware\Debug\DebugStack;
 use Modufolio\Appkit\Doctrine\OrmConfigurator;
 use Modufolio\Appkit\Exception\ExceptionHandler;
+use Modufolio\Appkit\Exception\ExceptionHandlerInterface;
 use Modufolio\Appkit\Exception\NotFoundException;
 use Modufolio\Appkit\Resolver\ParameterResolverInterface;
 use Modufolio\Appkit\Routing\Router;
@@ -195,7 +196,11 @@ abstract class Kernel implements AppInterface
             $this->phpDiContainer->set(TokenStorageInterface::class, $this->state->getTokenStorage());
         }
 
-        $response = $this->handleAuthentication($request);
+        try {
+            $response = $this->handleAuthentication($request);
+        } catch (\Throwable $e) {
+            $response = $this->exceptionHandler()->handle($e, $request);
+        }
 
         return $this->prepareResponse()->prepare($request, $response);
     }
@@ -403,7 +408,7 @@ abstract class Kernel implements AppInterface
         return $this->entityManager;
     }
 
-    public function exceptionHandler(): ExceptionHandler
+    public function exceptionHandler(): ExceptionHandlerInterface
     {
         return $this->exceptionHandler ??= new ExceptionHandler($this->environment());
     }

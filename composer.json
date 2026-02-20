@@ -58,7 +58,8 @@
     "require-dev": {
         "phpunit/phpunit": "^12",
         "fakerphp/faker": "^1.24",
-        "doctrine/data-fixtures": "^2.2"
+        "doctrine/data-fixtures": "^2.2",
+        "modufolio/json-api": "dev-master"
     },
     "autoload": {
         "psr-4": {

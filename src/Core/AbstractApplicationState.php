@@ -43,7 +43,6 @@ abstract class AbstractApplicationState implements ApplicationStateInterface
     /**
      * @param ServerRequestInterface $request The current HTTP request
      * @param array $firewallConfig Optional firewall configuration
-     * @param Runtime|null $runtime The runtime environment (auto-detected if null)
      */
     public function __construct(
         ServerRequestInterface $request,

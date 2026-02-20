@@ -9,7 +9,7 @@ use Modufolio\Appkit\Security\Exception\InvalidCsrfTokenException;
 use Modufolio\Appkit\Security\Token\TokenInterface;
 use Modufolio\Appkit\Security\Token\TwoFactorToken;
 use Modufolio\Appkit\Security\Token\UsernamePasswordToken;
-use Modufolio\Appkit\Security\TwoFactor\TotpService;
+use Modufolio\Appkit\Security\TwoFactor\TwoFactorServiceInterface;
 use Modufolio\Appkit\Security\User\PasswordAuthenticatedUserInterface;
 use Modufolio\Appkit\Security\User\UserCheckerInterface;
 use Modufolio\Appkit\Security\User\UserInterface;
@@ -28,7 +28,7 @@ class FormLoginAuthenticator extends AbstractAuthenticator
         private BruteForceProtectionInterface $bruteForceProtection,
         private CsrfTokenManagerInterface $csrfTokenManager,
         private FlashBagAwareSessionInterface $session,
-        private ?TotpService $totpService = null,
+        private ?TwoFactorServiceInterface $totpService = null,
         private ?UserCheckerInterface $userChecker = null,
         array $options = []
     ) {
@@ -94,7 +94,7 @@ class FormLoginAuthenticator extends AbstractAuthenticator
 
             // Check if 2FA is enabled for this user
             if ($this->totpService !== null && $user instanceof UserInterface) {
-                $totpSecret = $this->totpService->getTotpSecret($user);
+                $totpSecret = $this->totpService->getTwoFactorSecret($user);
 
                 if ($totpSecret !== null && $totpSecret->isEnabled()) {
 

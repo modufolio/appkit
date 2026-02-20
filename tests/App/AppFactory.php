@@ -4,18 +4,16 @@ declare(strict_types = 1);
 
 namespace Modufolio\Appkit\Tests\App;
 
+use Modufolio\Appkit\Tests\App\JsonApi\JsonApiController;
 use Modufolio\Appkit\Tests\App\Repository\UserRepository;
 use Modufolio\Appkit\Core\AppInterface;
 use Modufolio\Appkit\Routing\Loader\ArrayRouteLoader;
-use Modufolio\Appkit\Routing\Loader\AttributeClassLoader;
-use Modufolio\Appkit\Routing\Loader\FlatFileRouteLoader;
 use Modufolio\Appkit\Routing\Loader\JsonApiRouteLoader;
 use Modufolio\Appkit\Security\SecurityConfigurator;
 use Modufolio\Appkit\Toolkit\F;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\Config\Loader\DelegatingLoader;
 use Symfony\Component\Config\Loader\LoaderResolver;
-use Symfony\Component\Routing\Loader\AttributeDirectoryLoader;
 use Symfony\Component\Routing\Loader\PhpFileLoader;
 
 class AppFactory
@@ -27,6 +25,7 @@ class AppFactory
             [
                 new PhpFileLoader($locator),
                 new ArrayRouteLoader($locator),
+                new JsonApiRouteLoader($locator, JsonApiController::class),
             ]
         ));
 

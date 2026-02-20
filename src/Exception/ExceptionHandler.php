@@ -12,7 +12,7 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Symfony\Component\Routing\Exception\ResourceNotFoundException;
 
-final class ExceptionHandler
+final class ExceptionHandler implements ExceptionHandlerInterface
 {
     /** @var array<class-string<\Throwable>, callable(\Throwable, ServerRequestInterface): array> */
     private array $handlers = [];
@@ -46,20 +46,54 @@ final class ExceptionHandler
     {
         $data = null;
 
-        foreach ($this->handlers as $class => $handler) {
-            if ($e instanceof $class) {
-                $data = $handler($e, $request);
-                break;
+        try {
+            // Try to handle with registered exception handlers
+            foreach ($this->handlers as $class => $handler) {
+                if ($e instanceof $class) {
+                    $data = $handler($e, $request);
+                    break;
+                }
             }
-        }
 
-        if ($data === null) {
-            $data = $this->defaultData($e);
+            // Handle 2FA exceptions using the interface
+            if ($data === null) {
+                $data = $this->handleTwoFactorException($e);
+            }
+
+            if ($data === null) {
+                $data = $this->defaultData($e);
+            }
+        } catch (\Throwable $handlerException) {
+            // If handler fails, fall back to default error response
+            $data = $this->defaultData($handlerException);
         }
 
         $mimeType = $this->negotiateFormat($request);
 
         return $this->format($data, $mimeType);
+    }
+
+    /**
+     * Handle TwoFactorException using the exception handler interface
+     *
+     * @return array<string, mixed>|null
+     */
+    private function handleTwoFactorException(\Throwable $e): ?array
+    {
+        // Use reflection to check if this is a 2FA exception
+        // This avoids tight coupling to the concrete exception class
+        $exceptionClassName = $e::class;
+
+        // Check if the exception class name ends with TwoFactorException
+        if (str_ends_with($exceptionClassName, 'TwoFactorException')) {
+            return [
+                'status' => 422,
+                'title'  => 'Two-Factor Authentication Error',
+                'detail' => $e->getMessage(),
+            ];
+        }
+
+        return null;
     }
 
     private function negotiateFormat(ServerRequestInterface $request): string
