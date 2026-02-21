@@ -27,7 +27,7 @@ use Symfony\Component\HttpFoundation\IpUtils;
  * - Authorization (access control enforcement)
  * - Logout functionality
  *
- * @method \Appkit\Security\User\UserProviderInterface userProvider()
+ * @method \Modufolio\Appkit\Security\User\UserProviderInterface userProvider()
  *
  * @author    Maarten Thiebou
  * @copyright Modufolio
@@ -207,7 +207,7 @@ trait AppSecurity
                             $twoFactorToken = new TwoFactorToken($e->user, $firewallName, $e->user->getRoles());
 
                             // Store partial token in session
-                            $this->session()->set('_2fa_token', $twoFactorToken);
+                            $this->session()->set('_2fa_token', serialize($twoFactorToken));
 
                             // Set flash message for 2FA screen
                             $this->session()->getFlashBag()->add('info', '2FA code required');
