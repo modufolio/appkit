@@ -98,13 +98,6 @@ class FormLoginAuthenticator extends AbstractAuthenticator
 
                 if ($totpSecret !== null && $totpSecret->isEnabled()) {
 
-                    // Create partial token for 2FA flow
-                    $twoFactorToken = new TwoFactorToken($user, 'main');
-
-                    // Store the partial token in session
-                    $this->session->set('_2fa_token', serialize($twoFactorToken));
-                    $this->session->set('_2fa_user_id', $user->getId());
-
                     // Throw exception with 2FA flag for proper response handling
                     $exception = new AuthenticationException('Two-factor authentication required');
                     $exception->setRequires2FA(true);

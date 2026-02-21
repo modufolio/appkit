@@ -4,11 +4,9 @@ declare(strict_types = 1);
 
 namespace Modufolio\Appkit\Tests\App\Entity;
 
-
 use Modufolio\Appkit\Security\TwoFactor\UserTotpSecretInterface;
 use Modufolio\Appkit\Tests\App\Entity\Traits\Timestampable;
 use Modufolio\Appkit\Tests\App\Repository\UserTotpSecretRepository;
-
 use Modufolio\Appkit\Security\User\UserInterface;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -211,5 +209,15 @@ class UserTotpSecret implements UserTotpSecretInterface
                 return;
             }
         }
+    }
+
+    public function getUserIdentifier(): string
+    {
+        // TODO: Implement getUserIdentifier() method.
+    }
+
+    public function setPlainBackupCodes(?array $backupCodes): void
+    {
+        $this->plainBackupCodes = $backupCodes;
     }
 }
