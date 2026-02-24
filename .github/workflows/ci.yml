@@ -9,24 +9,29 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    strategy:
+      matrix:
+        php: ['8.2', '8.3', '8.4']
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up PHP 8.4
+      - name: Set up PHP ${{ matrix.php }}
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.4'
+          php-version: ${{ matrix.php }}
           coverage: xdebug
-          extensions: curl, dom, exif, fileinfo, gd, intl, libxml, pdo, simplexml, sqlite3, zip
+          extensions: curl, dom, exif, fileinfo, gd, intl, libxml, pdo, pdo_sqlite, simplexml, sqlite3, zip
 
       - name: Install dependencies
-        run: composer install --no-interaction --prefer-dist
+        run: composer update --no-interaction --prefer-dist --optimize-autoloader
 
       - name: Run tests with coverage
         run: vendor/bin/phpunit --coverage-clover=coverage.xml
 
       - name: Upload coverage to Codecov
+        if: matrix.php == '8.4'
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}

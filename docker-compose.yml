@@ -1,0 +1,27 @@
+services:
+  php82:
+    build:
+      context: .
+      args:
+        PHP_VERSION: 8.2
+    volumes:
+      - ./:/app:cached
+    command: sh -c "composer update --no-interaction && vendor/bin/phpunit"
+
+  php83:
+    build:
+      context: .
+      args:
+        PHP_VERSION: 8.3
+    volumes:
+      - ./:/app:cached
+    command: sh -c "composer update --no-interaction && vendor/bin/phpunit"
+
+  php84:
+    build:
+      context: .
+      args:
+        PHP_VERSION: 8.4
+    volumes:
+      - ./:/app:cached
+    command: sh -c "composer update --no-interaction && vendor/bin/phpunit"
