@@ -10,7 +10,7 @@ use BadMethodCallException;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @coversDefaultClass \Appkit\Data\PHP
+ * @coversDefaultClass \Modufolio\Appkit\Data\PHP
  */
 class PHPTest extends TestCase
 {

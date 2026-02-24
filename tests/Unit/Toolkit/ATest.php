@@ -7,6 +7,9 @@ namespace Modufolio\Appkit\Tests\Unit\Toolkit;
 use Modufolio\Appkit\Toolkit\A;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @coversDefaultClass \Modufolio\Appkit\Toolkit\A
+ */
 class ATest extends TestCase
 {
     protected function _array(): array

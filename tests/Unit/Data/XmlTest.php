@@ -10,7 +10,7 @@ use PHPUnit\Framework\TestCase;
 use stdClass;
 
 /**
- * @coversDefaultClass \Appkit\Data\Xml
+ * @coversDefaultClass \Modufolio\Appkit\Data\Xml
  */
 class XmlTest extends TestCase
 {

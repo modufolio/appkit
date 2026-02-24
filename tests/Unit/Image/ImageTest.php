@@ -9,6 +9,9 @@ use Modufolio\Appkit\Image\Exif;
 use Modufolio\Appkit\Image\Image;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @coversDefaultClass \Modufolio\Appkit\Image\Image
+ */
 class ImageTest extends TestCase
 {
     public const FIXTURES = __DIR__ . '/fixtures';

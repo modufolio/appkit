@@ -39,7 +39,7 @@ class DirTest extends TestCase
     }
 
     /**
-     * @covers \Appkit\Toolkit\Dir::copy
+     * @covers \Modufolio\Appkit\Toolkit\Dir::copy
      */
     public function testCopy(): void
     {
@@ -55,7 +55,7 @@ class DirTest extends TestCase
     }
 
     /**
-     * @covers \Appkit\Toolkit\Dir::copy
+     * @covers \Modufolio\Appkit\Toolkit\Dir::copy
      */
     public function testCopyNonRecursive(): void
     {
@@ -72,7 +72,7 @@ class DirTest extends TestCase
     }
 
     /**
-     * @covers \Appkit\Toolkit\Dir::copy
+     * @covers \Modufolio\Appkit\Toolkit\Dir::copy
      */
     public function testCopyIgnore(): void
     {
@@ -90,7 +90,7 @@ class DirTest extends TestCase
     }
 
     /**
-     * @covers \Appkit\Toolkit\Dir::copy
+     * @covers \Modufolio\Appkit\Toolkit\Dir::copy
      */
     public function testCopyMissingSource(): void
     {
@@ -104,7 +104,7 @@ class DirTest extends TestCase
     }
 
     /**
-     * @covers \Appkit\Toolkit\Dir::copy
+     * @covers \Modufolio\Appkit\Toolkit\Dir::copy
      */
     public function testCopyExistingTarget(): void
     {
@@ -118,7 +118,7 @@ class DirTest extends TestCase
     }
 
     /**
-     * @covers \Appkit\Toolkit\Dir::copy
+     * @covers \Modufolio\Appkit\Toolkit\Dir::copy
      */
     public function testCopyInvalidTarget(): void
     {
@@ -132,7 +132,7 @@ class DirTest extends TestCase
     }
 
     /**
-     * @covers \Appkit\Toolkit\Dir::exists
+     * @covers \Modufolio\Appkit\Toolkit\Dir::exists
      */
     public function testExists(): void
     {
@@ -142,7 +142,7 @@ class DirTest extends TestCase
     }
 
     /**
-     * @covers \Appkit\Toolkit\Dir::index
+     * @covers \Modufolio\Appkit\Toolkit\Dir::index
      */
     public function testIndex(): void
     {
@@ -162,7 +162,7 @@ class DirTest extends TestCase
     }
 
     /**
-     * @covers \Appkit\Toolkit\Dir::index
+     * @covers \Modufolio\Appkit\Toolkit\Dir::index
      */
     public function testIndexRecursive(): void
     {
@@ -186,7 +186,7 @@ class DirTest extends TestCase
     }
 
     /**
-     * @covers \Appkit\Toolkit\Dir::index
+     * @covers \Modufolio\Appkit\Toolkit\Dir::index
      */
     public function testIndexIgnore(): void
     {
@@ -219,7 +219,7 @@ class DirTest extends TestCase
     }
 
     /**
-     * @covers \Appkit\Toolkit\Dir::isWritable
+     * @covers \Modufolio\Appkit\Toolkit\Dir::isWritable
      */
     public function testIsWritable(): void
     {
@@ -230,7 +230,7 @@ class DirTest extends TestCase
 
 
     /**
-     * @covers \Appkit\Toolkit\Dir::make
+     * @covers \Modufolio\Appkit\Toolkit\Dir::make
      */
     public function testMake(): void
     {
@@ -240,7 +240,7 @@ class DirTest extends TestCase
 
 
     /**
-     * @covers \Appkit\Toolkit\Dir::modified
+     * @covers \Modufolio\Appkit\Toolkit\Dir::modified
      */
     public function testModified(): void
     {
@@ -250,7 +250,7 @@ class DirTest extends TestCase
     }
 
     /**
-     * @covers \Appkit\Toolkit\Dir::move
+     * @covers \Modufolio\Appkit\Toolkit\Dir::move
      */
     public function testMove(): void
     {
@@ -260,7 +260,7 @@ class DirTest extends TestCase
     }
 
     /**
-     * @covers \Appkit\Toolkit\Dir::move
+     * @covers \Modufolio\Appkit\Toolkit\Dir::move
      */
     public function testMoveNonExisting(): void
     {
@@ -268,7 +268,7 @@ class DirTest extends TestCase
     }
 
     /**
-     * @covers \Appkit\Toolkit\Dir::link
+     * @covers \Modufolio\Appkit\Toolkit\Dir::link
      */
     public function testLink(): void
     {
@@ -282,7 +282,7 @@ class DirTest extends TestCase
     }
 
     /**
-     * @covers \Appkit\Toolkit\Dir::link
+     * @covers \Modufolio\Appkit\Toolkit\Dir::link
      */
     public function testLinkExistingLink(): void
     {
@@ -296,7 +296,7 @@ class DirTest extends TestCase
     }
 
     /**
-     * @covers \Appkit\Toolkit\Dir::link
+     * @covers \Modufolio\Appkit\Toolkit\Dir::link
      */
     public function testLinkWithoutSource(): void
     {
@@ -310,7 +310,7 @@ class DirTest extends TestCase
     }
 
     /**
-     * @covers \Appkit\Toolkit\Dir::read
+     * @covers \Modufolio\Appkit\Toolkit\Dir::read
      */
     public function testRead(): void
     {
@@ -351,7 +351,7 @@ class DirTest extends TestCase
     }
 
     /**
-     * @covers \Appkit\Toolkit\Dir::remove
+     * @covers \Modufolio\Appkit\Toolkit\Dir::remove
      */
     public function testRemove(): void
     {
@@ -363,7 +363,7 @@ class DirTest extends TestCase
     }
 
     /**
-     * @covers \Appkit\Toolkit\Dir::isReadable
+     * @covers \Modufolio\Appkit\Toolkit\Dir::isReadable
      */
     public function testIsReadable(): void
     {
@@ -373,8 +373,8 @@ class DirTest extends TestCase
     }
 
     /**
-     * @covers \Appkit\Toolkit\Dir::dirs
-     * @covers \Appkit\Toolkit\Dir::files
+     * @covers \Modufolio\Appkit\Toolkit\Dir::dirs
+     * @covers \Modufolio\Appkit\Toolkit\Dir::files
      */
     public function testReadDirsAndFiles(): void
     {
@@ -428,8 +428,8 @@ class DirTest extends TestCase
     }
 
     /**
-     * @covers \Appkit\Toolkit\Dir::size
-     * @covers \Appkit\Toolkit\Dir::niceSize
+     * @covers \Modufolio\Appkit\Toolkit\Dir::size
+     * @covers \Modufolio\Appkit\Toolkit\Dir::niceSize
      */
     public function testSize(): void
     {
@@ -447,7 +447,7 @@ class DirTest extends TestCase
     }
 
     /**
-     * @covers \Appkit\Toolkit\Dir::size
+     * @covers \Modufolio\Appkit\Toolkit\Dir::size
      */
     public function testSizeWithNestedFolders(): void
     {
@@ -466,7 +466,7 @@ class DirTest extends TestCase
     }
 
     /**
-     * @covers \Appkit\Toolkit\Dir::size
+     * @covers \Modufolio\Appkit\Toolkit\Dir::size
      */
     public function testSizeOfNonExistingDir(): void
     {
@@ -474,7 +474,7 @@ class DirTest extends TestCase
     }
 
     /**
-     * @covers \Appkit\Toolkit\Dir::wasModifiedAfter
+     * @covers \Modufolio\Appkit\Toolkit\Dir::wasModifiedAfter
      */
     public function testWasModifiedAfter(): void
     {

@@ -9,7 +9,7 @@ use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @coversDefaultClass \Appkit\Data\Txt
+ * @coversDefaultClass \Modufolio\Appkit\Data\Txt
  */
 class TxtTest extends TestCase
 {

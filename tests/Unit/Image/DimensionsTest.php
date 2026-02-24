@@ -7,6 +7,9 @@ namespace Modufolio\Appkit\Tests\Unit\Image;
 use Modufolio\Appkit\Image\Dimensions;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @coversDefaultClass \Modufolio\Appkit\Image\Dimensions
+ */
 class DimensionsTest extends TestCase
 {
     public const FIXTURES = __DIR__ . '/fixtures';

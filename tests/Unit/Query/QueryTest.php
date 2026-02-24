@@ -9,7 +9,7 @@ use Closure;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @coversDefaultClass \Appkit\Query\Query
+ * @coversDefaultClass \Modufolio\Appkit\Query\Query
  */
 class QueryTest extends TestCase
 {

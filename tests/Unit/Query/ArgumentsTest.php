@@ -8,7 +8,7 @@ use Modufolio\Appkit\Query\Arguments;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @coversDefaultClass \Appkit\Query\Arguments
+ * @coversDefaultClass \Modufolio\Appkit\Query\Arguments
  */
 class ArgumentsTest extends TestCase
 {

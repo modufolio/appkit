@@ -7,6 +7,9 @@ namespace Modufolio\Appkit\Tests\Unit\Toolkit;
 use Modufolio\Appkit\Toolkit\I18n;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @coversDefaultClass \Modufolio\Appkit\Toolkit\I18n
+ */
 class I18nTest extends TestCase
 {
     public function setUp(): void

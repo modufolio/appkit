@@ -10,7 +10,7 @@ use PHPUnit\Framework\TestCase;
 use stdClass;
 
 /**
- * @coversDefaultClass \Appkit\Data\Json
+ * @coversDefaultClass \Modufolio\Appkit\Data\Json
  */
 class JsonTest extends TestCase
 {

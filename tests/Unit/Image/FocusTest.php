@@ -7,6 +7,9 @@ namespace Modufolio\Appkit\Tests\Unit\Image;
 use Modufolio\Appkit\Image\Focus;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @coversDefaultClass \Modufolio\Appkit\Image\Focus
+ */
 class FocusTest extends TestCase
 {
     /**

@@ -11,7 +11,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @coversDefaultClass \Appkit\Query\Expression
+ * @coversDefaultClass \Modufolio\Appkit\Query\Expression
  */
 class ExpressionTest extends TestCase
 {

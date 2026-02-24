@@ -7,6 +7,9 @@ namespace Modufolio\Appkit\Tests\Unit\Toolkit;
 use Modufolio\Appkit\Toolkit\Iterator;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @coversDefaultClass \Modufolio\Appkit\Toolkit\Iterator
+ */
 class IteratorTest extends TestCase
 {
     /**

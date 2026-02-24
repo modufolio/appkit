@@ -9,6 +9,9 @@ use BadMethodCallException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @coversDefaultClass \Modufolio\Appkit\Query\Segments
+ */
 class SegmentsTest extends TestCase
 {
     /**

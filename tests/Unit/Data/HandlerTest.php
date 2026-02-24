@@ -10,7 +10,7 @@ use PHPUnit\Framework\TestCase;
 require_once __DIR__ . '/mocks.php';
 
 /**
- * @coversDefaultClass \Appkit\Data\Handler
+ * @coversDefaultClass \Modufolio\Appkit\Data\Handler
  */
 class HandlerTest extends TestCase
 {
