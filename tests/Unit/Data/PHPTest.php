@@ -4,19 +4,16 @@ declare(strict_types = 1);
 
 namespace Modufolio\Appkit\Tests\Unit\Data;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+
 use Modufolio\Appkit\Data\PHP;
 use Modufolio\Appkit\Toolkit\F;
 use BadMethodCallException;
 use PHPUnit\Framework\TestCase;
 
-/**
- * @coversDefaultClass \Modufolio\Appkit\Data\PHP
- */
+#[CoversClass(PHP::class)]
 class PHPTest extends TestCase
 {
-    /**
-     * @covers ::encode
-     */
     public function testEncode(): void
     {
         $input    = __DIR__ . '/fixtures/php/input.php';
@@ -30,9 +27,6 @@ class PHPTest extends TestCase
         $this->assertSame('123', PHP::encode(123));
     }
 
-    /**
-     * @covers ::decode
-     */
     public function testDecode(): void
     {
         $this->expectException(BadMethodCallException::class);
@@ -43,7 +37,6 @@ class PHPTest extends TestCase
     }
 
     /**
-     * @covers ::read
      * @throws \Exception
      */
     public function testRead(): void
@@ -54,9 +47,6 @@ class PHPTest extends TestCase
         $this->assertSame($result, include $input);
     }
 
-    /**
-     * @covers ::read
-     */
     public function testReadFileMissing(): void
     {
         $file = __DIR__ . '/tmp/does-not-exist.php';
@@ -67,9 +57,6 @@ class PHPTest extends TestCase
         PHP::read($file);
     }
 
-    /**
-     * @covers ::write
-     */
     public function testWrite(): void
     {
         $input = include __DIR__ . '/fixtures/php/input.php';

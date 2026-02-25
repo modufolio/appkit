@@ -4,21 +4,16 @@ declare(strict_types = 1);
 
 namespace Modufolio\Appkit\Tests\Unit\Image;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+
 use Modufolio\Appkit\Image\Dimensions;
 use PHPUnit\Framework\TestCase;
 
-/**
- * @coversDefaultClass \Modufolio\Appkit\Image\Dimensions
- */
+#[CoversClass(Dimensions::class)]
 class DimensionsTest extends TestCase
 {
     public const FIXTURES = __DIR__ . '/fixtures';
 
-    /**
-     * @covers ::__construct
-     * @covers ::width
-     * @covers ::height
-     */
     public function testDimensions(): void
     {
         $dimensions = new Dimensions(1200, 768);
@@ -26,9 +21,6 @@ class DimensionsTest extends TestCase
         $this->assertSame(768, $dimensions->height());
     }
 
-    /**
-     * @covers ::crop
-     */
     public function testCrop(): void
     {
         $dimensions = new Dimensions(1200, 768);
@@ -42,9 +34,6 @@ class DimensionsTest extends TestCase
         $this->assertSame(500, $dimensions->height());
     }
 
-    /**
-     * @covers ::fit
-     */
     public function testFit(): void
     {
         // zero dimensions
@@ -78,9 +67,6 @@ class DimensionsTest extends TestCase
         $this->assertSame(200, $dimensions->height());
     }
 
-    /**
-     * @covers ::fit
-     */
     public function testFitForce(): void
     {
         // wider than tall
@@ -96,9 +82,6 @@ class DimensionsTest extends TestCase
         $this->assertSame(2000, $dimensions->height());
     }
 
-    /**
-     * @covers ::fitWidth
-     */
     public function testFitWidth(): void
     {
         $dimensions = new Dimensions(1200, 768);
@@ -124,9 +107,6 @@ class DimensionsTest extends TestCase
         $this->assertSame(1280, $dimensions->height());
     }
 
-    /**
-     * @covers ::fitHeight
-     */
     public function testFitHeight(): void
     {
         $dimensions = new Dimensions(1200, 768);
@@ -152,9 +132,6 @@ class DimensionsTest extends TestCase
         $this->assertSame(2000, $dimensions->height());
     }
 
-    /**
-     * @covers ::fitWidthAndHeight
-     */
     public function testFitWidthAndHeight(): void
     {
         $dimensions = new Dimensions(1200, 768);
@@ -168,9 +145,6 @@ class DimensionsTest extends TestCase
         $this->assertSame(781, $dimensions->height());
     }
 
-    /**
-     * @covers ::forImage
-     */
     public function testForImage(): void
     {
         $dimensions = Dimensions::forImage(__DIR__ . '/fixtures/image/onigiri-adobe-rgb-gps.webp');
@@ -184,9 +158,6 @@ class DimensionsTest extends TestCase
         }
     }
 
-    /**
-     * @covers ::forSvg
-     */
     public function testForSvg(): void
     {
         $dimensions = Dimensions::forSvg(static::FIXTURES . '/dimensions/circle.svg');
@@ -202,9 +173,6 @@ class DimensionsTest extends TestCase
         $this->assertSame(25, $dimensions->height());
     }
 
-    /**
-     * @covers ::orientation
-     */
     public function testOrientation(): void
     {
         $dimensions = new Dimensions(1200, 768);
@@ -221,9 +189,6 @@ class DimensionsTest extends TestCase
         $this->assertFalse($dimensions->orientation());
     }
 
-    /**
-     * @covers ::ratio
-     */
     public function testRatio(): void
     {
         $dimensions = new Dimensions(1200, 768);
@@ -236,9 +201,6 @@ class DimensionsTest extends TestCase
         $this->assertSame(0.0, $dimensions->ratio());
     }
 
-    /**
-     * @covers ::resize
-     */
     public function testResize(): void
     {
         $dimensions = new Dimensions(1200, 768);
@@ -247,10 +209,6 @@ class DimensionsTest extends TestCase
         $this->assertSame(800, $dimensions->height());
     }
 
-    /**
-     * @covers ::toArray
-     * @covers ::__debugInfo
-     */
     public function testToArray(): void
     {
         $dimensions = new Dimensions(1200, 768);
@@ -264,9 +222,6 @@ class DimensionsTest extends TestCase
         $this->assertSame($array, $dimensions->__debugInfo());
     }
 
-    /**
-     * @covers ::__toString
-     */
     public function testToString(): void
     {
         $dimensions = new Dimensions(1200, 768);

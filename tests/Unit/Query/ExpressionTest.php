@@ -4,21 +4,17 @@ declare(strict_types = 1);
 
 namespace Modufolio\Appkit\Tests\Unit\Query;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+
 use Modufolio\Appkit\Query\Argument;
 use Modufolio\Appkit\Query\Expression;
 use Modufolio\Appkit\Query\Segments;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
-/**
- * @coversDefaultClass \Modufolio\Appkit\Query\Expression
- */
+#[CoversClass(Expression::class)]
 class ExpressionTest extends TestCase
 {
-    /**
-     * @covers ::__construct
-     * @covers ::factory
-     */
     public function testFactory()
     {
         $expression = Expression::factory('a ? b : c');
@@ -30,9 +26,6 @@ class ExpressionTest extends TestCase
         $this->assertInstanceOf(Argument::class, $expression->parts[4]);
     }
 
-    /**
-     * @covers ::factory
-     */
     public function testFactoryWithoutComparison()
     {
         $expression = Expression::factory('foo.bar(true).url');

@@ -4,12 +4,15 @@ declare(strict_types = 1);
 
 namespace Modufolio\Appkit\Tests\Unit\Toolkit;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+
 use Modufolio\Appkit\Query\Query;
 use Modufolio\Appkit\Toolkit\Html;
 use Modufolio\Appkit\Toolkit\Str;
 use IntlDateFormatter;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(Str::class)]
 class StrTest extends TestCase
 {
     public static function setUpBeforeClass(): void
@@ -18,9 +21,6 @@ class StrTest extends TestCase
     }
 
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Str::ascii
-     */
     public function testAscii(): void
     {
         $this->assertSame('aouss', Str::ascii('äöüß'));
@@ -29,9 +29,6 @@ class StrTest extends TestCase
         $this->assertSame('Nashata istorija', Str::ascii('Нашата история'));
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Str::after
-     */
     public function testAfter(): void
     {
         $string = 'Hellö Wörld';
@@ -52,9 +49,6 @@ class StrTest extends TestCase
 
 
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Str::before
-     */
     public function testBefore(): void
     {
         $string = 'Hellö Wörld';
@@ -71,9 +65,6 @@ class StrTest extends TestCase
     }
 
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Str::between
-     */
     public function testBetween(): void
     {
         $this->assertSame('trin', Str::between('string', 's', 'g'), 'string between s and g should be trin');
@@ -81,9 +72,6 @@ class StrTest extends TestCase
         $this->assertSame('', Str::between('string', '.', 'g'), 'function with non-existing character should return false');
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Str::camel
-     */
     public function testCamel(): void
     {
         $string = 'foo_bar';
@@ -110,9 +98,6 @@ class StrTest extends TestCase
         $this->assertEquals($expectedOutput, Str::clean($input));
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Str::contains
-     */
     public function testContains(): void
     {
         $string = 'Hellö Wörld';
@@ -133,9 +118,6 @@ class StrTest extends TestCase
         $this->assertTrue(Str::contains($string, ''));
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Str::convert
-     */
     public function testConvert(): void
     {
         $source = 'ÖÄÜ';
@@ -151,9 +133,6 @@ class StrTest extends TestCase
         $this->assertSame('ISO-8859-1', Str::encoding($result));
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Str::date
-     */
     public function testDate(): void
     {
         $time = mktime(1, 1, 1, 1, 29, 2020);
@@ -169,26 +148,17 @@ class StrTest extends TestCase
         //$this->assertSame('January 29, 2020 at 1:01 AM', Str::date($time, $formatter));
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Str::encode
-     */
     public function testEncode(): void
     {
         $email = 'test@getkirby.com';
         $this->assertSame($email, Html::decode(Str::encode($email)));
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Str::encoding
-     */
     public function testEncoding(): void
     {
         $this->assertSame('UTF-8', Str::encoding('ÖÄÜ'));
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Str::endsWith
-     */
     public function testEndsWith(): void
     {
         $string = 'Hellö Wörld';
@@ -208,9 +178,6 @@ class StrTest extends TestCase
         $this->assertTrue(Str::endsWith($string, 'WÖRLD', true));
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Str::excerpt
-     */
     public function testExcerpt(): void
     {
         $string   = 'This is a long text<br>with some html';
@@ -220,9 +187,6 @@ class StrTest extends TestCase
         $this->assertSame($expected, $result);
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Str::excerpt
-     */
     public function testExcerptWithoutChars(): void
     {
         $string   = 'This is a long text<br>with some html';
@@ -232,9 +196,6 @@ class StrTest extends TestCase
         $this->assertSame($expected, $result);
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Str::excerpt
-     */
     public function testExcerptWithZeroLength(): void
     {
         $string = 'This is a long text with some html';
@@ -243,9 +204,6 @@ class StrTest extends TestCase
         $this->assertSame($string, $result);
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Str::excerpt
-     */
     public function testExcerptWithoutStripping(): void
     {
         $string   = 'This is a long text<br>with some html';
@@ -255,9 +213,6 @@ class StrTest extends TestCase
         $this->assertSame($expected, $result);
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Str::excerpt
-     */
     public function testExcerptWithDifferentRep(): void
     {
         $string   = 'This is a long text<br>with some html';
@@ -267,9 +222,6 @@ class StrTest extends TestCase
         $this->assertSame($expected, $result);
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Str::excerpt
-     */
     public function testExcerptWithSpaces(): void
     {
         $string   = 'This is a long text   <br>with some html';
@@ -279,9 +231,6 @@ class StrTest extends TestCase
         $this->assertSame($expected, $result);
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Str::excerpt
-     */
     public function testExcerptWithLineBreaks(): void
     {
         $string   = 'This is a long text ' . PHP_EOL . ' with some html';
@@ -291,9 +240,6 @@ class StrTest extends TestCase
         $this->assertSame($expected, $result);
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Str::excerpt
-     */
     public function testExcerptWithUnicodeChars(): void
     {
         $string   = 'Hellö Wörld text<br>with söme htmäl';
@@ -303,9 +249,6 @@ class StrTest extends TestCase
         $this->assertSame($expected, $result);
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Str::excerpt
-     */
     public function testExcerptWithTagFollowedByInterpunctuation(): void
     {
         $string   = 'Why not <a href="https://getkirby.com/">Get Kirby</a>?';
@@ -316,9 +259,6 @@ class StrTest extends TestCase
     }
 
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Str::from
-     */
     public function testFrom(): void
     {
         $string = 'Hellö Wörld';
@@ -346,9 +286,6 @@ class StrTest extends TestCase
     }
 
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Str::increment
-     */
     public function testIncrement(): void
     {
         $string = 'Pöst';
@@ -391,9 +328,6 @@ class StrTest extends TestCase
         $this->assertSame('Pöst-16', Str::increment($string, '-', 10));
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Str::kebab
-     */
     public function testKebab(): void
     {
         $string = 'KingCobra';
@@ -403,9 +337,6 @@ class StrTest extends TestCase
         $this->assertSame('king-cobra', Str::kebab($string));
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Str::length
-     */
     public function testLength(): void
     {
         $this->assertSame(0, Str::length(''));
@@ -414,18 +345,12 @@ class StrTest extends TestCase
         $this->assertSame(6, Str::length('Aœ?_ßö'));
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Str::lower
-     */
     public function testLower(): void
     {
         $this->assertSame('öäü', Str::lower('ÖÄÜ'));
         $this->assertSame('öäü', Str::lower('Öäü'));
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Str::ltrim
-     */
     public function testLtrim(): void
     {
         $this->assertSame('test', Str::ltrim(' test'));
@@ -433,9 +358,6 @@ class StrTest extends TestCase
         $this->assertSame('jpg', Str::ltrim('test.jpg', 'test.'));
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Str::match
-     */
     public function testMatch(): void
     {
         $this->assertSame(['test', 'es'], Str::match('test', '/t(es)t/'));
@@ -443,18 +365,12 @@ class StrTest extends TestCase
     }
 
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Str::matches
-     */
     public function testMatches(): void
     {
         $this->assertTrue(Str::matches('test', '/t(es)t/'));
         $this->assertFalse(Str::matches('one two three', '/(four)/'));
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Str::matchAll
-     */
     public function testMatchAll(): void
     {
         $longText = <<<TEXT
@@ -472,9 +388,6 @@ class StrTest extends TestCase
     }
 
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Str::position
-     */
     public function testPosition(): void
     {
         $string = 'Hellö Wörld';
@@ -493,18 +406,12 @@ class StrTest extends TestCase
     }
 
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Str::query
-     */
     public function testQuery(): void
     {
         $result = Str::query('data.1', ['data' => ['foo', 'bar']]);
         $this->assertSame('bar', $result);
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Str::random
-     */
     public function testRandom(): void
     {
         // choose a high length for a high probability of occurrence of a character of any type
@@ -525,9 +432,6 @@ class StrTest extends TestCase
         $this->assertFalse(Str::random($length, 'something invalid'));
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Str::replace
-     */
     public function testReplaceInvalid3(): void
     {
         $this->expectException('TypeError');
@@ -535,9 +439,6 @@ class StrTest extends TestCase
         Str::replace('some string', ['some', 'string'], 'other string', [1, 'string']);
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Str::replacements
-     */
     public function testReplacements(): void
     {
         // simple example
@@ -579,9 +480,6 @@ class StrTest extends TestCase
         ], Str::replacements(['a', 'b'], ['c', 'd'], [2]));
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Str::replacements
-     */
     public function testReplacementsInvalid(): void
     {
         $this->expectException('Exception');
@@ -589,9 +487,6 @@ class StrTest extends TestCase
         Str::replacements('string', ['array'], 1);
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Str::replaceReplacements
-     */
     public function testReplaceReplacements(): void
     {
         $this->assertSame(
@@ -629,9 +524,6 @@ class StrTest extends TestCase
         // edge cases are tested in the Str::replace() unit test
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Str::replaceReplacements
-     */
     public function testReplaceReplacementsInvalid(): void
     {
         $this->expectException('Exception');
@@ -653,9 +545,6 @@ class StrTest extends TestCase
         $this->assertEquals('😀😃😄', Str::reverse('😄😃😀'));
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Str::rtrim
-     */
     public function testRtrim(): void
     {
         $this->assertSame('test', Str::rtrim('test '));
@@ -663,9 +552,6 @@ class StrTest extends TestCase
         $this->assertSame('test', Str::rtrim('test.jpg', '.jpg'));
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Str::short
-     */
     public function testShort(): void
     {
         $string = 'Super Äwesøme String';
@@ -689,9 +575,6 @@ class StrTest extends TestCase
         $this->assertSame('12345…', Str::short('123456', 5));
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Str::similarity
-     */
     public function testSimilarity(): void
     {
         $this->assertSame([
@@ -761,9 +644,6 @@ class StrTest extends TestCase
         ], Str::similarity('Kirby', 'KIRBY', true));
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Str::slug
-     */
     public function testSlug(): void
     {
         // Double dashes
@@ -812,9 +692,6 @@ class StrTest extends TestCase
         Str::$language = [];
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Str::snake
-     */
     public function testSnake(): void
     {
         $string = 'KingCobra';
@@ -824,9 +701,6 @@ class StrTest extends TestCase
         $this->assertSame('king_cobra', Str::snake($string));
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Str::split
-     */
     public function testSplit(): void
     {
         // default separator
@@ -851,9 +725,6 @@ EOT;
         $this->assertSame(['-abc-', '-def-'], Str::split($string, '---'));
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Str::startsWith
-     */
     public function testStartsWith(): void
     {
         $string = 'Hellö Wörld';
@@ -873,9 +744,6 @@ EOT;
         $this->assertTrue(Str::startsWith($string, 'hellö', true));
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Str::studly
-     */
     public function testStudly(): void
     {
         $string = 'foo_bar';
@@ -894,9 +762,6 @@ EOT;
         $this->assertSame('FòôBàř', Str::studly($string));
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Str::substr
-     */
     public function testSubstr(): void
     {
         $string = 'äöü';
@@ -909,9 +774,6 @@ EOT;
         $this->assertSame('ü', Str::substr($string, -1));
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Str::template
-     */
     public function testTemplate(): void
     {
         // query with a string
@@ -951,9 +813,6 @@ EOT;
 
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Str::toBytes
-     */
     public function testToBytes(): void
     {
         $this->assertSame(0, Str::toBytes(''));
@@ -970,9 +829,6 @@ EOT;
         $this->assertSame(2 * 1024 * 1024 * 1024, Str::toBytes('2g'));
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Str::toType
-     */
     public function testToType(): void
     {
         // string to string
@@ -1003,9 +859,6 @@ EOT;
         $this->assertSame(1, Str::toType('1', 1));
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Str::trim
-     */
     public function testTrim(): void
     {
         $this->assertSame('test', Str::trim(' test '));
@@ -1013,18 +866,12 @@ EOT;
         $this->assertSame('test', Str::trim('.test.', '.'));
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Str::ucfirst
-     */
     public function testUcfirst(): void
     {
         $this->assertSame('Hello world', Str::ucfirst('hello world'));
         $this->assertSame('Hello world', Str::ucfirst('Hello World'));
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Str::ucwords
-     */
     public function testUcwords(): void
     {
         $this->assertSame('Hello World', Str::ucwords('hello world'));
@@ -1032,18 +879,12 @@ EOT;
         $this->assertSame('Hello World', Str::ucwords('HELLO WORLD'));
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Str::unhtml
-     */
     public function testUnhtml(): void
     {
         $string = 'some <em>crazy</em> stuff';
         $this->assertSame('some crazy stuff', Str::unhtml($string));
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Str::until
-     */
     public function testUntil(): void
     {
         $string = 'Hellö Wörld';
@@ -1059,18 +900,12 @@ EOT;
         $this->assertSame('', Str::until($string, 'x'));
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Str::upper
-     */
     public function testUpper(): void
     {
         $this->assertSame('ÖÄÜ', Str::upper('öäü'));
         $this->assertSame('ÖÄÜ', Str::upper('Öäü'));
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Str::wordCount
-     */
     public function testWordCount(): void
     {
         $this->assertEquals(4, Str::wordCount('This is a test'));
@@ -1080,9 +915,6 @@ EOT;
         $this->assertEquals(4, Str::wordCount('This  is  a  test')); // test double spaces
         $this->assertEquals(2, Str::wordCount("I'm sorry")); // test punctuation
     }
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Str::words
-     */
     public function testWords(): void
     {
         $longString = 'Why do programmers prefer dark mode? Because light attracts bugs. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Mauris et felis lacus. Suspendisse eget interdum velit, vel laoreet velit. Fusce nec enim vitae ex dictum sagittis. Integer mollis aliquam lacinia. Proin faucibus justo nisl, id pretium sem rhoncus eget. Morbi eu enim id elit scelerisque suscipit eu in eros. Duis bibendum, velit in ultricies vulputate, libero sapien eleifend purus, non facilisis metus ipsum eu risus. Nulla commodo sit amet tortor id aliquam. Why don’t scientists trust atoms? Because they make up everything.';
@@ -1094,9 +926,6 @@ EOT;
         $this->assertEquals('Why do programmers prefer dark mode? Because light attracts bugs. Lorem ipsum dolor', Str::words($longString, 13, ''));
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Str::widont
-     */
     public function testWidont(): void
     {
         $this->assertSame('Test', Str::widont('Test'));

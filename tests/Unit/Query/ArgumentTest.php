@@ -4,19 +4,15 @@ declare(strict_types = 1);
 
 namespace Modufolio\Appkit\Tests\Unit\Query;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+
 use Modufolio\Appkit\Query\Argument;
 use Closure;
 use PHPUnit\Framework\TestCase;
 
-/**
- * @coversDefaultClass \Modufolio\Appkit\Query\Argument
- */
+#[CoversClass(Argument::class)]
 class ArgumentTest extends TestCase
 {
-    /**
-     * @covers ::__construct
-     * @covers ::factory
-     */
     public function testFactory()
     {
         // strings
@@ -81,10 +77,6 @@ class ArgumentTest extends TestCase
         $this->assertSame('bar', $argument);
     }
 
-    /**
-     * @covers ::factory
-     * @covers ::resolve
-     */
     public function testWithClosure()
     {
         $argument = Argument::factory('() => site.children');

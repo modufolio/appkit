@@ -4,20 +4,16 @@ declare(strict_types = 1);
 
 namespace Modufolio\Appkit\Tests\Unit\Data;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+
 use Modufolio\Appkit\Data\Json;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use stdClass;
 
-/**
- * @coversDefaultClass \Modufolio\Appkit\Data\Json
- */
+#[CoversClass(Json::class)]
 class JsonTest extends TestCase
 {
-    /**
-     * @covers ::encode
-     * @covers ::decode
-     */
     public function testEncodeDecode(): void
     {
         $array = [
@@ -38,9 +34,6 @@ class JsonTest extends TestCase
         $this->assertSame(['this is' => 'an array'], Json::decode(['this is' => 'an array']));
     }
 
-    /**
-     * @covers ::decode
-     */
     public function testDecodeInvalid1(): void
     {
         // pass invalid object
@@ -49,9 +42,6 @@ class JsonTest extends TestCase
         Json::decode(new stdClass());
     }
 
-    /**
-     * @covers ::decode
-     */
     public function testDecodeInvalid2(): void
     {
         // pass invalid int
@@ -60,18 +50,12 @@ class JsonTest extends TestCase
         Json::decode(1);
     }
 
-    /**
-     * @covers ::encode
-     */
     public function testEncodeUnicode(): void
     {
         $string  = 'здравей';
         $this->assertSame('"' . $string . '"', Json::encode($string));
     }
 
-    /**
-     * @covers ::decode
-     */
     public function testDecodeCorrupted1(): void
     {
         $this->expectException('Exception');
@@ -80,9 +64,6 @@ class JsonTest extends TestCase
         Json::decode('some gibberish');
     }
 
-    /**
-     * @covers ::decode
-     */
     public function testDecodeCorrupted2(): void
     {
         $this->expectException('Exception');

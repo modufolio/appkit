@@ -4,11 +4,14 @@ declare(strict_types = 1);
 
 namespace Modufolio\Appkit\Tests\Unit\Toolkit;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+
 use Modufolio\Appkit\Toolkit\Dir;
 use Modufolio\Appkit\Toolkit\F;
 use Modufolio\Appkit\Toolkit\Str;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(Dir::class)]
 class DirTest extends TestCase
 {
     public const FIXTURES = __DIR__ . '/fixtures/dir';
@@ -38,9 +41,6 @@ class DirTest extends TestCase
         return $this->tmp;
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Dir::copy
-     */
     public function testCopy(): void
     {
         $src    = $this->fixtures . '/copy';
@@ -54,9 +54,6 @@ class DirTest extends TestCase
         $this->assertFileExists($target . '/subfolder/b.txt');
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Dir::copy
-     */
     public function testCopyNonRecursive(): void
     {
         $src    = $this->fixtures . '/copy';
@@ -71,9 +68,6 @@ class DirTest extends TestCase
         $this->assertFileDoesNotExist($target . '/subfolder/.gitignore');
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Dir::copy
-     */
     public function testCopyIgnore(): void
     {
         $src    = $this->fixtures . '/copy';
@@ -89,9 +83,6 @@ class DirTest extends TestCase
         $this->assertFileDoesNotExist($target . '/subfolder/.gitignore');
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Dir::copy
-     */
     public function testCopyMissingSource(): void
     {
         $this->expectException('Exception');
@@ -103,9 +94,6 @@ class DirTest extends TestCase
         Dir::copy($src, $target);
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Dir::copy
-     */
     public function testCopyExistingTarget(): void
     {
         $src    = $this->fixtures . '/copy';
@@ -117,9 +105,6 @@ class DirTest extends TestCase
         Dir::copy($src, $target);
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Dir::copy
-     */
     public function testCopyInvalidTarget(): void
     {
         $src    = $this->fixtures . '/copy';
@@ -131,9 +116,6 @@ class DirTest extends TestCase
         Dir::copy($src, $target);
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Dir::exists
-     */
     public function testExists(): void
     {
         $this->assertFalse(Dir::exists($this->tmp));
@@ -141,9 +123,6 @@ class DirTest extends TestCase
         $this->assertTrue(Dir::exists($this->tmp));
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Dir::index
-     */
     public function testIndex(): void
     {
         Dir::make($dir = $this->tmp);
@@ -161,9 +140,6 @@ class DirTest extends TestCase
         $this->assertSame($expected, Dir::index($dir));
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Dir::index
-     */
     public function testIndexRecursive(): void
     {
         Dir::make($dir = $this->tmp);
@@ -185,9 +161,6 @@ class DirTest extends TestCase
         $this->assertSame($expected, Dir::index($dir, true));
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Dir::index
-     */
     public function testIndexIgnore(): void
     {
         Dir::$ignore = ['z.txt'];
@@ -218,9 +191,6 @@ class DirTest extends TestCase
 
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Dir::isWritable
-     */
     public function testIsWritable(): void
     {
         Dir::make($this->tmp);
@@ -229,9 +199,6 @@ class DirTest extends TestCase
     }
 
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Dir::make
-     */
     public function testMake(): void
     {
         $this->assertTrue(Dir::make($this->tmp));
@@ -239,9 +206,6 @@ class DirTest extends TestCase
     }
 
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Dir::modified
-     */
     public function testModified(): void
     {
         Dir::make($this->tmp);
@@ -249,9 +213,6 @@ class DirTest extends TestCase
         $this->assertTrue(is_int(Dir::modified($this->tmp)));
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Dir::move
-     */
     public function testMove(): void
     {
         Dir::make($this->tmp);
@@ -259,17 +220,11 @@ class DirTest extends TestCase
         $this->assertTrue(Dir::move($this->tmp, $this->moved));
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Dir::move
-     */
     public function testMoveNonExisting(): void
     {
         $this->assertFalse(Dir::move('/does-not-exist', $this->moved));
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Dir::link
-     */
     public function testLink(): void
     {
         $source = $this->tmp . '/source';
@@ -281,9 +236,6 @@ class DirTest extends TestCase
         $this->assertTrue(is_link($link));
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Dir::link
-     */
     public function testLinkExistingLink(): void
     {
         $source = $this->tmp . '/source';
@@ -295,9 +247,6 @@ class DirTest extends TestCase
         $this->assertTrue(Dir::link($source, $link));
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Dir::link
-     */
     public function testLinkWithoutSource(): void
     {
         $source = $this->tmp . '/source';
@@ -309,9 +258,6 @@ class DirTest extends TestCase
         Dir::link($source, $link);
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Dir::read
-     */
     public function testRead(): void
     {
         Dir::make($this->tmp);
@@ -350,9 +296,6 @@ class DirTest extends TestCase
         $this->assertSame($expected, $files);
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Dir::remove
-     */
     public function testRemove(): void
     {
         Dir::make($this->tmp);
@@ -362,9 +305,6 @@ class DirTest extends TestCase
         $this->assertDirectoryDoesNotExist($this->tmp);
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Dir::isReadable
-     */
     public function testIsReadable(): void
     {
         Dir::make($this->tmp);
@@ -372,10 +312,6 @@ class DirTest extends TestCase
         $this->assertSame(is_readable($this->tmp), Dir::isReadable($this->tmp));
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Dir::dirs
-     * @covers \Modufolio\Appkit\Toolkit\Dir::files
-     */
     public function testReadDirsAndFiles(): void
     {
         Dir::make($root = $this->fixtures . '/dirs');
@@ -427,10 +363,6 @@ class DirTest extends TestCase
         Dir::remove($root);
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Dir::size
-     * @covers \Modufolio\Appkit\Toolkit\Dir::niceSize
-     */
     public function testSize(): void
     {
         Dir::make($this->tmp);
@@ -446,9 +378,6 @@ class DirTest extends TestCase
         Dir::remove($this->tmp);
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Dir::size
-     */
     public function testSizeWithNestedFolders(): void
     {
         Dir::make($this->tmp);
@@ -465,17 +394,11 @@ class DirTest extends TestCase
         Dir::remove($this->tmp);
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Dir::size
-     */
     public function testSizeOfNonExistingDir(): void
     {
         $this->assertFalse(Dir::size('/does-not-exist'));
     }
 
-    /**
-     * @covers \Modufolio\Appkit\Toolkit\Dir::wasModifiedAfter
-     */
     public function testWasModifiedAfter(): void
     {
         $time = time();

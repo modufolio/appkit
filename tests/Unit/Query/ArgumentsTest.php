@@ -4,17 +4,14 @@ declare(strict_types = 1);
 
 namespace Modufolio\Appkit\Tests\Unit\Query;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+
 use Modufolio\Appkit\Query\Arguments;
 use PHPUnit\Framework\TestCase;
 
-/**
- * @coversDefaultClass \Modufolio\Appkit\Query\Arguments
- */
+#[CoversClass(Arguments::class)]
 class ArgumentsTest extends TestCase
 {
-    /**
-     * @covers ::factory
-     */
     public function testFactory()
     {
         $arguments = Arguments::factory('1, 2, 3');

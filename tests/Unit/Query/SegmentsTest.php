@@ -4,20 +4,16 @@ declare(strict_types = 1);
 
 namespace Modufolio\Appkit\Tests\Unit\Query;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+
 use Modufolio\Appkit\Query\Segments;
 use BadMethodCallException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
-/**
- * @coversDefaultClass \Modufolio\Appkit\Query\Segments
- */
+#[CoversClass(Segments::class)]
 class SegmentsTest extends TestCase
 {
-    /**
-     * @covers ::factory
-     * @covers ::__construct
-     */
     public function testFactory()
     {
         $segments = Segments::factory('a.b.c');

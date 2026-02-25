@@ -4,23 +4,17 @@ declare(strict_types = 1);
 
 namespace Modufolio\Appkit\Tests\Unit\Data;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+
 use Modufolio\Appkit\Data\Txt;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 
-/**
- * @coversDefaultClass \Modufolio\Appkit\Data\Txt
- */
+#[CoversClass(Txt::class)]
 class TxtTest extends TestCase
 {
     public const FIXTURES = __DIR__ . '/fixtures';
 
-    /**
-     * @covers ::encode
-     * @covers ::encodeValue
-     * @covers ::encodeResult
-     * @covers ::decode
-     */
     public function testEncodeDecode()
     {
         $array = [
@@ -44,12 +38,6 @@ class TxtTest extends TestCase
         $this->assertSame(['this is' => 'an array'], Txt::decode(['this is' => 'an array']));
     }
 
-    /**
-     * @covers ::encode
-     * @covers ::encodeValue
-     * @covers ::encodeResult
-     * @covers ::decode
-     */
     public function testEncodeDecodeMixedCase()
     {
         $array = [
@@ -72,11 +60,6 @@ class TxtTest extends TestCase
         ], $result);
     }
 
-    /**
-     * @covers ::encode
-     * @covers ::encodeValue
-     * @covers ::encodeResult
-     */
     public function testEncodeMissingValues()
     {
         $array = [
@@ -93,11 +76,6 @@ class TxtTest extends TestCase
         );
     }
 
-    /**
-     * @covers ::encode
-     * @covers ::encodeValue
-     * @covers ::encodeResult
-     */
     public function testEncodeMultiline()
     {
         $array = [
@@ -112,11 +90,6 @@ class TxtTest extends TestCase
         );
     }
 
-    /**
-     * @covers ::encode
-     * @covers ::encodeValue
-     * @covers ::encodeResult
-     */
     public function testEncodeDecodeDivider()
     {
         $array = [
@@ -134,11 +107,6 @@ class TxtTest extends TestCase
         $this->assertSame($array, Txt::decode($data));
     }
 
-    /**
-     * @covers ::encode
-     * @covers ::encodeValue
-     * @covers ::encodeResult
-     */
     public function testEncodeArray()
     {
         $array = [
@@ -151,11 +119,6 @@ class TxtTest extends TestCase
         $this->assertSame(file_get_contents(static::FIXTURES . '/test.txt'), $data);
     }
 
-    /**
-     * @covers ::encode
-     * @covers ::encodeValue
-     * @covers ::encodeResult
-     */
     public function testEncodeFloat()
     {
         $data = Txt::encode([
@@ -165,11 +128,6 @@ class TxtTest extends TestCase
         $this->assertSame('Number: 3.2', $data);
     }
 
-    /**
-     * @covers ::encode
-     * @covers ::encodeValue
-     * @covers ::encodeResult
-     */
     public function testEncodeFloatWithLocaleSetting()
     {
         $currentLocale = setlocale(LC_ALL, null);
@@ -184,9 +142,6 @@ class TxtTest extends TestCase
         setlocale(LC_ALL, $currentLocale);
     }
 
-    /**
-     * @covers ::decode
-     */
     public function testDecodeFile()
     {
         $array = [
@@ -198,9 +153,6 @@ class TxtTest extends TestCase
         $this->assertSame($array, $data);
     }
 
-    /**
-     * @covers ::decode
-     */
     public function testDecodeBom1()
     {
         $string = "\xEF\xBB\xBFTitle: title field with BOM \xEF\xBB\xBF\n----\nText: text field";
@@ -212,9 +164,6 @@ class TxtTest extends TestCase
         $this->assertSame($array, Txt::decode($string));
     }
 
-    /**
-     * @covers ::decode
-     */
     public function testDecodeBom2()
     {
         $string = "\xEF\xBB\xBFTitle: title field with BOM\n--\xEF\xBB\xBF--\nand more text\n----\nText: text field";
@@ -226,9 +175,6 @@ class TxtTest extends TestCase
         $this->assertSame($array, Txt::decode($string));
     }
 
-    /**
-     * @covers ::decode
-     */
     public function testDecodeInvalid1()
     {
         // pass invalid object
@@ -237,9 +183,6 @@ class TxtTest extends TestCase
         Txt::decode(new \stdClass());
     }
 
-    /**
-     * @covers ::decode
-     */
     public function testDecodeInvalid2()
     {
         // pass invalid int

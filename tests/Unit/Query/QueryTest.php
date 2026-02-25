@@ -4,28 +4,21 @@ declare(strict_types = 1);
 
 namespace Modufolio\Appkit\Tests\Unit\Query;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+
 use Modufolio\Appkit\Query\Query;
 use Closure;
 use PHPUnit\Framework\TestCase;
 
-/**
- * @coversDefaultClass \Modufolio\Appkit\Query\Query
- */
+#[CoversClass(Query::class)]
 class QueryTest extends TestCase
 {
-    /**
-     * @covers ::__construct
-     * @covers ::factory
-     */
     public function testFactory()
     {
         $query = Query::factory(' user.me ');
         $this->assertSame('user.me', $query->query);
     }
 
-    /**
-     * @covers ::intercept
-     */
     public function testIntercept()
     {
         $query = new Query('kirby');

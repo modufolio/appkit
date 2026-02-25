@@ -4,20 +4,16 @@ declare(strict_types = 1);
 
 namespace Modufolio\Appkit\Tests\Unit\Data;
 
+use Modufolio\Appkit\Data\Handler;
 use Modufolio\Appkit\Toolkit\F;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 require_once __DIR__ . '/mocks.php';
 
-/**
- * @coversDefaultClass \Modufolio\Appkit\Data\Handler
- */
+#[CoversClass(Handler::class)]
 class HandlerTest extends TestCase
 {
-    /**
-     * @covers ::read
-     * @covers ::write
-     */
     public function testReadWrite(): void
     {
         $data = [
@@ -38,9 +34,6 @@ class HandlerTest extends TestCase
         $this->assertSame($data, $result);
     }
 
-    /**
-     * @covers ::read
-     */
     public function testReadFileMissing(): void
     {
         $file = __DIR__ . '/tmp/does-not-exist.json';

@@ -4,17 +4,14 @@ declare(strict_types = 1);
 
 namespace Modufolio\Appkit\Tests\Unit\Image;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+
 use Modufolio\Appkit\Image\Focus;
 use PHPUnit\Framework\TestCase;
 
-/**
- * @coversDefaultClass \Modufolio\Appkit\Image\Focus
- */
+#[CoversClass(Focus::class)]
 class FocusTest extends TestCase
 {
-    /**
-     * @covers ::coords
-     */
     public function testCoords(): void
     {
         $options = [
@@ -102,9 +99,6 @@ class FocusTest extends TestCase
         $this->assertSame(906, $focus['y2']);
     }
 
-    /**
-     * @covers ::coords
-     */
     public function testCoordsSameRatio(): void
     {
         $options = [
@@ -118,9 +112,6 @@ class FocusTest extends TestCase
         $this->assertNull(Focus::coords(...$options));
     }
 
-    /**
-     * @covers ::parse
-     */
     public function testParse(): void
     {
         $this->assertSame([0.7, 0.3], Focus::parse('70%, 30%'));
@@ -132,9 +123,6 @@ class FocusTest extends TestCase
         $this->assertSame([0.7, 0.3], Focus::parse('{"x":0.7,"y":0.3}'));
     }
 
-    /**
-     * @covers ::ratio
-     */
     public function testRatio(): void
     {
         $this->assertSame(0.5, Focus::ratio(200, 400));

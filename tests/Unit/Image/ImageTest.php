@@ -4,14 +4,14 @@ declare(strict_types = 1);
 
 namespace Modufolio\Appkit\Tests\Unit\Image;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+
 use Modufolio\Appkit\Image\Dimensions;
 use Modufolio\Appkit\Image\Exif;
 use Modufolio\Appkit\Image\Image;
 use PHPUnit\Framework\TestCase;
 
-/**
- * @coversDefaultClass \Modufolio\Appkit\Image\Image
- */
+#[CoversClass(Image::class)]
 class ImageTest extends TestCase
 {
     public const FIXTURES = __DIR__ . '/fixtures';
@@ -21,9 +21,6 @@ class ImageTest extends TestCase
         return new Image(static::FIXTURES . '/image/' . $file);
     }
 
-    /**
-     * @covers ::dimensions
-     */
     public function testDimensions(): void
     {
         // jpg
@@ -54,9 +51,6 @@ class ImageTest extends TestCase
         $this->assertInstanceOf(Dimensions::class, $file->dimensions());
     }
 
-    /**
-     * @covers ::exif
-     */
     public function testExif(): void
     {
         $file = $this->_image();
@@ -65,9 +59,6 @@ class ImageTest extends TestCase
         $this->assertInstanceOf(Exif::class, $file->exif());
     }
 
-    /**
-     * @covers ::height
-     */
     public function testHeight(): void
     {
         $file = $this->_image();
@@ -77,9 +68,6 @@ class ImageTest extends TestCase
 
 
 
-    /**
-     * @covers ::imagesize
-     */
     public function testImagesize(): void
     {
         $file = $this->_image();
@@ -87,36 +75,24 @@ class ImageTest extends TestCase
         $this->assertSame(800, $file->imagesize()[0]);
     }
 
-    /**
-     * @covers ::isPortrait
-     */
     public function testIsPortrait(): void
     {
         $file = $this->_image();
         $this->assertFalse($file->isPortrait());
     }
 
-    /**
-     * @covers ::isLandscape
-     */
     public function testIsLandscape(): void
     {
         $file = $this->_image();
         $this->assertTrue($file->isLandscape());
     }
 
-    /**
-     * @covers ::isSquare
-     */
     public function testIsSquare(): void
     {
         $file = $this->_image();
         $this->assertFalse($file->isSquare());
     }
 
-    /**
-     * @covers ::isResizable
-     */
     public function testIsResizable(): void
     {
         $file = $this->_image();
@@ -132,9 +108,6 @@ class ImageTest extends TestCase
         }
     }
 
-    /**
-     * @covers ::isViewable
-     */
     public function testIsViewable(): void
     {
         $file = $this->_image();
@@ -151,27 +124,18 @@ class ImageTest extends TestCase
     }
 
 
-    /**
-     * @covers ::orientation
-     */
     public function testOrientation(): void
     {
         $file = $this->_image();
         $this->assertSame('landscape', $file->orientation());
     }
 
-    /**
-     * @covers ::ratio
-     */
     public function testRatio(): void
     {
         $image  = $this->_image();
         $this->assertEqualsWithDelta(1.5009380863039, $image->ratio(), 0.0001);
     }
 
-    /**
-     * @covers ::toArray
-     */
     public function testToArray(): void
     {
         $file = $this->_image();
@@ -180,9 +144,6 @@ class ImageTest extends TestCase
         $this->assertIsArray($file->toArray()['dimensions']);
     }
 
-    /**
-     * @covers ::width
-     */
     public function testWidth(): void
     {
         $file = $this->_image();

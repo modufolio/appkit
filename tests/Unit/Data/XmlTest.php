@@ -4,20 +4,16 @@ declare(strict_types = 1);
 
 namespace Modufolio\Appkit\Tests\Unit\Data;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+
 use Modufolio\Appkit\Data\Xml;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use stdClass;
 
-/**
- * @coversDefaultClass \Modufolio\Appkit\Data\Xml
- */
+#[CoversClass(Xml::class)]
 class XmlTest extends TestCase
 {
-    /**
-     * @covers ::encode
-     * @covers ::decode
-     */
     public function testEncodeDecode(): void
     {
         $array = [
@@ -48,9 +44,6 @@ class XmlTest extends TestCase
         $this->assertSame(['this is' => 'an array'], Xml::decode(['this is' => 'an array']));
     }
 
-    /**
-     * @covers ::decode
-     */
     public function testDecodeInvalid1(): void
     {
         // pass invalid object
@@ -59,9 +52,6 @@ class XmlTest extends TestCase
         Xml::decode(new stdClass());
     }
 
-    /**
-     * @covers ::decode
-     */
     public function testDecodeInvalid2(): void
     {
         // pass invalid int
@@ -70,18 +60,12 @@ class XmlTest extends TestCase
         Xml::decode(1);
     }
 
-    /**
-     * @covers ::encode
-     */
     public function testEncodeScalar(): void
     {
         $expected = '<?xml version="1.0" encoding="UTF-8"?>' . "\n" . '<data>test</data>';
         $this->assertSame($expected, Xml::encode('test'));
     }
 
-    /**
-     * @covers ::decode
-     */
     public function testDecodeCorrupted(): void
     {
         $this->expectException('Exception');
