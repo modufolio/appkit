@@ -9,9 +9,9 @@ use Modufolio\Appkit\Security\User\PasswordAuthenticatedUserInterface;
 use Modufolio\Appkit\Security\User\UserProviderInterface;
 use Modufolio\Psr7\Http\ServerRequest;
 use Modufolio\Psr7\Http\Uri;
-use PHPUnit\Framework\TestCase;
+use Modufolio\Appkit\Tests\Case\AppTestCase;
 
-class RememberMeAuthenticatorTest extends TestCase
+class RememberMeAuthenticatorTest extends AppTestCase
 {
     private UserProviderInterface $userProvider;
     private PasswordAuthenticatedUserInterface $user;

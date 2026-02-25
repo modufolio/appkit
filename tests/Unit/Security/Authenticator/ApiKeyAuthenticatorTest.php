@@ -7,14 +7,13 @@ use Modufolio\Psr7\Http\Uri;
 use Modufolio\Appkit\Security\Authenticator\ApiKeyAuthenticator;
 use Modufolio\Appkit\Security\Exception\AuthenticationException;
 use Modufolio\Appkit\Security\Token\ApiKeyToken;
-use Modufolio\Appkit\Security\User\PasswordAuthenticatedUserInterface;
-use Modufolio\Appkit\Security\User\UserProviderInterface;
-use PHPUnit\Framework\TestCase;
+use Modufolio\Appkit\Security\User\InMemoryUser;
+use Modufolio\Appkit\Tests\App\InMemoryUserProvider;
+use Modufolio\Appkit\Tests\Case\AppTestCase;
 
-class ApiKeyAuthenticatorTest extends TestCase
+class ApiKeyAuthenticatorTest extends AppTestCase
 {
-    private UserProviderInterface $userProvider;
-    private PasswordAuthenticatedUserInterface $user;
+    private InMemoryUserProvider $userProvider;
     private array $apiKeys = [
         'valid-api-key-123' => 'user1@example.com',
         'another-valid-key' => 'user2@example.com',
@@ -24,13 +23,9 @@ class ApiKeyAuthenticatorTest extends TestCase
     {
         parent::setUp();
 
-        // Create mock user
-        $this->user = $this->createMock(PasswordAuthenticatedUserInterface::class);
-        $this->user->method('getUserIdentifier')->willReturn('user1@example.com');
-        $this->user->method('getRoles')->willReturn(['ROLE_USER']);
-
-        // Create mock user provider
-        $this->userProvider = $this->createMock(UserProviderInterface::class);
+        $this->userProvider = new InMemoryUserProvider();
+        $this->userProvider->addUser(new InMemoryUser('user1@example.com', 'password', ['ROLE_USER']));
+        $this->userProvider->addUser(new InMemoryUser('user2@example.com', 'password', ['ROLE_ADMIN']));
     }
 
     public function testConstructorThrowsExceptionWhenApiKeysAreEmpty(): void
@@ -191,19 +186,15 @@ class ApiKeyAuthenticatorTest extends TestCase
 
     public function testAuthenticateThrowsExceptionWhenUserNotFound(): void
     {
+        // Use keys that map to a user NOT in the provider
         $authenticator = new ApiKeyAuthenticator($this->userProvider, [
-            'api_keys' => $this->apiKeys
+            'api_keys' => ['orphan-key' => 'nobody@example.com']
         ]);
-
-        $this->userProvider->expects($this->once())
-            ->method('loadUserByIdentifier')
-            ->with('user1@example.com')
-            ->willThrowException(new \Exception('User not found'));
 
         $request = new ServerRequest(
             method: 'GET',
             uri: new Uri('/api/test'),
-            headers: ['X-API-KEY' => 'valid-api-key-123']
+            headers: ['X-API-KEY' => 'orphan-key']
         );
 
         $this->expectException(AuthenticationException::class);
@@ -218,11 +209,6 @@ class ApiKeyAuthenticatorTest extends TestCase
             'api_keys' => $this->apiKeys
         ]);
 
-        $this->userProvider->expects($this->once())
-            ->method('loadUserByIdentifier')
-            ->with('user1@example.com')
-            ->willReturn($this->user);
-
         $request = new ServerRequest(
             method: 'GET',
             uri: new Uri('/api/test'),
@@ -231,7 +217,7 @@ class ApiKeyAuthenticatorTest extends TestCase
 
         $result = $authenticator->authenticate($request);
 
-        $this->assertSame($this->user, $result);
+        $this->assertSame('user1@example.com', $result->getUserIdentifier());
     }
 
     public function testAuthenticateSuccessfullyWithQueryParameter(): void
@@ -241,11 +227,6 @@ class ApiKeyAuthenticatorTest extends TestCase
             'query_parameter' => 'api_key'
         ]);
 
-        $this->userProvider->expects($this->once())
-            ->method('loadUserByIdentifier')
-            ->with('user2@example.com')
-            ->willReturn($this->user);
-
         $request = (new ServerRequest(
             method: 'GET',
             uri: new Uri('/api/test?api_key=another-valid-key'),
@@ -254,7 +235,7 @@ class ApiKeyAuthenticatorTest extends TestCase
 
         $result = $authenticator->authenticate($request);
 
-        $this->assertSame($this->user, $result);
+        $this->assertSame('user2@example.com', $result->getUserIdentifier());
     }
 
     public function testAuthenticatePrefersHeaderOverQueryParameter(): void
@@ -264,11 +245,6 @@ class ApiKeyAuthenticatorTest extends TestCase
             'query_parameter' => 'api_key'
         ]);
 
-        $this->userProvider->expects($this->once())
-            ->method('loadUserByIdentifier')
-            ->with('user1@example.com') // Should use header key
-            ->willReturn($this->user);
-
         $request = (new ServerRequest(
             method: 'GET',
             uri: new Uri('/api/test?api_key=another-valid-key'),
@@ -277,7 +253,8 @@ class ApiKeyAuthenticatorTest extends TestCase
 
         $result = $authenticator->authenticate($request);
 
-        $this->assertSame($this->user, $result);
+        // Should use header key (user1) over query parameter (user2)
+        $this->assertSame('user1@example.com', $result->getUserIdentifier());
     }
 
     public function testAuthenticateTrimsApiKey(): void
@@ -285,11 +262,6 @@ class ApiKeyAuthenticatorTest extends TestCase
         $authenticator = new ApiKeyAuthenticator($this->userProvider, [
             'api_keys' => $this->apiKeys
         ]);
-
-        $this->userProvider->expects($this->once())
-            ->method('loadUserByIdentifier')
-            ->with('user1@example.com')
-            ->willReturn($this->user);
 
         $request = new ServerRequest(
             method: 'GET',
@@ -299,7 +271,7 @@ class ApiKeyAuthenticatorTest extends TestCase
 
         $result = $authenticator->authenticate($request);
 
-        $this->assertSame($this->user, $result);
+        $this->assertSame('user1@example.com', $result->getUserIdentifier());
     }
 
     public function testCreateTokenReturnsApiKeyToken(): void
@@ -308,10 +280,11 @@ class ApiKeyAuthenticatorTest extends TestCase
             'api_keys' => $this->apiKeys
         ]);
 
-        $token = $authenticator->createToken($this->user, 'main');
+        $user = new InMemoryUser('user1@example.com', 'password', ['ROLE_USER']);
+        $token = $authenticator->createToken($user, 'main');
 
         $this->assertInstanceOf(ApiKeyToken::class, $token);
-        $this->assertSame($this->user, $token->getUser());
+        $this->assertSame('user1@example.com', $token->getUser()->getUserIdentifier());
         $this->assertEquals('main', $token->getFirewallName());
         $this->assertEquals(['ROLE_USER'], $token->getRoles());
     }

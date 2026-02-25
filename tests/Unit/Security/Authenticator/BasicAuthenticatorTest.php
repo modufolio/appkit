@@ -10,9 +10,9 @@ use Modufolio\Appkit\Security\Token\UsernamePasswordToken;
 use Modufolio\Appkit\Security\User\PasswordAuthenticatedUserInterface;
 use Modufolio\Appkit\Security\User\UserInterface;
 use Modufolio\Appkit\Security\User\UserProviderInterface;
-use PHPUnit\Framework\TestCase;
+use Modufolio\Appkit\Tests\Case\AppTestCase;
 
-class BasicAuthenticatorTest extends TestCase
+class BasicAuthenticatorTest extends AppTestCase
 {
     private UserProviderInterface $userProvider;
     private PasswordAuthenticatedUserInterface $user;

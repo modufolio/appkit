@@ -7,7 +7,6 @@ use Modufolio\Appkit\Resolver\ParameterResolverInterface;
 use Modufolio\Appkit\Routing\RouterInterface;
 use Modufolio\Appkit\Security\BruteForce\BruteForceProtectionInterface;
 use Modufolio\Appkit\Security\Csrf\CsrfTokenManagerInterface;
-use Modufolio\Appkit\Security\OAuth\OAuthService;
 use Modufolio\Appkit\Security\Token\TokenStorageInterface;
 use Modufolio\Appkit\Security\TwoFactor\TotpService;
 use Modufolio\Appkit\Security\User\UserChecker;

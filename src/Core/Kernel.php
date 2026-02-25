@@ -649,6 +649,18 @@ abstract class Kernel implements AppInterface
         return $this->authenticators;
     }
 
+    /**
+     * Register or override an authenticator factory at runtime.
+     *
+     * Useful for tests that need a specific authenticator configuration
+     * without modifying the global config file.
+     */
+    public function registerAuthenticator(string $name, \Closure $factory): static
+    {
+        $this->authenticators[$name] = $factory;
+        return $this;
+    }
+
     abstract function userProvider(): UserProviderInterface;
 
 

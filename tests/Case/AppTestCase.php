@@ -34,6 +34,13 @@ abstract class AppTestCase extends BaseTestCase
 
     public function tearDown(): void
     {
+        // Clear session data to ensure test isolation
+        // Auth tokens, CSRF tokens, etc. must not leak between tests.
+        // This preserves the PHP session mechanism (needed for RoadRunner)
+        // while ensuring each test starts with a clean session.
+        if ($this->app()->getState()?->hasSession()) {
+            $this->app()->session()->clear();
+        }
 
         // Clear the application instance after each test
         $this->app()->reset();

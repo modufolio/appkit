@@ -9,7 +9,7 @@ use Modufolio\Appkit\Security\Authenticator\OAuthAuthenticator;
 use Modufolio\Appkit\Security\Authenticator\RememberMeAuthenticator;
 use Modufolio\Appkit\Security\BruteForce\BruteForceProtectionInterface;
 use Modufolio\Appkit\Security\Csrf\CsrfTokenManagerInterface;
-use Modufolio\Appkit\Security\OAuth\OAuthService;
+use Modufolio\Appkit\Security\OAuth\OAuthServiceInterface;
 use Psr\Container\ContainerInterface;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;
 
@@ -53,7 +53,7 @@ return [
     },
     'oauth' => function (ContainerInterface $container) {
         return new OAuthAuthenticator(
-            $container->get(OAuthService::class),
+            $container->get(OAuthServiceInterface::class),
             [
                 'header_name' => 'Authorization',
                 'token_prefix' => 'Bearer',

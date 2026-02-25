@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace Modufolio\Appkit\Security\OAuth;
 
-use App\Entity\OAuthAccessToken;
-use App\Entity\User;
-use App\Repository\OAuthAccessTokenRepository;
 use Modufolio\Appkit\Security\User\UserInterface;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -21,14 +18,15 @@ use Psr\Http\Message\ServerRequestInterface;
  * - Token binding to client
  * - PKCE support (optional)
  */
-class OAuthService
+class OAuthService implements OAuthServiceInterface
 {
     private const ACCESS_TOKEN_LIFETIME = 3600; // 1 hour
     private const REFRESH_TOKEN_LIFETIME = 2592000; // 30 days
 
     public function __construct(
         private EntityManagerInterface $entityManager,
-        private OAuthAccessTokenRepository $tokenRepository,
+        private OAuthAccessTokenRepositoryInterface $tokenRepository,
+        private string $accessTokenEntityClass,
     ) {
     }
 
@@ -41,9 +39,9 @@ class OAuthService
         string $grantType,
         array $scopes = [],
         ?ServerRequestInterface $request = null,
-        bool $includeRefreshToken = true
-    ): OAuthAccessToken {
-        $token = new OAuthAccessToken();
+        bool $includeRefreshToken = true,
+    ): OAuthAccessTokenInterface {
+        $token = new $this->accessTokenEntityClass();
         $token->setUser($user);
         $token->setClientId($clientId);
         $token->setGrantType($grantType);
@@ -76,10 +74,10 @@ class OAuthService
         $this->entityManager->persist($token);
         $this->entityManager->flush();
 
-        // Store plain tokens in temporary properties for response
-        $token->plainAccessToken = $accessToken;
+        // Store plain tokens for response
+        $token->setPlainAccessToken($accessToken);
         if ($includeRefreshToken) {
-            $token->plainRefreshToken = $refreshToken;
+            $token->setPlainRefreshToken($refreshToken);
         }
 
         return $token;
@@ -88,7 +86,7 @@ class OAuthService
     /**
      * Validate an access token
      */
-    public function validateAccessToken(string $accessToken): ?OAuthAccessToken
+    public function validateAccessToken(string $accessToken): ?OAuthAccessTokenInterface
     {
         $tokenHash = hash('sha256', $accessToken);
         $token = $this->tokenRepository->findValidToken($tokenHash);
@@ -111,8 +109,8 @@ class OAuthService
     public function refreshAccessToken(
         string $refreshToken,
         string $clientId,
-        ?ServerRequestInterface $request = null
-    ): ?OAuthAccessToken {
+        ?ServerRequestInterface $request = null,
+    ): ?OAuthAccessTokenInterface {
         $refreshTokenHash = hash('sha256', $refreshToken);
         $oldToken = $this->tokenRepository->findByRefreshToken($refreshTokenHash);
 
@@ -171,7 +169,7 @@ class OAuthService
     /**
      * Revoke all tokens for a user
      */
-    public function revokeAllUserTokens(User $user): void
+    public function revokeAllUserTokens(UserInterface $user): void
     {
         $this->tokenRepository->revokeAllForUser($user);
     }
@@ -187,17 +185,18 @@ class OAuthService
     /**
      * Format token response for OAuth 2.1
      */
-    public function formatTokenResponse(OAuthAccessToken $token): array
+    public function formatTokenResponse(OAuthAccessTokenInterface $token): array
     {
         $response = [
-            'access_token' => $token->plainAccessToken ?? null,
+            'access_token' => $token->getPlainAccessToken(),
             'token_type' => 'Bearer',
             'expires_in' => $token->getExpiresAt()->getTimestamp() - time(),
             'scope' => implode(' ', $token->getScopes()),
         ];
 
-        if (isset($token->plainRefreshToken)) {
-            $response['refresh_token'] = $token->plainRefreshToken;
+        $plainRefreshToken = $token->getPlainRefreshToken();
+        if ($plainRefreshToken !== null) {
+            $response['refresh_token'] = $plainRefreshToken;
         }
 
         return $response;

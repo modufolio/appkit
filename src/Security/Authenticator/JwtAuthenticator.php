@@ -2,7 +2,6 @@
 
 namespace Modufolio\Appkit\Security\Authenticator;
 
-use App\Logger\Log;
 use Modufolio\Appkit\Security\BruteForce\BruteForceProtectionInterface;
 use Modufolio\Appkit\Security\Exception\AuthenticationException;
 use Modufolio\Appkit\Security\Token\JwtToken;
@@ -14,16 +13,21 @@ use Firebase\JWT\Key;
 use Modufolio\Psr7\Http\Response;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 
 class JwtAuthenticator extends AbstractAuthenticator
 {
     private array $options;
+    private LoggerInterface $logger;
 
     public function __construct(
         private UserProviderInterface $userProvider,
         private BruteForceProtectionInterface $bruteForceProtection,
-        array $options = []
+        array $options = [],
+        ?LoggerInterface $logger = null,
     ) {
+        $this->logger = $logger ?? new NullLogger();
         $this->options = array_merge([
             'secret_key' => null,
             'algorithm' => 'HS256',
@@ -55,7 +59,7 @@ class JwtAuthenticator extends AbstractAuthenticator
         if ($this->bruteForceProtection->isLocked('jwt:' . $clientIp, $clientIp)) {
             $remainingTime = $this->bruteForceProtection->getRemainingLockoutTime('jwt:' . $clientIp, $clientIp);
 
-            Log::warning('JWT authentication blocked: IP temporarily locked due to too many failed attempts', [
+            $this->logger->warning('JWT authentication blocked: IP temporarily locked due to too many failed attempts', [
                 'ip' => $clientIp,
                 'remaining_lockout_seconds' => $remainingTime,
             ]);
@@ -72,7 +76,7 @@ class JwtAuthenticator extends AbstractAuthenticator
             if (!isset($payload[$userIdentifierClaim])) {
                 $this->bruteForceProtection->recordFailure('jwt:' . $clientIp, $clientIp);
 
-                Log::warning('JWT authentication failed: Missing user identifier claim', [
+                $this->logger->warning('JWT authentication failed: Missing user identifier claim', [
                     'claim' => $userIdentifierClaim,
                     'ip' => $clientIp,
                     'failure_count' => $this->bruteForceProtection->getFailureCount('jwt:' . $clientIp, $clientIp),
@@ -89,7 +93,7 @@ class JwtAuthenticator extends AbstractAuthenticator
                 $this->bruteForceProtection->recordSuccess('jwt:' . $clientIp, $clientIp);
                 $this->bruteForceProtection->recordSuccess($identifier, $clientIp);
 
-                Log::info('Successful JWT authentication', [
+                $this->logger->info('Successful JWT authentication', [
                     'username' => $identifier,
                     'ip' => $clientIp,
                 ]);
@@ -99,7 +103,7 @@ class JwtAuthenticator extends AbstractAuthenticator
                 $this->bruteForceProtection->recordFailure('jwt:' . $clientIp, $clientIp);
                 $this->bruteForceProtection->recordFailure($identifier, $clientIp);
 
-                Log::warning('JWT authentication failed: User not found', [
+                $this->logger->warning('JWT authentication failed: User not found', [
                     'username' => $identifier,
                     'ip' => $clientIp,
                     'failure_count' => $this->bruteForceProtection->getFailureCount($identifier, $clientIp),
@@ -141,7 +145,7 @@ class JwtAuthenticator extends AbstractAuthenticator
         if (!str_starts_with($authHeader, $prefix)) {
             $this->bruteForceProtection->recordFailure('jwt:' . $clientIp, $clientIp);
 
-            Log::warning('JWT authentication failed: Missing or invalid Authorization header', [
+            $this->logger->warning('JWT authentication failed: Missing or invalid Authorization header', [
                 'ip' => $clientIp,
                 'failure_count' => $this->bruteForceProtection->getFailureCount('jwt:' . $clientIp, $clientIp),
             ]);
@@ -153,7 +157,7 @@ class JwtAuthenticator extends AbstractAuthenticator
         if (empty($token)) {
             $this->bruteForceProtection->recordFailure('jwt:' . $clientIp, $clientIp);
 
-            Log::warning('JWT authentication failed: Empty token', [
+            $this->logger->warning('JWT authentication failed: Empty token', [
                 'ip' => $clientIp,
                 'failure_count' => $this->bruteForceProtection->getFailureCount('jwt:' . $clientIp, $clientIp),
             ]);
@@ -165,28 +169,28 @@ class JwtAuthenticator extends AbstractAuthenticator
             return (array) $decoded;
         } catch (\Firebase\JWT\ExpiredException $e) {
             // Don't record failure for expired tokens (valid tokens, just expired)
-            Log::warning('JWT authentication failed: Token expired', [
+            $this->logger->warning('JWT authentication failed: Token expired', [
                 'ip' => $clientIp,
             ]);
             throw new AuthenticationException('JWT token has expired.', 0, $e);
         } catch (\Firebase\JWT\SignatureInvalidException $e) {
             $this->bruteForceProtection->recordFailure('jwt:' . $clientIp, $clientIp);
 
-            Log::warning('JWT authentication failed: Invalid signature', [
+            $this->logger->warning('JWT authentication failed: Invalid signature', [
                 'ip' => $clientIp,
                 'failure_count' => $this->bruteForceProtection->getFailureCount('jwt:' . $clientIp, $clientIp),
             ]);
             throw new AuthenticationException('JWT token signature is invalid.', 0, $e);
         } catch (\Firebase\JWT\BeforeValidException $e) {
             // Don't record failure for not-yet-valid tokens (valid tokens, just early)
-            Log::warning('JWT authentication failed: Token not yet valid', [
+            $this->logger->warning('JWT authentication failed: Token not yet valid', [
                 'ip' => $clientIp,
             ]);
             throw new AuthenticationException('JWT token is not yet valid.', 0, $e);
         } catch (\Exception $e) {
             $this->bruteForceProtection->recordFailure('jwt:' . $clientIp, $clientIp);
 
-            Log::error('JWT authentication error: ' . $e->getMessage(), [
+            $this->logger->error('JWT authentication error: ' . $e->getMessage(), [
                 'ip' => $clientIp,
                 'exception' => get_class($e),
                 'failure_count' => $this->bruteForceProtection->getFailureCount('jwt:' . $clientIp, $clientIp),

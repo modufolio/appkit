@@ -16,11 +16,8 @@ use Modufolio\Appkit\Resolver\TypeHintContainerResolver;
 use Modufolio\Appkit\Resolver\TypeHintResolver;
 use Modufolio\Appkit\Resolver\UserResolver;
 use Modufolio\Appkit\Security\BruteForce\BruteForceProtectionInterface;
-use Modufolio\Appkit\Security\BruteForce\FileBruteForceProtection;
-use Modufolio\Appkit\Security\BruteForce\RedisBruteForceProtection;
 use Modufolio\Appkit\Security\Csrf\CsrfTokenManager;
 use Modufolio\Appkit\Security\Csrf\CsrfTokenManagerInterface;
-use Modufolio\Appkit\Security\TwoFactor\TotpService;
 use Modufolio\Appkit\Security\User\UserProviderInterface;
 use Modufolio\Appkit\Tests\App\StubBruteForceProtection;
 use Doctrine\DBAL\Exception;
@@ -70,6 +67,16 @@ class App extends Kernel
             $instances,
             $repositories
         );
+    }
+
+    public function reset(): void
+    {
+        parent::reset();
+
+        // Clear cached services that hold EntityManager references
+        $this->userProvider = null;
+        $this->csrfTokenManager = null;
+        $this->parameterResolver = null;
     }
 
     // ============================================================================

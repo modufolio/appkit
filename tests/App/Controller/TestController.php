@@ -36,4 +36,9 @@ class TestController
     {
         return new Response(200, [], 'Public page');
     }
+
+    public function me(ServerRequestInterface $request): ResponseInterface
+    {
+        return Response::json(['status' => 'authenticated']);
+    }
 }

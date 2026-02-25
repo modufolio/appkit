@@ -21,4 +21,9 @@ return [
         'methods' => ['GET'],
         'controller' => [TestController::class, 'index'],
     ],
+    'api_me' => [
+        'pattern' => '/api/me',
+        'methods' => ['GET'],
+        'controller' => [TestController::class, 'me'],
+    ],
 ];
