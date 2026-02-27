@@ -4,6 +4,7 @@
          bootstrap="bootstrap.php"
          colors="true"
          stderr="true"
+         displayDetailsOnPhpunitDeprecations="true"
          cacheDirectory=".phpunit.cache"
 >
 

@@ -197,13 +197,13 @@ class Router implements RouterInterface, ResetInterface
      */
     private function ensureContext(ServerRequestInterface $request): void
     {
-        if ($this->context !== null) {
-            return;
+        $uri = $request->getUri();
+
+        if ($this->context === null) {
+            $this->setContext(new RequestContext());
         }
 
-        $uri = $request->getUri();
-        $context = new RequestContext();
-        $context
+        $this->context
             ->setMethod($request->getMethod())
             ->setHost($uri->getHost())
             ->setScheme($uri->getScheme())
@@ -211,8 +211,6 @@ class Router implements RouterInterface, ResetInterface
             ->setHttpsPort($uri->getPort() ?: 443)
             ->setPathInfo($uri->getPath())
             ->setQueryString($uri->getQuery());
-
-        $this->setContext($context);
     }
 
     /**

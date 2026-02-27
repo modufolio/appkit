@@ -18,7 +18,10 @@ use Modufolio\Appkit\Resolver\UserResolver;
 use Modufolio\Appkit\Security\BruteForce\BruteForceProtectionInterface;
 use Modufolio\Appkit\Security\Csrf\CsrfTokenManager;
 use Modufolio\Appkit\Security\Csrf\CsrfTokenManagerInterface;
+use Modufolio\Appkit\Security\TwoFactor\TotpService;
 use Modufolio\Appkit\Security\User\UserProviderInterface;
+use Modufolio\Appkit\Tests\App\Entity\UserTotpSecret;
+use Modufolio\Appkit\Tests\App\Repository\UserTotpSecretRepository;
 use Modufolio\Appkit\Tests\App\StubBruteForceProtection;
 use Doctrine\DBAL\Exception;
 use Symfony\Component\Config\Loader\LoaderInterface;
@@ -45,6 +48,7 @@ class App extends Kernel
     private ?CsrfTokenManagerInterface $csrfTokenManager = null;
     private ?UserProviderInterface $userProvider = null;
     private ?BruteForceProtectionInterface $bruteForceProtection = null;
+    private ?TotpService $totpServiceInstance = null;
 
     public function __construct(
         string $baseDir,
@@ -67,16 +71,6 @@ class App extends Kernel
             $instances,
             $repositories
         );
-    }
-
-    public function reset(): void
-    {
-        parent::reset();
-
-        // Clear cached services that hold EntityManager references
-        $this->userProvider = null;
-        $this->csrfTokenManager = null;
-        $this->parameterResolver = null;
     }
 
     // ============================================================================
@@ -105,6 +99,43 @@ class App extends Kernel
     public function bruteForceProtection(): BruteForceProtectionInterface
     {
         return $this->bruteForceProtection ??= new StubBruteForceProtection();
+    }
+
+    /**
+     * Get TOTP service for two-factor authentication.
+     */
+    public function totpService(): TotpService
+    {
+        return $this->totpServiceInstance ??= new TotpService(
+            $this->entityManager(),
+            $this->getRepository(UserTotpSecretRepository::class),
+            UserTotpSecret::class,
+            'Appkit Test',
+        );
+    }
+
+    /**
+     * Register an additional authenticator at runtime (test helper).
+     */
+    public function registerAuthenticator(string $name, \Closure $factory): static
+    {
+        $this->authenticators[$name] = $factory;
+        return $this;
+    }
+
+    /**
+     * Reset application state, including entity-manager-dependent service caches.
+     */
+    public function reset(): void
+    {
+        parent::reset();
+
+        // Clear caches that depend on the entity manager so they are
+        // recreated with the new EntityManager after reset.
+        $this->userProvider = null;
+        $this->csrfTokenManager = null;
+        $this->totpServiceInstance = null;
+        $this->parameterResolver = null;
     }
 
     // ============================================================================

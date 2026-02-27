@@ -23,11 +23,6 @@ use Symfony\Component\HttpFoundation\Session\Storage\NativeSessionStorage;
  */
 final class NativeApplicationState extends AbstractApplicationState
 {
-    /**
-     * Get the session with native PHP server initialization.
-     *
-     * PHP's built-in server handles session cookies automatically,
-     * so we just need to start the session and let PHP manage the rest.
      */
     public function getSession(): FlashBagAwareSessionInterface
     {
@@ -40,7 +35,6 @@ final class NativeApplicationState extends AbstractApplicationState
             BASE_DIR . '/var/sessions'
         );
 
-        // For PSR-7 requests, extract session ID from cookies
         $cookies = $this->request->getCookieParams();
         $requestSessionId = $cookies[$this->sessionCookieName] ?? null;
 
@@ -53,9 +47,11 @@ final class NativeApplicationState extends AbstractApplicationState
 
         $this->session = new Session($this->sessionStorage);
 
-        // Set session ID from request cookie before starting (for PSR-7 compatibility)
+        // Set session ID from request cookie before starting
         if ($requestSessionId && !$this->session->isStarted()) {
             session_id($requestSessionId);
+        } elseif (!$requestSessionId && session_status() === PHP_SESSION_NONE && session_id() !== '') {
+            session_id('');
         }
 
         // Start session - PHP handles cookies automatically
