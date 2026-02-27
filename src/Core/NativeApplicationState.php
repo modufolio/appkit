@@ -23,7 +23,6 @@ use Symfony\Component\HttpFoundation\Session\Storage\NativeSessionStorage;
  */
 final class NativeApplicationState extends AbstractApplicationState
 {
-     */
     public function getSession(): FlashBagAwareSessionInterface
     {
         if ($this->session !== null) {
