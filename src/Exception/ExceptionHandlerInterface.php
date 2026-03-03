@@ -19,8 +19,9 @@ interface ExceptionHandlerInterface
      *
      * @param class-string<\Throwable> $exceptionClass
      * @param callable(\Throwable, ServerRequestInterface): array $handler
+     * @param bool $loggable Whether this exception should be logged
      */
-    public function registerException(string $exceptionClass, callable $handler): void;
+    public function registerException(string $exceptionClass, callable $handler, bool $loggable = false): void;
 
     /**
      * Register a response formatter for a specific MIME type

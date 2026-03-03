@@ -10,6 +10,8 @@ use Modufolio\Appkit\Security\TwoFactor\TwoFactorException;
 use Modufolio\Psr7\Http\ServerRequest;
 use Modufolio\Psr7\Http\Uri;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 
 class ExceptionHandlerTest extends TestCase
 {
@@ -295,5 +297,126 @@ class ExceptionHandlerTest extends TestCase
 
         // Should fall back to default error response
         $this->assertSame(500, $response->getStatusCode());
+    }
+
+    public function testConstructorAcceptsLogger(): void
+    {
+        $handler = new ExceptionHandler(Environment::DEV, new NullLogger());
+        $this->assertInstanceOf(ExceptionHandler::class, $handler);
+    }
+
+    public function testLoggableExceptionIsLogged(): void
+    {
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects($this->once())
+            ->method('log')
+            ->with('error', 'Server broke', $this->callback(function (array $context) {
+                return $context['exception'] === \RuntimeException::class
+                    && $context['status'] === 500;
+            }));
+
+        $handler = new ExceptionHandler(Environment::DEV, $logger);
+        $handler->registerException(\RuntimeException::class, function (\RuntimeException $e) {
+            return [
+                'status' => 500,
+                'title'  => 'Runtime error',
+                'detail' => $e->getMessage(),
+            ];
+        }, true);
+
+        $request = new ServerRequest(method: 'GET', uri: new Uri('/'));
+        $handler->handle(new \RuntimeException('Server broke'), $request);
+    }
+
+    public function testNonLoggableExceptionIsNotLogged(): void
+    {
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects($this->never())->method('log');
+        $logger->expects($this->never())->method('error');
+        $logger->expects($this->never())->method('warning');
+
+        $handler = new ExceptionHandler(Environment::DEV, $logger);
+        $handler->registerException(\InvalidArgumentException::class, function (\InvalidArgumentException $e) {
+            return [
+                'status' => 400,
+                'title'  => 'Bad Request',
+                'detail' => $e->getMessage(),
+            ];
+        });
+
+        $request = new ServerRequest(method: 'GET', uri: new Uri('/'));
+        $handler->handle(new \InvalidArgumentException('Bad input'), $request);
+    }
+
+    public function testLoggable4xxExceptionLoggedAsWarning(): void
+    {
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects($this->once())
+            ->method('log')
+            ->with('warning', $this->anything(), $this->anything());
+
+        $handler = new ExceptionHandler(Environment::DEV, $logger);
+        $handler->registerException(\InvalidArgumentException::class, function (\InvalidArgumentException $e) {
+            return [
+                'status' => 403,
+                'title'  => 'Forbidden',
+                'detail' => $e->getMessage(),
+            ];
+        }, true);
+
+        $request = new ServerRequest(method: 'GET', uri: new Uri('/'));
+        $handler->handle(new \InvalidArgumentException('Not allowed'), $request);
+    }
+
+    public function testUnmatchedExceptionLoggedAsError(): void
+    {
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects($this->once())
+            ->method('error')
+            ->with('Unexpected', $this->callback(function (array $context) {
+                return $context['status'] === 500;
+            }));
+
+        $handler = new ExceptionHandler(Environment::DEV, $logger);
+        $request = new ServerRequest(method: 'GET', uri: new Uri('/'));
+        $handler->handle(new \Error('Unexpected'), $request);
+    }
+
+    public function testHandlerFailureIsLogged(): void
+    {
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects($this->atLeastOnce())
+            ->method('error');
+
+        $handler = new ExceptionHandler(Environment::DEV, $logger);
+        $handler->registerException(\InvalidArgumentException::class, function () {
+            throw new \RuntimeException('Handler crashed');
+        });
+
+        $request = new ServerRequest(method: 'GET', uri: new Uri('/'));
+        $handler->handle(new \InvalidArgumentException('Test'), $request);
+    }
+
+    public function testDefaultLogicExceptionIsLogged(): void
+    {
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects($this->once())
+            ->method('log')
+            ->with('error', $this->anything(), $this->anything());
+
+        $handler = new ExceptionHandler(Environment::DEV, $logger);
+        $request = new ServerRequest(method: 'GET', uri: new Uri('/'));
+        $handler->handle(new \LogicException('Bug in code'), $request);
+    }
+
+    public function testDefaultInvalidArgumentExceptionIsNotLogged(): void
+    {
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects($this->never())->method('log');
+        $logger->expects($this->never())->method('error');
+
+        $handler = new ExceptionHandler(Environment::DEV, $logger);
+        $request = new ServerRequest(method: 'GET', uri: new Uri('/'));
+        $handler->handle(new \InvalidArgumentException('Bad input'), $request);
     }
 }

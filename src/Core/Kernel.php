@@ -39,6 +39,7 @@ use Psr\Container\NotFoundExceptionInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Cache\Adapter\ArrayAdapter;
 use Symfony\Component\Cache\Adapter\FilesystemAdapter;
 use Symfony\Component\Config\Loader\LoaderInterface;
@@ -109,6 +110,7 @@ abstract class Kernel implements AppInterface
     public function __construct(
         public string $baseDir,
         public LoaderInterface $routeLoader,
+        protected LoggerInterface $logger,
         protected array $authenticators = [],
         protected array $controllers = [],
         protected array $factories = [],
@@ -410,7 +412,16 @@ abstract class Kernel implements AppInterface
 
     public function exceptionHandler(): ExceptionHandlerInterface
     {
-        return $this->exceptionHandler ??= new ExceptionHandler($this->environment());
+        return $this->exceptionHandler ??= new ExceptionHandler(
+            $this->environment(),
+            $this->logger ?? null
+        );
+    }
+
+
+    public function logger(): LoggerInterface
+    {
+        return $this->logger;
     }
 
     /**

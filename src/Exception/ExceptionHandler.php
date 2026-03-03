@@ -5,12 +5,16 @@ declare(strict_types = 1);
 namespace Modufolio\Appkit\Exception;
 
 use Modufolio\Appkit\Core\Environment;
+use Modufolio\Appkit\Security\Exception\AuthenticationException;
 use Modufolio\Psr7\Http\Response;
 use Negotiation\BaseAccept;
 use Negotiation\Negotiator;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 use Symfony\Component\Routing\Exception\ResourceNotFoundException;
+use Symfony\Component\Validator\Exception\ValidationFailedException;
 
 final class ExceptionHandler implements ExceptionHandlerInterface
 {
@@ -20,21 +24,27 @@ final class ExceptionHandler implements ExceptionHandlerInterface
     /** @var array<string, callable(array): ResponseInterface> */
     private array $formatters = [];
 
+    /** @var array<class-string<\Throwable>, bool> */
+    private array $loggable = [];
+
     private Negotiator $negotiator;
     private Environment $environment;
+    private LoggerInterface $logger;
 
-    public function __construct(?Environment $environment = null)
+    public function __construct(?Environment $environment = null, ?LoggerInterface $logger = null)
     {
         $this->negotiator = new Negotiator();
         $this->environment = $environment ?? Environment::from(env('APP_ENV', 'prod'));
+        $this->logger = $logger ?? new NullLogger();
 
         $this->registerDefaultFormatters();
         $this->registerDefaultExceptions();
     }
 
-    public function registerException(string $exceptionClass, callable $handler): void
+    public function registerException(string $exceptionClass, callable $handler, bool $loggable = false): void
     {
         $this->handlers[$exceptionClass] = $handler;
+        $this->loggable[$exceptionClass] = $loggable;
     }
 
     public function registerFormatter(string $mimeType, callable $formatter): void
@@ -45,12 +55,14 @@ final class ExceptionHandler implements ExceptionHandlerInterface
     public function handle(\Throwable $e, ServerRequestInterface $request): ResponseInterface
     {
         $data = null;
+        $matchedClass = null;
 
         try {
             // Try to handle with registered exception handlers
             foreach ($this->handlers as $class => $handler) {
                 if ($e instanceof $class) {
                     $data = $handler($e, $request);
+                    $matchedClass = $class;
                     break;
                 }
             }
@@ -65,8 +77,15 @@ final class ExceptionHandler implements ExceptionHandlerInterface
             }
         } catch (\Throwable $handlerException) {
             // If handler fails, fall back to default error response
+            $this->logger->error('Exception handler failed', [
+                'handler_exception' => $handlerException->getMessage(),
+                'original_exception' => $e->getMessage(),
+                'original_exception_class' => $e::class,
+            ]);
             $data = $this->defaultData($handlerException);
         }
+
+        $this->logException($e, $data, $matchedClass);
 
         $mimeType = $this->negotiateFormat($request);
 
@@ -94,6 +113,48 @@ final class ExceptionHandler implements ExceptionHandlerInterface
         }
 
         return null;
+    }
+
+    private function logException(\Throwable $e, array $data, ?string $matchedClass): void
+    {
+        $status = $data['status'] ?? 500;
+        $context = [
+            'exception' => $e::class,
+            'status' => $status,
+            'file' => $e->getFile(),
+            'line' => $e->getLine(),
+        ];
+
+        // Unmatched exceptions that default to 5xx are always logged as errors
+        if ($matchedClass === null && $status >= 500) {
+            $this->logger->error($e->getMessage(), $context);
+            return;
+        }
+
+        if ($matchedClass === null) {
+            return;
+        }
+
+        $level = $this->resolveLogLevel($matchedClass, $status);
+
+        if ($level === null) {
+            return;
+        }
+
+        $this->logger->log($level, $e->getMessage(), $context);
+    }
+
+    private function resolveLogLevel(string $exceptionClass, int $status): ?string
+    {
+        if (!($this->loggable[$exceptionClass] ?? false)) {
+            return null;
+        }
+
+        return match (true) {
+            $status >= 500 => 'error',
+            $status >= 400 => 'warning',
+            default        => 'info',
+        };
     }
 
     private function negotiateFormat(ServerRequestInterface $request): string
@@ -229,7 +290,7 @@ final class ExceptionHandler implements ExceptionHandlerInterface
                 'title'  => 'Logic error',
                 'detail' => $detail,
             ];
-        });
+        }, true);
 
         // Resource not found (404 errors)
         $this->registerException(ResourceNotFoundException::class, function (ResourceNotFoundException $e) {
@@ -241,7 +302,7 @@ final class ExceptionHandler implements ExceptionHandlerInterface
         });
 
         // Validation errors
-        $this->registerException(\Symfony\Component\Validator\Exception\ValidationFailedException::class, function (\Symfony\Component\Validator\Exception\ValidationFailedException $e) {
+        $this->registerException(ValidationFailedException::class, function (ValidationFailedException $e) {
             $violations = $e->getViolations();
             $errors = [];
 
@@ -264,7 +325,7 @@ final class ExceptionHandler implements ExceptionHandlerInterface
         });
 
         // Authentication errors
-        $this->registerException(\Appkit\Security\Exception\AuthenticationException::class, function (\Appkit\Security\Exception\AuthenticationException $e) {
+        $this->registerException(AuthenticationException::class, function (AuthenticationException $e) {
             return [
                 'status' => 401,
                 'title'  => 'Authentication failed',
@@ -284,6 +345,6 @@ final class ExceptionHandler implements ExceptionHandlerInterface
                 'title'  => 'Runtime error',
                 'detail' => $detail,
             ];
-        });
+        }, true);
     }
 }
