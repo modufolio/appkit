@@ -17,10 +17,8 @@ return [
     'form_login' => function (ContainerInterface $container) {
         return new FormLoginAuthenticator(
             $container->get(UserRepository::class),
-            $container->get(BruteForceProtectionInterface::class),
             $container->get(CsrfTokenManagerInterface::class),
             $container->get(SessionInterface::class),
-            null,
             null,
             [
                 'username_parameter' => 'email',

@@ -12,6 +12,7 @@ use Modufolio\Appkit\Routing\Loader\ArrayRouteLoader;
 use Modufolio\Appkit\Routing\Loader\JsonApiRouteLoader;
 use Modufolio\Appkit\Security\SecurityConfigurator;
 use Modufolio\Appkit\Toolkit\F;
+use Psr\Log\NullLogger;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\Config\Loader\DelegatingLoader;
 use Symfony\Component\Config\Loader\LoaderResolver;
@@ -43,6 +44,7 @@ class AppFactory
         return (new App(
             baseDir: $baseDir,
             routeLoader: $routeLoader,
+            logger: new NullLogger(),
             userProviderClass: UserRepository::class,
             authenticators: F::load($baseDir . '/config/authenticators.php', []),
             controllers: F::load($baseDir . '/config/controllers.php', []),

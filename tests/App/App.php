@@ -24,6 +24,7 @@ use Modufolio\Appkit\Tests\App\Entity\UserTotpSecret;
 use Modufolio\Appkit\Tests\App\Repository\UserTotpSecretRepository;
 use Modufolio\Appkit\Tests\App\StubBruteForceProtection;
 use Doctrine\DBAL\Exception;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Config\Loader\LoaderInterface;
 use Symfony\Component\Serializer\Encoder\JsonEncoder;
 use Symfony\Component\Serializer\Normalizer\ArrayDenormalizer;
@@ -53,6 +54,7 @@ class App extends Kernel
     public function __construct(
         string $baseDir,
         LoaderInterface $routeLoader,
+        LoggerInterface $logger,
         private string $userProviderClass,
         array $authenticators = [],
         array $controllers = [],
@@ -64,6 +66,7 @@ class App extends Kernel
         parent::__construct(
             $baseDir,
             $routeLoader,
+            $logger,
             $authenticators,
             $controllers,
             $factories,

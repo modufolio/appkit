@@ -20,13 +20,11 @@ use Psr\Http\Message\ServerRequestInterface;
 use Symfony\Component\HttpFoundation\Session\Flash\FlashBagInterface;
 use Symfony\Component\HttpFoundation\Session\FlashBagAwareSessionInterface;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;
-use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface as SymfonyUserPasswordHasherInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 return [
-    SymfonyUserPasswordHasherInterface::class => fn () => new UserPasswordHasher(),
     TotpService::class => fn () => $this->totpService(),
     BruteForceProtectionInterface::class => fn () => $this->bruteForceProtection(),
     CsrfTokenManagerInterface::class => fn () => $this->csrfTokenManager(),

@@ -428,11 +428,9 @@ class TwoFactorControllerTest extends AppTestCase
         $this->app()->registerAuthenticator('form_login_2fa', function ($container) use ($totpService) {
             return new FormLoginAuthenticator(
                 $container->get(UserRepository::class),
-                $container->get(BruteForceProtectionInterface::class),
                 $container->get(CsrfTokenManagerInterface::class),
                 $container->get(SessionInterface::class),
                 $totpService,
-                null,
                 [
                     'username_parameter' => 'email',
                     'password_parameter' => 'password',

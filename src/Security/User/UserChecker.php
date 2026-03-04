@@ -4,7 +4,6 @@ declare(strict_types = 1);
 
 namespace Modufolio\Appkit\Security\User;
 
-use App\Entity\User;
 use Modufolio\Appkit\Security\Exception\AccountExpiredException;
 use Modufolio\Appkit\Security\Exception\CredentialsExpiredException;
 use Modufolio\Appkit\Security\Exception\DisabledAccountException;
@@ -32,10 +31,6 @@ class UserChecker implements UserCheckerInterface
      */
     public function checkPreAuth(UserInterface $user): void
     {
-        if (!$user instanceof User) {
-            return;
-        }
-
         // Check if account is enabled
         if (!$user->isEnabled()) {
             $this->logger?->warning('Authentication attempted on disabled account', [
@@ -88,9 +83,6 @@ class UserChecker implements UserCheckerInterface
      */
     public function checkPostAuth(UserInterface $user): void
     {
-        if (!$user instanceof User) {
-            return;
-        }
 
         // Check if credentials have expired
         if ($user->isCredentialsExpired()) {
