@@ -21,7 +21,7 @@ class AppTest extends AppTestCase
 
     public function testAppVersion(): void
     {
-        $this->assertSame('0.0.7', App::VERSION);
+        $this->assertSame('dev', App::VERSION);
     }
 
     public function testBaseDirectoryAccess(): void

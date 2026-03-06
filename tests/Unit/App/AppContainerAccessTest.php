@@ -31,7 +31,6 @@ class AppContainerAccessTest extends AppTestCase
     public static function availableServices(): array
     {
         return [
-            [ContainerInterface::class],
             [EntityManagerInterface::class],
             [SerializerInterface::class],
             [ValidatorInterface::class],
@@ -50,9 +49,6 @@ class AppContainerAccessTest extends AppTestCase
     public function testAppGetReturnsValidServiceInstances(): void
     {
         $app = $this->container;
-
-        $container = $app->get(ContainerInterface::class);
-        $this->assertSame($app, $container);
 
         $this->assertInstanceOf(EntityManagerInterface::class, $app->get(EntityManagerInterface::class));
     }

@@ -443,8 +443,12 @@ abstract class Kernel implements AppInterface
         $resolving[$id] = true;
 
         try {
-            if ($id === ContainerInterface::class || $id === static::class) {
-                return $this;
+            if ($this->isKernelClass($id)) {
+                throw new \LogicException(sprintf(
+                    'Injecting "%s" (the kernel/app) as a dependency is not allowed. ' .
+                    'Use specific service accessors instead (e.g. router(), serializer(), session()).',
+                    $id
+                ));
             }
 
             if (array_key_exists($id, $this->interfaceMap)) {
@@ -483,12 +487,21 @@ abstract class Kernel implements AppInterface
     }
 
     /**
+     * Returns true if $id refers to the kernel itself, any of its parent classes,
+     * or any interface it implements (e.g. AppInterface, ContainerInterface).
+     */
+    private function isKernelClass(string $id): bool
+    {
+        return (class_exists($id) || interface_exists($id)) && is_a(static::class, $id, true);
+    }
+
+    /**
      * @throws Exception
      */
     public function has(string $id): bool
     {
-        if ($id === ContainerInterface::class || $id === static::class) {
-            return true;
+        if ($this->isKernelClass($id)) {
+            return false;
         }
 
         return isset($this->instances[$id]) ||
