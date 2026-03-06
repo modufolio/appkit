@@ -20,8 +20,6 @@ use Modufolio\Appkit\Security\RoleHierarchy;
 use Modufolio\Appkit\Security\SecurityConfigurator;
 use Modufolio\Appkit\Security\Token\TokenStorageInterface;
 use Modufolio\Appkit\Security\User\UserProviderInterface;
-use DI\Container;
-use DI\ContainerBuilder;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\Exception;
@@ -49,8 +47,6 @@ use Symfony\Component\Routing\Exception\ResourceNotFoundException;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
-use function DI\factory;
-use function DI\value;
 
 /**
  * Abstract Kernel - Core framework container and request handler.
@@ -74,7 +70,7 @@ abstract class Kernel implements AppInterface
 {
     use AppSecurity;
 
-    public const VERSION = '0.0.7';
+    public const VERSION = 'dev';
 
     // Lazily instantiated dependencies
     protected ?Connection $connection = null;
@@ -89,7 +85,6 @@ abstract class Kernel implements AppInterface
     protected ?ValidatorInterface $validator = null;
     protected ParameterBag $parameterBag;
     protected array $interfaceMap = [];
-    protected ?Container $phpDiContainer = null;
 
     // Security components
     protected array $firewallConfig = [];
@@ -741,14 +736,6 @@ abstract class Kernel implements AppInterface
         // This breaks circular references: Token -> User -> EntityManager -> Entities
         $this->state?->reset();
         $this->state = null;
-
-        // Clear request-scoped synthetic services from PHP-DI
-        if ($this->phpDiContainer !== null) {
-            $this->phpDiContainer->set(ServerRequestInterface::class, null);
-            $this->phpDiContainer->set(FlashBagAwareSessionInterface::class, null);
-            $this->phpDiContainer->set(SessionInterface::class, null);
-            $this->phpDiContainer->set(TokenStorageInterface::class, null);
-        }
 
         $this->debugStack->resetQueries();
 
