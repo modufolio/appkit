@@ -49,8 +49,6 @@
         "spomky-labs/otphp": "^11.3",
         "endroid/qr-code": "6.0.9",
         "symfony/var-exporter": "^7.1",
-        "php-di/php-di": "^7.1",
-        "react/promise": "^3.3",
         "modufolio/http": "dev-main"
     },
     "require-dev": {

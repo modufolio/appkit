@@ -129,43 +129,6 @@ abstract class Kernel implements AppInterface
             'resource_type' => null,
             'strict_requirements' => true,
         ]);
-
-        $this->initializePhpDi();
-    }
-
-    /**
-     * Initialize PHP-DI container for auto-wiring fallback.
-     *
-     * @throws \Exception
-     */
-    protected function initializePhpDi(): void
-    {
-        $builder = new ContainerBuilder();
-
-        // Enable compilation in production for zero overhead
-        if ($this->environment()->isProd()) {
-            $builder->enableCompilation($this->baseDir . '/var/cache/di');
-            $builder->writeProxiesToFile(true, $this->baseDir . '/var/cache/proxies/di');
-        }
-
-        // Configure definitions for special cases
-        $builder->addDefinitions([
-            // Container itself - delegate to custom container
-            ContainerInterface::class => value($this),
-            static::class => value($this),
-
-            // Application-scoped services from custom container
-            EntityManagerInterface::class => factory(fn (Kernel $kernel) => $kernel->entityManager()),
-            Connection::class => factory(fn (Kernel $kernel) => $kernel->connection ?? $kernel->entityManager()->getConnection()),
-            RouterInterface::class => factory(fn (Kernel $kernel) => $kernel->router()),
-            SerializerInterface::class => factory(fn (Kernel $kernel) => $kernel->serializer()),
-            ValidatorInterface::class => factory(fn (Kernel $kernel) => $kernel->validator()),
-
-            // Note: Request-scoped services (ServerRequestInterface, SessionInterface, TokenStorageInterface)
-            // are set synthetically via set() in handle() method at the start of each request
-        ]);
-
-        $this->phpDiContainer = $builder->build();
     }
 
     // ============================================================================
@@ -189,14 +152,6 @@ abstract class Kernel implements AppInterface
 
         // Create fresh application state for this request
         $this->state = new NativeApplicationState($request, $this->firewallConfig);
-
-        // Set all request-scoped services as synthetic services in PHP-DI
-        if ($this->phpDiContainer !== null) {
-            $this->phpDiContainer->set(ServerRequestInterface::class, $request);
-            $this->phpDiContainer->set(FlashBagAwareSessionInterface::class, $this->state->getSession());
-            $this->phpDiContainer->set(SessionInterface::class, $this->state->getSession());
-            $this->phpDiContainer->set(TokenStorageInterface::class, $this->state->getTokenStorage());
-        }
 
         try {
             $response = $this->handleAuthentication($request);
@@ -507,14 +462,6 @@ abstract class Kernel implements AppInterface
                 $instance = $this->authenticators[$id]($this);
             } elseif (isset($this->factories[$id])) {
                 $instance = $this->factories[$id]($this);
-            } elseif ($this->phpDiContainer !== null && $this->phpDiContainer->has($id)) {
-                // PHP-DI fallback for auto-wiring
-                $instance = $this->phpDiContainer->get($id);
-                // Cache application-scoped services for future requests
-                // Don't cache controllers (they're request-scoped in ApplicationState)
-                if (!str_contains($id, 'Controller')) {
-                    $this->instances[$id] = $instance;
-                }
             } else {
                 throw new NotFoundException("Class or parameter $id is not found.");
             }
@@ -552,8 +499,7 @@ abstract class Kernel implements AppInterface
         return isset($this->instances[$id]) ||
             array_key_exists($id, $this->interfaceMap) ||
             array_key_exists($id, $this->repositories()) ||
-            isset($this->factories[$id]) ||
-            ($this->phpDiContainer !== null && $this->phpDiContainer->has($id));
+            isset($this->factories[$id]);
     }
 
     /**
