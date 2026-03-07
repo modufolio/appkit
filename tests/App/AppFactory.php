@@ -54,6 +54,6 @@ class AppFactory
                 'interfaces' => $baseDir . '/config/interfaces.php',
             ],
             repositories: F::load($baseDir . '/config/repositories.php', []),
-        ))->configureSecurity($securityConfigurator);
+        ))->configureSecurity($securityConfigurator)->boot();
     }
 }

@@ -64,10 +64,21 @@ abstract class Kernel implements AppInterface
 
     public const VERSION = 'dev';
 
+    // Core
+    public string $baseDir;
+    public LoaderInterface $routeLoader;
+    protected LoggerInterface $logger;
+    protected array $authenticators = [];
+    protected array $controllers = [];
+    protected array $factories = [];
+    protected array $fileMap = [];
+    protected array $instances = [];
+    protected array $repositories = [];
+
     // Lazily instantiated dependencies
     protected ?EmitterInterface $emitter = null;
     protected ?Environment $environment = null;
-    private ?EntityManagerFactory $entityManagerFactory = null;
+    protected ?EntityManagerFactory $entityManagerFactory = null;
     protected ?ExceptionHandler $exceptionHandler = null;
     protected ?ParameterResolverInterface $parameterResolver = null;
     protected ?PrepareResponseInterface $prepareResponse = null;
@@ -90,20 +101,8 @@ abstract class Kernel implements AppInterface
     protected array $routerOptions = [];
     protected mixed $routeResource = null;
 
-    /**
-     * @throws \Exception
-     */
-    public function __construct(
-        public string $baseDir,
-        public LoaderInterface $routeLoader,
-        protected LoggerInterface $logger,
-        protected array $authenticators = [],
-        protected array $controllers = [],
-        protected array $factories = [],
-        protected array $fileMap = [],
-        protected array $instances = [],
-        protected array $repositories = []
-    ) {
+    public function boot(): self
+    {
         $this->parameterBag = new ParameterBag();
         $this->debugStack = new DebugStack();
         $this->routeResource = 'routes.php';
@@ -115,7 +114,10 @@ abstract class Kernel implements AppInterface
             'resource_type' => null,
             'strict_requirements' => true,
         ]);
+
+        return $this;
     }
+
 
     // ============================================================================
     // ENTRY POINT & REQUEST HANDLING
@@ -130,23 +132,8 @@ abstract class Kernel implements AppInterface
      *
      * @throws Exception
      */
-    public function handle(ServerRequestInterface $request): ResponseInterface
-    {
-        $this->state?->reset();
+    abstract public function handle(ServerRequestInterface $request): ResponseInterface;
 
-        unset($this->state);
-
-        // Create fresh application state for this request
-        $this->state = new NativeApplicationState($request, $this->firewallConfig);
-
-        try {
-            $response = $this->handleAuthentication($request);
-        } catch (\Throwable $e) {
-            $response = $this->exceptionHandler()->handle($e, $request);
-        }
-
-        return $this->prepareResponse()->prepare($request, $response);
-    }
 
     // ============================================================================
     // ROUTING & CONTROLLER RESOLUTION
@@ -654,40 +641,6 @@ abstract class Kernel implements AppInterface
         return $this->state;
     }
 
-    /**
-     *
-     * @return self
-     * @throws \RuntimeException if called outside test environment
-     */
-    public function initializeTestState(): self
-    {
-        if (!$this->environment()->isTest()) {
-            throw new \RuntimeException('initializeTestState() can only be called in test environment');
-        }
-
-        if ($this->state === null) {
-            // Create minimal test request
-            $request = new ServerRequest(
-                method: 'GET',
-                uri: new Uri('http://127.0.0.1'),
-                headers: [],
-                body: Stream::create(''),
-                version: '1.1',
-                serverParams: [
-                    'HTTP_HOST' => '127.0.0.1',
-                    'REQUEST_METHOD' => 'GET',
-                    'REQUEST_URI' => '/',
-                    'SERVER_PROTOCOL' => 'HTTP/1.1',
-                ]
-            );
-
-
-            $this->state = new NativeApplicationState($request, $this->firewallConfig);
-        }
-
-        return $this;
-    }
-
     public function request(): ServerRequestInterface
     {
         return $this->state->getRequest();
@@ -700,25 +653,5 @@ abstract class Kernel implements AppInterface
         return $this;
     }
 
-    public function reset(): void
-    {
-        // Reset request-scoped state (session, tokens, controllers, firewall cache)
-        // This breaks circular references: Token -> User -> EntityManager -> Entities
-        $this->state?->reset();
-        $this->state = null;
-
-        $this->debugStack->resetQueries();
-        $this->entityManagerFactory?->reset();
-        $this->emitter = null;
-        $this->environment = null;
-
-        if ($this->router) {
-            if ($this->router instanceof ResetInterface) {
-                $this->router->reset();
-            }
-            $this->router = null;
-        }
-
-        $this->instances = [];
-    }
+    abstract public function reset(): void;
 }
