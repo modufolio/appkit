@@ -2,11 +2,11 @@
 
 declare(strict_types = 1);
 
-namespace Modufolio\Appkit\Factory;
+namespace Modufolio\Appkit\Doctrine;
 
-use Modufolio\Appkit\Toolkit\A;
 use Doctrine\ORM\EntityManagerInterface;
 use Faker\Factory;
+use Modufolio\Appkit\Toolkit\A;
 use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
 use Symfony\Component\Validator\Exception\ValidationFailedException;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
@@ -15,16 +15,12 @@ final class EntityFactory
 {
     private array $config = [];
 
-
     public function __construct(
         private EntityManagerInterface $entityManager,
         private DenormalizerInterface $serializer,
         private ValidatorInterface $validator,
         private array $resolverArgs = []
     ) {
-
-
-        // Default Faker if not provided
         $this->resolverArgs['faker'] = Factory::create();
     }
 
@@ -44,7 +40,6 @@ final class EntityFactory
         $data = array_merge($defaults, $attributes);
         $data = A::apply($data);
 
-        // Handle relations explicitly
         $data = $this->resolveRelations($className, $data);
 
         $entity = $this->serializer->denormalize($data, $className);
@@ -90,8 +85,6 @@ final class EntityFactory
         $this->entityManager->flush();
         return $this;
     }
-
-
 
     private function resolveDefaults(string $className): array
     {

@@ -6,10 +6,8 @@ namespace Modufolio\Appkit\Core;
 
 use Modufolio\Appkit\DependencyInjection\ParameterBag;
 use Modufolio\Appkit\DependencyInjection\ReflectionControllerArgumentResolver;
-use Modufolio\Appkit\Doctrine\ConnectionOptimizer;
-use Modufolio\Appkit\Doctrine\Middleware\Debug\DebugMiddleware;
+use Modufolio\Appkit\Doctrine\EntityManagerFactory;
 use Modufolio\Appkit\Doctrine\Middleware\Debug\DebugStack;
-use Modufolio\Appkit\Doctrine\OrmConfigurator;
 use Modufolio\Appkit\Exception\ExceptionHandler;
 use Modufolio\Appkit\Exception\ExceptionHandlerInterface;
 use Modufolio\Appkit\Exception\NotFoundException;
@@ -20,12 +18,8 @@ use Modufolio\Appkit\Security\RoleHierarchy;
 use Modufolio\Appkit\Security\SecurityConfigurator;
 use Modufolio\Appkit\Security\Token\TokenStorageInterface;
 use Modufolio\Appkit\Security\User\UserProviderInterface;
-use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\Exception;
-use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\ORM\Mapping\Driver\AttributeDriver;
 use Modufolio\Psr7\Http\Emitter;
 use Modufolio\Psr7\Http\EmitterInterface;
 use Modufolio\Psr7\Http\ServerRequest;
@@ -38,8 +32,6 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 use Psr\Log\LoggerInterface;
-use Symfony\Component\Cache\Adapter\ArrayAdapter;
-use Symfony\Component\Cache\Adapter\FilesystemAdapter;
 use Symfony\Component\Config\Loader\LoaderInterface;
 use Symfony\Component\HttpFoundation\Session\FlashBagAwareSessionInterface;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;
@@ -73,10 +65,9 @@ abstract class Kernel implements AppInterface
     public const VERSION = 'dev';
 
     // Lazily instantiated dependencies
-    protected ?Connection $connection = null;
     protected ?EmitterInterface $emitter = null;
-    protected ?EntityManagerInterface $entityManager = null;
     protected ?Environment $environment = null;
+    private ?EntityManagerFactory $entityManagerFactory = null;
     protected ?ExceptionHandler $exceptionHandler = null;
     protected ?ParameterResolverInterface $parameterResolver = null;
     protected ?PrepareResponseInterface $prepareResponse = null;
@@ -307,57 +298,23 @@ abstract class Kernel implements AppInterface
         return $this->environment ??= Environment::from(env('APP_ENV', 'prod'));
     }
 
-    /**
-     * @throws Exception
-     */
     public function entityManager(): EntityManagerInterface
     {
-        if ($this->entityManager && $this->entityManager->isOpen()) {
-            return $this->entityManager;
-        }
+        return $this->entityManagerFactory()->get();
+    }
 
-        $configurator = new OrmConfigurator();
-
-        $closure = require $this->fileMap['doctrine'];
-        $closure($configurator, $this);
-
-        $cache = $this->environment()->isDev()
-            ? new ArrayAdapter()
-            : new FilesystemAdapter('doctrine', 0, $this->baseDir . '/var/cache');
-
-        $config = $configurator->ormConfig;
-        $config->setMetadataCache($cache);
-        $config->setQueryCache($cache);
-        $config->setResultCache($cache);
-        $config->setProxyDir($this->baseDir . '/var/proxies');
-        $config->setProxyNamespace('DoctrineProxies');
-        $config->setAutoGenerateProxyClasses(true);
-        $config->setMetadataDriverImpl(new AttributeDriver($configurator->entityPaths));
-
-        $dbalConfig = $configurator->dbalConfig;
-        $dbalConfig->setMiddlewares([new DebugMiddleware($this->debugStack)]);
-
-        $connection = DriverManager::getConnection($configurator->connectionParams, $configurator->dbalConfig);
-
-        if ($configurator->optimizeConnection !== false) {
-            $optimizer = new ConnectionOptimizer(
-                $this->environment()->isDev(),
-                $this->logger ?? null
-            );
-            $optimizer->optimize($connection);
-        }
-
-        $this->connection = $connection;
-
-        $this->entityManager = new EntityManager($connection, $config);
-
-        // Register event subscribers
-        $eventManager = $this->entityManager->getEventManager();
-        foreach ($configurator->getSubscribers() as $subscriber) {
-            $eventManager->addEventSubscriber($subscriber);
-        }
-
-        return $this->entityManager;
+    private function entityManagerFactory(): EntityManagerFactory
+    {
+        return $this->entityManagerFactory ??= new EntityManagerFactory(
+            baseDir: $this->baseDir,
+            environment: $this->environment(),
+            configuratorFactory: function ($configurator): void {
+                $closure = require $this->fileMap['doctrine'];
+                $closure($configurator);
+            },
+            debugStack: $this->debugStack,
+            logger: $this->logger,
+        );
     }
 
     public function exceptionHandler(): ExceptionHandlerInterface
@@ -751,15 +708,7 @@ abstract class Kernel implements AppInterface
         $this->state = null;
 
         $this->debugStack->resetQueries();
-
-        // Close and reset entity manager to prevent connection leaks
-        // This clears the identity map and breaks entity references
-        if ($this->entityManager) {
-            $this->entityManager->getConnection()->close();
-            $this->entityManager->close();
-            $this->entityManager = null;
-        }
-
+        $this->entityManagerFactory?->reset();
         $this->emitter = null;
         $this->environment = null;
 

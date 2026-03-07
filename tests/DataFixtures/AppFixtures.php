@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Modufolio\Appkit\Tests\DataFixtures;
 
-use Modufolio\Appkit\Factory\EntityFactory;
+use Doctrine\Common\DataFixtures\FixtureInterface;
+use Doctrine\Persistence\ObjectManager;
+use Modufolio\Appkit\Doctrine\EntityFactory;
 use Modufolio\Appkit\Tests\App\Entity\Account;
 use Modufolio\Appkit\Tests\App\Entity\Contact;
 use Modufolio\Appkit\Tests\App\Entity\Organization;
 use Modufolio\Appkit\Tests\App\Entity\User;
-use Doctrine\Common\DataFixtures\FixtureInterface;
-use Doctrine\Persistence\ObjectManager;
 
 class AppFixtures implements FixtureInterface
 {

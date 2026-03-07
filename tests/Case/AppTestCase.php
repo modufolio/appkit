@@ -2,15 +2,15 @@
 
 namespace Modufolio\Appkit\Tests\Case;
 
-use Modufolio\Appkit\Tests\App\App;
-use Modufolio\Appkit\Tests\App\AppFactory;
-use Modufolio\Appkit\Tests\DataFixtures\AppFixtures;
-use Modufolio\Appkit\Factory\EntityFactory;
-use Modufolio\Appkit\Security\User\UserInterface;
 use Doctrine\Common\DataFixtures\Executor\ORMExecutor;
 use Doctrine\Common\DataFixtures\Purger\ORMPurger;
 use Doctrine\DBAL\Platforms\SqlitePlatform;
 use Doctrine\ORM\Tools\SchemaTool;
+use Modufolio\Appkit\Doctrine\EntityFactory;
+use Modufolio\Appkit\Security\User\UserInterface;
+use Modufolio\Appkit\Tests\App\App;
+use Modufolio\Appkit\Tests\App\AppFactory;
+use Modufolio\Appkit\Tests\DataFixtures\AppFixtures;
 use Modufolio\Appkit\Tests\Response\TestResponse;
 use Modufolio\Psr7\Http\ServerRequest;
 use Modufolio\Psr7\Http\Stream;
