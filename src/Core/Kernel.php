@@ -22,11 +22,7 @@ use Doctrine\DBAL\Exception;
 use Doctrine\ORM\EntityManagerInterface;
 use Modufolio\Psr7\Http\Emitter;
 use Modufolio\Psr7\Http\EmitterInterface;
-use Modufolio\Psr7\Http\ServerRequest;
-use Modufolio\Psr7\Http\Stream;
-use Modufolio\Psr7\Http\Uri;
 use Psr\Container\ContainerExceptionInterface;
-use Psr\Container\ContainerInterface;
 use Psr\Container\NotFoundExceptionInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -34,7 +30,6 @@ use Psr\Http\Server\RequestHandlerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Config\Loader\LoaderInterface;
 use Symfony\Component\HttpFoundation\Session\FlashBagAwareSessionInterface;
-use Symfony\Component\HttpFoundation\Session\SessionInterface;
 use Symfony\Component\Routing\Exception\ResourceNotFoundException;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Serializer\SerializerInterface;
@@ -118,22 +113,21 @@ abstract class Kernel implements AppInterface
         return $this;
     }
 
-
     // ============================================================================
-    // ENTRY POINT & REQUEST HANDLING
+    // ABSTRACT — implement in your concrete application class
     // ============================================================================
 
-    /**
-     * Handle an incoming request through the middleware pipeline.
-     * This is the core request handler that:
-     * 1. Creates fresh application state
-     * 2. Runs middleware (maintenance, rate limiting, authentication)
-     * 3. Prepares the response
-     *
-     * @throws Exception
-     */
     abstract public function handle(ServerRequestInterface $request): ResponseInterface;
 
+    abstract public function reset(): void;
+
+    abstract public function serializer(): SerializerInterface;
+
+    abstract public function parameterResolver(): ParameterResolverInterface;
+
+    abstract public function validator(): ValidatorInterface;
+
+    abstract public function userProvider(): UserProviderInterface;
 
     // ============================================================================
     // ROUTING & CONTROLLER RESOLUTION
@@ -353,12 +347,6 @@ abstract class Kernel implements AppInterface
         return $this->state->getTokenStorage();
     }
 
-    abstract public function serializer(): SerializerInterface;
-
-    abstract public function parameterResolver(): ParameterResolverInterface;
-
-    abstract public function validator(): ValidatorInterface;
-
     // ============================================================================
     // CONTAINER / DEPENDENCY INJECTION
     // ============================================================================
@@ -570,9 +558,6 @@ abstract class Kernel implements AppInterface
         return $this;
     }
 
-    abstract function userProvider(): UserProviderInterface;
-
-
     public function getFirewallName(string $path): ?string
     {
         if ($this->state === null) {
@@ -652,6 +637,4 @@ abstract class Kernel implements AppInterface
 
         return $this;
     }
-
-    abstract public function reset(): void;
 }
