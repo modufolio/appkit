@@ -431,6 +431,7 @@ class TwoFactorControllerTest extends AppTestCase
                 $container->get(CsrfTokenManagerInterface::class),
                 $container->get(SessionInterface::class),
                 $totpService,
+                null,
                 [
                     'username_parameter' => 'email',
                     'password_parameter' => 'password',

@@ -20,6 +20,7 @@ return [
             $container->get(CsrfTokenManagerInterface::class),
             $container->get(SessionInterface::class),
             null,
+            null,
             [
                 'username_parameter' => 'email',
                 'password_parameter' => 'password',
