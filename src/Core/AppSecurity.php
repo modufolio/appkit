@@ -165,14 +165,15 @@ trait AppSecurity
         }
 
         // Allow 2FA page (GET and POST) when there's a pending 2FA token
+        $twoFactorPath = $config['two_factor_path'] ?? '/2fa';
         if (($method === 'GET' || $method === 'POST') &&
-            $path === '/2fa' &&
+            $path === $twoFactorPath &&
             $this->session()->has('_2fa_token')) {
             return true;
         }
 
         // Allow 2FA cancel route
-        if ($path === '/2fa/cancel' && $this->session()->has('_2fa_token')) {
+        if ($path === $twoFactorPath . '/cancel' && $this->session()->has('_2fa_token')) {
             return true;
         }
 

@@ -96,8 +96,6 @@ class FormLoginAuthenticator extends AbstractAuthenticator
     {
         // Check if this is a 2FA required response
         if ($exception->isRequires2FA()) {
-            // For Inertia, always use redirect responses
-            // Inertia will handle this as a client-side redirect
             return Response::redirect($this->options['two_factor_path'], 303);
         }
 
