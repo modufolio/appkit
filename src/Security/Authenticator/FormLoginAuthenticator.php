@@ -32,6 +32,8 @@ class FormLoginAuthenticator extends AbstractAuthenticator
             'username_parameter' => 'email',
             'password_parameter' => 'password',
             'check_path' => '/login',
+            'login_path' => '/login',
+            'two_factor_path' => '/2fa',
             'post_only' => true,
             'csrf_parameter' => '_csrf_token',
             'csrf_token_id' => 'authenticate',
@@ -96,7 +98,7 @@ class FormLoginAuthenticator extends AbstractAuthenticator
         if ($exception->isRequires2FA()) {
             // For Inertia, always use redirect responses
             // Inertia will handle this as a client-side redirect
-            return Response::redirect('/2fa', 303);
+            return Response::redirect($this->options['two_factor_path'], 303);
         }
 
         // Regular authentication failure
@@ -106,11 +108,11 @@ class FormLoginAuthenticator extends AbstractAuthenticator
         // Check if this is an Inertia request
         if ($this->isInertiaRequest($request)) {
             // Inertia requests expect a 303 redirect after form submission
-            return Response::redirect('/login', 303);
+            return Response::redirect($this->options['login_path'], 303);
         }
 
         // Non-Inertia request (shouldn't happen in your app, but good to handle)
-        return Response::redirect('/login');
+        return Response::redirect($this->options['login_path']);
     }
 
     /**
