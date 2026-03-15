@@ -1,8 +1,9 @@
 <?php
 
+declare(strict_types = 1);
+
 namespace Modufolio\Appkit\Routing\Loader;
 
-use App\Controller\FlatFileController;
 use Symfony\Component\Config\FileLocatorInterface;
 use Symfony\Component\Config\Loader\Loader;
 use Symfony\Component\Config\Resource\DirectoryResource;
@@ -25,6 +26,7 @@ class FlatFileRouteLoader extends Loader
 
     public function __construct(
         private FileLocatorInterface $locator,
+        private readonly string $controllerClass,
         private string $fileExtension = 'txt',
         private string $homeFolder = 'home',
     ) {
@@ -36,8 +38,6 @@ class FlatFileRouteLoader extends Loader
         $dir = $this->locator->locate($resource);
         $collection = new RouteCollection();
         $collection->addResource(new DirectoryResource($dir, '/\.txt$/'));
-
-        // Scan published and draft folders
         $this->addRoutes($collection, $dir, '');
 
         return $collection;
@@ -58,13 +58,12 @@ class FlatFileRouteLoader extends Loader
                 continue;
             }
 
-
             // Strip numeric prefix for slug
             $slug = preg_replace('/^\d+' . preg_quote('_', '/') . '/', '', $item);
             $urlPath = $parentPath ? $parentPath . '/' . $slug : $slug;
             $urlPath = $urlPath === $this->homeFolder ? '' : $urlPath;
 
-            // Find any .txt content file in the folder (Kirby-style)
+            // Find any .txt content file in the folder
             $contentFiles = glob($root . '/*.' . $this->fileExtension);
             foreach ($contentFiles as $contentFilePath) {
                 $contentFileName = basename($contentFilePath, '.' . $this->fileExtension);
@@ -72,7 +71,7 @@ class FlatFileRouteLoader extends Loader
                 $routePath = '/' . $urlPath;
                 $routeName = str_replace('/', '_', $urlPath) ?: 'home';
                 $defaults = [
-                    '_controller' => [FlatFileController::class, 'render'],
+                    '_controller' => [$this->controllerClass, 'handle'],
                     'contentFile' => $contentFilePath,
                     'templateName' => $contentFileName,
                     'parent' => $parentPath !== '' ? $parentPath : null

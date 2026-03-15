@@ -1,0 +1,9 @@
+Title: Home
+
+----
+
+Text: Welcome to the home page.
+
+----
+
+Description: The main landing page of the site.

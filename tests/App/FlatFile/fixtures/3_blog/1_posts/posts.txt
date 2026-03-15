@@ -1,0 +1,9 @@
+Title: All Posts
+
+----
+
+Text: Browse all blog posts.
+
+----
+
+Sort: date

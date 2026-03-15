@@ -1,0 +1,9 @@
+Title: Blog
+
+----
+
+Text: Read our latest articles and updates.
+
+----
+
+Category: News
