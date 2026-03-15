@@ -16,12 +16,10 @@ use Symfony\Component\HttpFoundation\Session\SessionInterface;
 return [
     'form_login' => function (ContainerInterface $container) {
         return new FormLoginAuthenticator(
-            $container->get(UserRepository::class),
-            $container->get(CsrfTokenManagerInterface::class),
-            $container->get(SessionInterface::class),
-            null,
-            null,
-            [
+            userProvider: $container->get(UserRepository::class),
+            csrfTokenManager: $container->get(CsrfTokenManagerInterface::class),
+            session: $container->get(SessionInterface::class),
+            options: [
                 'username_parameter' => 'email',
                 'password_parameter' => 'password',
                 'csrf_parameter' => '_csrf_token',
@@ -33,7 +31,7 @@ return [
     },
     'basic_auth' => function (ContainerInterface $container) {
         return new BasicAuthenticator(
-            $container->get(UserRepository::class)
+            userProvider: $container->get(UserRepository::class),
         );
     },
     'jwt' => function (ContainerInterface $container) {
@@ -41,9 +39,9 @@ return [
             throw new \RuntimeException('JWT_SECRET environment variable is required for JWT authentication. Please set it in your .env file.');
         }
         return new JwtAuthenticator(
-            $container->get(UserRepository::class),
-            $container->get(BruteForceProtectionInterface::class),
-            [
+            userProvider: $container->get(UserRepository::class),
+            bruteForceProtection: $container->get(BruteForceProtectionInterface::class),
+            options: [
                 'secret_key' => $_ENV['JWT_SECRET'],
                 'algorithm' => 'HS256',
                 'user_identifier_claim' => 'sub',
@@ -52,8 +50,8 @@ return [
     },
     'oauth' => function (ContainerInterface $container) {
         return new OAuthAuthenticator(
-            $container->get(OAuthServiceInterface::class),
-            [
+            oauthService: $container->get(OAuthServiceInterface::class),
+            options: [
                 'header_name' => 'Authorization',
                 'token_prefix' => 'Bearer',
             ]
@@ -64,8 +62,8 @@ return [
             throw new \RuntimeException('REMEMBER_ME_SECRET environment variable is required for remember-me authentication. Please set it in your .env file.');
         }
         return new RememberMeAuthenticator(
-            $container->get(UserRepository::class),
-            [
+            userProvider: $container->get(UserRepository::class),
+            options: [
                 'secret' => $_ENV['REMEMBER_ME_SECRET'],
                 'cookie_name' => 'REMEMBERME',
                 'cookie_lifetime' => 2592000, // 30 days
@@ -76,8 +74,8 @@ return [
     },
     'api_key' => function (ContainerInterface $container) {
         return new ApiKeyAuthenticator(
-            $container->get(UserRepository::class),
-            [
+            userProvider: $container->get(UserRepository::class),
+            options: [
                 'header_name' => 'X-API-KEY',
                 'api_keys' => [
                     // Add your API keys here
