@@ -1,8 +1,9 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Modufolio\Appkit\Security\Authenticator;
 
-use Modufolio\Appkit\Security\BruteForce\BruteForceProtectionInterface;
 use Modufolio\Appkit\Security\Csrf\CsrfTokenManagerInterface;
 use Modufolio\Appkit\Security\Exception\AuthenticationException;
 use Modufolio\Appkit\Security\Exception\InvalidCsrfTokenException;
@@ -11,6 +12,7 @@ use Modufolio\Appkit\Security\Token\UsernamePasswordToken;
 use Modufolio\Appkit\Security\TwoFactor\TwoFactorServiceInterface;
 use Modufolio\Appkit\Security\User\PasswordAuthenticatedUserInterface;
 use Modufolio\Appkit\Security\User\UserInterface;
+use Modufolio\Appkit\Security\User\UserPasswordHasherInterface;
 use Modufolio\Appkit\Security\User\UserProviderInterface;
 use Modufolio\Psr7\Http\Response;
 use Psr\Http\Message\ResponseInterface;
@@ -26,6 +28,7 @@ class FormLoginAuthenticator extends AbstractAuthenticator
         private CsrfTokenManagerInterface $csrfTokenManager,
         private FlashBagAwareSessionInterface $session,
         private ?TwoFactorServiceInterface $totpService = null,
+        private ?UserPasswordHasherInterface $passwordHasher = null,
         array $options = []
     ) {
         $this->options = array_merge([
@@ -53,7 +56,6 @@ class FormLoginAuthenticator extends AbstractAuthenticator
     public function authenticate(ServerRequestInterface $request): UserInterface
     {
         [$identifier, $password] = $this->extractCredentials($request);
-        $clientIp = $request->getServerParams()['REMOTE_ADDR'] ?? 'unknown';
 
         $this->validateCsrfToken($request);
 
@@ -63,7 +65,11 @@ class FormLoginAuthenticator extends AbstractAuthenticator
             throw new AuthenticationException('User does not support password authentication.');
         }
 
-        if (password_verify($password, $user->getPassword()) === false) {
+        $valid = $this->passwordHasher !== null
+            ? $this->passwordHasher->isPasswordValid($user, $password)
+            : password_verify($password, $user->getPassword());
+
+        if (!$valid) {
             throw new AuthenticationException('Invalid credentials');
         }
 

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Modufolio\Appkit\Security\Authenticator;
 
 use Modufolio\Appkit\Security\BruteForce\BruteForceProtectionInterface;

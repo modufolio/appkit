@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Modufolio\Appkit\Security\Authenticator;
 
 use Modufolio\Psr7\Http\Response;
@@ -8,6 +10,7 @@ use Modufolio\Appkit\Security\Token\TokenInterface;
 use Modufolio\Appkit\Security\Token\UsernamePasswordToken;
 use Modufolio\Appkit\Security\User\PasswordAuthenticatedUserInterface;
 use Modufolio\Appkit\Security\User\UserInterface;
+use Modufolio\Appkit\Security\User\UserPasswordHasherInterface;
 use Modufolio\Appkit\Security\User\UserProviderInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -15,7 +18,8 @@ use Psr\Http\Message\ServerRequestInterface;
 class BasicAuthenticator extends AbstractAuthenticator
 {
     public function __construct(
-        private UserProviderInterface $userProvider
+        private UserProviderInterface $userProvider,
+        private ?UserPasswordHasherInterface $passwordHasher = null,
     ) {
     }
 
@@ -37,7 +41,11 @@ class BasicAuthenticator extends AbstractAuthenticator
             throw new AuthenticationException('User does not support password authentication.');
         }
 
-        if (password_verify($password, $user->getPassword()) === false) {
+        $valid = $this->passwordHasher !== null
+            ? $this->passwordHasher->isPasswordValid($user, $password)
+            : password_verify($password, $user->getPassword());
+
+        if (!$valid) {
             throw new AuthenticationException('Invalid credentials');
         }
 
