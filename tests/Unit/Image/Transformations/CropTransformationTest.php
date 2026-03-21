@@ -22,7 +22,7 @@ class CropTransformationTest extends TestCase
 
         $this->assertSame(300, $config['width']);
         $this->assertSame(200, $config['height']);
-        $this->assertSame('center', $config['mode']);
+        $this->assertSame('center', $config['crop']);
     }
 
     public function testCropTransformationDefaultMode(): void
@@ -30,7 +30,7 @@ class CropTransformationTest extends TestCase
         $transformation = new CropTransformation(300, 200);
         $config = $transformation->config();
 
-        $this->assertSame('center', $config['mode']);
+        $this->assertSame('center', $config['crop']);
     }
 
     public function testCropTransformationSquare(): void
@@ -47,6 +47,6 @@ class CropTransformationTest extends TestCase
         $transformation = new CropTransformation(300, 200, 'top-left');
         $config = $transformation->config();
 
-        $this->assertSame('top-left', $config['mode']);
+        $this->assertSame('top-left', $config['crop']);
     }
 }
