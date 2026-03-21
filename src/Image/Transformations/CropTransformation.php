@@ -65,7 +65,7 @@ class CropTransformation implements Transformation
         return [
             'width' => $this->width,
             'height' => $this->height,
-            'mode' => $this->mode,
+            'crop' => $this->mode,
         ];
     }
 }
