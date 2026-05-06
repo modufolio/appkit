@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Modufolio\Appkit\Security\Authenticator;
 
-use Modufolio\Appkit\Security\BruteForce\BruteForceProtectionInterface;
 use Modufolio\Appkit\Security\Exception\AuthenticationException;
+use Modufolio\Appkit\Security\Exception\UserNotFoundException;
 use Modufolio\Appkit\Security\Token\JwtToken;
 use Modufolio\Appkit\Security\Token\TokenInterface;
 use Modufolio\Appkit\Security\User\UserInterface;
@@ -20,12 +20,14 @@ use Psr\Log\NullLogger;
 
 class JwtAuthenticator extends AbstractAuthenticator
 {
+    private const SUPPORTED_ALGORITHMS = ['HS256', 'HS384', 'HS512', 'RS256', 'RS384', 'RS512', 'ES256', 'ES384', 'EdDSA'];
+
     private array $options;
     private LoggerInterface $logger;
+    private array $lastPayload = [];
 
     public function __construct(
         private UserProviderInterface $userProvider,
-        private BruteForceProtectionInterface $bruteForceProtection,
         array $options = [],
         ?LoggerInterface $logger = null,
     ) {
@@ -40,6 +42,14 @@ class JwtAuthenticator extends AbstractAuthenticator
 
         if (empty($this->options['secret_key'])) {
             throw new \InvalidArgumentException('JWT secret_key must be configured.');
+        }
+
+        if (!in_array($this->options['algorithm'], self::SUPPORTED_ALGORITHMS, true)) {
+            throw new \InvalidArgumentException(sprintf(
+                'Unsupported JWT algorithm "%s". Supported: %s.',
+                $this->options['algorithm'],
+                implode(', ', self::SUPPORTED_ALGORITHMS),
+            ));
         }
     }
 
@@ -56,74 +66,42 @@ class JwtAuthenticator extends AbstractAuthenticator
     {
         $clientIp = $request->getServerParams()['REMOTE_ADDR'] ?? 'unknown';
 
-        // Note: For JWT, we'll use IP-based rate limiting since we don't have the identifier yet
-        // Check if IP is locked due to too many JWT failures
-        if ($this->bruteForceProtection->isLocked('jwt:' . $clientIp, $clientIp)) {
-            $remainingTime = $this->bruteForceProtection->getRemainingLockoutTime('jwt:' . $clientIp, $clientIp);
+        $payload = $this->extractAndValidateToken($request);
 
-            $this->logger->warning('JWT authentication blocked: IP temporarily locked due to too many failed attempts', [
+        $userIdentifierClaim = $this->options['user_identifier_claim'];
+        if (!isset($payload[$userIdentifierClaim])) {
+            $this->logger->warning('JWT authentication failed: Missing user identifier claim', [
+                'claim' => $userIdentifierClaim,
                 'ip' => $clientIp,
-                'remaining_lockout_seconds' => $remainingTime,
             ]);
-
-            throw new AuthenticationException(
-                sprintf('Too many failed authentication attempts. Try again in %d seconds.', $remainingTime)
-            );
+            throw new AuthenticationException(sprintf('JWT payload missing "%s" claim.', $userIdentifierClaim));
         }
+
+        $identifier = (string) $payload[$userIdentifierClaim];
 
         try {
-            $payload = $this->extractAndValidateToken($request);
-
-            $userIdentifierClaim = $this->options['user_identifier_claim'];
-            if (!isset($payload[$userIdentifierClaim])) {
-                $this->bruteForceProtection->recordFailure('jwt:' . $clientIp, $clientIp);
-
-                $this->logger->warning('JWT authentication failed: Missing user identifier claim', [
-                    'claim' => $userIdentifierClaim,
-                    'ip' => $clientIp,
-                    'failure_count' => $this->bruteForceProtection->getFailureCount('jwt:' . $clientIp, $clientIp),
-                ]);
-                throw new AuthenticationException(sprintf('JWT payload missing "%s" claim.', $userIdentifierClaim));
-            }
-
-            $identifier = $payload[$userIdentifierClaim];
-
-            try {
-                $user = $this->userProvider->loadUserByIdentifier($identifier);
-
-                // Successful authentication - reset failure counter
-                $this->bruteForceProtection->recordSuccess('jwt:' . $clientIp, $clientIp);
-                $this->bruteForceProtection->recordSuccess($identifier, $clientIp);
-
-                $this->logger->info('Successful JWT authentication', [
-                    'username' => $identifier,
-                    'ip' => $clientIp,
-                ]);
-
-                return $user;
-            } catch (\Exception $e) {
-                $this->bruteForceProtection->recordFailure('jwt:' . $clientIp, $clientIp);
-                $this->bruteForceProtection->recordFailure($identifier, $clientIp);
-
-                $this->logger->warning('JWT authentication failed: User not found', [
-                    'username' => $identifier,
-                    'ip' => $clientIp,
-                    'failure_count' => $this->bruteForceProtection->getFailureCount($identifier, $clientIp),
-                ]);
-                throw new AuthenticationException('User not found for JWT token.', 0, $e);
-            }
-        } catch (AuthenticationException $e) {
-            // Re-throw after ensuring logging
-            throw $e;
+            $user = $this->userProvider->loadUserByIdentifier($identifier);
+        } catch (UserNotFoundException $e) {
+            $this->logger->warning('JWT authentication failed: User not found', [
+                'username' => $identifier,
+                'ip' => $clientIp,
+            ]);
+            throw new AuthenticationException('User not found for JWT token.', 0, $e);
         }
+
+        $this->logger->info('Successful JWT authentication', [
+            'username' => $identifier,
+            'ip' => $clientIp,
+        ]);
+
+        $this->lastPayload = $payload;
+
+        return $user;
     }
 
     public function createToken(UserInterface $user, string $firewallName): TokenInterface
     {
-        // Extract payload from request if available
-        $payload = [];
-
-        return new JwtToken($user, $firewallName, $payload, $user->getRoles());
+        return new JwtToken($user, $firewallName, $this->lastPayload, $user->getRoles());
     }
 
     /**
@@ -145,23 +123,17 @@ class JwtAuthenticator extends AbstractAuthenticator
         $clientIp = $request->getServerParams()['REMOTE_ADDR'] ?? 'unknown';
 
         if (!str_starts_with($authHeader, $prefix)) {
-            $this->bruteForceProtection->recordFailure('jwt:' . $clientIp, $clientIp);
-
             $this->logger->warning('JWT authentication failed: Missing or invalid Authorization header', [
                 'ip' => $clientIp,
-                'failure_count' => $this->bruteForceProtection->getFailureCount('jwt:' . $clientIp, $clientIp),
             ]);
             throw new AuthenticationException('Missing or invalid Authorization header.');
         }
 
-        $token = substr($authHeader, strlen($prefix));
+        $token = trim(substr($authHeader, strlen($prefix)));
 
-        if (empty($token)) {
-            $this->bruteForceProtection->recordFailure('jwt:' . $clientIp, $clientIp);
-
+        if ($token === '') {
             $this->logger->warning('JWT authentication failed: Empty token', [
                 'ip' => $clientIp,
-                'failure_count' => $this->bruteForceProtection->getFailureCount('jwt:' . $clientIp, $clientIp),
             ]);
             throw new AuthenticationException('JWT token is empty.');
         }
@@ -170,39 +142,28 @@ class JwtAuthenticator extends AbstractAuthenticator
             $decoded = JWT::decode($token, new Key($this->options['secret_key'], $this->options['algorithm']));
             return (array) $decoded;
         } catch (\Firebase\JWT\ExpiredException $e) {
-            // Don't record failure for expired tokens (valid tokens, just expired)
-            $this->logger->warning('JWT authentication failed: Token expired', [
-                'ip' => $clientIp,
-            ]);
+            $this->logger->warning('JWT authentication failed: Token expired', ['ip' => $clientIp]);
             throw new AuthenticationException('JWT token has expired.', 0, $e);
         } catch (\Firebase\JWT\SignatureInvalidException $e) {
-            $this->bruteForceProtection->recordFailure('jwt:' . $clientIp, $clientIp);
-
-            $this->logger->warning('JWT authentication failed: Invalid signature', [
-                'ip' => $clientIp,
-                'failure_count' => $this->bruteForceProtection->getFailureCount('jwt:' . $clientIp, $clientIp),
-            ]);
+            $this->logger->warning('JWT authentication failed: Invalid signature', ['ip' => $clientIp]);
             throw new AuthenticationException('JWT token signature is invalid.', 0, $e);
         } catch (\Firebase\JWT\BeforeValidException $e) {
-            // Don't record failure for not-yet-valid tokens (valid tokens, just early)
-            $this->logger->warning('JWT authentication failed: Token not yet valid', [
-                'ip' => $clientIp,
-            ]);
+            $this->logger->warning('JWT authentication failed: Token not yet valid', ['ip' => $clientIp]);
             throw new AuthenticationException('JWT token is not yet valid.', 0, $e);
         } catch (\Exception $e) {
-            $this->bruteForceProtection->recordFailure('jwt:' . $clientIp, $clientIp);
-
             $this->logger->error('JWT authentication error: ' . $e->getMessage(), [
                 'ip' => $clientIp,
                 'exception' => get_class($e),
-                'failure_count' => $this->bruteForceProtection->getFailureCount('jwt:' . $clientIp, $clientIp),
             ]);
-            throw new AuthenticationException('Invalid JWT token: ' . $e->getMessage(), 0, $e);
+            throw new AuthenticationException('Invalid JWT token.', 0, $e);
         }
     }
 
     /**
-     * Generate a JWT token for a user
+     * Generate a JWT token for a user.
+     *
+     * Note: this is a convenience helper for issuance. Callers wiring this in
+     * production should consider extracting it into a dedicated issuer service.
      */
     public function generateToken(UserInterface $user, array $customClaims = [], ?int $expiresIn = 3600): string
     {

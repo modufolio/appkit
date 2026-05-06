@@ -7,6 +7,7 @@ namespace Modufolio\Appkit\Security\Authenticator;
 use Modufolio\Appkit\Security\Csrf\CsrfTokenManagerInterface;
 use Modufolio\Appkit\Security\Exception\AuthenticationException;
 use Modufolio\Appkit\Security\Exception\InvalidCsrfTokenException;
+use Modufolio\Appkit\Security\Exception\UserNotFoundException;
 use Modufolio\Appkit\Security\Token\TokenInterface;
 use Modufolio\Appkit\Security\Token\UsernamePasswordToken;
 use Modufolio\Appkit\Security\TwoFactor\TwoFactorServiceInterface;
@@ -21,6 +22,8 @@ use Symfony\Component\HttpFoundation\Session\FlashBagAwareSessionInterface;
 
 class FormLoginAuthenticator extends AbstractAuthenticator
 {
+    private const DUMMY_HASH = '$2y$12$abcdefghijklmnopqrstuuGfQ7w0rqXjK0LhV0XjY6wWyJ4Z7lYqe';
+
     private array $options;
 
     public function __construct(
@@ -40,14 +43,16 @@ class FormLoginAuthenticator extends AbstractAuthenticator
             'post_only' => true,
             'csrf_parameter' => '_csrf_token',
             'csrf_token_id' => 'authenticate',
-            'totp_parameter' => 'totp_code',
-            'backup_code_parameter' => 'backup_code',
         ], $options);
     }
 
     public function supports(ServerRequestInterface $request): bool
     {
-        return $request->getMethod() === 'POST' && $request->getUri()->getPath() === $this->options['check_path'];
+        if ($request->getUri()->getPath() !== $this->options['check_path']) {
+            return false;
+        }
+
+        return !$this->options['post_only'] || $request->getMethod() === 'POST';
     }
 
     /**
@@ -59,27 +64,29 @@ class FormLoginAuthenticator extends AbstractAuthenticator
 
         $this->validateCsrfToken($request);
 
-        $user = $this->userProvider->loadUserByIdentifier($identifier);
+        try {
+            $user = $this->userProvider->loadUserByIdentifier($identifier);
+        } catch (UserNotFoundException) {
+            password_verify($password, self::DUMMY_HASH);
+            throw new AuthenticationException('Invalid credentials');
+        }
 
         if (!$user instanceof PasswordAuthenticatedUserInterface) {
-            throw new AuthenticationException('User does not support password authentication.');
+            throw new AuthenticationException('Invalid credentials');
         }
 
         $valid = $this->passwordHasher !== null
             ? $this->passwordHasher->isPasswordValid($user, $password)
-            : password_verify($password, $user->getPassword());
+            : password_verify($password, (string) $user->getPassword());
 
         if (!$valid) {
             throw new AuthenticationException('Invalid credentials');
         }
 
-        // Check if 2FA is enabled for this user
-        if ($this->totpService !== null && $user instanceof UserInterface) {
+        if ($this->totpService !== null) {
             $totpSecret = $this->totpService->getTwoFactorSecret($user);
 
             if ($totpSecret !== null && $totpSecret->isEnabled()) {
-
-                // Throw exception with 2FA flag for proper response handling
                 $exception = new AuthenticationException('Two-factor authentication required');
                 $exception->setRequires2FA(true);
                 $exception->setUser($user);
@@ -91,39 +98,36 @@ class FormLoginAuthenticator extends AbstractAuthenticator
     }
 
     /**
-     * Handle unauthorized response for Inertia.js
+     * Handle unauthorized response for Inertia.js.
      *
-     * Inertia expects:
-     * - Redirects (302/303) for navigation
-     * - Session-based error handling for validation errors
-     * - NOT JSON responses for form submissions
+     * Inertia expects redirects (303) for navigation and reads errors from
+     * session-flashed messages. The flashed message is intentionally generic
+     * so we don't leak whether a username exists.
      */
     public function unauthorizedResponse(ServerRequestInterface $request, AuthenticationException $exception): ResponseInterface
     {
-        // Check if this is a 2FA required response
         if ($exception->isRequires2FA()) {
             return Response::redirect($this->options['two_factor_path'], 303);
         }
 
-        // Regular authentication failure
-        // Store error in session for Inertia to pick up
-        $this->session->getFlashBag()->add('error', $exception->getMessage());
+        $this->session->getFlashBag()->add('error', $this->publicErrorMessage($exception));
 
-        // Check if this is an Inertia request
         if ($this->isInertiaRequest($request)) {
-            // Inertia requests expect a 303 redirect after form submission
             return Response::redirect($this->options['login_path'], 303);
         }
 
-        // Non-Inertia request (shouldn't happen in your app, but good to handle)
         return Response::redirect($this->options['login_path']);
     }
 
-    /**
-     * Check if this is an Inertia request
-     *
-     * Inertia requests always include the X-Inertia header
-     */
+    private function publicErrorMessage(AuthenticationException $exception): string
+    {
+        if ($exception instanceof InvalidCsrfTokenException) {
+            return 'Invalid security token. Please try again.';
+        }
+
+        return 'Invalid credentials.';
+    }
+
     private function isInertiaRequest(ServerRequestInterface $request): bool
     {
         return $request->hasHeader('X-Inertia');
@@ -140,10 +144,17 @@ class FormLoginAuthenticator extends AbstractAuthenticator
     private function extractCredentials(ServerRequestInterface $request): array
     {
         $parsedBody = $request->getParsedBody();
-        $username = trim($parsedBody[$this->options['username_parameter']] ?? '');
+        if (!is_array($parsedBody)) {
+            throw new AuthenticationException('Username and password cannot be empty.');
+        }
+
+        $username = $parsedBody[$this->options['username_parameter']] ?? '';
         $password = $parsedBody[$this->options['password_parameter']] ?? '';
 
-        if (empty($username) || empty($password)) {
+        $username = is_string($username) ? trim($username) : '';
+        $password = is_string($password) ? $password : '';
+
+        if ($username === '' || $password === '') {
             throw new AuthenticationException('Username and password cannot be empty.');
         }
 
@@ -151,16 +162,14 @@ class FormLoginAuthenticator extends AbstractAuthenticator
     }
 
     /**
-     * Validate CSRF token from request
-     *
      * @throws InvalidCsrfTokenException
      */
     private function validateCsrfToken(ServerRequestInterface $request): void
     {
         $parsedBody = $request->getParsedBody();
-        $csrfToken = $parsedBody[$this->options['csrf_parameter']] ?? null;
+        $csrfToken = is_array($parsedBody) ? ($parsedBody[$this->options['csrf_parameter']] ?? null) : null;
 
-        if ($csrfToken === null) {
+        if (!is_string($csrfToken) || $csrfToken === '') {
             throw new InvalidCsrfTokenException('CSRF token is missing');
         }
 

@@ -6,8 +6,10 @@ namespace Modufolio\Appkit\Security\Authenticator;
 
 use Modufolio\Psr7\Http\Response;
 use Modufolio\Appkit\Security\Exception\AuthenticationException;
+use Modufolio\Appkit\Security\Exception\UserNotFoundException;
 use Modufolio\Appkit\Security\Token\RememberMeToken;
 use Modufolio\Appkit\Security\Token\TokenInterface;
+use Modufolio\Appkit\Security\User\PasswordAuthenticatedUserInterface;
 use Modufolio\Appkit\Security\User\UserInterface;
 use Modufolio\Appkit\Security\User\UserProviderInterface;
 use Psr\Http\Message\ResponseInterface;
@@ -24,7 +26,7 @@ class RememberMeAuthenticator extends AbstractAuthenticator
         $this->options = array_merge([
             'secret' => null,
             'cookie_name' => 'REMEMBERME',
-            'cookie_lifetime' => 2592000, // 30 days
+            'cookie_lifetime' => 2592000,
             'cookie_path' => '/',
             'cookie_domain' => null,
             'cookie_secure' => true,
@@ -55,7 +57,6 @@ class RememberMeAuthenticator extends AbstractAuthenticator
             throw new AuthenticationException('Remember me cookie is empty.');
         }
 
-        // Cookie format: base64(identifier:expires:hash)
         $cookieData = base64_decode($cookieValue, true);
         if ($cookieData === false) {
             throw new AuthenticationException('Invalid remember me cookie format.');
@@ -68,21 +69,23 @@ class RememberMeAuthenticator extends AbstractAuthenticator
 
         [$identifier, $expires, $hash] = $parts;
 
-        // Check expiration
         if ((int) $expires < time()) {
             throw new AuthenticationException('Remember me cookie has expired.');
         }
 
-        // Verify hash
-        $expectedHash = $this->generateHash($identifier, (int) $expires);
-        if (!hash_equals($expectedHash, $hash)) {
-            throw new AuthenticationException('Invalid remember me cookie signature.');
-        }
-
         try {
             $user = $this->userProvider->loadUserByIdentifier($identifier);
-        } catch (\Exception $e) {
+        } catch (UserNotFoundException $e) {
             throw new AuthenticationException('User not found for remember me cookie.', 0, $e);
+        } catch (\Exception $e) {
+            // Tests use a generic Exception via mock; preserve that contract
+            // while keeping the client-facing message stable.
+            throw new AuthenticationException('User not found for remember me cookie.', 0, $e);
+        }
+
+        $expectedHash = $this->generateHash($identifier, (int) $expires, $this->userStateFingerprint($user));
+        if (!hash_equals($expectedHash, $hash)) {
+            throw new AuthenticationException('Invalid remember me cookie signature.');
         }
 
         return $user;
@@ -94,31 +97,27 @@ class RememberMeAuthenticator extends AbstractAuthenticator
     }
 
     /**
+     * Returns a 401 response to satisfy the firewall contract. The remember-me
+     * authenticator typically isn't an API entry point, so callers usually
+     * fall through to another authenticator instead of surfacing this body.
+     *
      * @throws \JsonException
      */
     public function unauthorizedResponse(ServerRequestInterface $request, AuthenticationException $exception): ResponseInterface
     {
-        // For remember me, we typically don't return an error response
-        // Instead, we just let the authentication fail silently and let other authenticators try
         return Response::json(['error' => $exception->getMessage()], 401);
     }
 
-    /**
-     * Generate a remember me cookie for a user
-     */
     public function generateRememberMeCookie(UserInterface $user): string
     {
         $identifier = $user->getUserIdentifier();
         $expires = time() + $this->options['cookie_lifetime'];
-        $hash = $this->generateHash($identifier, $expires);
+        $hash = $this->generateHash($identifier, $expires, $this->userStateFingerprint($user));
 
         $cookieData = sprintf('%s:%d:%s', $identifier, $expires, $hash);
         return base64_encode($cookieData);
     }
 
-    /**
-     * Generate the cookie options array for setting the cookie
-     */
     public function getCookieOptions(): array
     {
         return [
@@ -131,19 +130,37 @@ class RememberMeAuthenticator extends AbstractAuthenticator
         ];
     }
 
-    /**
-     * Get the cookie name
-     */
     public function getCookieName(): string
     {
         return $this->options['cookie_name'];
     }
 
     /**
-     * Generate hash for remember me cookie
+     * Derive a per-user fingerprint that changes when the user's password is
+     * rotated. Mixing this into the cookie HMAC invalidates outstanding
+     * remember-me cookies after a password change without needing a separate
+     * revocation table.
+     *
+     * For users without password authentication, returns an empty string.
      */
-    private function generateHash(string $identifier, int $expires): string
+    private function userStateFingerprint(UserInterface $user): string
     {
-        return hash_hmac('sha256', sprintf('%s:%d', $identifier, $expires), $this->options['secret']);
+        if ($user instanceof PasswordAuthenticatedUserInterface) {
+            $password = $user->getPassword();
+            if ($password !== null && $password !== '') {
+                return hash('sha256', $password);
+            }
+        }
+
+        return '';
+    }
+
+    private function generateHash(string $identifier, int $expires, string $userFingerprint): string
+    {
+        return hash_hmac(
+            'sha256',
+            sprintf('%s:%d:%s', $identifier, $expires, $userFingerprint),
+            $this->options['secret'],
+        );
     }
 }

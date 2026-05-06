@@ -6,6 +6,7 @@ namespace Modufolio\Appkit\Security\Authenticator;
 
 use Modufolio\Psr7\Http\Response;
 use Modufolio\Appkit\Security\Exception\AuthenticationException;
+use Modufolio\Appkit\Security\Exception\UserNotFoundException;
 use Modufolio\Appkit\Security\Token\TokenInterface;
 use Modufolio\Appkit\Security\Token\UsernamePasswordToken;
 use Modufolio\Appkit\Security\User\PasswordAuthenticatedUserInterface;
@@ -17,6 +18,13 @@ use Psr\Http\Message\ServerRequestInterface;
 
 class BasicAuthenticator extends AbstractAuthenticator
 {
+    /**
+     * Pre-computed bcrypt hash of a random string. Used as a dummy target for
+     * password verification when the user does not exist, so that the response
+     * timing of "no such user" matches "wrong password".
+     */
+    private const DUMMY_HASH = '$2y$12$abcdefghijklmnopqrstuuGfQ7w0rqXjK0LhV0XjY6wWyJ4Z7lYqe';
+
     public function __construct(
         private UserProviderInterface $userProvider,
         private ?UserPasswordHasherInterface $passwordHasher = null,
@@ -35,7 +43,15 @@ class BasicAuthenticator extends AbstractAuthenticator
     public function authenticate(ServerRequestInterface $request): UserInterface
     {
         [$identifier, $password] = $this->extractCredentials($request);
-        $user = $this->userProvider->loadUserByIdentifier($identifier);
+
+        try {
+            $user = $this->userProvider->loadUserByIdentifier($identifier);
+        } catch (UserNotFoundException) {
+            // Equalize timing so attackers cannot distinguish unknown users
+            // from wrong passwords.
+            password_verify($password, self::DUMMY_HASH);
+            throw new AuthenticationException('Invalid credentials');
+        }
 
         if (!$user instanceof PasswordAuthenticatedUserInterface) {
             throw new AuthenticationException('User does not support password authentication.');
@@ -43,7 +59,7 @@ class BasicAuthenticator extends AbstractAuthenticator
 
         $valid = $this->passwordHasher !== null
             ? $this->passwordHasher->isPasswordValid($user, $password)
-            : password_verify($password, $user->getPassword());
+            : password_verify($password, (string) $user->getPassword());
 
         if (!$valid) {
             throw new AuthenticationException('Invalid credentials');
@@ -81,7 +97,7 @@ class BasicAuthenticator extends AbstractAuthenticator
 
         [$username, $password] = explode(':', $decoded, 2);
 
-        if (empty($username) || empty($password)) {
+        if ($username === '' || $password === '') {
             throw new AuthenticationException('Username and password cannot be empty.');
         }
 

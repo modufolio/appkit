@@ -6,6 +6,7 @@ namespace Modufolio\Appkit\Security\Authenticator;
 
 use Modufolio\Psr7\Http\Response;
 use Modufolio\Appkit\Security\Exception\AuthenticationException;
+use Modufolio\Appkit\Security\Exception\UserNotFoundException;
 use Modufolio\Appkit\Security\Token\ApiKeyToken;
 use Modufolio\Appkit\Security\Token\TokenInterface;
 use Modufolio\Appkit\Security\User\UserInterface;
@@ -16,6 +17,7 @@ use Psr\Http\Message\ServerRequestInterface;
 class ApiKeyAuthenticator extends AbstractAuthenticator
 {
     private array $options;
+    private ?string $lastApiKey = null;
 
     public function __construct(
         private UserProviderInterface $userProvider,
@@ -23,8 +25,8 @@ class ApiKeyAuthenticator extends AbstractAuthenticator
     ) {
         $this->options = array_merge([
             'header_name' => 'X-API-KEY',
-            'query_parameter' => null, // Optional: allow API key in query string
-            'api_keys' => [], // Map of api_key => user_identifier
+            'query_parameter' => null,
+            'api_keys' => [],
         ], $options);
 
         if (empty($this->options['api_keys'])) {
@@ -34,12 +36,10 @@ class ApiKeyAuthenticator extends AbstractAuthenticator
 
     public function supports(ServerRequestInterface $request): bool
     {
-        // Check header first
         if ($request->hasHeader($this->options['header_name'])) {
             return true;
         }
 
-        // Check query parameter if configured
         if ($this->options['query_parameter']) {
             $queryParams = $request->getQueryParams();
             return isset($queryParams[$this->options['query_parameter']]);
@@ -55,31 +55,29 @@ class ApiKeyAuthenticator extends AbstractAuthenticator
     {
         $apiKey = $this->extractApiKey($request);
 
-        if (empty($apiKey)) {
+        if ($apiKey === '') {
             throw new AuthenticationException('API key is empty.');
         }
 
-        // Validate API key
-        if (!isset($this->options['api_keys'][$apiKey])) {
+        $identifier = $this->resolveIdentifier($apiKey);
+        if ($identifier === null) {
             throw new AuthenticationException('Invalid API key.');
         }
 
-        $identifier = $this->options['api_keys'][$apiKey];
-
         try {
             $user = $this->userProvider->loadUserByIdentifier($identifier);
-        } catch (\Exception $e) {
+        } catch (UserNotFoundException $e) {
             throw new AuthenticationException('User not found for API key.', 0, $e);
         }
+
+        $this->lastApiKey = $apiKey;
 
         return $user;
     }
 
     public function createToken(UserInterface $user, string $firewallName): TokenInterface
     {
-        // We don't have the actual API key here, so we'll use an empty string
-        // In practice, the API key would be stored in the token during authentication
-        return new ApiKeyToken($user, $firewallName, '', $user->getRoles());
+        return new ApiKeyToken($user, $firewallName, $this->lastApiKey, $user->getRoles());
     }
 
     /**
@@ -88,7 +86,25 @@ class ApiKeyAuthenticator extends AbstractAuthenticator
     public function unauthorizedResponse(ServerRequestInterface $request, AuthenticationException $exception): ResponseInterface
     {
         return Response::json(['error' => $exception->getMessage()], 401)
-            ->withHeader('WWW-Authenticate', sprintf('%s realm="Access to the API"', $this->options['header_name']));
+            ->withHeader('WWW-Authenticate', sprintf('ApiKey realm="Access to the API", header="%s"', $this->options['header_name']));
+    }
+
+    /**
+     * Constant-time lookup of the configured api_keys map.
+     *
+     * Why: `isset($map[$key])` short-circuits and leaks via timing whether a
+     * supplied key partially matches a stored key.
+     */
+    private function resolveIdentifier(string $apiKey): ?string
+    {
+        $matchedIdentifier = null;
+        foreach ($this->options['api_keys'] as $configuredKey => $identifier) {
+            if (hash_equals((string) $configuredKey, $apiKey)) {
+                $matchedIdentifier = (string) $identifier;
+            }
+        }
+
+        return $matchedIdentifier;
     }
 
     /**
@@ -96,22 +112,18 @@ class ApiKeyAuthenticator extends AbstractAuthenticator
      */
     private function extractApiKey(ServerRequestInterface $request): string
     {
-        // Try header first
         if ($request->hasHeader($this->options['header_name'])) {
-            $apiKey = $request->getHeaderLine($this->options['header_name']);
-            if (!empty($apiKey)) {
-                return trim($apiKey);
+            $apiKey = trim($request->getHeaderLine($this->options['header_name']));
+            if ($apiKey !== '') {
+                return $apiKey;
             }
         }
 
-        // Try query parameter if configured
         if ($this->options['query_parameter']) {
             $queryParams = $request->getQueryParams();
-            if (isset($queryParams[$this->options['query_parameter']])) {
-                $apiKey = $queryParams[$this->options['query_parameter']];
-                if (!empty($apiKey)) {
-                    return trim($apiKey);
-                }
+            $value = $queryParams[$this->options['query_parameter']] ?? null;
+            if (is_string($value) && trim($value) !== '') {
+                return trim($value);
             }
         }
 

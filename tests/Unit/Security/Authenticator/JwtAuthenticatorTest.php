@@ -9,7 +9,6 @@ use Modufolio\Appkit\Security\Exception\AuthenticationException;
 use Modufolio\Appkit\Security\Token\JwtToken;
 use Modufolio\Appkit\Security\User\InMemoryUser;
 use Modufolio\Appkit\Tests\App\InMemoryUserProvider;
-use Modufolio\Appkit\Tests\App\TestBruteForceProtection;
 use Modufolio\Appkit\Tests\App\TestLogger;
 use Modufolio\Appkit\Tests\Case\AppTestCase;
 use Modufolio\Psr7\Http\ServerRequest;
@@ -18,7 +17,6 @@ use Modufolio\Psr7\Http\Uri;
 class JwtAuthenticatorTest extends AppTestCase
 {
     private InMemoryUserProvider $userProvider;
-    private TestBruteForceProtection $bruteForce;
     private TestLogger $logger;
     private string $secretKey = 'test-secret-key-for-jwt-testing-must-be-long-enough-for-hs256';
 
@@ -30,7 +28,6 @@ class JwtAuthenticatorTest extends AppTestCase
         $this->userProvider->addUser(new InMemoryUser('user@example.com', 'password', ['ROLE_USER']));
         $this->userProvider->addUser(new InMemoryUser('admin@example.com', 'password', ['ROLE_ADMIN']));
 
-        $this->bruteForce = new TestBruteForceProtection(maxAttempts: 5, lockoutSeconds: 300);
         $this->logger = new TestLogger();
     }
 
@@ -38,7 +35,6 @@ class JwtAuthenticatorTest extends AppTestCase
     {
         return new JwtAuthenticator(
             $this->userProvider,
-            $this->bruteForce,
             array_merge(['secret_key' => $this->secretKey], $options),
             $this->logger,
         );
@@ -73,12 +69,23 @@ class JwtAuthenticatorTest extends AppTestCase
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('JWT secret_key must be configured.');
 
-        new JwtAuthenticator($this->userProvider, $this->bruteForce, ['secret_key' => '']);
+        new JwtAuthenticator($this->userProvider, ['secret_key' => '']);
+    }
+
+    public function testConstructorThrowsForUnsupportedAlgorithm(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Unsupported JWT algorithm');
+
+        new JwtAuthenticator($this->userProvider, [
+            'secret_key' => $this->secretKey,
+            'algorithm' => 'none',
+        ]);
     }
 
     public function testConstructorDefaultsToNullLoggerWhenNoneProvided(): void
     {
-        $auth = new JwtAuthenticator($this->userProvider, $this->bruteForce, ['secret_key' => $this->secretKey]);
+        $auth = new JwtAuthenticator($this->userProvider, ['secret_key' => $this->secretKey]);
         $this->assertInstanceOf(JwtAuthenticator::class, $auth);
     }
 
@@ -144,18 +151,6 @@ class JwtAuthenticatorTest extends AppTestCase
         $this->assertTrue($this->logger->hasInfo('Successful JWT authentication'));
     }
 
-    public function testAuthenticateResetsFailureCounterOnSuccess(): void
-    {
-        $this->bruteForce->recordFailure('jwt:127.0.0.1', '127.0.0.1');
-        $this->bruteForce->recordFailure('jwt:127.0.0.1', '127.0.0.1');
-        $this->assertSame(2, $this->bruteForce->getFailureCount('jwt:127.0.0.1', '127.0.0.1'));
-
-        $auth = $this->createAuthenticator();
-        $auth->authenticate($this->bearerRequest($this->generateToken()));
-
-        $this->assertSame(0, $this->bruteForce->getFailureCount('jwt:127.0.0.1', '127.0.0.1'));
-    }
-
     public function testAuthenticateWithCustomIdentifierClaim(): void
     {
         $auth = $this->createAuthenticator(['user_identifier_claim' => 'email']);
@@ -166,31 +161,6 @@ class JwtAuthenticatorTest extends AppTestCase
     }
 
     // ---- authenticate() – failures ----
-
-    public function testAuthenticateThrowsWhenIpIsLocked(): void
-    {
-        $this->bruteForce->forceLock('jwt:127.0.0.1', '127.0.0.1');
-
-        $auth = $this->createAuthenticator();
-
-        $this->expectException(AuthenticationException::class);
-        $this->expectExceptionMessage('Too many failed authentication attempts.');
-
-        $auth->authenticate($this->bearerRequest($this->generateToken()));
-    }
-
-    public function testAuthenticateLogsWarningWhenLocked(): void
-    {
-        $this->bruteForce->forceLock('jwt:127.0.0.1', '127.0.0.1');
-        $auth = $this->createAuthenticator();
-
-        try {
-            $auth->authenticate($this->bearerRequest($this->generateToken()));
-        } catch (AuthenticationException) {
-        }
-
-        $this->assertTrue($this->logger->hasWarning('IP temporarily locked'));
-    }
 
     public function testAuthenticateThrowsOnMissingSubClaim(): void
     {
@@ -204,7 +174,7 @@ class JwtAuthenticatorTest extends AppTestCase
         $auth->authenticate($this->bearerRequest($token));
     }
 
-    public function testAuthenticateRecordsFailureOnMissingClaim(): void
+    public function testAuthenticateLogsWarningOnMissingClaim(): void
     {
         $auth = $this->createAuthenticator();
         $now = time();
@@ -215,7 +185,6 @@ class JwtAuthenticatorTest extends AppTestCase
         } catch (AuthenticationException) {
         }
 
-        $this->assertSame(1, $this->bruteForce->getFailureCount('jwt:127.0.0.1', '127.0.0.1'));
         $this->assertTrue($this->logger->hasWarning('Missing user identifier claim'));
     }
 
@@ -230,7 +199,7 @@ class JwtAuthenticatorTest extends AppTestCase
         $auth->authenticate($this->bearerRequest($token));
     }
 
-    public function testAuthenticateRecordsFailureWhenUserNotFound(): void
+    public function testAuthenticateLogsWhenUserNotFound(): void
     {
         $auth = $this->createAuthenticator();
         $token = $this->generateToken(['sub' => 'ghost@example.com']);
@@ -240,8 +209,6 @@ class JwtAuthenticatorTest extends AppTestCase
         } catch (AuthenticationException) {
         }
 
-        $this->assertSame(1, $this->bruteForce->getFailureCount('jwt:127.0.0.1', '127.0.0.1'));
-        $this->assertSame(1, $this->bruteForce->getFailureCount('ghost@example.com', '127.0.0.1'));
         $this->assertTrue($this->logger->hasWarning('User not found'));
     }
 
@@ -256,20 +223,6 @@ class JwtAuthenticatorTest extends AppTestCase
         $auth->authenticate($this->bearerRequest($token));
     }
 
-    public function testDoesNotRecordFailureForExpiredTokens(): void
-    {
-        $auth = $this->createAuthenticator();
-        $token = $this->generateToken(expiresIn: -3600);
-
-        try {
-            $auth->authenticate($this->bearerRequest($token));
-        } catch (AuthenticationException) {
-        }
-
-        $this->assertSame(0, $this->bruteForce->getFailureCount('jwt:127.0.0.1', '127.0.0.1'));
-        $this->assertTrue($this->logger->hasWarning('Token expired'));
-    }
-
     public function testAuthenticateThrowsOnInvalidSignature(): void
     {
         $auth = $this->createAuthenticator();
@@ -279,20 +232,6 @@ class JwtAuthenticatorTest extends AppTestCase
         $this->expectExceptionMessage('JWT token signature is invalid.');
 
         $auth->authenticate($this->bearerRequest($token));
-    }
-
-    public function testRecordsFailureForInvalidSignature(): void
-    {
-        $auth = $this->createAuthenticator();
-        $token = $this->generateToken(key: str_repeat('x', 64));
-
-        try {
-            $auth->authenticate($this->bearerRequest($token));
-        } catch (AuthenticationException) {
-        }
-
-        $this->assertGreaterThan(0, $this->bruteForce->getFailureCount('jwt:127.0.0.1', '127.0.0.1'));
-        $this->assertTrue($this->logger->hasWarning('Invalid signature'));
     }
 
     public function testAuthenticateThrowsOnNotYetValidToken(): void
@@ -308,22 +247,6 @@ class JwtAuthenticatorTest extends AppTestCase
         $auth->authenticate($this->bearerRequest($token));
     }
 
-    public function testDoesNotRecordFailureForNotYetValidTokens(): void
-    {
-        $auth = $this->createAuthenticator();
-        $now = time();
-        $payload = ['iat' => $now, 'nbf' => $now + 7200, 'exp' => $now + 14400, 'sub' => 'user@example.com'];
-        $token = JWT::encode($payload, $this->secretKey, 'HS256');
-
-        try {
-            $auth->authenticate($this->bearerRequest($token));
-        } catch (AuthenticationException) {
-        }
-
-        $this->assertSame(0, $this->bruteForce->getFailureCount('jwt:127.0.0.1', '127.0.0.1'));
-        $this->assertTrue($this->logger->hasWarning('Token not yet valid'));
-    }
-
     public function testAuthenticateThrowsOnMalformedToken(): void
     {
         $auth = $this->createAuthenticator();
@@ -334,7 +257,7 @@ class JwtAuthenticatorTest extends AppTestCase
         $auth->authenticate($this->bearerRequest('not.a.valid.jwt'));
     }
 
-    public function testRecordsFailureForMalformedToken(): void
+    public function testAuthenticateLogsErrorOnMalformedToken(): void
     {
         $auth = $this->createAuthenticator();
 
@@ -343,7 +266,6 @@ class JwtAuthenticatorTest extends AppTestCase
         } catch (AuthenticationException) {
         }
 
-        $this->assertGreaterThan(0, $this->bruteForce->getFailureCount('jwt:127.0.0.1', '127.0.0.1'));
         $this->assertTrue($this->logger->hasError('JWT authentication error'));
     }
 
@@ -362,26 +284,6 @@ class JwtAuthenticatorTest extends AppTestCase
         $auth->authenticate($request);
     }
 
-    public function testLockoutAfterRepeatedFailures(): void
-    {
-        $brute = new TestBruteForceProtection(maxAttempts: 3, lockoutSeconds: 300);
-        $auth = new JwtAuthenticator($this->userProvider, $brute, ['secret_key' => $this->secretKey], $this->logger);
-
-        for ($i = 0; $i < 3; $i++) {
-            try {
-                $auth->authenticate($this->bearerRequest($this->generateToken(key: str_repeat('y', 64))));
-            } catch (AuthenticationException) {
-            }
-        }
-
-        $this->assertTrue($brute->isLocked('jwt:127.0.0.1', '127.0.0.1'));
-
-        $this->expectException(AuthenticationException::class);
-        $this->expectExceptionMessage('Too many failed authentication attempts.');
-
-        $auth->authenticate($this->bearerRequest($this->generateToken()));
-    }
-
     // ---- createToken() ----
 
     public function testCreateTokenReturnsJwtToken(): void
@@ -396,6 +298,19 @@ class JwtAuthenticatorTest extends AppTestCase
         $this->assertSame('api', $token->getFirewallName());
         $this->assertSame(['ROLE_USER'], $token->getRoles());
         $this->assertSame([], $token->getPayload());
+    }
+
+    public function testCreateTokenCarriesPayloadFromAuthenticate(): void
+    {
+        $auth = $this->createAuthenticator();
+        $jwt = $this->generateToken(['custom' => 'value']);
+
+        $user = $auth->authenticate($this->bearerRequest($jwt));
+        $token = $auth->createToken($user, 'api');
+
+        $this->assertInstanceOf(JwtToken::class, $token);
+        $this->assertSame('value', $token->getPayload()['custom']);
+        $this->assertSame('user@example.com', $token->getPayload()['sub']);
     }
 
     // ---- unauthorizedResponse() ----

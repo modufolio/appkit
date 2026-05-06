@@ -18,13 +18,14 @@ use Psr\Log\NullLogger;
 /**
  * OAuth 2.1 Authenticator
  *
- * Authenticates requests using OAuth 2.1 Bearer tokens
- * Validates tokens against the database
+ * Authenticates requests using OAuth 2.1 Bearer tokens validated against the
+ * configured OAuth service.
  */
 class OAuthAuthenticator extends AbstractAuthenticator
 {
     private array $options;
     private LoggerInterface $logger;
+    private array $lastScopes = [];
 
     public function __construct(
         private OAuthServiceInterface $oauthService,
@@ -54,7 +55,6 @@ class OAuthAuthenticator extends AbstractAuthenticator
         try {
             $accessToken = $this->extractToken($request);
 
-            // Validate the access token
             $tokenEntity = $this->oauthService->validateAccessToken($accessToken);
 
             if ($tokenEntity === null) {
@@ -65,13 +65,16 @@ class OAuthAuthenticator extends AbstractAuthenticator
             }
 
             $user = $tokenEntity->getUser();
+            $scopes = $tokenEntity->getScopes();
 
             $this->logger->info('Successful OAuth authentication', [
                 'username' => $user->getUserIdentifier(),
                 'ip' => $clientIp,
                 'client_id' => $tokenEntity->getClientId(),
-                'scopes' => $tokenEntity->getScopes(),
+                'scopes' => $scopes,
             ]);
+
+            $this->lastScopes = $scopes;
 
             return $user;
         } catch (AuthenticationException $e) {
@@ -81,13 +84,15 @@ class OAuthAuthenticator extends AbstractAuthenticator
                 'ip' => $clientIp,
                 'exception' => get_class($e),
             ]);
-            throw new AuthenticationException('Authentication failed: ' . $e->getMessage(), 0, $e);
+            // Detail of the underlying error stays in the log; the client
+            // gets a generic message.
+            throw new AuthenticationException('Authentication failed.', 0, $e);
         }
     }
 
     public function createToken(UserInterface $user, string $firewallName): TokenInterface
     {
-        return new OAuthToken($user, $firewallName, [], $user->getRoles());
+        return new OAuthToken($user, $firewallName, $this->lastScopes, $user->getRoles());
     }
 
     /**
@@ -95,13 +100,19 @@ class OAuthAuthenticator extends AbstractAuthenticator
      */
     public function unauthorizedResponse(ServerRequestInterface $request, AuthenticationException $exception): ResponseInterface
     {
+        $errorCode = str_contains(strtolower($exception->getMessage()), 'expired') ? 'invalid_token' : 'invalid_token';
+        $challenge = sprintf(
+            '%s realm="Access to the API", error="%s", error_description="%s"',
+            $this->options['token_prefix'],
+            $errorCode,
+            $this->sanitizeForHeader($exception->getMessage()),
+        );
+
         return Response::json(['error' => $exception->getMessage()], 401)
-            ->withHeader('WWW-Authenticate', $this->options['token_prefix'] . ' realm="Access to the API"');
+            ->withHeader('WWW-Authenticate', $challenge);
     }
 
     /**
-     * Extract the access token from the Authorization header
-     *
      * @throws AuthenticationException
      */
     private function extractToken(ServerRequestInterface $request): string
@@ -113,12 +124,18 @@ class OAuthAuthenticator extends AbstractAuthenticator
             throw new AuthenticationException('Missing or invalid Authorization header.');
         }
 
-        $token = substr($authHeader, strlen($prefix));
+        $token = trim(substr($authHeader, strlen($prefix)));
 
-        if (empty($token)) {
+        if ($token === '') {
             throw new AuthenticationException('Access token is empty.');
         }
 
         return $token;
+    }
+
+    private function sanitizeForHeader(string $value): string
+    {
+        // RFC 7235 quoted-string disallows control chars, backslashes and quotes.
+        return preg_replace('/[^\x20-\x7E]|["\\\\]/', '', $value) ?? '';
     }
 }

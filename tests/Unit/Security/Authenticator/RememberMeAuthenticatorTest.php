@@ -25,9 +25,26 @@ class RememberMeAuthenticatorTest extends AppTestCase
         $this->user = $this->createMock(PasswordAuthenticatedUserInterface::class);
         $this->user->method('getUserIdentifier')->willReturn('test@example.com');
         $this->user->method('getRoles')->willReturn(['ROLE_USER']);
+        $this->user->method('getPassword')->willReturn('$2y$10$abcdefghijklmnopqrstuv');
 
         // Create mock user provider
         $this->userProvider = $this->createMock(UserProviderInterface::class);
+    }
+
+    private function fingerprint(?string $password): string
+    {
+        return $password === null || $password === '' ? '' : hash('sha256', $password);
+    }
+
+    private function signCookie(string $identifier, int $expires, ?string $password): string
+    {
+        $hash = hash_hmac(
+            'sha256',
+            sprintf('%s:%d:%s', $identifier, $expires, $this->fingerprint($password)),
+            $this->secret,
+        );
+
+        return base64_encode(sprintf('%s:%d:%s', $identifier, $expires, $hash));
     }
 
     public function testConstructorThrowsExceptionWhenSecretIsMissing(): void
@@ -158,10 +175,7 @@ class RememberMeAuthenticatorTest extends AppTestCase
 
         $identifier = 'test@example.com';
         $expires = time() - 3600; // Expired 1 hour ago
-        $hash = hash_hmac('sha256', sprintf('%s:%d', $identifier, $expires), $this->secret);
-
-        $cookieData = sprintf('%s:%d:%s', $identifier, $expires, $hash);
-        $cookieValue = base64_encode($cookieData);
+        $cookieValue = $this->signCookie($identifier, $expires, '$2y$10$abcdefghijklmnopqrstuv');
 
         $request = (new ServerRequest(
             method: 'GET',
@@ -188,6 +202,10 @@ class RememberMeAuthenticatorTest extends AppTestCase
         $cookieData = sprintf('%s:%d:%s', $identifier, $expires, $invalidHash);
         $cookieValue = base64_encode($cookieData);
 
+        $this->userProvider->method('loadUserByIdentifier')
+            ->with($identifier)
+            ->willReturn($this->user);
+
         $request = (new ServerRequest(
             method: 'GET',
             uri: new Uri('/'),
@@ -208,15 +226,12 @@ class RememberMeAuthenticatorTest extends AppTestCase
 
         $identifier = 'test@example.com';
         $expires = time() + 3600;
-        $hash = hash_hmac('sha256', sprintf('%s:%d', $identifier, $expires), $this->secret);
-
-        $cookieData = sprintf('%s:%d:%s', $identifier, $expires, $hash);
-        $cookieValue = base64_encode($cookieData);
+        $cookieValue = $this->signCookie($identifier, $expires, '$2y$10$abcdefghijklmnopqrstuv');
 
         $this->userProvider->expects($this->once())
             ->method('loadUserByIdentifier')
             ->with($identifier)
-            ->willThrowException(new \Exception('User not found'));
+            ->willThrowException(new \Modufolio\Appkit\Security\Exception\UserNotFoundException('User not found'));
 
         $request = (new ServerRequest(
             method: 'GET',
@@ -238,10 +253,7 @@ class RememberMeAuthenticatorTest extends AppTestCase
 
         $identifier = 'test@example.com';
         $expires = time() + 3600;
-        $hash = hash_hmac('sha256', sprintf('%s:%d', $identifier, $expires), $this->secret);
-
-        $cookieData = sprintf('%s:%d:%s', $identifier, $expires, $hash);
-        $cookieValue = base64_encode($cookieData);
+        $cookieValue = $this->signCookie($identifier, $expires, '$2y$10$abcdefghijklmnopqrstuv');
 
         $this->userProvider->expects($this->once())
             ->method('loadUserByIdentifier')
@@ -316,9 +328,43 @@ class RememberMeAuthenticatorTest extends AppTestCase
         $this->assertEquals('test@example.com', $identifier);
         $this->assertGreaterThan(time(), (int) $expires);
 
-        // Verify hash
-        $expectedHash = hash_hmac('sha256', sprintf('%s:%s', $identifier, $expires), $this->secret);
+        // Verify hash binds the user's password fingerprint so a password
+        // change invalidates outstanding cookies.
+        $expectedHash = hash_hmac(
+            'sha256',
+            sprintf('%s:%d:%s', $identifier, (int) $expires, $this->fingerprint('$2y$10$abcdefghijklmnopqrstuv')),
+            $this->secret,
+        );
         $this->assertEquals($expectedHash, $hash);
+    }
+
+    public function testCookieIsInvalidatedWhenUserPasswordChanges(): void
+    {
+        $authenticator = new RememberMeAuthenticator($this->userProvider, [
+            'secret' => $this->secret
+        ]);
+
+        $cookieValue = $authenticator->generateRememberMeCookie($this->user);
+
+        $rotatedUser = $this->createMock(PasswordAuthenticatedUserInterface::class);
+        $rotatedUser->method('getUserIdentifier')->willReturn('test@example.com');
+        $rotatedUser->method('getPassword')->willReturn('$2y$10$DIFFERENT_HASH_AFTER_ROTATION');
+
+        $this->userProvider->expects($this->once())
+            ->method('loadUserByIdentifier')
+            ->with('test@example.com')
+            ->willReturn($rotatedUser);
+
+        $request = (new ServerRequest(
+            method: 'GET',
+            uri: new Uri('/'),
+            headers: []
+        ))->withCookieParams(['REMEMBERME' => $cookieValue]);
+
+        $this->expectException(AuthenticationException::class);
+        $this->expectExceptionMessage('Invalid remember me cookie signature.');
+
+        $authenticator->authenticate($request);
     }
 
     public function testGenerateRememberMeCookieWithCustomLifetime(): void
