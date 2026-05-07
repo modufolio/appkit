@@ -44,4 +44,9 @@ interface UserInterface
      * Returns the identifier for this user (e.g. username or email address).
      */
     public function getUserIdentifier(): string;
+
+    /**
+     * Whether the account is enabled. Disabled accounts cannot authenticate.
+     */
+    public function isEnabled(): bool;
 }

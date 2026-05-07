@@ -11,6 +11,7 @@ use Modufolio\Appkit\Security\Exception\UserNotFoundException;
 use Modufolio\Appkit\Security\Token\TokenInterface;
 use Modufolio\Appkit\Security\Token\TwoFactorToken;
 use Modufolio\Appkit\Security\TokenUnserializer;
+use Modufolio\Appkit\Security\User\UserCheckerInterface;
 use Modufolio\Appkit\Security\User\UserInterface;
 use Modufolio\Appkit\Toolkit\A;
 use Modufolio\Psr7\Http\Response;
@@ -70,6 +71,13 @@ trait AppSecurity
         if ($token = $this->tryRestoreSessionToken($firewallName, $stateless)) {
             $token = $this->refreshUser($token);
             if ($token === null) {
+                return $this->logout($firewallName);
+            }
+            try {
+                $userChecker = $this->get(UserCheckerInterface::class);
+                assert($userChecker instanceof UserCheckerInterface);
+                $userChecker->checkPreAuth($token->getUser());
+            } catch (AuthenticationException) {
                 return $this->logout($firewallName);
             }
             $this->tokenStorage()->setToken($token);
@@ -199,6 +207,12 @@ trait AppSecurity
             if ($supports) {
                 try {
                     $user = $authenticator->authenticate($request);
+
+                    $userChecker = $this->get(UserCheckerInterface::class);
+                    assert($userChecker instanceof UserCheckerInterface);
+                    $userChecker->checkPreAuth($user);
+                    $userChecker->checkPostAuth($user);
+
                     $token = $authenticator->createToken($user, $firewallName);
                     return $token;
                 } catch (AuthenticationException $e) {

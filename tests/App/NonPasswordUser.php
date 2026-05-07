@@ -42,4 +42,9 @@ class NonPasswordUser implements UserInterface
     {
         return $this->identifier;
     }
+
+    public function isEnabled(): bool
+    {
+        return true;
+    }
 }

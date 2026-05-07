@@ -8,6 +8,9 @@ final class InMemoryUser implements UserInterface, PasswordAuthenticatedUserInte
 {
     private string $username;
 
+    /**
+     * @param list<string> $roles
+     */
     public function __construct(?string $username, private ?string $password, private array $roles = [], private bool $enabled = true)
     {
         if ('' === $username || null === $username) {

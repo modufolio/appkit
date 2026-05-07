@@ -7,8 +7,13 @@ namespace Modufolio\Appkit\Security\User;
 class UserPasswordHasher implements UserPasswordHasherInterface
 {
     private string $algorithm;
+
+    /** @var array<string, mixed> */
     private array $options;
 
+    /**
+     * @param array{algo?: string|int|null, options?: array<string, mixed>} $options
+     */
     public function __construct(array $options = [])
     {
         $this->algorithm = $options['algo'] ?? PASSWORD_ARGON2ID;

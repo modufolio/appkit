@@ -154,4 +154,8 @@ class TestUser implements UserInterface
     {
         return 'testuser';
     }
+    public function isEnabled(): bool
+    {
+        return true;
+    }
 }

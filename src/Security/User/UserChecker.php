@@ -11,19 +11,22 @@ use Modufolio\Appkit\Security\Exception\LockedAccountException;
 use Psr\Log\LoggerInterface;
 
 /**
- * Service for checking user account lifecycle status during authentication
+ * Service for checking user account lifecycle status during authentication.
+ *
+ * Lock and expiry checks are opt-in via {@see LockableUserInterface},
+ * {@see ExpirableUserInterface} and {@see CredentialsExpirableUserInterface}.
+ *
  * For SOC 2 compliance: CC6.1, CC6.2, CC6.7, CC7.2
  */
 class UserChecker implements UserCheckerInterface
 {
     public function __construct(
-        private readonly ?LoggerInterface $logger = null
+        private readonly ?LoggerInterface $logger = null,
     ) {
     }
 
     /**
-     * Pre-authentication checks
-     * Verifies: enabled status, lock status, account expiration
+     * Pre-authentication checks: enabled, lock, account expiry.
      *
      * @throws DisabledAccountException if account is disabled
      * @throws LockedAccountException if account is locked
@@ -31,70 +34,64 @@ class UserChecker implements UserCheckerInterface
      */
     public function checkPreAuth(UserInterface $user): void
     {
-        // Check if account is enabled
         if (!$user->isEnabled()) {
             $this->logger?->warning('Authentication attempted on disabled account', [
                 'user_id' => $user->getId(),
-                'email' => $user->getEmail(),
-                'reason' => 'account_disabled',
+                'email'   => $user->getEmail(),
+                'reason'  => 'account_disabled',
             ]);
 
             throw new DisabledAccountException(
-                'Your account has been disabled. Please contact an administrator.'
+                'Your account has been disabled. Please contact an administrator.',
             );
         }
 
-        // Check if account is locked
-        if ($user->isLocked()) {
+        if ($user instanceof LockableUserInterface && $user->isLocked()) {
             $this->logger?->warning('Authentication attempted on locked account', [
-                'user_id' => $user->getId(),
-                'email' => $user->getEmail(),
-                'locked_at' => $user->getLockedAt()?->format('Y-m-d H:i:s'),
+                'user_id'       => $user->getId(),
+                'email'         => $user->getEmail(),
+                'locked_at'     => $user->getLockedAt()?->format('Y-m-d H:i:s'),
                 'locked_reason' => $user->getLockedReason(),
-                'reason' => 'account_locked',
+                'reason'        => 'account_locked',
             ]);
 
-            $message = $user->getLockedReason()
-                ?? 'Your account has been locked. Please contact an administrator.';
-
-            throw new LockedAccountException($message);
+            throw new LockedAccountException(
+                $user->getLockedReason()
+                ?? 'Your account has been locked. Please contact an administrator.',
+            );
         }
 
-        // Check if account has expired
-        if ($user->isAccountExpired()) {
+        if ($user instanceof ExpirableUserInterface && $user->isAccountExpired()) {
             $this->logger?->warning('Authentication attempted on expired account', [
-                'user_id' => $user->getId(),
-                'email' => $user->getEmail(),
+                'user_id'    => $user->getId(),
+                'email'      => $user->getEmail(),
                 'expired_at' => $user->getAccountExpiresAt()?->format('Y-m-d H:i:s'),
-                'reason' => 'account_expired',
+                'reason'     => 'account_expired',
             ]);
 
             throw new AccountExpiredException(
-                'Your account has expired. Please contact an administrator.'
+                'Your account has expired. Please contact an administrator.',
             );
         }
     }
 
     /**
-     * Post-authentication checks
-     * Verifies: credentials expiration
+     * Post-authentication checks: credentials expiry.
      *
      * @throws CredentialsExpiredException if credentials have expired
      */
     public function checkPostAuth(UserInterface $user): void
     {
-
-        // Check if credentials have expired
-        if ($user->isCredentialsExpired()) {
+        if ($user instanceof CredentialsExpirableUserInterface && $user->isCredentialsExpired()) {
             $this->logger?->info('User authenticated but credentials expired', [
-                'user_id' => $user->getId(),
-                'email' => $user->getEmail(),
+                'user_id'                => $user->getId(),
+                'email'                  => $user->getEmail(),
                 'credentials_expired_at' => $user->getCredentialsExpireAt()?->format('Y-m-d H:i:s'),
-                'reason' => 'credentials_expired',
+                'reason'                 => 'credentials_expired',
             ]);
 
             throw new CredentialsExpiredException(
-                'Your credentials have expired. Please reset your password.'
+                'Your credentials have expired. Please reset your password.',
             );
         }
     }
