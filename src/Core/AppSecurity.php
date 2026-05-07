@@ -65,6 +65,7 @@ trait AppSecurity
         }
 
         if ($this->isLogoutRequest($request, $config)) {
+            $this->assertValidLogoutCsrfToken($request);
             return $this->logout($firewallName);
         }
 
@@ -150,11 +151,38 @@ trait AppSecurity
 
     /**
      * Check if the current request is a logout request.
+     *
+     * Logout MUST be POST to be safe from cross-site request forgery
+     * (e.g. <img src="/logout"> or third-party links would otherwise log
+     * the user out without their consent).
      */
     private function isLogoutRequest(ServerRequestInterface $request, array $config): bool
     {
         $logoutPath = A::get($config, 'logout.path');
-        return $logoutPath && $request->getMethod() === 'GET' && $request->getUri()->getPath() === $logoutPath;
+        return $logoutPath
+            && $request->getMethod() === 'POST'
+            && $request->getUri()->getPath() === $logoutPath;
+    }
+
+    /**
+     * Validate the CSRF token on a logout request.
+     *
+     * Token id is `logout`. Templates obtain it via
+     * `$csrfTokenManager->getToken('logout')` and submit it as `_csrf_token`.
+     *
+     * @throws AuthenticationException when the token is missing or invalid
+     */
+    private function assertValidLogoutCsrfToken(ServerRequestInterface $request): void
+    {
+        $body = $request->getParsedBody();
+        $submitted = is_array($body) ? ($body['_csrf_token'] ?? null) : null;
+
+        $manager = $this->get(\Modufolio\Appkit\Security\Csrf\CsrfTokenManagerInterface::class);
+        assert($manager instanceof \Modufolio\Appkit\Security\Csrf\CsrfTokenManagerInterface);
+
+        if (!is_string($submitted) || !$manager->validateToken('logout', $submitted)) {
+            throw new AuthenticationException('Invalid CSRF token for logout.');
+        }
     }
 
     /**
@@ -276,25 +304,6 @@ trait AppSecurity
         }
 
         return Response::redirect($target);
-    }
-
-    /**
-     * Generate CSRF token for logout
-     * Creates a NEW random token each time and stores it in session
-     *
-     * @param string $firewallName The firewall name to generate the token for
-     * @return string The generated token (32 hex characters)
-     * @throws \Exception
-     */
-    public function generateCsrfToken(string $firewallName): string
-    {
-        // Always generate a new 16 random bytes = 32 hex characters token
-        $token = bin2hex(random_bytes(16));
-
-        // Store in session with key _csrf/logout_{firewallName}
-        $this->session()->set('_csrf/logout_' . $firewallName, $token);
-
-        return $token;
     }
 
     // ============================================================================

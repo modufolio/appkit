@@ -168,7 +168,12 @@ class FormLoginAuthenticatorTest extends AppTestCase
         $this->login();
         $this->assertNotNull($this->app()->tokenStorage()->getToken());
 
-        $response = $this->get('/logout');
+        $token = $this->app()->csrfTokenManager()->getToken('logout')->getValue();
+        $response = $this->post(
+            '/logout',
+            ['_csrf_token' => $token],
+            ['Content-Type' => 'application/x-www-form-urlencoded'],
+        );
         $response->assertRedirect('/');
 
         $this->assertNull($this->app()->tokenStorage()->getToken());

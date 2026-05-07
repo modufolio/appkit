@@ -115,21 +115,86 @@ class FirewallConfigurationTest extends AppTestCase
         $this->assertSame('/', $response->getHeaderLine('Location'));
     }
 
-    public function testCsrfTokenGeneration(): void
+    private function configureFormLoginFirewall(): void
     {
-        $token = $this->app()->generateCsrfToken('main');
-
-        $this->assertIsString($token);
-        $this->assertSame(32, strlen($token));
-
-        $this->assertSame($token, $this->app()->session()->get('_csrf/logout_main'));
+        $this->app()->configureFirewall([
+            'firewalls' => [
+                'main' => [
+                    'pattern'        => '/',
+                    'authenticators' => ['form_login'],
+                    'entry_point'    => '/login',
+                    'logout'         => ['path' => '/logout', 'target' => '/'],
+                ],
+            ],
+        ]);
     }
 
-    public function testCsrfTokenUniqueness(): void
+    public function testGetRequestToLogoutPathDoesNotLogOut(): void
     {
-        $token1 = $this->app()->generateCsrfToken('main');
-        $token2 = $this->app()->generateCsrfToken('main');
+        $this->refreshDatabase();
+        $this->loadFixtures();
+        $this->configureFormLoginFirewall();
+        $this->login();
 
-        $this->assertNotSame($token1, $token2);
+        $this->assertNotNull($this->app()->session()->get('_security_main'));
+
+        // GET to logout path must NOT log the user out (would be CSRF-vulnerable).
+        $this->get('/logout');
+
+        $this->assertNotNull(
+            $this->app()->session()->get('_security_main'),
+            'Session token should still be present after a GET request to /logout.',
+        );
+    }
+
+    public function testPostToLogoutWithoutCsrfTokenIsRejected(): void
+    {
+        $this->refreshDatabase();
+        $this->loadFixtures();
+        $this->configureFormLoginFirewall();
+        $this->login();
+
+        $response = $this->post('/logout', [], ['Content-Type' => 'application/x-www-form-urlencoded']);
+
+        $response->assertStatus(401);
+        $this->assertNotNull(
+            $this->app()->session()->get('_security_main'),
+            'Session token should remain when CSRF token is missing.',
+        );
+    }
+
+    public function testPostToLogoutWithInvalidCsrfTokenIsRejected(): void
+    {
+        $this->refreshDatabase();
+        $this->loadFixtures();
+        $this->configureFormLoginFirewall();
+        $this->login();
+
+        $response = $this->post(
+            '/logout',
+            ['_csrf_token' => 'not-the-real-token'],
+            ['Content-Type' => 'application/x-www-form-urlencoded'],
+        );
+
+        $response->assertStatus(401);
+        $this->assertNotNull(
+            $this->app()->session()->get('_security_main'),
+            'Session token should remain when CSRF token is invalid.',
+        );
+    }
+
+    public function testPostToLogoutWithValidCsrfTokenLogsOut(): void
+    {
+        $this->refreshDatabase();
+        $this->loadFixtures();
+        $this->configureFormLoginFirewall();
+        $this->login();
+
+        $this->logout();
+
+        $this->assertNull(
+            $this->app()->session()->get('_security_main'),
+            'Session token should be cleared after a valid POST to /logout.',
+        );
     }
 }

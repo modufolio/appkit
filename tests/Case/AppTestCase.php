@@ -308,6 +308,13 @@ abstract class AppTestCase extends BaseTestCase
 
     protected function logout(): void
     {
-        $this->get('/logout');
+        $token = $this->app()
+            ->csrfTokenManager()
+            ->getToken('logout')
+            ->getValue();
+
+        $this->post('/logout', ['_csrf_token' => $token], [
+            'Content-Type' => 'application/x-www-form-urlencoded',
+        ]);
     }
 }
