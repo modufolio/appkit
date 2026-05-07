@@ -175,18 +175,35 @@ class TokenUnserializerTest extends TestCase
         $this->assertEquals($roles, $result->getRoleNames());
     }
 
-    public function testHandleUnserializeCallbackThrowsExceptionWithClassName(): void
+    public function testCreateRejectsDisallowedClasses(): void
     {
-        $this->expectException(\Exception::class);
-        $this->expectExceptionMessage('Class "NonExistentClass" not found during unserialization.');
+        // Crafted serialized payload referencing a class that is NOT in the
+        // built-in allowlist and NOT registered. PHP's unserialize() should
+        // produce an __PHP_Incomplete_Class instance, which will fail the
+        // TokenInterface check and throw.
+        $payload = 'O:24:"NotAllowedDangerousClass":0:{}';
 
-        TokenUnserializer::handleUnserializeCallback('NonExistentClass');
+        $this->expectException(\UnexpectedValueException::class);
+        TokenUnserializer::create($payload);
     }
 
-    public function testCreateWithAllowedClassesTrueInOptions(): void
+    public function testRegisterAllowsAdditionalClasses(): void
     {
-        // Verify that allowed_classes => true is used
-        // This test ensures tokens with internal classes can be unserialized
+        // Register is idempotent and additive; calling with a built-in class
+        // exercises the path without disturbing other tests' registrations.
+        TokenUnserializer::register(InMemoryUser::class);
+
+        $token = new JwtToken($this->user, 'main');
+        $serialized = serialize($token);
+
+        $result = TokenUnserializer::create($serialized);
+
+        $this->assertInstanceOf(JwtToken::class, $result);
+        $this->assertNotNull($result->getUser());
+    }
+
+    public function testCreateWithBuiltInClassesIsUnserialized(): void
+    {
         $token = new JwtToken($this->user, 'main');
         $serialized = serialize($token);
 

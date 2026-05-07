@@ -100,7 +100,19 @@ trait AppSecurity
         if ($result instanceof TokenInterface) {
             $this->tokenStorage()->setToken($result);
             if (!$stateless) {
-                $this->session()->set('_security_' . $firewallName, serialize($result));
+                $session = $this->session();
+                if (!$session->isStarted()) {
+                    $session->start();
+                }
+                $session->set('_security_' . $firewallName, serialize($result));
+
+                // Defend against session fixation: rotate the session ID once
+                // the auth token has been associated with it. Any ID an attacker
+                // might have pre-set on the victim becomes worthless.
+                // false = preserve session data (auth token, flash bag, CSRF).
+                // (OWASP A07:2021)
+                $session->migrate(false);
+                $session->save();
             }
             return $this->controllerResolver($request);
         }

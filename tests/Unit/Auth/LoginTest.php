@@ -31,6 +31,32 @@ class LoginTest extends AppTestCase
     }
 
 
+    public function testLoginRegeneratesSessionIdToPreventFixation(): void
+    {
+        // Pre-set a session ID before login (simulating session fixation).
+        $session = $this->app()->session();
+        $session->start();
+        $idBefore = $session->getId();
+        $this->assertNotEmpty($idBefore);
+
+        $csrfToken = $this->app()->csrfTokenManager()->getToken('authenticate')->getValue();
+
+        $this->form('/login', [
+            'email'       => 'johndoe@example.com',
+            'password'    => 'secret',
+            '_csrf_token' => $csrfToken,
+        ]);
+
+        $idAfter = $this->app()->session()->getId();
+
+        $this->assertNotEmpty($idAfter);
+        $this->assertNotSame(
+            $idBefore,
+            $idAfter,
+            'Session ID must be regenerated on successful login (defense against session fixation).',
+        );
+    }
+
     public function testLoginSuccessfullyStoresToken(): void
     {
         // ARRANGE - Set up test data and initial state

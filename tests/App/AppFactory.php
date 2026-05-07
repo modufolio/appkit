@@ -5,6 +5,8 @@ declare(strict_types = 1);
 namespace Modufolio\Appkit\Tests\App;
 
 use Modufolio\Appkit\Routing\Loader\AttributeClassLoader;
+use Modufolio\Appkit\Security\TokenUnserializer;
+use Modufolio\Appkit\Tests\App\Entity\User;
 use Modufolio\Appkit\Tests\App\JsonApi\JsonApiController;
 use Modufolio\Appkit\Tests\App\Repository\UserRepository;
 use Modufolio\Appkit\Core\AppInterface;
@@ -23,6 +25,9 @@ class AppFactory
 {
     public static function create(string $baseDir, ?string $env = null): AppInterface
     {
+        // Allow the test User class to be unserialized from session-stored tokens.
+        TokenUnserializer::register(User::class);
+
         $locator = new FileLocator([$baseDir . '/config']);
         $routeLoader = new DelegatingLoader(new LoaderResolver(
             [
