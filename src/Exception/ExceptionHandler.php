@@ -13,6 +13,7 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
+use Symfony\Component\Routing\Exception\MethodNotAllowedException;
 use Symfony\Component\Routing\Exception\ResourceNotFoundException;
 use Symfony\Component\Validator\Exception\ValidationFailedException;
 
@@ -297,6 +298,16 @@ final class ExceptionHandler implements ExceptionHandlerInterface
             return [
                 'status' => 404,
                 'title'  => 'Resource not found',
+                'detail' => $e->getMessage(),
+            ];
+        });
+
+        // Method not allowed (405 errors)
+        // Note: $e->getMessage() already includes the allowed methods.
+        $this->registerException(MethodNotAllowedException::class, function (MethodNotAllowedException $e) {
+            return [
+                'status' => 405,
+                'title'  => 'Method not allowed',
                 'detail' => $e->getMessage(),
             ];
         });
