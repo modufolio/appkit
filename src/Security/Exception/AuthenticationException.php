@@ -10,7 +10,6 @@ use Modufolio\Appkit\Security\User\UserInterface;
 class AuthenticationException extends RuntimeException
 {
     private ?TokenInterface $token = null;
-    public bool $requires2FA = false;
     public ?UserInterface $user = null;
 
     public function getToken(): ?TokenInterface
@@ -21,16 +20,6 @@ class AuthenticationException extends RuntimeException
     public function setToken(TokenInterface $token): void
     {
         $this->token = $token;
-    }
-
-    public function isRequires2FA(): bool
-    {
-        return $this->requires2FA;
-    }
-
-    public function setRequires2FA(bool $requires2FA): void
-    {
-        $this->requires2FA = $requires2FA;
     }
 
     public function getUser(): ?UserInterface
@@ -60,7 +49,7 @@ class AuthenticationException extends RuntimeException
      */
     public function __serialize(): array
     {
-        return [$this->token, $this->requires2FA, $this->user, $this->code, $this->message, $this->file, $this->line];
+        return [$this->token, $this->user, $this->code, $this->message, $this->file, $this->line];
     }
 
     /**
@@ -81,7 +70,7 @@ class AuthenticationException extends RuntimeException
      */
     public function __unserialize(array $data): void
     {
-        [$this->token, $this->requires2FA, $this->user, $this->code, $this->message, $this->file, $this->line] = $data;
+        [$this->token, $this->user, $this->code, $this->message, $this->file, $this->line] = $data;
     }
 
     /**

@@ -24,6 +24,7 @@ abstract class AbstractApplicationState implements ApplicationStateInterface
 {
     protected ServerRequestInterface $request;
     protected string $baseUrl;
+    protected string $baseDir;
 
     protected ?FlashBagAwareSessionInterface $session = null;
     protected ?SessionStorageInterface $sessionStorage = null;
@@ -42,15 +43,23 @@ abstract class AbstractApplicationState implements ApplicationStateInterface
 
     /**
      * @param ServerRequestInterface $request The current HTTP request
+     * @param string $baseDir Application base directory (used for var/sessions, etc.)
      * @param array $firewallConfig Optional firewall configuration
      */
     public function __construct(
         ServerRequestInterface $request,
+        string $baseDir,
         array $firewallConfig = []
     ) {
         $this->request = $request;
+        $this->baseDir = $baseDir;
         $this->baseUrl = $this->calculateBaseUrl($request);
         $this->firewallConfig = $firewallConfig;
+    }
+
+    public function getBaseDir(): string
+    {
+        return $this->baseDir;
     }
 
 

@@ -31,7 +31,7 @@ final class NativeApplicationState extends AbstractApplicationState
 
         // Create session handler
         $handler = new NativeFileSessionHandler(
-            BASE_DIR . '/var/sessions'
+            $this->baseDir . '/var/sessions'
         );
 
         $cookies = $this->request->getCookieParams();
@@ -39,7 +39,7 @@ final class NativeApplicationState extends AbstractApplicationState
 
         // Create native storage with automatic cookie handling
         $this->sessionStorage = new NativeSessionStorage([
-            'save_path' => BASE_DIR . '/var/sessions',
+            'save_path' => $this->baseDir . '/var/sessions',
             'cookie_httponly' => true,
             'cookie_samesite' => 'Lax',
         ], $handler);

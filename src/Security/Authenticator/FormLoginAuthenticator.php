@@ -7,6 +7,7 @@ namespace Modufolio\Appkit\Security\Authenticator;
 use Modufolio\Appkit\Security\Csrf\CsrfTokenManagerInterface;
 use Modufolio\Appkit\Security\Exception\AuthenticationException;
 use Modufolio\Appkit\Security\Exception\InvalidCsrfTokenException;
+use Modufolio\Appkit\Security\Exception\TwoFactorRequiredException;
 use Modufolio\Appkit\Security\Exception\UserNotFoundException;
 use Modufolio\Appkit\Security\Token\TokenInterface;
 use Modufolio\Appkit\Security\Token\UsernamePasswordToken;
@@ -87,10 +88,7 @@ class FormLoginAuthenticator extends AbstractAuthenticator
             $totpSecret = $this->totpService->getTwoFactorSecret($user);
 
             if ($totpSecret !== null && $totpSecret->isEnabled()) {
-                $exception = new AuthenticationException('Two-factor authentication required');
-                $exception->setRequires2FA(true);
-                $exception->setUser($user);
-                throw $exception;
+                throw new TwoFactorRequiredException($user);
             }
         }
 
@@ -106,7 +104,7 @@ class FormLoginAuthenticator extends AbstractAuthenticator
      */
     public function unauthorizedResponse(ServerRequestInterface $request, AuthenticationException $exception): ResponseInterface
     {
-        if ($exception->isRequires2FA()) {
+        if ($exception instanceof TwoFactorRequiredException) {
             return Response::redirect($this->options['two_factor_path'], 303);
         }
 

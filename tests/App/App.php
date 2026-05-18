@@ -88,7 +88,7 @@ class App extends Kernel
         unset($this->state);
 
         // Create fresh application state for this request
-        $this->state = new NativeApplicationState($request, $this->firewallConfig);
+        $this->state = new NativeApplicationState($request, $this->baseDir, $this->firewallConfig);
 
         try {
             $response = $this->handleAuthentication($request);
@@ -155,7 +155,7 @@ class App extends Kernel
             );
 
 
-            $this->state = new NativeApplicationState($request, $this->firewallConfig);
+            $this->state = new NativeApplicationState($request, $this->baseDir, $this->firewallConfig);
         }
 
         return $this;

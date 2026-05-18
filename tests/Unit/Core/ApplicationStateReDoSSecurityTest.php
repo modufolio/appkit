@@ -155,7 +155,7 @@ class ApplicationStateReDoSSecurityTest extends AppTestCase
     private function createApplicationState(array $firewallConfig): ApplicationStateInterface
     {
         $request = new ServerRequest('GET', '/test');
-        return new NativeApplicationState($request, $firewallConfig);
+        return new NativeApplicationState($request, sys_get_temp_dir(), $firewallConfig);
     }
 
     /**

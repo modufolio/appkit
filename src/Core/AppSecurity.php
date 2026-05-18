@@ -6,10 +6,12 @@ namespace Modufolio\Appkit\Core;
 
 use Modufolio\Appkit\Exception\NotFoundException;
 use Modufolio\Appkit\Security\Exception\AuthenticationException;
+use Modufolio\Appkit\Security\Exception\TwoFactorRequiredException;
 use Modufolio\Appkit\Security\Exception\UnsupportedUserException;
 use Modufolio\Appkit\Security\Exception\UserNotFoundException;
 use Modufolio\Appkit\Security\Token\TokenInterface;
 use Modufolio\Appkit\Security\Token\TwoFactorToken;
+use Symfony\Component\Routing\Exception\MethodNotAllowedException;
 use Modufolio\Appkit\Security\TokenUnserializer;
 use Modufolio\Appkit\Security\User\UserCheckerInterface;
 use Modufolio\Appkit\Security\User\UserInterface;
@@ -258,8 +260,9 @@ trait AppSecurity
                 } catch (AuthenticationException $e) {
                     if (!$stateless && isset($config['entry_point'])) {
                         // If 2FA is required, create partial auth token and redirect to /2fa
-                        if (isset($e->requires2FA) && $e->requires2FA === true && isset($e->user)) {
-                            $twoFactorToken = new TwoFactorToken($e->user, $firewallName, $e->user->getRoles());
+                        if ($e instanceof TwoFactorRequiredException) {
+                            $user = $e->getUser();
+                            $twoFactorToken = new TwoFactorToken($user, $firewallName, $user->getRoles());
 
                             // Store partial token in session
                             $this->session()->set('_2fa_token', serialize($twoFactorToken));
@@ -271,12 +274,9 @@ trait AppSecurity
                             return $authenticator->unauthorizedResponse($request, $e);
                         }
 
-                        // Regular auth failure - show error
-                        $this->session()->getFlashBag()->add('error', $e->getMessage());
-                        return null; // fall through to redirect
+                        $this->session()->getFlashBag()->add('error', 'Invalid credentials.');
+                        return null;
                     }
-                    throw $e;
-                } catch (\Exception $e) {
                     throw $e;
                 }
             }
@@ -337,7 +337,7 @@ trait AppSecurity
             }
 
             if (!empty($rule['methods']) && !in_array($method, $rule['methods'], true)) {
-                throw new AuthenticationException('Method not allowed for this path: ' . $path);
+                throw new MethodNotAllowedException($rule['methods'], 'Method not allowed for this path: ' . $path);
             }
 
             if (isset($rule['requires_channel']) && $rule['requires_channel'] === 'https' && $request->getUri()->getScheme() !== 'https') {
