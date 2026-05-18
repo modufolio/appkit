@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modufolio\Appkit\Security\Authenticator;
 
+use Modufolio\Appkit\Security\BruteForce\BruteForceProtectionInterface;
 use Modufolio\Appkit\Security\Csrf\CsrfTokenManagerInterface;
 use Modufolio\Appkit\Security\Exception\AuthenticationException;
 use Modufolio\Appkit\Security\Exception\InvalidCsrfTokenException;
@@ -23,6 +24,12 @@ use Symfony\Component\HttpFoundation\Session\FlashBagAwareSessionInterface;
 
 class FormLoginAuthenticator extends AbstractAuthenticator
 {
+    /**
+     * Fallback dummy hash used only when no UserPasswordHasher is injected.
+     * If your real users are hashed with argon2id, this bcrypt dummy will
+     * NOT match real-verify timing — inject a UserPasswordHasher for correct
+     * timing-side-channel protection.
+     */
     private const DUMMY_HASH = '$2y$12$abcdefghijklmnopqrstuuGfQ7w0rqXjK0LhV0XjY6wWyJ4Z7lYqe';
 
     private array $options;
@@ -33,6 +40,7 @@ class FormLoginAuthenticator extends AbstractAuthenticator
         private FlashBagAwareSessionInterface $session,
         private ?TwoFactorServiceInterface $totpService = null,
         private ?UserPasswordHasherInterface $passwordHasher = null,
+        private ?BruteForceProtectionInterface $bruteForce = null,
         array $options = []
     ) {
         $this->options = array_merge([
@@ -62,17 +70,25 @@ class FormLoginAuthenticator extends AbstractAuthenticator
     public function authenticate(ServerRequestInterface $request): UserInterface
     {
         [$identifier, $password] = $this->extractCredentials($request);
+        $ipAddress = $request->getServerParams()['REMOTE_ADDR'] ?? null;
 
         $this->validateCsrfToken($request);
+
+        if ($this->bruteForce?->isLocked($identifier, $ipAddress)) {
+            throw new AuthenticationException('Too many failed login attempts. Try again later.');
+        }
 
         try {
             $user = $this->userProvider->loadUserByIdentifier($identifier);
         } catch (UserNotFoundException) {
-            password_verify($password, self::DUMMY_HASH);
+            $this->verifyDummyPassword($password);
+            $this->bruteForce?->recordFailure($identifier, $ipAddress);
             throw new AuthenticationException('Invalid credentials');
         }
 
         if (!$user instanceof PasswordAuthenticatedUserInterface) {
+            $this->verifyDummyPassword($password);
+            $this->bruteForce?->recordFailure($identifier, $ipAddress);
             throw new AuthenticationException('Invalid credentials');
         }
 
@@ -81,6 +97,7 @@ class FormLoginAuthenticator extends AbstractAuthenticator
             : password_verify($password, (string) $user->getPassword());
 
         if (!$valid) {
+            $this->bruteForce?->recordFailure($identifier, $ipAddress);
             throw new AuthenticationException('Invalid credentials');
         }
 
@@ -88,11 +105,24 @@ class FormLoginAuthenticator extends AbstractAuthenticator
             $totpSecret = $this->totpService->getTwoFactorSecret($user);
 
             if ($totpSecret !== null && $totpSecret->isEnabled()) {
+                // 2FA is required but not yet provided — do not reset the
+                // brute-force counter here; only a fully successful login should.
                 throw new TwoFactorRequiredException($user);
             }
         }
 
+        $this->bruteForce?->recordSuccess($identifier, $ipAddress);
+
         return $user;
+    }
+
+    private function verifyDummyPassword(string $password): void
+    {
+        if ($this->passwordHasher !== null) {
+            $this->passwordHasher->verifyDummy($password);
+            return;
+        }
+        password_verify($password, self::DUMMY_HASH);
     }
 
     /**

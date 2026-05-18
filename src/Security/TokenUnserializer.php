@@ -43,23 +43,49 @@ final class TokenUnserializer
      *
      *     TokenUnserializer::register(\App\Entity\User::class);
      *
+     * After registration is complete, call freeze() to prevent further
+     * mutations — any later register() call will throw. This narrows the
+     * gadget surface: post-boot code (including injected/loaded code paths)
+     * cannot widen the unserialize whitelist.
+     *
      * @var list<class-string>
      */
     private static array $registered = [];
 
+    private static bool $frozen = false;
+
     public static function register(string ...$classes): void
     {
         foreach ($classes as $class) {
-            if (!in_array($class, self::$registered, true)) {
-                self::$registered[] = $class;
+            if (in_array($class, self::$registered, true)) {
+                // Idempotent: re-registering the same class post-boot is safe.
+                continue;
             }
+            if (self::$frozen) {
+                throw new \LogicException(sprintf(
+                    'TokenUnserializer is frozen; cannot register "%s" after boot. '
+                    . 'Register all classes before calling Kernel::boot().',
+                    $class,
+                ));
+            }
+            self::$registered[] = $class;
         }
+    }
+
+    /**
+     * Lock the registered class list. Subsequent register() calls throw.
+     * The framework calls this from Kernel::boot() after consumer registration.
+     */
+    public static function freeze(): void
+    {
+        self::$frozen = true;
     }
 
     /** @internal Reset registered classes — for tests. */
     public static function reset(): void
     {
         self::$registered = [];
+        self::$frozen = false;
     }
 
     public static function create(string $serializedToken): mixed

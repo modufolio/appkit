@@ -303,7 +303,7 @@ class RememberMeAuthenticatorTest extends AppTestCase
         $this->assertEquals(401, $response->getStatusCode());
 
         $body = json_decode((string) $response->getBody(), true);
-        $this->assertEquals('Invalid remember me cookie', $body['error']);
+        $this->assertEquals('invalid_token', $body['error']);
     }
 
     public function testGenerateRememberMeCookieCreatesValidCookie(): void

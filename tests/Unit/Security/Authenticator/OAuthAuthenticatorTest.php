@@ -273,7 +273,7 @@ class OAuthAuthenticatorTest extends AppTestCase
         $this->assertStringContainsString('realm="Access to the API"', $response->getHeaderLine('WWW-Authenticate'));
 
         $body = json_decode((string) $response->getBody(), true);
-        $this->assertSame('Invalid token', $body['error']);
+        $this->assertSame('invalid_token', $body['error']);
     }
 
     public function testUnauthorizedResponseRespectsCustomPrefix(): void

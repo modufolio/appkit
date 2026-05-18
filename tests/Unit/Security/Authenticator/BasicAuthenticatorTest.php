@@ -286,7 +286,7 @@ class BasicAuthenticatorTest extends AppTestCase
         $this->assertEquals('Basic realm="Access to the API"', $response->getHeaderLine('WWW-Authenticate'));
 
         $body = json_decode((string) $response->getBody(), true);
-        $this->assertEquals('Invalid credentials', $body['error']);
+        $this->assertEquals('Invalid credentials.', $body['error']);
     }
 
     public function testAuthenticateWithSpecialCharactersInCredentials(): void

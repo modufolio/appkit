@@ -336,11 +336,21 @@ final class ExceptionHandler implements ExceptionHandlerInterface
         });
 
         // Authentication errors
+        //
+        // The exception message is intentionally NOT echoed. Authentication
+        // exceptions carry detail that helps debugging (e.g. "JWT signature
+        // invalid", "Account is locked", "Insufficient roles for path /admin")
+        // — but those are reconnaissance signals for an attacker. Detail stays
+        // in the logger; the client gets a generic 401.
+        //
+        // Authenticators that need a richer response (e.g. WWW-Authenticate
+        // challenge headers) should return one from unauthorizedResponse()
+        // before the exception bubbles to this handler.
         $this->registerException(AuthenticationException::class, function (AuthenticationException $e) {
             return [
                 'status' => 401,
                 'title'  => 'Authentication failed',
-                'detail' => $e->getMessage(),
+                'detail' => 'Authentication required.',
             ];
         });
 

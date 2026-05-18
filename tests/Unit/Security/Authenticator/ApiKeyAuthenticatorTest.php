@@ -308,7 +308,7 @@ class ApiKeyAuthenticatorTest extends AppTestCase
         $this->assertStringContainsString('X-API-KEY', $response->getHeaderLine('WWW-Authenticate'));
 
         $body = json_decode((string) $response->getBody(), true);
-        $this->assertEquals('Invalid API key', $body['error']);
+        $this->assertEquals('invalid_api_key', $body['error']);
     }
 
     public function testUnauthorizedResponseUsesCustomHeaderName(): void

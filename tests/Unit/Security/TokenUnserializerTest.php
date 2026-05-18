@@ -7,6 +7,7 @@ use Modufolio\Appkit\Security\Token\RememberMeToken;
 use Modufolio\Appkit\Security\Token\TokenInterface;
 use Modufolio\Appkit\Security\TokenUnserializer;
 use Modufolio\Appkit\Security\User\InMemoryUser;
+use Modufolio\Appkit\Tests\App\Entity\User;
 use PHPUnit\Framework\TestCase;
 
 class TokenUnserializerTest extends TestCase
@@ -16,7 +17,21 @@ class TokenUnserializerTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // Reset the registry between tests so the freeze() flag set by other
+        // tests (e.g. ones that boot the kernel) does not bleed in.
+        TokenUnserializer::reset();
         $this->user = new InMemoryUser('test@example.com', 'password', ['ROLE_USER']);
+    }
+
+    protected function tearDown(): void
+    {
+        // Restore the kernel-level registration so subsequent tests
+        // (e.g. controller tests that rely on session-token unserialization)
+        // can deserialize tokens containing the App\Entity\User class.
+        TokenUnserializer::reset();
+        TokenUnserializer::register(User::class);
+        TokenUnserializer::freeze();
+        parent::tearDown();
     }
 
     public function testCreateSuccessfullyUnserializesValidToken(): void

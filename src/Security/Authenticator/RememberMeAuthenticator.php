@@ -101,11 +101,18 @@ class RememberMeAuthenticator extends AbstractAuthenticator
      * authenticator typically isn't an API entry point, so callers usually
      * fall through to another authenticator instead of surfacing this body.
      *
+     * The body is intentionally generic — the cookie-specific failure reason
+     * (expired / bad signature / structural error) stays in the log so it
+     * doesn't help an attacker probe cookie validity.
+     *
      * @throws \JsonException
      */
     public function unauthorizedResponse(ServerRequestInterface $request, AuthenticationException $exception): ResponseInterface
     {
-        return Response::json(['error' => $exception->getMessage()], 401);
+        return Response::json([
+            'error' => 'invalid_token',
+            'error_description' => 'Authentication required.',
+        ], 401);
     }
 
     public function generateRememberMeCookie(UserInterface $user): string

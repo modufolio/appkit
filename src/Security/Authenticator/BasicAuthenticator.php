@@ -49,7 +49,7 @@ class BasicAuthenticator extends AbstractAuthenticator
         } catch (UserNotFoundException) {
             // Equalize timing so attackers cannot distinguish unknown users
             // from wrong passwords.
-            password_verify($password, self::DUMMY_HASH);
+            $this->verifyDummyPassword($password);
             throw new AuthenticationException('Invalid credentials');
         }
 
@@ -70,8 +70,17 @@ class BasicAuthenticator extends AbstractAuthenticator
 
     public function unauthorizedResponse(ServerRequestInterface $request, AuthenticationException $exception): ResponseInterface
     {
-        return Response::json(['error' => $exception->getMessage()], 401)
+        return Response::json(['error' => 'Invalid credentials.'], 401)
             ->withHeader('WWW-Authenticate', 'Basic realm="Access to the API"');
+    }
+
+    private function verifyDummyPassword(string $password): void
+    {
+        if ($this->passwordHasher !== null) {
+            $this->passwordHasher->verifyDummy($password);
+            return;
+        }
+        password_verify($password, self::DUMMY_HASH);
     }
 
     public function createToken(UserInterface $user, string $firewallName): TokenInterface

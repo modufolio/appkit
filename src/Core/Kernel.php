@@ -17,6 +17,7 @@ use Modufolio\Appkit\Routing\RouterInterface;
 use Modufolio\Appkit\Security\RoleHierarchy;
 use Modufolio\Appkit\Security\SecurityConfigurator;
 use Modufolio\Appkit\Security\Token\TokenStorageInterface;
+use Modufolio\Appkit\Security\TokenUnserializer;
 use Modufolio\Appkit\Security\User\UserProviderInterface;
 use Doctrine\DBAL\Exception;
 use Doctrine\ORM\EntityManagerInterface;
@@ -109,6 +110,12 @@ abstract class Kernel implements AppInterface
             'resource_type' => null,
             'strict_requirements' => true,
         ]);
+
+        // Lock the token unserialize whitelist. Consumers register their User
+        // entity (and other token-nested classes) before calling boot(); after
+        // this point no further classes can be added, narrowing the gadget
+        // surface in case post-boot code is ever loaded with attacker control.
+        TokenUnserializer::freeze();
 
         return $this;
     }

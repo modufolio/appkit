@@ -19,6 +19,13 @@ class CsrfTokenManager implements CsrfTokenManagerInterface
     private const SESSION_KEY = '_csrf_tokens';
     private const TOKEN_LENGTH = 32; // 32 bytes = 64 hex characters
 
+    /**
+     * Cap stored token ids per session. Without this, a malicious or buggy
+     * caller can grow the session indefinitely by minting tokens with new ids.
+     * 50 is comfortably above any realistic per-page form count.
+     */
+    private const MAX_TOKENS_PER_SESSION = 50;
+
     private string $defaultTokenId;
 
     public function __construct(
@@ -47,6 +54,11 @@ class CsrfTokenManager implements CsrfTokenManagerInterface
 
         // Generate new token
         $value = $this->generateTokenValue();
+
+        // Evict oldest entries (FIFO) if we'd exceed the cap.
+        while (count($tokens) >= self::MAX_TOKENS_PER_SESSION) {
+            array_shift($tokens);
+        }
 
         // Store in session
         $tokens[$tokenId] = $value;

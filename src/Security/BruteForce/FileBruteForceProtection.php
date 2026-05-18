@@ -5,38 +5,29 @@ declare(strict_types=1);
 namespace Modufolio\Appkit\Security\BruteForce;
 
 /**
- * File-based brute force protection with atomic file locking
+ * File-based brute force protection with atomic file locking.
  *
- * This implementation uses file system for storing failure attempts
- * with LOCK_EX (exclusive lock) for atomic read-modify-write operations.
- *
- * Suitable for single-server deployments or when Redis is not available.
+ * Read-modify-write cycles are performed under a single LOCK_EX, so concurrent
+ * recordFailure() calls under load do not lose increments.
  */
 class FileBruteForceProtection implements BruteForceProtectionInterface
 {
     private string $storageDir;
     private int $maxAttempts;
-    private int $lockoutDuration; // seconds
-    private int $windowDuration; // seconds - time window for counting failures
+    private int $lockoutDuration;
+    private int $windowDuration;
 
-    /**
-     * @param string $storageDir Directory to store failure tracking files
-     * @param int $maxAttempts Maximum failed attempts before lockout (default: 5)
-     * @param int $lockoutDuration Lockout duration in seconds (default: 900 = 15 minutes)
-     * @param int $windowDuration Time window for counting failures in seconds (default: 300 = 5 minutes)
-     */
     public function __construct(
         string $storageDir,
         int $maxAttempts = 5,
         int $lockoutDuration = 900,
-        int $windowDuration = 300
+        int $windowDuration = 300,
     ) {
         $this->storageDir = rtrim($storageDir, '/');
         $this->maxAttempts = $maxAttempts;
         $this->lockoutDuration = $lockoutDuration;
         $this->windowDuration = $windowDuration;
 
-        // Create storage directory if it doesn't exist
         if (!is_dir($this->storageDir)) {
             if (!mkdir($this->storageDir, 0755, true) && !is_dir($this->storageDir)) {
                 throw new \RuntimeException(sprintf('Failed to create brute force storage directory: %s', $this->storageDir));
@@ -50,30 +41,24 @@ class FileBruteForceProtection implements BruteForceProtectionInterface
 
     public function recordFailure(string $identifier, ?string $ipAddress = null): void
     {
-        $key = $this->generateKey($identifier, $ipAddress);
-        $data = $this->atomicRead($key);
+        $this->modify($identifier, $ipAddress, function (array $data, int $now): array {
+            $data['failures'][] = $now;
+            $data['failures'] = array_values(array_filter(
+                $data['failures'],
+                fn ($timestamp): bool => ($now - $timestamp) <= $this->windowDuration,
+            ));
 
-        $now = time();
-        $data['failures'][] = $now;
+            if (count($data['failures']) >= $this->maxAttempts) {
+                $data['locked_until'] = $now + $this->lockoutDuration;
+            }
 
-        // Clean up old failures outside the window
-        $data['failures'] = array_filter($data['failures'], function ($timestamp) use ($now) {
-            return ($now - $timestamp) <= $this->windowDuration;
+            return $data;
         });
-
-        // If we've exceeded max attempts, set lockout
-        if (count($data['failures']) >= $this->maxAttempts) {
-            $data['locked_until'] = $now + $this->lockoutDuration;
-        }
-
-        $this->atomicWrite($key, $data);
     }
 
     public function recordSuccess(string $identifier, ?string $ipAddress = null): void
     {
-        $key = $this->generateKey($identifier, $ipAddress);
-        // Reset on successful authentication
-        $this->atomicWrite($key, ['failures' => [], 'locked_until' => null]);
+        $this->modify($identifier, $ipAddress, fn () => ['failures' => [], 'locked_until' => null]);
     }
 
     public function isLocked(string $identifier, ?string $ipAddress = null): bool
@@ -83,77 +68,62 @@ class FileBruteForceProtection implements BruteForceProtectionInterface
 
     public function getFailureCount(string $identifier, ?string $ipAddress = null): int
     {
-        $key = $this->generateKey($identifier, $ipAddress);
-        $data = $this->atomicRead($key);
-
+        $data = $this->read($this->generateKey($identifier, $ipAddress));
         $now = time();
 
-        // Filter to only count failures within the window
-        $recentFailures = array_filter($data['failures'], function ($timestamp) use ($now) {
-            return ($now - $timestamp) <= $this->windowDuration;
-        });
-
-        return count($recentFailures);
+        return count(array_filter(
+            $data['failures'],
+            fn ($timestamp): bool => ($now - $timestamp) <= $this->windowDuration,
+        ));
     }
 
     public function getRemainingLockoutTime(string $identifier, ?string $ipAddress = null): int
     {
-        $key = $this->generateKey($identifier, $ipAddress);
-        $data = $this->atomicRead($key);
-
-        if (!isset($data['locked_until'])) {
+        // Quick lock-free check; if not locked, no write needed.
+        $data = $this->read($this->generateKey($identifier, $ipAddress));
+        if (!isset($data['locked_until']) || $data['locked_until'] === null) {
             return 0;
         }
 
         $remaining = $data['locked_until'] - time();
-
-        // If lockout has expired, clean it up
-        if ($remaining <= 0) {
-            $data['locked_until'] = null;
-            $data['failures'] = [];
-            $this->atomicWrite($key, $data);
-            return 0;
+        if ($remaining > 0) {
+            return $remaining;
         }
 
-        return $remaining;
+        // Lockout expired — clear under an exclusive lock.
+        $this->modify($identifier, $ipAddress, function (array $data, int $now): array {
+            if (isset($data['locked_until']) && $data['locked_until'] !== null && $data['locked_until'] <= $now) {
+                return ['failures' => [], 'locked_until' => null];
+            }
+            return $data;
+        });
+
+        return 0;
     }
 
     public function reset(string $identifier, ?string $ipAddress = null): void
     {
-        $key = $this->generateKey($identifier, $ipAddress);
-        $this->atomicWrite($key, ['failures' => [], 'locked_until' => null]);
+        $this->modify($identifier, $ipAddress, fn () => ['failures' => [], 'locked_until' => null]);
     }
 
-    /**
-     * Generate a safe filename key from identifier and IP
-     */
     private function generateKey(string $identifier, ?string $ipAddress = null): string
     {
-        $combined = $identifier;
-        if ($ipAddress !== null) {
-            $combined .= ':' . $ipAddress;
-        }
-
-        return hash('sha256', $combined);
+        return hash('sha256', $identifier . ($ipAddress !== null ? ':' . $ipAddress : ''));
     }
 
-    /**
-     * Get the file path for a given key
-     */
     private function getFilePath(string $key): string
     {
         return $this->storageDir . '/' . $key . '.json';
     }
 
     /**
-     * Atomically read data from file with exclusive lock
+     * Read state under a shared lock.
      *
-     * @return array{failures: array<int>, locked_until: int|null}
+     * @return array{failures: list<int>, locked_until: int|null}
      */
-    private function atomicRead(string $key): array
+    private function read(string $key): array
     {
         $filepath = $this->getFilePath($key);
-
         if (!file_exists($filepath)) {
             return ['failures' => [], 'locked_until' => null];
         }
@@ -164,66 +134,73 @@ class FileBruteForceProtection implements BruteForceProtectionInterface
         }
 
         try {
-            // Acquire shared lock for reading
-            if (flock($handle, LOCK_SH)) {
-                $content = stream_get_contents($handle);
-                flock($handle, LOCK_UN);
+            if (!flock($handle, LOCK_SH)) {
+                return ['failures' => [], 'locked_until' => null];
+            }
+            $content = stream_get_contents($handle);
+            flock($handle, LOCK_UN);
+        } finally {
+            fclose($handle);
+        }
 
-                if ($content === false || $content === '') {
-                    return ['failures' => [], 'locked_until' => null];
-                }
+        return $this->decode($content);
+    }
 
-                $data = json_decode($content, true);
+    /**
+     * Read-modify-write under a single exclusive lock.
+     *
+     * @param callable(array{failures: list<int>, locked_until: int|null}, int): array{failures: list<int>, locked_until: int|null} $mutator
+     */
+    private function modify(string $identifier, ?string $ipAddress, callable $mutator): void
+    {
+        $filepath = $this->getFilePath($this->generateKey($identifier, $ipAddress));
 
-                if (!is_array($data)) {
-                    return ['failures' => [], 'locked_until' => null];
-                }
+        $handle = fopen($filepath, 'c+');
+        if ($handle === false) {
+            throw new \RuntimeException(sprintf('Failed to open file for writing: %s', $filepath));
+        }
 
-                return [
-                    'failures' => $data['failures'] ?? [],
-                    'locked_until' => $data['locked_until'] ?? null,
-                ];
+        try {
+            if (!flock($handle, LOCK_EX)) {
+                throw new \RuntimeException(sprintf('Failed to acquire lock on file: %s', $filepath));
             }
 
-            return ['failures' => [], 'locked_until' => null];
+            rewind($handle);
+            $content = stream_get_contents($handle);
+            $data = $this->decode($content);
+
+            $data = $mutator($data, time());
+
+            ftruncate($handle, 0);
+            rewind($handle);
+            fwrite($handle, json_encode($data, JSON_THROW_ON_ERROR));
+            fflush($handle);
+            flock($handle, LOCK_UN);
         } finally {
             fclose($handle);
         }
     }
 
     /**
-     * Atomically write data to file with exclusive lock
-     *
-     * @param array{failures: array<int>, locked_until: int|null} $data
+     * @return array{failures: list<int>, locked_until: int|null}
      */
-    private function atomicWrite(string $key, array $data): void
+    private function decode(string|false $content): array
     {
-        $filepath = $this->getFilePath($key);
-
-        $handle = fopen($filepath, 'c');
-        if ($handle === false) {
-            throw new \RuntimeException(sprintf('Failed to open file for writing: %s', $filepath));
+        if ($content === false || $content === '') {
+            return ['failures' => [], 'locked_until' => null];
         }
 
-        try {
-            // Acquire exclusive lock for writing (blocks until available)
-            if (flock($handle, LOCK_EX)) {
-                // Truncate file before writing
-                ftruncate($handle, 0);
-                rewind($handle);
-
-                $json = json_encode($data, JSON_THROW_ON_ERROR);
-                fwrite($handle, $json);
-
-                // Flush to ensure data is written before releasing lock
-                fflush($handle);
-
-                flock($handle, LOCK_UN);
-            } else {
-                throw new \RuntimeException(sprintf('Failed to acquire lock on file: %s', $filepath));
-            }
-        } finally {
-            fclose($handle);
+        $data = json_decode($content, true);
+        if (!is_array($data)) {
+            return ['failures' => [], 'locked_until' => null];
         }
+
+        return [
+            'failures' => array_values(array_filter(
+                is_array($data['failures'] ?? null) ? $data['failures'] : [],
+                'is_int',
+            )),
+            'locked_until' => isset($data['locked_until']) && is_int($data['locked_until']) ? $data['locked_until'] : null,
+        ];
     }
 }

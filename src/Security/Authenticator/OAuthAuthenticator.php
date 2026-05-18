@@ -96,19 +96,23 @@ class OAuthAuthenticator extends AbstractAuthenticator
     }
 
     /**
+     * Generic 401 per RFC 6750. Detail stays in the log; clients only learn
+     * "invalid_token" — not whether the token was expired, malformed, or
+     * unknown to the introspection endpoint.
+     *
      * @throws \JsonException
      */
     public function unauthorizedResponse(ServerRequestInterface $request, AuthenticationException $exception): ResponseInterface
     {
-        $errorCode = str_contains(strtolower($exception->getMessage()), 'expired') ? 'invalid_token' : 'invalid_token';
         $challenge = sprintf(
-            '%s realm="Access to the API", error="%s", error_description="%s"',
+            '%s realm="Access to the API", error="invalid_token"',
             $this->options['token_prefix'],
-            $errorCode,
-            $this->sanitizeForHeader($exception->getMessage()),
         );
 
-        return Response::json(['error' => $exception->getMessage()], 401)
+        return Response::json([
+            'error' => 'invalid_token',
+            'error_description' => 'Authentication required.',
+        ], 401)
             ->withHeader('WWW-Authenticate', $challenge);
     }
 
@@ -131,11 +135,5 @@ class OAuthAuthenticator extends AbstractAuthenticator
         }
 
         return $token;
-    }
-
-    private function sanitizeForHeader(string $value): string
-    {
-        // RFC 7235 quoted-string disallows control chars, backslashes and quotes.
-        return preg_replace('/[^\x20-\x7E]|["\\\\]/', '', $value) ?? '';
     }
 }

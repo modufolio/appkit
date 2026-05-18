@@ -111,9 +111,16 @@ trait AppSecurity
                 // Defend against session fixation: rotate the session ID once
                 // the auth token has been associated with it. Any ID an attacker
                 // might have pre-set on the victim becomes worthless.
-                // false = preserve session data (auth token, flash bag, CSRF).
+                // false = preserve session data (auth token, flash bag).
                 // (OWASP A07:2021)
                 $session->migrate(false);
+
+                // Rotate CSRF tokens at login — migrate(false) preserves session
+                // data, so any pre-auth CSRF tokens that may have leaked
+                // (referrer logs, shared-machine browser history) would otherwise
+                // remain valid after authentication.
+                $this->get(\Modufolio\Appkit\Security\Csrf\CsrfTokenManagerInterface::class)->clear();
+
                 $session->save();
             }
             return $this->controllerResolver($request);

@@ -81,11 +81,18 @@ class ApiKeyAuthenticator extends AbstractAuthenticator
     }
 
     /**
+     * Generic 401. The specific reason (missing key / invalid key / user not
+     * found for key) stays in the log — distinguishing them in the response
+     * would help an attacker map valid keys.
+     *
      * @throws \JsonException
      */
     public function unauthorizedResponse(ServerRequestInterface $request, AuthenticationException $exception): ResponseInterface
     {
-        return Response::json(['error' => $exception->getMessage()], 401)
+        return Response::json([
+            'error' => 'invalid_api_key',
+            'error_description' => 'Authentication required.',
+        ], 401)
             ->withHeader('WWW-Authenticate', sprintf('ApiKey realm="Access to the API", header="%s"', $this->options['header_name']));
     }
 
