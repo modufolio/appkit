@@ -26,7 +26,7 @@ final class EntityManagerFactory implements ResetInterface
         private readonly string $baseDir,
         private readonly Environment $environment,
         private readonly \Closure $configuratorFactory,
-        private readonly DebugStack $debugStack,
+        private readonly ?DebugStack $debugStack = null,
         private readonly ?LoggerInterface $logger = null,
     ) {}
 
@@ -41,8 +41,8 @@ final class EntityManagerFactory implements ResetInterface
 
     public function reset(): void
     {
-        $this->connection?->close();
         $this->entityManager?->close();
+        $this->connection?->close();
         $this->entityManager = null;
         $this->connection = null;
     }
@@ -52,27 +52,29 @@ final class EntityManagerFactory implements ResetInterface
         $configurator = new OrmConfigurator();
         ($this->configuratorFactory)($configurator);
 
-        $cache = $this->environment->isDev()
-            ? new ArrayAdapter()
-            : new FilesystemAdapter('doctrine', 0, $this->baseDir . '/var/cache');
+        $defaultCache = $this->environment->isProd()
+            ? new FilesystemAdapter('doctrine', 0, $this->baseDir . '/var/cache')
+            : new ArrayAdapter();
 
         $config = $configurator->ormConfig;
-        $config->setMetadataCache($cache);
-        $config->setQueryCache($cache);
-        $config->setResultCache($cache);
+        $config->setMetadataCache($configurator->metadataCache ?? $defaultCache);
+        $config->setQueryCache($configurator->queryCache ?? $defaultCache);
+        if ($configurator->resultCache !== null) {
+            $config->setResultCache($configurator->resultCache);
+        }
         $config->setProxyDir($this->baseDir . '/var/proxies');
         $config->setProxyNamespace('DoctrineProxies');
-        $config->setAutoGenerateProxyClasses(true);
+        $config->setAutoGenerateProxyClasses(!$this->environment->isProd());
         $config->setMetadataDriverImpl(new AttributeDriver($configurator->entityPaths));
 
-        $configurator->dbalConfig->setMiddlewares([new DebugMiddleware($this->debugStack)]);
+        if (!$this->environment->isProd() && $this->debugStack !== null) {
+            $configurator->dbalConfig->setMiddlewares([
+                ...$configurator->dbalConfig->getMiddlewares(),
+                new DebugMiddleware($this->debugStack),
+            ]);
+        }
 
         $this->connection = DriverManager::getConnection($configurator->connectionParams, $configurator->dbalConfig);
-
-        if ($configurator->optimizeConnection !== false) {
-            (new ConnectionOptimizer($this->environment->isDev(), $this->logger))
-                ->optimize($this->connection);
-        }
 
         $em = new EntityManager($this->connection, $config);
 

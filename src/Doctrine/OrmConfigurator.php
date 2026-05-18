@@ -7,6 +7,7 @@ namespace Modufolio\Appkit\Doctrine;
 use Doctrine\Common\EventSubscriber;
 use Doctrine\DBAL\Configuration as DbalConfiguration;
 use Doctrine\ORM\Configuration as OrmConfiguration;
+use Psr\Cache\CacheItemPoolInterface;
 
 final class OrmConfigurator
 {
@@ -16,7 +17,9 @@ final class OrmConfigurator
     /** @var string[] */
     public array $entityPaths = [];
     private array $subscribers = [];
-    public bool $optimizeConnection = true;
+    public ?CacheItemPoolInterface $metadataCache = null;
+    public ?CacheItemPoolInterface $queryCache = null;
+    public ?CacheItemPoolInterface $resultCache = null;
 
     public function __construct()
     {
@@ -66,6 +69,17 @@ final class OrmConfigurator
     public function addSubscriber(EventSubscriber $subscriber): self
     {
         $this->subscribers[] = $subscriber;
+        return $this;
+    }
+
+    public function cache(
+        ?CacheItemPoolInterface $metadata = null,
+        ?CacheItemPoolInterface $query = null,
+        ?CacheItemPoolInterface $result = null,
+    ): self {
+        $this->metadataCache = $metadata;
+        $this->queryCache = $query;
+        $this->resultCache = $result;
         return $this;
     }
 
