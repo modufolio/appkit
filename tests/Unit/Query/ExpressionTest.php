@@ -1,14 +1,13 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Tests\Unit\Query;
-
-use PHPUnit\Framework\Attributes\CoversClass;
 
 use Modufolio\Appkit\Query\Argument;
 use Modufolio\Appkit\Query\Expression;
 use Modufolio\Appkit\Query\Segments;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -37,36 +36,36 @@ class ExpressionTest extends TestCase
         return [
             [
                 'a ? b : c',
-                ['a', '?', 'b', ':', 'c']
+                ['a', '?', 'b', ':', 'c'],
             ],
             [
                 'a ?: c',
-                ['a', '?:', 'c']
+                ['a', '?:', 'c'],
             ],
             [
                 'a ?? b',
-                ['a', '??', 'b']
+                ['a', '??', 'b'],
             ],
             [
                 'a ?? b ?? c ?? d',
-                ['a', '??', 'b', '??', 'c', '??', 'd']
+                ['a', '??', 'b', '??', 'c', '??', 'd'],
             ],
             [
                 'a ? "x ? y : z" : c',
-                ['a', '?', '"x ? y : z"', ':', 'c']
+                ['a', '?', '"x ? y : z"', ':', 'c'],
             ],
             [
                 'a ? (x ?: z) : c',
-                ['a', '?', '(x ?: z)', ':', 'c']
+                ['a', '?', '(x ?: z)', ':', 'c'],
             ],
             [
                 'null ?? (null ?? null ?? (false ? "what" : 42)) ?? "no"',
-                ['null', '??', '(null ?? null ?? (false ? "what" : 42))', '??', '"no"']
+                ['null', '??', '(null ?? null ?? (false ? "what" : 42))', '??', '"no"'],
             ],
             [
                 'page.cover.toFile?.url ?? page.image?.url',
-                ['page.cover.toFile?.url', '??', 'page.image?.url']
-            ]
+                ['page.cover.toFile?.url', '??', 'page.image?.url'],
+            ],
         ];
     }
 

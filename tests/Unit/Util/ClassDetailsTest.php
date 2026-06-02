@@ -2,8 +2,8 @@
 
 namespace Modufolio\Appkit\Tests\Unit\Util;
 
-use Modufolio\Appkit\Util\ClassDetails;
 use Doctrine\ORM\Mapping\Entity;
+use Modufolio\Appkit\Util\ClassDetails;
 use PHPUnit\Framework\TestCase;
 
 final class ClassDetailsTest extends TestCase

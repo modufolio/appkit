@@ -8,7 +8,7 @@ use Modufolio\Appkit\Toolkit\Str;
 use Psr\Http\Message\ServerRequestInterface;
 
 /**
- * Self-contained Template class - RoadRunner-safe
+ * Self-contained Template class - RoadRunner-safe.
  *
  * Inspired by Kirby Layouts but refactored to use instance-based state
  * instead of static properties for RoadRunner compatibility.
@@ -16,7 +16,6 @@ use Psr\Http\Message\ServerRequestInterface;
  * Each Template instance is independent with its own paths, data, and sections.
  * No global state = no memory leaks in long-running workers.
  *
- * @package   Appkit Core
  * @author    Maarten Thiebou
  * @copyright Modufolio
  * @license   https://opensource.org/licenses/MIT
@@ -40,7 +39,7 @@ class Template implements \Stringable
         array $layoutPaths = [],
         array $data = [],
         ?ServerRequestInterface $request = null,
-        ?AssetCollection $assets = null
+        ?AssetCollection $assets = null,
     ) {
         $this->name = strtolower($name);
         $this->templatePaths = $templatePaths;
@@ -49,7 +48,7 @@ class Template implements \Stringable
         $this->request = $request;
         $this->assets = $assets ?? new AssetCollection();
 
-        if ($request !== null) {
+        if (null !== $request) {
             $this->baseUrl = $this->calculateBaseUrl($request);
         }
     }
@@ -60,7 +59,7 @@ class Template implements \Stringable
     }
 
     /**
-     * Clone handler - ensures asset collection is shared between clones
+     * Clone handler - ensures asset collection is shared between clones.
      *
      * When cloning for snippets, the asset collection remains shared
      * so snippets can add CSS/JS that bubbles up to the parent template.
@@ -72,34 +71,37 @@ class Template implements \Stringable
     }
 
     /**
-     * Add a template path
+     * Add a template path.
      */
     public function addTemplatePath(string $path): self
     {
         $this->templatePaths[] = rtrim($path, '/');
+
         return $this;
     }
 
     /**
-     * Add a layout path
+     * Add a layout path.
      */
     public function addLayoutPath(string $path): self
     {
         $this->layoutPaths[] = rtrim($path, '/');
+
         return $this;
     }
 
     /**
-     * Set the layout for the current template
+     * Set the layout for the current template.
      */
     public function layout(string $layout): self
     {
         $this->layout = $layout;
+
         return $this;
     }
 
     /**
-     * Get template name
+     * Get template name.
      */
     public function name(): string
     {
@@ -107,12 +109,13 @@ class Template implements \Stringable
     }
 
     /**
-     * Check if template file exists
+     * Check if template file exists.
      */
     public function exists(): bool
     {
         try {
             $this->resolveFile($this->name, $this->templatePaths);
+
             return true;
         } catch (\RuntimeException $e) {
             return false;
@@ -120,7 +123,7 @@ class Template implements \Stringable
     }
 
     /**
-     * Get the resolved template file path
+     * Get the resolved template file path.
      */
     public function file(): string
     {
@@ -128,25 +131,20 @@ class Template implements \Stringable
     }
 
     /**
-     * Resolve the template or layout file
+     * Resolve the template or layout file.
      *
-     * @param string $name
-     * @param array $paths
-     * @return string
      * @throws \RuntimeException
      */
     protected function resolveFile(string $name, array $paths): string
     {
         $file = $this->secureResolve($name, $paths);
 
-        if ($file !== null) {
+        if (null !== $file) {
             return $file;
         }
 
         $searchedPaths = implode(', ', $paths);
-        throw new \RuntimeException(
-            "Template '{$name}.php' not found in: {$searchedPaths}"
-        );
+        throw new \RuntimeException("Template '{$name}.php' not found in: {$searchedPaths}");
     }
 
     /**
@@ -163,15 +161,15 @@ class Template implements \Stringable
 
         foreach ($paths as $path) {
             $root = realpath($path);
-            if ($root === false) {
+            if (false === $root) {
                 continue;
             }
 
-            $real = realpath($path . '/' . $name . '.php');
+            $real = realpath($path.'/'.$name.'.php');
             if (
-                $real !== false &&
-                is_file($real) &&
-                str_starts_with($real, rtrim($root, '/\\') . DIRECTORY_SEPARATOR)
+                false !== $real
+                && is_file($real)
+                && str_starts_with($real, rtrim($root, '/\\').DIRECTORY_SEPARATOR)
             ) {
                 return $real;
             }
@@ -187,7 +185,7 @@ class Template implements \Stringable
      */
     protected function isUnsafeName(string $name): bool
     {
-        return $name === ''
+        return '' === $name
             || str_contains($name, "\0")
             || str_contains($name, '\\')
             || str_contains($name, '..')
@@ -211,11 +209,11 @@ class Template implements \Stringable
     }
 
     /**
-     * Start a section (for layouts)
+     * Start a section (for layouts).
      */
     public function start(string $name): void
     {
-        if ($this->currentSection !== null) {
+        if (null !== $this->currentSection) {
             throw new \RuntimeException("A section is already being captured: {$this->currentSection}");
         }
 
@@ -224,11 +222,11 @@ class Template implements \Stringable
     }
 
     /**
-     * End the currently captured section
+     * End the currently captured section.
      */
     public function end(): void
     {
-        if ($this->currentSection === null) {
+        if (null === $this->currentSection) {
             throw new \RuntimeException('No section is currently being captured.');
         }
 
@@ -237,25 +235,23 @@ class Template implements \Stringable
     }
 
     /**
-     * Collect CSS file(s) for later rendering
+     * Collect CSS file(s) for later rendering.
      *
-     * @param string|array $url Single URL or array of URLs
-     * @param array|null $options Additional HTML attributes (e.g., ['media' => 'print'])
-     * @return void
+     * @param string|array $url     Single URL or array of URLs
+     * @param array|null   $options Additional HTML attributes (e.g., ['media' => 'print'])
      */
     public function css(string|array $url, ?array $options = null): void
     {
-        foreach ((array)$url as $u) {
+        foreach ((array) $url as $u) {
             $this->assets->addCss($u, $options ?? []);
         }
     }
 
     /**
-     * Collect JavaScript file(s) for later rendering
+     * Collect JavaScript file(s) for later rendering.
      *
-     * @param string|array $url Single URL or array of URLs
+     * @param string|array    $url     Single URL or array of URLs
      * @param array|bool|null $options HTML attributes or boolean for async
-     * @return void
      */
     public function js(string|array $url, array|bool|null $options = null): void
     {
@@ -263,15 +259,13 @@ class Template implements \Stringable
             $options = ['async' => $options];
         }
 
-        foreach ((array)$url as $u) {
+        foreach ((array) $url as $u) {
             $this->assets->addJs($u, $options ?? []);
         }
     }
 
     /**
-     * Render all collected CSS link tags
-     *
-     * @return string
+     * Render all collected CSS link tags.
      */
     public function renderCss(): string
     {
@@ -283,16 +277,14 @@ class Template implements \Stringable
                 'rel' => 'stylesheet',
             ]);
 
-            $links[] = '<link ' . \Modufolio\Appkit\Toolkit\Html::attr($attr) . '>';
+            $links[] = '<link '.\Modufolio\Appkit\Toolkit\Html::attr($attr).'>';
         }
 
         return implode(PHP_EOL, $links);
     }
 
     /**
-     * Render all collected JavaScript script tags
-     *
-     * @return string
+     * Render all collected JavaScript script tags.
      */
     public function renderJs(): string
     {
@@ -300,15 +292,14 @@ class Template implements \Stringable
 
         foreach ($this->assets->getJs() as $url => $options) {
             $attr = array_merge($options, ['src' => $this->url($url)]);
-            $scripts[] = '<script ' . \Modufolio\Appkit\Toolkit\Html::attr($attr) . '></script>';
+            $scripts[] = '<script '.\Modufolio\Appkit\Toolkit\Html::attr($attr).'></script>';
         }
-
 
         return implode(PHP_EOL, $scripts);
     }
 
     /**
-     * Calculate base URL from request
+     * Calculate base URL from request.
      */
     protected function calculateBaseUrl(ServerRequestInterface $request): string
     {
@@ -317,32 +308,33 @@ class Template implements \Stringable
         $host = $uri->getHost();
         $port = $uri->getPort();
 
-        $base = $scheme . '://' . $host;
+        $base = $scheme.'://'.$host;
 
-        if (($scheme === 'http' && $port !== 80) || ($scheme === 'https' && $port !== 443)) {
-            $base .= ':' . $port;
+        if (('http' === $scheme && 80 !== $port) || ('https' === $scheme && 443 !== $port)) {
+            $base .= ':'.$port;
         }
 
         return $base;
     }
 
     /**
-     * Generate URL from path
+     * Generate URL from path.
      */
     public function url(string $path = ''): string
     {
-        if ($this->baseUrl !== null) {
+        if (null !== $this->baseUrl) {
             $baseUrl = rtrim($this->baseUrl, '/');
             $path = ltrim($path, '/');
-            return $path === '' ? $baseUrl : $baseUrl . '/' . $path;
+
+            return '' === $path ? $baseUrl : $baseUrl.'/'.$path;
         }
 
         // Return path as-is when no request provided
-        return '/' . ltrim($path, '/');
+        return '/'.ltrim($path, '/');
     }
 
     /**
-     * Render a snippet/view
+     * Render a snippet/view.
      *
      * Snippets have access to $this (cloned Template instance) for nested snippet calls.
      * Cloning prevents snippets from accidentally modifying parent template state.
@@ -353,8 +345,8 @@ class Template implements \Stringable
         // Guard the BASE_DIR constant so a misconfigured app fails as a clean
         // "snippet not found" rather than a fatal undefined-constant error (TPL4).
         $snippetPaths = !empty($this->templatePaths)
-            ? array_map(fn($p) => str_replace('/templates', '/snippets', $p), $this->templatePaths)
-            : (defined('BASE_DIR') ? [BASE_DIR . '/site/snippets'] : []);
+            ? array_map(fn ($p) => str_replace('/templates', '/snippets', $p), $this->templatePaths)
+            : (defined('BASE_DIR') ? [BASE_DIR.'/site/snippets'] : []);
 
         // Clone this template instance to prevent state pollution
         $snippetContext = clone $this;
@@ -364,7 +356,7 @@ class Template implements \Stringable
     }
 
     /**
-     * Internal method to render a snippet file with $this context
+     * Internal method to render a snippet file with $this context.
      *
      * @internal
      */
@@ -373,7 +365,7 @@ class Template implements \Stringable
         // Resolve with the same traversal/containment guards as templates (TPL1).
         $file = $this->secureResolve($name, $snippetPaths);
 
-        if ($file !== null) {
+        if (null !== $file) {
             ob_start();
 
             // Extract user data, but skip if it would overwrite existing variables
@@ -386,13 +378,11 @@ class Template implements \Stringable
             return ob_get_clean();
         }
 
-        throw new \RuntimeException(
-            "Snippet '{$name}.php' not found in: " . implode(', ', $snippetPaths)
-        );
+        throw new \RuntimeException("Snippet '{$name}.php' not found in: ".implode(', ', $snippetPaths));
     }
 
     /**
-     * Retrieve a section's content
+     * Retrieve a section's content.
      */
     public function section(string $name, string $default = ''): string
     {
@@ -400,10 +390,10 @@ class Template implements \Stringable
     }
 
     /**
-     * Render the template
+     * Render the template.
      *
      * @param array $data Additional data to merge
-     * @return string
+     *
      * @throws \Throwable
      */
     public function render(array $data = []): string
@@ -428,7 +418,7 @@ class Template implements \Stringable
             $exception = $e;
         } finally {
             // Clean up any unclosed sections (RoadRunner safety)
-            if ($this->currentSection !== null) {
+            if (null !== $this->currentSection) {
                 ob_end_clean();
                 $this->currentSection = null;
             }
@@ -443,12 +433,12 @@ class Template implements \Stringable
             ob_end_clean();
         }
 
-        if ($exception !== null) {
+        if (null !== $exception) {
             throw $exception;
         }
 
         // Render the layout if one is defined
-        if ($this->layout !== null) {
+        if (null !== $this->layout) {
             $layoutTemplate = new self(
                 $this->layout,
                 $this->layoutPaths,

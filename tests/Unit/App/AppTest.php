@@ -1,12 +1,12 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Tests\Unit\App;
 
+use Modufolio\Appkit\Core\Environment;
 use Modufolio\Appkit\Tests\App\App;
 use Modufolio\Appkit\Tests\Case\AppTestCase;
-use Modufolio\Appkit\Core\Environment;
 use Psr\Container\ContainerInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 
@@ -48,8 +48,8 @@ class AppTest extends AppTestCase
     {
         $baseUrl = $this->app()->baseUrl();
         $this->assertSame($baseUrl, $this->app()->url());
-        $this->assertSame($baseUrl . '/test', $this->app()->url('/test'));
-        $this->assertSame($baseUrl . '/test', $this->app()->url('test'));
+        $this->assertSame($baseUrl.'/test', $this->app()->url('/test'));
+        $this->assertSame($baseUrl.'/test', $this->app()->url('test'));
     }
 
     public function testParameterBagOperations(): void

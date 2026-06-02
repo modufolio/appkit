@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Query;
 
@@ -9,11 +9,12 @@ use Modufolio\Appkit\Toolkit\Collection;
 
 /**
  * The Segments class helps splitting a
- * query string into processable segments
+ * query string into processable segments.
  *
- * @package   Kirby Query
  * @author    Nico Hoffmann <nico@getkirby.com>
- * @link      https://getkirby.com
+ *
+ * @see      https://getkirby.com
+ *
  * @copyright Bastian Allgeier
  * @license   https://opensource.org/licenses/MIT
  */
@@ -21,16 +22,16 @@ final class Segments extends Collection
 {
     public function __construct(
         array $data = [],
-        protected Query|null $parent = null,
+        protected ?Query $parent = null,
     ) {
         parent::__construct($data);
     }
 
     /**
      * Split query string into segments by dot
-     * but not inside (nested) parens
+     * but not inside (nested) parens.
      */
-    public static function factory(string $query, Query|null $parent = null): static
+    public static function factory(string $query, ?Query $parent = null): static
     {
         $segments = static::parse($query);
         $position = 0;
@@ -39,13 +40,14 @@ final class Segments extends Collection
             $segments,
             function ($segment) use (&$position) {
                 // leave connectors as they are
-                if (in_array($segment, ['.', '?.']) === true) {
+                if (true === in_array($segment, ['.', '?.'])) {
                     return $segment;
                 }
 
                 // turn all other parts into Segment objects
                 // and pass their position in the chain (ignoring connectors)
-                $position++;
+                ++$position;
+
                 return Segment::factory($segment, $position - 1);
             }
         );
@@ -55,7 +57,8 @@ final class Segments extends Collection
 
     /**
      * Splits the string of a segment chaing into an
-     * array of segments as well as conenctors (`.` or `?.`)
+     * array of segments as well as conenctors (`.` or `?.`).
+     *
      * @internal
      */
     public static function parse(string $string): array
@@ -71,7 +74,7 @@ final class Segments extends Collection
      * Resolves the segments chain by looping through
      * each segment call to be applied to the value of
      * all previous segment calls, returning gracefully at
-     * `?.` when current value is `null`
+     * `?.` when current value is `null`.
      */
     public function resolve(array|object $data = [])
     {
@@ -79,18 +82,18 @@ final class Segments extends Collection
 
         foreach ($this->data as $segment) {
             // optional chaining: stop if current value is null
-            if ($segment === '?.' && $value === null) {
+            if ('?.' === $segment && null === $value) {
                 return null;
             }
 
             // for regular connectors and optional chaining on non-null,
             // just skip this connecting segment
-            if ($segment === '.' || $segment === '?.') {
+            if ('.' === $segment || '?.' === $segment) {
                 continue;
             }
 
             // offer possibility to intercept on objects
-            if ($value !== null) {
+            if (null !== $value) {
                 $value = $this->parent?->intercept($value) ?? $value;
             }
 

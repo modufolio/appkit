@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Exception;
 
@@ -69,11 +69,11 @@ final class ExceptionHandler implements ExceptionHandlerInterface
             }
 
             // Handle 2FA exceptions using the interface
-            if ($data === null) {
+            if (null === $data) {
                 $data = $this->handleTwoFactorException($e);
             }
 
-            if ($data === null) {
+            if (null === $data) {
                 $data = $this->defaultData($e);
             }
         } catch (\Throwable $handlerException) {
@@ -94,7 +94,7 @@ final class ExceptionHandler implements ExceptionHandlerInterface
     }
 
     /**
-     * Handle TwoFactorException using the exception handler interface
+     * Handle TwoFactorException using the exception handler interface.
      *
      * @return array<string, mixed>|null
      */
@@ -108,7 +108,7 @@ final class ExceptionHandler implements ExceptionHandlerInterface
         if (str_ends_with($exceptionClassName, 'TwoFactorException')) {
             return [
                 'status' => 422,
-                'title'  => 'Two-Factor Authentication Error',
+                'title' => 'Two-Factor Authentication Error',
                 'detail' => $e->getMessage(),
             ];
         }
@@ -127,18 +127,19 @@ final class ExceptionHandler implements ExceptionHandlerInterface
         ];
 
         // Unmatched exceptions that default to 5xx are always logged as errors
-        if ($matchedClass === null && $status >= 500) {
+        if (null === $matchedClass && $status >= 500) {
             $this->logger->error($e->getMessage(), $context);
+
             return;
         }
 
-        if ($matchedClass === null) {
+        if (null === $matchedClass) {
             return;
         }
 
         $level = $this->resolveLogLevel($matchedClass, $status);
 
-        if ($level === null) {
+        if (null === $level) {
             return;
         }
 
@@ -154,7 +155,7 @@ final class ExceptionHandler implements ExceptionHandlerInterface
         return match (true) {
             $status >= 500 => 'error',
             $status >= 400 => 'warning',
-            default        => 'info',
+            default => 'info',
         };
     }
 
@@ -191,7 +192,7 @@ final class ExceptionHandler implements ExceptionHandlerInterface
 
         return [
             'status' => 500,
-            'title'  => 'Internal Server Error',
+            'title' => 'Internal Server Error',
             'detail' => $detail,
         ];
     }
@@ -212,8 +213,8 @@ final class ExceptionHandler implements ExceptionHandlerInterface
             $status = $data['status'] ?? 500;
 
             $errors = $data['errors'] ?? [[
-                'status' => (string)$status,
-                'title'  => $data['title'] ?? 'Error',
+                'status' => (string) $status,
+                'title' => $data['title'] ?? 'Error',
                 'detail' => $data['detail'] ?? null,
             ]];
 
@@ -222,7 +223,7 @@ final class ExceptionHandler implements ExceptionHandlerInterface
                 ['Content-Type' => 'application/vnd.api+json'],
                 json_encode([
                     'jsonapi' => ['version' => '1.0'],
-                    'errors'  => $errors,
+                    'errors' => $errors,
                 ], JSON_THROW_ON_ERROR)
             );
         });
@@ -239,13 +240,13 @@ final class ExceptionHandler implements ExceptionHandlerInterface
         // Plain text
         $this->registerFormatter('text/plain', function (array $data) {
             $status = $data['status'] ?? 500;
-            $title  = $data['title'] ?? 'Error';
+            $title = $data['title'] ?? 'Error';
             $detail = $data['detail'] ?? '';
 
             return new Response(
                 $status,
                 ['Content-Type' => 'text/plain'],
-                $title . ($detail ? ': ' . $detail : '')
+                $title.($detail ? ': '.$detail : '')
             );
         });
     }
@@ -256,7 +257,7 @@ final class ExceptionHandler implements ExceptionHandlerInterface
         $this->registerException(\InvalidArgumentException::class, function (\InvalidArgumentException $e) {
             return [
                 'status' => 400,
-                'title'  => 'Bad Request',
+                'title' => 'Bad Request',
                 'detail' => $e->getMessage(),
             ];
         });
@@ -265,7 +266,7 @@ final class ExceptionHandler implements ExceptionHandlerInterface
         $this->registerException(\JsonException::class, function (\JsonException $e) {
             return [
                 'status' => 422,
-                'title'  => 'Invalid JSON payload',
+                'title' => 'Invalid JSON payload',
                 'detail' => $e->getMessage(),
             ];
         });
@@ -273,11 +274,10 @@ final class ExceptionHandler implements ExceptionHandlerInterface
         $this->registerException(PayloadTooLargeException::class, function (PayloadTooLargeException $e) {
             return [
                 'status' => 413,
-                'title'  => 'Payload Too Large',
+                'title' => 'Payload Too Large',
                 'detail' => $e->getMessage(),
             ];
         });
-
 
         // Fallback for any LogicException (developer errors)
         // Hide details in production as these are internal logic errors
@@ -288,7 +288,7 @@ final class ExceptionHandler implements ExceptionHandlerInterface
 
             return [
                 'status' => 500,
-                'title'  => 'Logic error',
+                'title' => 'Logic error',
                 'detail' => $detail,
             ];
         }, true);
@@ -297,7 +297,7 @@ final class ExceptionHandler implements ExceptionHandlerInterface
         $this->registerException(ResourceNotFoundException::class, function (ResourceNotFoundException $e) {
             return [
                 'status' => 404,
-                'title'  => 'Resource not found',
+                'title' => 'Resource not found',
                 'detail' => $e->getMessage(),
             ];
         });
@@ -307,7 +307,7 @@ final class ExceptionHandler implements ExceptionHandlerInterface
         $this->registerException(MethodNotAllowedException::class, function (MethodNotAllowedException $e) {
             return [
                 'status' => 405,
-                'title'  => 'Method not allowed',
+                'title' => 'Method not allowed',
                 'detail' => $e->getMessage(),
             ];
         });
@@ -321,10 +321,10 @@ final class ExceptionHandler implements ExceptionHandlerInterface
             foreach ($violations as $violation) {
                 $errors[] = [
                     'status' => '422',
-                    'title'  => 'Validation error',
+                    'title' => 'Validation error',
                     'detail' => $violation->getMessage(),
                     'source' => [
-                        'pointer' => '/data/attributes/' . $violation->getPropertyPath(),
+                        'pointer' => '/data/attributes/'.$violation->getPropertyPath(),
                     ],
                 ];
             }
@@ -349,7 +349,7 @@ final class ExceptionHandler implements ExceptionHandlerInterface
         $this->registerException(AuthenticationException::class, function (AuthenticationException $e) {
             return [
                 'status' => 401,
-                'title'  => 'Authentication failed',
+                'title' => 'Authentication failed',
                 'detail' => 'Authentication required.',
             ];
         });
@@ -363,7 +363,7 @@ final class ExceptionHandler implements ExceptionHandlerInterface
 
             return [
                 'status' => 500,
-                'title'  => 'Runtime error',
+                'title' => 'Runtime error',
                 'detail' => $detail,
             ];
         }, true);

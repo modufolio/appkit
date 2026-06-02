@@ -5,14 +5,13 @@ declare(strict_types=1);
 namespace Modufolio\Appkit\Image;
 
 /**
- * ImageJobService - Database adapter for PhotoLab image jobs
+ * ImageJobService - Database adapter for PhotoLab image jobs.
  *
  * This is a bridge adapter that allows using a database-backed
  * repository while maintaining compatibility with the JobStorageInterface.
  * The actual repository implementation is injected, removing direct
  * dependencies on specific ORM frameworks.
  *
- * @package   Image
  * @author    Maarten Thiebou
  * @copyright Modufolio
  * @license   https://opensource.org/licenses/MIT
@@ -20,19 +19,19 @@ namespace Modufolio\Appkit\Image;
 class ImageJobService implements JobStorageInterface
 {
     public function __construct(
-        private ImageJobRepositoryInterface $repository
+        private ImageJobRepositoryInterface $repository,
     ) {
     }
 
     /**
-     * Save a thumbnail generation job
+     * Save a thumbnail generation job.
      *
      * @param string $mediaRoot The media root directory path for storing job info
      */
     public function saveJob(
         string $mediaRoot,
         string $thumbName,
-        array $options
+        array $options,
     ): void {
         try {
             $this->repository->saveJob($mediaRoot, $thumbName, $options);
@@ -42,11 +41,11 @@ class ImageJobService implements JobStorageInterface
     }
 
     /**
-     * Load a job by thumbnail name
+     * Load a job by thumbnail name.
      *
      * @param string $mediaRoot The media root directory path
      */
-    public function loadJob(string $mediaRoot, string $thumbName): array|null
+    public function loadJob(string $mediaRoot, string $thumbName): ?array
     {
         try {
             return $this->repository->loadJob($mediaRoot, $thumbName);
@@ -56,7 +55,7 @@ class ImageJobService implements JobStorageInterface
     }
 
     /**
-     * Delete a job by thumbnail name
+     * Delete a job by thumbnail name.
      *
      * @param string $mediaRoot The media root directory path
      */
@@ -70,7 +69,7 @@ class ImageJobService implements JobStorageInterface
     }
 
     /**
-     * Check if a job exists
+     * Check if a job exists.
      *
      * @param string $mediaRoot The media root directory path
      */

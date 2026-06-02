@@ -12,7 +12,7 @@ use Modufolio\Appkit\Image\Transformations\ResizeTransformation;
 use Modufolio\Appkit\Image\Transformations\SharpenTransformation;
 
 /**
- * Image transformation factory for building image variants
+ * Image transformation factory for building image variants.
  *
  * Provides a convenient factory interface for creating transformation
  * pipelines. Uses the ImageProcessor with composable Transformation objects.
@@ -20,14 +20,13 @@ use Modufolio\Appkit\Image\Transformations\SharpenTransformation;
  * Inspired by functional composition patterns in image processing libraries
  * (image-rs, imagepipe).
  *
- * @package   Image
  * @author    Maarten Thiebou
  * @copyright Modufolio
  * @license   https://opensource.org/licenses/MIT
  */
 class PhotoLab
 {
-    private FileInterface|null $file;
+    private ?FileInterface $file;
     private StorageInterface $storage;
     private JobStorageInterface $jobStorage;
 
@@ -36,7 +35,7 @@ class PhotoLab
         string $disk,
         StorageInterface $storage,
         JobStorageInterface $jobStorage,
-        ?DiskManager $diskManager = null
+        ?DiskManager $diskManager = null,
     ) {
         if (!file_exists($absolutePath)) {
             throw new \InvalidArgumentException("File does not exist: $absolutePath");
@@ -47,11 +46,11 @@ class PhotoLab
     }
 
     /**
-     * Create a new transformation pipeline
+     * Create a new transformation pipeline.
      */
     public function build(): ImageProcessor
     {
-        if ($this->file === null) {
+        if (null === $this->file) {
             throw new \InvalidArgumentException('File does not exist');
         }
 
@@ -63,12 +62,12 @@ class PhotoLab
     }
 
     /**
-     * Convenience method: create a resize transformation
+     * Convenience method: create a resize transformation.
      */
     public function resize(
-        int|null $width = null,
-        int|null $height = null,
-        int|null $quality = null
+        ?int $width = null,
+        ?int $height = null,
+        ?int $quality = null,
     ): ImageVariant|FileInterface|null {
         return $this->build()
             ->add(new ResizeTransformation($width, $height, $quality))
@@ -76,12 +75,12 @@ class PhotoLab
     }
 
     /**
-     * Convenience method: create a crop transformation
+     * Convenience method: create a crop transformation.
      */
     public function crop(
         int $width,
-        int|null $height = null,
-        string $mode = 'center'
+        ?int $height = null,
+        string $mode = 'center',
     ): ImageVariant|FileInterface|null {
         return $this->build()
             ->add(new CropTransformation($width, $height, $mode))
@@ -89,18 +88,19 @@ class PhotoLab
     }
 
     /**
-     * Convenience method: create a blur transformation
+     * Convenience method: create a blur transformation.
      */
     public function blur(int|bool $intensity = true): ImageVariant|FileInterface|null
     {
         $pixels = is_int($intensity) ? $intensity : 10;
+
         return $this->build()
             ->add(new BlurTransformation($pixels))
             ->process();
     }
 
     /**
-     * Convenience method: create a quality transformation
+     * Convenience method: create a quality transformation.
      */
     public function quality(int $level): ImageVariant|FileInterface|null
     {
@@ -110,7 +110,7 @@ class PhotoLab
     }
 
     /**
-     * Convenience method: create a grayscale transformation
+     * Convenience method: create a grayscale transformation.
      */
     public function grayscale(): ImageVariant|FileInterface|null
     {
@@ -120,7 +120,7 @@ class PhotoLab
     }
 
     /**
-     * Alias for grayscale
+     * Alias for grayscale.
      */
     public function bw(): ImageVariant|FileInterface|null
     {
@@ -128,7 +128,7 @@ class PhotoLab
     }
 
     /**
-     * Alias for grayscale (British spelling)
+     * Alias for grayscale (British spelling).
      */
     public function greyscale(): ImageVariant|FileInterface|null
     {
@@ -136,7 +136,7 @@ class PhotoLab
     }
 
     /**
-     * Convenience method: create a sharpen transformation
+     * Convenience method: create a sharpen transformation.
      */
     public function sharpen(int $amount = 50): ImageVariant|FileInterface|null
     {
@@ -146,15 +146,15 @@ class PhotoLab
     }
 
     /**
-     * Generate srcset for responsive images
+     * Generate srcset for responsive images.
      */
-    public function srcset(array|string|null $sizes = null): string|null
+    public function srcset(array|string|null $sizes = null): ?string
     {
         if (!is_array($sizes) || empty($sizes)) {
             return null;
         }
 
-        if ($this->file === null) {
+        if (null === $this->file) {
             return null;
         }
 
@@ -163,18 +163,18 @@ class PhotoLab
         foreach ($sizes as $key => $value) {
             if (is_array($value)) {
                 $width = $value['width'] ?? $key;
-                $condition = $value['condition'] ?? $key . 'w';
+                $condition = $value['condition'] ?? $key.'w';
             } elseif (is_string($value)) {
                 $width = $key;
                 $condition = $value;
             } else {
                 $width = $value;
-                $condition = $value . 'w';
+                $condition = $value.'w';
             }
 
-            $variant = $this->resize((int)$width);
+            $variant = $this->resize((int) $width);
             if ($variant) {
-                $set[] = $variant->url() . ' ' . $condition;
+                $set[] = $variant->url().' '.$condition;
             }
         }
 

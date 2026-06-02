@@ -29,5 +29,6 @@ class Sensitive
         public readonly string $protection = 'encrypt',
         public readonly ?string $purpose = null,
         public readonly ?string $retention = null,
-    ) {}
+    ) {
+    }
 }

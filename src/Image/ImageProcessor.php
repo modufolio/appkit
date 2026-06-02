@@ -5,13 +5,12 @@ declare(strict_types=1);
 namespace Modufolio\Appkit\Image;
 
 /**
- * Image processor using composable transformation pipeline
+ * Image processor using composable transformation pipeline.
  *
  * Inspired by functional composition patterns from modern image processing
  * libraries (imagepipe, imageproc). Allows stacking transformations that are
  * applied in sequence to produce final output variants.
  *
- * @package   Image
  * @author    Maarten Thiebou
  * @copyright Modufolio
  * @license   https://opensource.org/licenses/MIT
@@ -27,7 +26,7 @@ class ImageProcessor
     public function __construct(
         FileInterface $file,
         StorageInterface $storage,
-        JobStorageInterface $jobStorage
+        JobStorageInterface $jobStorage,
     ) {
         $this->file = $file;
         $this->storage = $storage;
@@ -35,22 +34,23 @@ class ImageProcessor
     }
 
     /**
-     * Add a transformation to the pipeline
+     * Add a transformation to the pipeline.
      */
     public function add(Transformation $transformation): self
     {
         $this->transformations[] = $transformation;
+
         return $this;
     }
 
     /**
-     * Process the image through the transformation pipeline
+     * Process the image through the transformation pipeline.
      *
      * @throws ImageException If file validation or transformation fails
      */
     public function process(): ImageVariant|FileInterface|null
     {
-        if ($this->file === null) {
+        if (null === $this->file) {
             return null;
         }
 
@@ -73,7 +73,7 @@ class ImageProcessor
         if (empty($this->transformations)) {
             // No transformations — serve the original via the media path
             $thumbName = $this->file->filename();
-            $thumbRoot = $mediaRoot . '/' . $thumbName;
+            $thumbRoot = $mediaRoot.'/'.$thumbName;
 
             if (!file_exists($thumbRoot)) {
                 $this->jobStorage->saveJob($mediaRoot, $thumbName, [
@@ -86,7 +86,7 @@ class ImageProcessor
                 'modifications' => [],
                 'original' => $this->file,
                 'root' => $thumbRoot,
-                'url' => dirname($this->file->mediaUrl()) . '/' . $thumbName,
+                'url' => dirname($this->file->mediaUrl()).'/'.$thumbName,
             ]);
         }
 
@@ -97,7 +97,7 @@ class ImageProcessor
         }
 
         // Generate thumb path based on combined transformations
-        $template = $mediaRoot . '/{{ name }}{{ attributes }}.{{ extension }}';
+        $template = $mediaRoot.'/{{ name }}{{ attributes }}.{{ extension }}';
         $thumbRoot = (new CustomFilename($this->file->root(), $template, $allOptions))->toString();
         $thumbName = basename($thumbRoot);
 
@@ -115,35 +115,36 @@ class ImageProcessor
             'modifications' => $allOptions,
             'original' => $this->file,
             'root' => $thumbRoot,
-            'url' => dirname($this->file->mediaUrl()) . '/' . $thumbName,
+            'url' => dirname($this->file->mediaUrl()).'/'.$thumbName,
         ]);
     }
 
     /**
-     * Get list of transformation names in pipeline
+     * Get list of transformation names in pipeline.
      */
     public function getTransformationNames(): array
     {
-        return array_map(fn(Transformation $t) => $t->name(), $this->transformations);
+        return array_map(fn (Transformation $t) => $t->name(), $this->transformations);
     }
 
     /**
-     * Get all transformation configurations
+     * Get all transformation configurations.
      */
     public function getConfigurations(): array
     {
-        return array_map(fn(Transformation $t) => [
+        return array_map(fn (Transformation $t) => [
             'name' => $t->name(),
             'config' => $t->config(),
         ], $this->transformations);
     }
 
     /**
-     * Clear the transformation pipeline
+     * Clear the transformation pipeline.
      */
     public function clear(): self
     {
         $this->transformations = [];
+
         return $this;
     }
 }

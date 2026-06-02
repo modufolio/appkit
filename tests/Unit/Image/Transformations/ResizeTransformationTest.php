@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Modufolio\Appkit\Tests\Unit\Image\Transformations;
 
-use Modufolio\Appkit\Image\Disk;
-use Modufolio\Appkit\Image\File;
 use Modufolio\Appkit\Image\Storage;
 use Modufolio\Appkit\Image\Transformation;
 use Modufolio\Appkit\Image\Transformations\ResizeTransformation;
@@ -18,7 +16,7 @@ class ResizeTransformationTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->testFile = sys_get_temp_dir() . '/test_image_' . uniqid() . '.txt';
+        $this->testFile = sys_get_temp_dir().'/test_image_'.uniqid().'.txt';
         file_put_contents($this->testFile, 'test');
 
         $this->storage = new Storage(

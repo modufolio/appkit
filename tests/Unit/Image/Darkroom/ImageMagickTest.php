@@ -1,25 +1,23 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Tests\Unit\Image\Darkroom;
 
-use Modufolio\Appkit\Tests\Traits\RequiresCommandTrait;
 use Modufolio\Appkit\Image\Darkroom\ImageMagick;
 use Modufolio\Appkit\Tests\Attribute\RequiresCommand;
+use Modufolio\Appkit\Tests\Traits\RequiresCommandTrait;
 use Modufolio\Appkit\Toolkit\Dir;
 use Modufolio\Appkit\Toolkit\F;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use ReflectionMethod;
 
 #[RequiresCommand('convert')]
 class ImageMagickTest extends TestCase
 {
-    public const FIXTURES = __DIR__ . '/../fixtures/image';
-    public const TMP      = __DIR__ . '/Image.Darkroom.ImageMagick';
-
     use RequiresCommandTrait;
+    public const FIXTURES = __DIR__.'/../fixtures/image';
+    public const TMP = __DIR__.'/Image.Darkroom.ImageMagick';
 
     /**
      * @throws \Exception
@@ -28,11 +26,11 @@ class ImageMagickTest extends TestCase
     {
         $magickExists = !empty(trim((string) shell_exec('command -v magick')));
         $convertExists = !empty(trim((string) shell_exec('command -v convert')));
-        
+
         if (!$magickExists && !$convertExists) {
             $this->markTestSkipped('ImageMagick is not installed');
         }
-        
+
         Dir::make(static::TMP);
     }
 
@@ -45,7 +43,7 @@ class ImageMagickTest extends TestCase
     {
         $im = new ImageMagick();
 
-        copy(static::FIXTURES . '/cat.jpg', $file = static::TMP . '/cat.jpg');
+        copy(static::FIXTURES.'/cat.jpg', $file = static::TMP.'/cat.jpg');
 
         $this->assertSame([
             'autoOrient' => true,
@@ -63,7 +61,7 @@ class ImageMagickTest extends TestCase
             'interlace' => false,
             'threads' => 1,
             'sourceWidth' => 800,
-            'sourceHeight' => 533
+            'sourceHeight' => 533,
         ], $im->process($file));
     }
 
@@ -71,11 +69,11 @@ class ImageMagickTest extends TestCase
     {
         $im = new ImageMagick();
 
-        $method = new ReflectionMethod(get_class($im), 'sharpen');
+        $method = new \ReflectionMethod(get_class($im), 'sharpen');
         $method->setAccessible(true);
 
         $result = $method->invoke($im, '', [
-            'sharpen' => 50
+            'sharpen' => 50,
         ]);
 
         $this->assertSame("-sharpen '0x0.5'", $result);
@@ -85,11 +83,11 @@ class ImageMagickTest extends TestCase
     {
         $im = new ImageMagick();
 
-        $method = new ReflectionMethod(get_class($im), 'sharpen');
+        $method = new \ReflectionMethod(get_class($im), 'sharpen');
         $method->setAccessible(true);
 
         $result = $method->invoke($im, '', [
-            'sharpen' => null
+            'sharpen' => null,
         ]);
 
         $this->assertNull($result);
@@ -99,8 +97,8 @@ class ImageMagickTest extends TestCase
     {
         $im = new ImageMagick(['format' => 'webp']);
 
-        copy(static::FIXTURES . '/cat.jpg', $file = static::TMP . '/cat.jpg');
-        $this->assertFalse(F::exists($webp = static::TMP . '/cat.webp'));
+        copy(static::FIXTURES.'/cat.jpg', $file = static::TMP.'/cat.jpg');
+        $this->assertFalse(F::exists($webp = static::TMP.'/cat.webp'));
         $im->process($file);
         $this->assertTrue(F::exists($webp));
     }
@@ -114,15 +112,15 @@ class ImageMagickTest extends TestCase
             'width' => 250, // do some arbitrary transformation
         ]);
 
-        copy(static::FIXTURES . '/' . $basename, $file = static::TMP . '/' . $basename);
+        copy(static::FIXTURES.'/'.$basename, $file = static::TMP.'/'.$basename);
 
         // test if profile has been kept
         // errors have to be redirected to /dev/null, otherwise they would be printed to stdout by ImageMagick
-        $originalProfile = shell_exec('identify -format "%[profile:icc]" ' . escapeshellarg($file) . ' 2>/dev/null');
+        $originalProfile = shell_exec('identify -format "%[profile:icc]" '.escapeshellarg($file).' 2>/dev/null');
         $im->process($file);
-        $profile = shell_exec('identify -format "%[profile:icc]" ' . escapeshellarg($file) . ' 2>/dev/null');
+        $profile = shell_exec('identify -format "%[profile:icc]" '.escapeshellarg($file).' 2>/dev/null');
 
-        if (F::extension($basename) === 'png') {
+        if ('png' === F::extension($basename)) {
             // ensure that the profile has been stripped from PNG files, because
             // ImageMagick cannot keep it while stripping all other metadata
             // (tested with ImageMagick 7.0.11-14 Q16 x86_64 2021-05-31)
@@ -133,7 +131,7 @@ class ImageMagickTest extends TestCase
         }
 
         // ensure that other metadata has been stripped
-        $meta = shell_exec('identify -verbose ' . escapeshellarg($file));
+        $meta = shell_exec('identify -verbose '.escapeshellarg($file));
         $this->assertStringNotContainsString('photoshop:CaptionWriter', $meta);
         $this->assertStringNotContainsString('GPS', $meta);
     }

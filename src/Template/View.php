@@ -4,15 +4,12 @@ declare(strict_types=1);
 
 namespace Modufolio\Appkit\Template;
 
-use Throwable;
-
 /**
- * Self-contained View class - RoadRunner-safe
+ * Self-contained View class - RoadRunner-safe.
  *
  * Simple view/snippet renderer with instance-based state.
  * No static properties = no memory leaks in long-running workers.
  *
- * @package   Appkit Core
  * @author    Maarten Thiebou
  * @copyright Modufolio
  * @license   https://opensource.org/licenses/MIT
@@ -29,35 +26,34 @@ class View
     }
 
     /**
-     * Add a view path
+     * Add a view path.
      */
     public function addViewPath(string $path): self
     {
         $this->viewPaths[] = rtrim($path, '/');
+
         return $this;
     }
 
     /**
-     * Resolve the view file
+     * Resolve the view file.
      *
-     * @param string $name
-     * @return string
      * @throws \RuntimeException
      */
     protected function resolveFile(string $name): string
     {
-        if ($this->isUnsafeName($name) === false) {
+        if (false === $this->isUnsafeName($name)) {
             foreach ($this->viewPaths as $path) {
                 $root = realpath($path);
-                if ($root === false) {
+                if (false === $root) {
                     continue;
                 }
 
-                $real = realpath($path . '/' . $name . '.php');
+                $real = realpath($path.'/'.$name.'.php');
                 if (
-                    $real !== false &&
-                    is_file($real) &&
-                    str_starts_with($real, rtrim($root, '/\\') . DIRECTORY_SEPARATOR)
+                    false !== $real
+                    && is_file($real)
+                    && str_starts_with($real, rtrim($root, '/\\').DIRECTORY_SEPARATOR)
                 ) {
                     return $real;
                 }
@@ -74,7 +70,7 @@ class View
      */
     protected function isUnsafeName(string $name): bool
     {
-        return $name === ''
+        return '' === $name
             || str_contains($name, "\0")
             || str_contains($name, '\\')
             || str_contains($name, '..')
@@ -82,12 +78,9 @@ class View
     }
 
     /**
-     * Render a view (snippet)
+     * Render a view (snippet).
      *
-     * @param string $name
-     * @param array $data
-     * @return string|null
-     * @throws Throwable
+     * @throws \Throwable
      */
     public function render(string $name, array $data = []): ?string
     {
@@ -98,6 +91,7 @@ class View
         ob_start();
         extract($mergedData, EXTR_SKIP);
         include $file;
+
         return ob_get_clean();
     }
 }

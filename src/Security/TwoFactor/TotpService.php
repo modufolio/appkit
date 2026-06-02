@@ -15,7 +15,7 @@ use OTPHP\TOTP;
 use Psr\Clock\ClockInterface;
 
 /**
- * TOTP Service for Two-Factor Authentication
+ * TOTP Service for Two-Factor Authentication.
  *
  * Handles secret generation, QR code creation, and code verification
  * for Google Authenticator and compatible apps
@@ -44,14 +44,14 @@ class TotpService implements TwoFactorServiceInterface
     }
 
     /**
-     * Generate a new TOTP secret for a user
+     * Generate a new TOTP secret for a user.
      */
     public function generateSecret(UserInterface $user): TwoFactorSecret
     {
         // Check if user already has a TOTP secret
         $existingSecret = $this->totpSecretRepository->findByUser($user);
 
-        if ($existingSecret !== null && $existingSecret->isEnabled()) {
+        if (null !== $existingSecret && $existingSecret->isEnabled()) {
             throw new \RuntimeException('User already has 2FA enabled. Disable it first before generating a new secret.');
         }
 
@@ -61,7 +61,7 @@ class TotpService implements TwoFactorServiceInterface
         $totp->setIssuer($this->issuer);
 
         // Create or update TOTP secret entity
-        if ($existingSecret === null) {
+        if (null === $existingSecret) {
             $totpSecret = new $this->twoFactorEntityClass();
             $totpSecret->setUser($user);
         } else {
@@ -79,7 +79,7 @@ class TotpService implements TwoFactorServiceInterface
     }
 
     /**
-     * Get the TOTP provisioning URI for QR code generation
+     * Get the TOTP provisioning URI for QR code generation.
      */
     public function getProvisioningUri(UserTotpSecretInterface $totpSecret): string
     {
@@ -89,8 +89,6 @@ class TotpService implements TwoFactorServiceInterface
 
         return $totp->getProvisioningUri();
     }
-
-
 
     public function generateQrCode(UserTotpSecretInterface $totpSecret): string
     {
@@ -113,8 +111,6 @@ class TotpService implements TwoFactorServiceInterface
         return $result->getDataUri();
     }
 
-
-
     /**
      * Verify a TOTP code.
      *
@@ -132,20 +128,20 @@ class TotpService implements TwoFactorServiceInterface
 
         $matchedStep = $this->matchStep($totp, $code, $now);
 
-        if ($matchedStep !== null) {
+        if (null !== $matchedStep) {
             $lastStep = $totpSecret->getLastUsedCounter();
 
             // Replay: the code is cryptographically valid but its step was already
             // consumed. Reject without counting it as a brute-force failure so a
             // benign double-submit doesn't push the user toward a lockout.
-            if ($lastStep !== null && $matchedStep <= $lastStep) {
+            if (null !== $lastStep && $matchedStep <= $lastStep) {
                 return false;
             }
 
             $totpSecret->setLastUsedCounter($matchedStep);
             $totpSecret->resetFailedAttempts();
             $totpSecret->setLockedUntil(null);
-            $totpSecret->setLastUsedAt(new \DateTimeImmutable('@' . $now));
+            $totpSecret->setLastUsedAt(new \DateTimeImmutable('@'.$now));
             $this->entityManager->flush();
 
             return true;
@@ -167,15 +163,12 @@ class TotpService implements TwoFactorServiceInterface
     {
         $lockedUntil = $totpSecret->getLockedUntil();
 
-        if ($lockedUntil === null) {
+        if (null === $lockedUntil) {
             return;
         }
 
         if ($lockedUntil->getTimestamp() > $now) {
-            throw new TwoFactorException(sprintf(
-                'Too many failed attempts. Please try again in %d seconds.',
-                $lockedUntil->getTimestamp() - $now,
-            ));
+            throw new TwoFactorException(sprintf('Too many failed attempts. Please try again in %d seconds.', $lockedUntil->getTimestamp() - $now));
         }
 
         // Lockout window has elapsed — reset so the user can try again.
@@ -191,7 +184,7 @@ class TotpService implements TwoFactorServiceInterface
         $totpSecret->incrementFailedAttempts();
 
         if ($totpSecret->getFailedAttempts() >= self::MAX_FAILED_ATTEMPTS) {
-            $totpSecret->setLockedUntil(new \DateTimeImmutable('@' . ($now + self::LOCKOUT_SECONDS)));
+            $totpSecret->setLockedUntil(new \DateTimeImmutable('@'.($now + self::LOCKOUT_SECONDS)));
         }
     }
 
@@ -201,14 +194,14 @@ class TotpService implements TwoFactorServiceInterface
      */
     private function matchStep(TOTP $totp, string $code, int $now): ?int
     {
-        if ($code === '') {
+        if ('' === $code) {
             return null;
         }
 
-        $period      = $totp->getPeriod();
+        $period = $totp->getPeriod();
         $currentStep = intdiv($now, $period);
 
-        for ($offset = -self::LEEWAY_PERIODS; $offset <= self::LEEWAY_PERIODS; $offset++) {
+        for ($offset = -self::LEEWAY_PERIODS; $offset <= self::LEEWAY_PERIODS; ++$offset) {
             $step = $currentStep + $offset;
             if ($step < 0) {
                 continue;
@@ -223,7 +216,7 @@ class TotpService implements TwoFactorServiceInterface
     }
 
     /**
-     * Verify and enable 2FA for the user
+     * Verify and enable 2FA for the user.
      */
     public function enableTwoFactor(TwoFactorSecret $totpSecret, string $code): bool
     {
@@ -237,7 +230,7 @@ class TotpService implements TwoFactorServiceInterface
         // Generate backup codes
         $backupCodes = $this->generateBackupCodes();
         $hashedBackupCodes = array_map(
-            fn($code) => password_hash($code, PASSWORD_DEFAULT),
+            fn ($code) => password_hash($code, PASSWORD_DEFAULT),
             $backupCodes
         );
         $totpSecret->setBackupCodes($hashedBackupCodes);
@@ -252,13 +245,13 @@ class TotpService implements TwoFactorServiceInterface
     }
 
     /**
-     * Disable 2FA for a user
+     * Disable 2FA for a user.
      */
     public function disableTwoFactor(UserInterface $user): void
     {
         $totpSecret = $this->totpSecretRepository->findByUser($user);
 
-        if ($totpSecret === null) {
+        if (null === $totpSecret) {
             return;
         }
 
@@ -289,7 +282,7 @@ class TotpService implements TwoFactorServiceInterface
 
         // Remove the used backup code
         $totpSecret->removeBackupCode($code);
-        $totpSecret->setLastUsedAt(new \DateTimeImmutable('@' . $now));
+        $totpSecret->setLastUsedAt(new \DateTimeImmutable('@'.$now));
         $totpSecret->resetFailedAttempts();
         $totpSecret->setLockedUntil(null);
 
@@ -299,7 +292,7 @@ class TotpService implements TwoFactorServiceInterface
     }
 
     /**
-     * Regenerate backup codes for a user
+     * Regenerate backup codes for a user.
      */
     public function regenerateBackupCodes(TwoFactorSecret $totpSecret): array
     {
@@ -310,7 +303,7 @@ class TotpService implements TwoFactorServiceInterface
         // Generate new backup codes
         $backupCodes = $this->generateBackupCodes();
         $hashedBackupCodes = array_map(
-            fn($code) => password_hash($code, PASSWORD_DEFAULT),
+            fn ($code) => password_hash($code, PASSWORD_DEFAULT),
             $backupCodes
         );
 
@@ -323,13 +316,13 @@ class TotpService implements TwoFactorServiceInterface
     }
 
     /**
-     * Generate random backup codes
+     * Generate random backup codes.
      */
     private function generateBackupCodes(): array
     {
         $codes = [];
 
-        for ($i = 0; $i < self::BACKUP_CODES_COUNT; $i++) {
+        for ($i = 0; $i < self::BACKUP_CODES_COUNT; ++$i) {
             $codes[] = $this->generateBackupCode();
         }
 
@@ -337,23 +330,23 @@ class TotpService implements TwoFactorServiceInterface
     }
 
     /**
-     * Generate a single backup code
+     * Generate a single backup code.
      */
     private function generateBackupCode(): string
     {
         $characters = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
         $code = '';
 
-        for ($i = 0; $i < self::BACKUP_CODE_LENGTH; $i++) {
+        for ($i = 0; $i < self::BACKUP_CODE_LENGTH; ++$i) {
             $code .= $characters[random_int(0, strlen($characters) - 1)];
         }
 
         // Format as XXXX-XXXX for readability
-        return substr($code, 0, 4) . '-' . substr($code, 4, 4);
+        return substr($code, 0, 4).'-'.substr($code, 4, 4);
     }
 
     /**
-     * Check if user has 2FA enabled
+     * Check if user has 2FA enabled.
      */
     public function isTwoFactorEnabled(UserInterface $user): bool
     {
@@ -361,7 +354,7 @@ class TotpService implements TwoFactorServiceInterface
     }
 
     /**
-     * Get TOTP secret for user
+     * Get TOTP secret for user.
      */
     public function getTwoFactorSecret(UserInterface $user): ?TwoFactorSecret
     {
@@ -369,7 +362,7 @@ class TotpService implements TwoFactorServiceInterface
     }
 
     /**
-     * Alias for getTwoFactorSecret for backwards compatibility
+     * Alias for getTwoFactorSecret for backwards compatibility.
      */
     public function getTotpSecret(UserInterface $user): ?TwoFactorSecret
     {

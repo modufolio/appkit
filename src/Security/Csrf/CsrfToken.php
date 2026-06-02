@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Modufolio\Appkit\Security\Csrf;
 
 /**
- * CSRF Token Value Object
+ * CSRF Token Value Object.
  *
  * Represents a CSRF token with its identifier and value.
  * Immutable by design.
@@ -16,7 +16,7 @@ class CsrfToken
     private string $value;
 
     /**
-     * @param string $id Token identifier (e.g., 'login', 'delete_user')
+     * @param string $id    Token identifier (e.g., 'login', 'delete_user')
      * @param string $value Token value (random string)
      */
     public function __construct(string $id, string $value)
@@ -34,9 +34,7 @@ class CsrfToken
     }
 
     /**
-     * Get the token identifier
-     *
-     * @return string
+     * Get the token identifier.
      */
     public function getId(): string
     {
@@ -44,9 +42,7 @@ class CsrfToken
     }
 
     /**
-     * Get the token value
-     *
-     * @return string
+     * Get the token value.
      */
     public function getValue(): string
     {
@@ -54,9 +50,7 @@ class CsrfToken
     }
 
     /**
-     * Get string representation (returns value for convenience)
-     *
-     * @return string
+     * Get string representation (returns value for convenience).
      */
     public function __toString(): string
     {

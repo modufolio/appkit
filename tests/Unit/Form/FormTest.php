@@ -8,7 +8,6 @@ use Modufolio\Appkit\Form\Form;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\Constraints as Assert;
-use Symfony\Component\Validator\ValidatorBuilder;
 
 class TestContactForm extends Form
 {
@@ -134,7 +133,7 @@ class FormTest extends TestCase
         $this->assertNull($result->first('nonexistent'));
 
         // At least one of these should have an error
-        $this->assertTrue($emailError !== null || $nameError !== null);
+        $this->assertTrue(null !== $emailError || null !== $nameError);
     }
 
     public function testValidationResultMessages(): void

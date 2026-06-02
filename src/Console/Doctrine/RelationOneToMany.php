@@ -1,22 +1,22 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Console\Doctrine;
 
-use Modufolio\Appkit\Console\Str;
 use Doctrine\ORM\Mapping\OneToManyAssociationMapping;
+use Modufolio\Appkit\Console\Str;
 
 final class RelationOneToMany extends BaseCollectionRelation
 {
     public function getTargetGetterMethodName(): string
     {
-        return 'get' . Str::asCamelCase($this->getTargetPropertyName());
+        return 'get'.Str::asCamelCase($this->getTargetPropertyName());
     }
 
     public function getTargetSetterMethodName(): string
     {
-        return 'set' . Str::asCamelCase($this->getTargetPropertyName());
+        return 'set'.Str::asCamelCase($this->getTargetPropertyName());
     }
 
     public function isMapInverseRelation(): bool

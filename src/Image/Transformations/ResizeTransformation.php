@@ -4,26 +4,26 @@ declare(strict_types=1);
 
 namespace Modufolio\Appkit\Image\Transformations;
 
-use Modufolio\Appkit\Image\Transformation;
+use Modufolio\Appkit\Image\CustomFilename;
 use Modufolio\Appkit\Image\FileInterface;
 use Modufolio\Appkit\Image\StorageInterface;
-use Modufolio\Appkit\Image\CustomFilename;
+use Modufolio\Appkit\Image\Transformation;
 
 /**
- * Resize transformation for image width/height adjustment
+ * Resize transformation for image width/height adjustment.
  *
  * @license MIT
  */
 class ResizeTransformation implements Transformation
 {
-    private int|null $width;
-    private int|null $height;
-    private int|null $quality;
+    private ?int $width;
+    private ?int $height;
+    private ?int $quality;
 
     public function __construct(
-        int|null $width = null,
-        int|null $height = null,
-        int|null $quality = null
+        ?int $width = null,
+        ?int $height = null,
+        ?int $quality = null,
     ) {
         $this->width = $width;
         $this->height = $height;
@@ -43,15 +43,15 @@ class ResizeTransformation implements Transformation
             'width' => $this->width,
             'height' => $this->height,
             'quality' => $this->quality,
-        ], fn($v) => $v !== null);
+        ], fn ($v) => null !== $v);
 
         $mediaRoot = dirname($file->mediaRoot());
-        $template = $mediaRoot . '/{{ name }}{{ attributes }}.{{ extension }}';
+        $template = $mediaRoot.'/{{ name }}{{ attributes }}.{{ extension }}';
         $thumbRoot = (new CustomFilename($file->root(), $template, $options))->toString();
 
         return [
             'root' => $thumbRoot,
-            'url' => dirname($file->mediaUrl()) . '/' . basename($thumbRoot),
+            'url' => dirname($file->mediaUrl()).'/'.basename($thumbRoot),
         ];
     }
 
@@ -66,6 +66,6 @@ class ResizeTransformation implements Transformation
             'width' => $this->width,
             'height' => $this->height,
             'quality' => $this->quality,
-        ], fn($v) => $v !== null);
+        ], fn ($v) => null !== $v);
     }
 }

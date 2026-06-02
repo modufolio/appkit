@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Core;
 
@@ -34,7 +34,7 @@ abstract class AbstractApplicationState implements ApplicationStateInterface
     protected array $firewallConfig = [];
 
     /**
-     * Session cookie name - must match your session.name php.ini setting
+     * Session cookie name - must match your session.name php.ini setting.
      */
     protected string $sessionCookieName = 'PHPSESSID';
 
@@ -42,14 +42,14 @@ abstract class AbstractApplicationState implements ApplicationStateInterface
     protected array $requestInstances = [];
 
     /**
-     * @param ServerRequestInterface $request The current HTTP request
-     * @param string $baseDir Application base directory (used for var/sessions, etc.)
-     * @param array $firewallConfig Optional firewall configuration
+     * @param ServerRequestInterface $request        The current HTTP request
+     * @param string                 $baseDir        Application base directory (used for var/sessions, etc.)
+     * @param array                  $firewallConfig Optional firewall configuration
      */
     public function __construct(
         ServerRequestInterface $request,
         string $baseDir,
-        array $firewallConfig = []
+        array $firewallConfig = [],
     ) {
         $this->request = $request;
         $this->baseDir = $baseDir;
@@ -61,7 +61,6 @@ abstract class AbstractApplicationState implements ApplicationStateInterface
     {
         return $this->baseDir;
     }
-
 
     // -----------------------------------------------------------------
     // Request / Base URL
@@ -87,10 +86,10 @@ abstract class AbstractApplicationState implements ApplicationStateInterface
 
     protected function calculateBaseUrl(ServerRequestInterface $request): string
     {
-        $uri    = $request->getUri();
+        $uri = $request->getUri();
         $scheme = $uri->getScheme();
-        $host   = $uri->getHost();
-        $port   = $uri->getPort();
+        $host = $uri->getHost();
+        $port = $uri->getPort();
 
         // If scheme or host is empty (e.g., in test environments with relative URIs),
         // return empty string to use path-only URLs
@@ -98,10 +97,10 @@ abstract class AbstractApplicationState implements ApplicationStateInterface
             return '';
         }
 
-        $base = $scheme . '://' . $host;
+        $base = $scheme.'://'.$host;
 
-        if ($port !== null && (($scheme === 'http' && $port !== 80) || ($scheme === 'https' && $port !== 443))) {
-            $base .= ':' . $port;
+        if (null !== $port && (('http' === $scheme && 80 !== $port) || ('https' === $scheme && 443 !== $port))) {
+            $base .= ':'.$port;
         }
 
         return $base;
@@ -142,12 +141,13 @@ abstract class AbstractApplicationState implements ApplicationStateInterface
     public function setSession(FlashBagAwareSessionInterface $session): self
     {
         $this->session = $session;
+
         return $this;
     }
 
     public function hasSession(): bool
     {
-        return $this->session !== null;
+        return null !== $this->session;
     }
 
     // -----------------------------------------------------------------
@@ -161,12 +161,13 @@ abstract class AbstractApplicationState implements ApplicationStateInterface
     public function setTokenStorage(TokenStorageInterface $storage): self
     {
         $this->tokenStorage = $storage;
+
         return $this;
     }
 
     public function hasTokenStorage(): bool
     {
-        return $this->tokenStorage !== null;
+        return null !== $this->tokenStorage;
     }
 
     // -----------------------------------------------------------------
@@ -204,6 +205,7 @@ abstract class AbstractApplicationState implements ApplicationStateInterface
         // Fast check: segment-based syntax (e.g. "api:0")
         if (str_contains($pattern, ':')) {
             [$value, $pos] = explode(':', $pattern, 2);
+
             return $this->matchesSimplePattern($value, (int) $pos, $path);
         }
 
@@ -228,8 +230,8 @@ abstract class AbstractApplicationState implements ApplicationStateInterface
     protected function matchesStartsWith(string $pattern, string $path): bool
     {
         // Normalize pattern to always start with a slash
-        if (!isset($pattern[0]) || $pattern[0] !== '/') {
-            $pattern = '/' . ltrim($pattern, '/');
+        if (!isset($pattern[0]) || '/' !== $pattern[0]) {
+            $pattern = '/'.ltrim($pattern, '/');
         }
 
         return str_starts_with($path, $pattern);
@@ -239,6 +241,7 @@ abstract class AbstractApplicationState implements ApplicationStateInterface
     {
         $this->firewallConfig = $config;
         $this->firewallNameCache = [];
+
         return $this;
     }
 
@@ -268,12 +271,14 @@ abstract class AbstractApplicationState implements ApplicationStateInterface
     public function setRequestInstance(string $id, mixed $instance): self
     {
         $this->requestInstances[$id] = $instance;
+
         return $this;
     }
 
     public function clearRequestInstances(): self
     {
         $this->requestInstances = [];
+
         return $this;
     }
 
@@ -288,7 +293,7 @@ abstract class AbstractApplicationState implements ApplicationStateInterface
     public function reset(): void
     {
         // Save and close session if it's active
-        if ($this->session !== null && $this->session->isStarted()) {
+        if (null !== $this->session && $this->session->isStarted()) {
             $this->session->save();
         }
         $this->session = null;
@@ -297,7 +302,7 @@ abstract class AbstractApplicationState implements ApplicationStateInterface
         $this->sessionStorage = null;
 
         // Clear token storage to break circular references
-        if ($this->tokenStorage !== null) {
+        if (null !== $this->tokenStorage) {
             $this->tokenStorage->setToken(null);
         }
         $this->tokenStorage = null;

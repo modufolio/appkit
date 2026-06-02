@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Resolver;
 
@@ -15,12 +15,12 @@ class AttributeParameterResolver implements ParameterResolverInterface
     public function getParameters(
         \ReflectionFunctionAbstract $reflection,
         array $providedParameters,
-        array $resolvedParameters
+        array $resolvedParameters,
     ): array {
         $parameters = $reflection->getParameters();
 
         // Skip parameters already resolved
-        if (! empty($resolvedParameters)) {
+        if (!empty($resolvedParameters)) {
             $parameters = array_diff_key($parameters, $resolvedParameters);
         }
 
@@ -68,6 +68,6 @@ class AttributeParameterResolver implements ParameterResolverInterface
             return false;
         }
 
-        return $type->getName() === ValidationResult::class;
+        return ValidationResult::class === $type->getName();
     }
 }

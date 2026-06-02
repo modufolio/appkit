@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Resolver;
 
@@ -11,13 +11,14 @@ class ResolverPipeline implements ParameterResolverInterface
     public function addResolver(ParameterResolverInterface $resolver): self
     {
         $this->resolvers[] = $resolver;
+
         return $this;
     }
 
     public function getParameters(
         \ReflectionFunctionAbstract $reflection,
         array $providedParameters,
-        array $resolvedParameters
+        array $resolvedParameters,
     ): array {
         foreach ($this->resolvers as $resolver) {
             $resolvedParameters = $resolver->getParameters($reflection, $providedParameters, $resolvedParameters);
@@ -25,7 +26,7 @@ class ResolverPipeline implements ParameterResolverInterface
                 break; // All parameters resolved, stop processing
             }
         }
+
         return $resolvedParameters;
     }
-
 }

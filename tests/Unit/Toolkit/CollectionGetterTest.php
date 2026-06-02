@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Tests\Unit\Toolkit;
 
@@ -13,7 +13,7 @@ class CollectionGetterTest extends TestCase
     {
         $collection = new Collection([
             'one' => 'eins',
-            'two' => 'zwei'
+            'two' => 'zwei',
         ]);
 
         $this->assertSame('eins', $collection->one);
@@ -24,7 +24,7 @@ class CollectionGetterTest extends TestCase
     {
         $collection = new Collection([
             'one' => 'eins',
-            'two' => 'zwei'
+            'two' => 'zwei',
         ]);
 
         $this->assertSame('eins', $collection->get('one'));
@@ -36,7 +36,7 @@ class CollectionGetterTest extends TestCase
     {
         $collection = new Collection([
             'one' => 'eins',
-            'two' => 'zwei'
+            'two' => 'zwei',
         ]);
 
         $this->assertSame('eins', $collection->one());
@@ -48,7 +48,7 @@ class CollectionGetterTest extends TestCase
     {
         $collection = new Collection([
             'one' => 'eins',
-            'two' => 'zwei'
+            'two' => 'zwei',
         ]);
 
         $this->assertSame('eins', $collection->getAttribute($collection->toArray(), 'one'));

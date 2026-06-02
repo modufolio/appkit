@@ -48,7 +48,7 @@ class ControllerWithMultipleDeps
     public function __construct(
         \stdClass $service,
         string $apiKey,
-        int $timeout = 60
+        int $timeout = 60,
     ) {
     }
 }
@@ -148,5 +148,4 @@ class ReflectionControllerArgumentResolverTest extends TestCase
         $this->assertSame('%apiKey%', $deps[1]);
         $this->assertSame(60, $deps[2]); // Default value for int with default
     }
-
 }

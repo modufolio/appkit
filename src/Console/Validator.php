@@ -1,12 +1,12 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Console;
 
+use Doctrine\DBAL\Connection;
 use Modufolio\Appkit\Exception\RuntimeCommandException;
 use Modufolio\Appkit\Security\User\UserInterface;
-use Doctrine\DBAL\Connection;
 
 /**
  * @author Javier Eguiluz <javier.eguiluz@gmail.com>

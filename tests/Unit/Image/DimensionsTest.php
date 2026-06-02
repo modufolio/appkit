@@ -1,18 +1,17 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Tests\Unit\Image;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-
 use Modufolio\Appkit\Image\Dimensions;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(Dimensions::class)]
 class DimensionsTest extends TestCase
 {
-    public const FIXTURES = __DIR__ . '/fixtures';
+    public const FIXTURES = __DIR__.'/fixtures';
 
     public function testDimensions(): void
     {
@@ -147,12 +146,12 @@ class DimensionsTest extends TestCase
 
     public function testForImage(): void
     {
-        $dimensions = Dimensions::forImage(__DIR__ . '/fixtures/image/onigiri-adobe-rgb-gps.webp');
+        $dimensions = Dimensions::forImage(__DIR__.'/fixtures/image/onigiri-adobe-rgb-gps.webp');
         $this->assertSame(600, $dimensions->width());
         $this->assertSame(400, $dimensions->height());
 
         if (version_compare(PHP_VERSION, '8.2.0') >= 0) {
-            $dimensions = Dimensions::forImage(__DIR__ . '/fixtures/image/onigiri-adobe-rgb-gps.avif');
+            $dimensions = Dimensions::forImage(__DIR__.'/fixtures/image/onigiri-adobe-rgb-gps.avif');
             $this->assertSame(600, $dimensions->width());
             $this->assertSame(400, $dimensions->height());
         }
@@ -160,15 +159,15 @@ class DimensionsTest extends TestCase
 
     public function testForSvg(): void
     {
-        $dimensions = Dimensions::forSvg(static::FIXTURES . '/dimensions/circle.svg');
+        $dimensions = Dimensions::forSvg(static::FIXTURES.'/dimensions/circle.svg');
         $this->assertSame(50, $dimensions->width());
         $this->assertSame(50, $dimensions->height());
 
-        $dimensions = Dimensions::forSvg(static::FIXTURES . '/dimensions/circle-abs.svg');
+        $dimensions = Dimensions::forSvg(static::FIXTURES.'/dimensions/circle-abs.svg');
         $this->assertSame(35, $dimensions->width());
         $this->assertSame(35, $dimensions->height());
 
-        $dimensions = Dimensions::forSvg(static::FIXTURES . '/dimensions/circle-offset.svg');
+        $dimensions = Dimensions::forSvg(static::FIXTURES.'/dimensions/circle-offset.svg');
         $this->assertSame(40, $dimensions->width());
         $this->assertSame(25, $dimensions->height());
     }
@@ -213,10 +212,10 @@ class DimensionsTest extends TestCase
     {
         $dimensions = new Dimensions(1200, 768);
         $array = [
-            'width'       => 1200,
-            'height'      => 768,
-            'ratio'       => 1.5625,
-            'orientation' => 'landscape'
+            'width' => 1200,
+            'height' => 768,
+            'ratio' => 1.5625,
+            'orientation' => 'landscape',
         ];
         $this->assertSame($array, $dimensions->toArray());
         $this->assertSame($array, $dimensions->__debugInfo());
@@ -225,6 +224,6 @@ class DimensionsTest extends TestCase
     public function testToString(): void
     {
         $dimensions = new Dimensions(1200, 768);
-        $this->assertSame('1200 × 768', (string)$dimensions);
+        $this->assertSame('1200 × 768', (string) $dimensions);
     }
 }

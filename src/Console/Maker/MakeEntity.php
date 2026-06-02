@@ -1,9 +1,10 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Console\Maker;
 
+use Doctrine\DBAL\Types\Type;
 use Modufolio\Appkit\Console\ConsoleStyle;
 use Modufolio\Appkit\Console\Doctrine\DoctrineHelper;
 use Modufolio\Appkit\Console\Doctrine\EntityClassGenerator;
@@ -18,7 +19,6 @@ use Modufolio\Appkit\Util\ClassDetails;
 use Modufolio\Appkit\Util\ClassSource\Model\ClassProperty;
 use Modufolio\Appkit\Util\ClassSourceManipulator;
 use Modufolio\Appkit\Util\CliOutputHelper;
-use Doctrine\DBAL\Types\Type;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -55,7 +55,7 @@ final class MakeEntity extends AbstractMaker
             ->addArgument('name', InputArgument::OPTIONAL, \sprintf('Class name of the entity to create or update (e.g. <fg=yellow>%s</>)', Str::asClassName(Str::getRandomTerm())))
             ->addOption('regenerate', null, InputOption::VALUE_NONE, 'Instead of adding new fields, simply generate the methods (e.g. getter/setter) for existing fields')
             ->addOption('overwrite', null, InputOption::VALUE_NONE, 'Overwrite any existing getter/setter methods')
-            ->setHelp(file_get_contents(__DIR__ . '/../Resources/help/MakeEntity.txt'))
+            ->setHelp(file_get_contents(__DIR__.'/../Resources/help/MakeEntity.txt'))
         ;
 
         $inputConfig->setArgumentAsNonInteractive('name');
@@ -463,8 +463,8 @@ final class MakeEntity extends AbstractMaker
             // in the Entity namespace versus just checking the full class
             // name to avoid issues with classes like "Directory" that exist
             // in PHP's core.
-            if (class_exists($this->getEntityNamespace() . '\\' . $answeredEntityClass)) {
-                $targetEntityClass = $this->getEntityNamespace() . '\\' . $answeredEntityClass;
+            if (class_exists($this->getEntityNamespace().'\\'.$answeredEntityClass)) {
+                $targetEntityClass = $this->getEntityNamespace().'\\'.$answeredEntityClass;
             } elseif (class_exists($answeredEntityClass)) {
                 $targetEntityClass = $answeredEntityClass;
             } else {
@@ -534,7 +534,7 @@ final class MakeEntity extends AbstractMaker
             // recommend an inverse side, except for OneToOne, where it's inefficient
             $recommendMappingInverse = EntityRelation::ONE_TO_ONE !== $relation->getType();
 
-            $getterMethodName = 'get' . Str::asCamelCase(Str::getShortClassName($relation->getOwningClass()));
+            $getterMethodName = 'get'.Str::asCamelCase(Str::getShortClassName($relation->getOwningClass()));
             if (EntityRelation::ONE_TO_ONE !== $relation->getType()) {
                 // pluralize!
                 $getterMethodName = Str::singularCamelCaseToPluralCamelCase($getterMethodName);
@@ -670,7 +670,7 @@ final class MakeEntity extends AbstractMaker
 
                 break;
             default:
-                throw new \InvalidArgumentException('Invalid type: ' . $type);
+                throw new \InvalidArgumentException('Invalid type: '.$type);
         }
 
         return $relation;
@@ -684,8 +684,8 @@ final class MakeEntity extends AbstractMaker
         $targetEntityShort = Str::getShortClassName($targetEntityClass);
         if ($originalEntityShort === $targetEntityShort) {
             [$originalDiscriminator, $targetDiscriminator] = Str::getHumanDiscriminatorBetweenTwoClasses($entityClass, $targetEntityClass);
-            $originalEntityShort = trim($originalDiscriminator . '\\' . $originalEntityShort, '\\');
-            $targetEntityShort = trim($targetDiscriminator . '\\' . $targetEntityShort, '\\');
+            $originalEntityShort = trim($originalDiscriminator.'\\'.$originalEntityShort, '\\');
+            $targetEntityShort = trim($targetDiscriminator.'\\'.$targetEntityShort, '\\');
         }
 
         $rows = [];

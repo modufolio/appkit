@@ -1,28 +1,25 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Data;
 
 use Modufolio\Appkit\Toolkit\Xml as XmlConverter;
-use InvalidArgumentException;
 
 /**
- * Simple Wrapper around the XML parser of the Toolkit
+ * Simple Wrapper around the XML parser of the Toolkit.
  *
- * @package   Kirby Data
  * @author    Lukas Bestle <lukas@getkirby.com>
- * @link      https://getkirby.com
+ *
+ * @see      https://getkirby.com
+ *
  * @copyright Bastian Allgeier GmbH
  * @license   https://opensource.org/licenses/MIT
  */
 class Xml extends Handler
 {
     /**
-     * Converts an array to an encoded XML string
-     *
-     * @param mixed $data
-     * @return string
+     * Converts an array to an encoded XML string.
      */
     public static function encode(mixed $data): string
     {
@@ -30,37 +27,34 @@ class Xml extends Handler
     }
 
     /**
-     * Parses an encoded XML string and returns a multidimensional array
-     *
-     * @param mixed $string
-     * @return array
+     * Parses an encoded XML string and returns a multidimensional array.
      */
     public static function decode(mixed $string): array
     {
-        if ($string === null) {
+        if (null === $string) {
             return [];
         }
 
-        if (is_array($string) === true) {
+        if (true === is_array($string)) {
             return $string;
         }
 
-        if (is_string($string) === false) {
-            throw new InvalidArgumentException('Invalid XML data; please pass a string');
+        if (false === is_string($string)) {
+            throw new \InvalidArgumentException('Invalid XML data; please pass a string');
         }
 
         $result = XmlConverter::parse($string);
 
-        if (is_array($result) === true) {
+        if (true === is_array($result)) {
             // remove the root's name if it is the default <data> to ensure that
             // the decoded data is the same as the input to the encode() method
-            if ($result['@name'] === 'data') {
+            if ('data' === $result['@name']) {
                 unset($result['@name']);
             }
 
             return $result;
         }
 
-        throw new InvalidArgumentException('XML string is invalid');
+        throw new \InvalidArgumentException('XML string is invalid');
     }
 }

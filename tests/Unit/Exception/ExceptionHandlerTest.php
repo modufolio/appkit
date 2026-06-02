@@ -6,7 +6,6 @@ namespace Modufolio\Appkit\Tests\Unit\Exception;
 
 use Modufolio\Appkit\Core\Environment;
 use Modufolio\Appkit\Exception\ExceptionHandler;
-use Modufolio\Appkit\Security\TwoFactor\TwoFactorException;
 use Modufolio\Psr7\Http\ServerRequest;
 use Modufolio\Psr7\Http\Uri;
 use PHPUnit\Framework\TestCase;
@@ -37,7 +36,7 @@ class ExceptionHandlerTest extends TestCase
         $this->handler->registerException(\InvalidArgumentException::class, function (\InvalidArgumentException $e) {
             return [
                 'status' => 400,
-                'title'  => 'Invalid Input',
+                'title' => 'Invalid Input',
                 'detail' => $e->getMessage(),
             ];
         });
@@ -46,7 +45,7 @@ class ExceptionHandlerTest extends TestCase
         $response = $this->handler->handle(new \InvalidArgumentException('Invalid value'), $request);
 
         $this->assertSame(400, $response->getStatusCode());
-        $body = json_decode((string)$response->getBody(), true);
+        $body = json_decode((string) $response->getBody(), true);
         $this->assertArrayHasKey('errors', $body);
         $this->assertSame('400', $body['errors'][0]['status']);
     }
@@ -59,7 +58,7 @@ class ExceptionHandlerTest extends TestCase
         $response = $this->handler->handle(new \JsonException('Invalid JSON'), $request);
 
         $this->assertSame(422, $response->getStatusCode());
-        $body = json_decode((string)$response->getBody(), true);
+        $body = json_decode((string) $response->getBody(), true);
         $this->assertArrayHasKey('errors', $body);
         $this->assertSame('422', $body['errors'][0]['status']);
         $this->assertSame('Invalid JSON payload', $body['errors'][0]['title']);
@@ -73,7 +72,7 @@ class ExceptionHandlerTest extends TestCase
             return new \Modufolio\Psr7\Http\Response(
                 $data['status'] ?? 500,
                 ['Content-Type' => 'text/plain; charset=utf-8'],
-                'Custom: ' . ($data['title'] ?? '') . ' - ' . ($data['detail'] ?? '')
+                'Custom: '.($data['title'] ?? '').' - '.($data['detail'] ?? '')
             );
         });
 
@@ -81,7 +80,7 @@ class ExceptionHandlerTest extends TestCase
 
         $this->assertSame(400, $response->getStatusCode());
         $this->assertStringContainsString('text/plain', $response->getHeaderLine('Content-Type'));
-        $this->assertStringContainsString('Custom:', (string)$response->getBody());
+        $this->assertStringContainsString('Custom:', (string) $response->getBody());
     }
 
     public function testHandleInvalidArgumentException(): void
@@ -117,8 +116,6 @@ class ExceptionHandlerTest extends TestCase
         $this->assertSame(500, $response->getStatusCode());
     }
 
-
-
     public function testFormatWithJsonApi(): void
     {
         $request = (new ServerRequest(method: 'GET', uri: '/'))
@@ -129,7 +126,7 @@ class ExceptionHandlerTest extends TestCase
         $this->assertSame(500, $response->getStatusCode());
         $this->assertStringContainsString('application/vnd.api+json', $response->getHeaderLine('Content-Type'));
 
-        $body = json_decode((string)$response->getBody(), true);
+        $body = json_decode((string) $response->getBody(), true);
         $this->assertArrayHasKey('jsonapi', $body);
         $this->assertSame('1.0', $body['jsonapi']['version']);
     }
@@ -144,7 +141,7 @@ class ExceptionHandlerTest extends TestCase
         $this->assertSame(500, $response->getStatusCode());
         $this->assertStringContainsString('application/json', $response->getHeaderLine('Content-Type'));
 
-        $body = json_decode((string)$response->getBody(), true);
+        $body = json_decode((string) $response->getBody(), true);
         $this->assertArrayHasKey('status', $body);
         $this->assertSame(500, $body['status']);
     }
@@ -192,7 +189,7 @@ class ExceptionHandlerTest extends TestCase
         $exception = new \Exception('Detailed error message');
         $response = $handler->handle($exception, $request);
 
-        $body = json_decode((string)$response->getBody(), true);
+        $body = json_decode((string) $response->getBody(), true);
         // In dev, should show detailed message
         $this->assertStringContainsString('Detailed error message', $body['detail'] ?? '');
     }
@@ -206,7 +203,7 @@ class ExceptionHandlerTest extends TestCase
         $exception = new \Exception('Detailed error message');
         $response = $handler->handle($exception, $request);
 
-        $body = json_decode((string)$response->getBody(), true);
+        $body = json_decode((string) $response->getBody(), true);
         // In prod, should hide details
         $this->assertStringContainsString('An unexpected error occurred', $body['detail'] ?? '');
     }
@@ -225,7 +222,7 @@ class ExceptionHandlerTest extends TestCase
 
         // Should fall back to default error response
         $this->assertSame(500, $response->getStatusCode());
-        $body = json_decode((string)$response->getBody(), true);
+        $body = json_decode((string) $response->getBody(), true);
         $this->assertArrayHasKey('status', $body);
     }
 
@@ -255,7 +252,7 @@ class ExceptionHandlerTest extends TestCase
         );
 
         $this->assertSame(404, $response->getStatusCode());
-        $body = json_decode((string)$response->getBody(), true);
+        $body = json_decode((string) $response->getBody(), true);
         $this->assertSame('404', $body['errors'][0]['status']);
     }
 
@@ -267,7 +264,7 @@ class ExceptionHandlerTest extends TestCase
         $this->handler->registerException(\InvalidArgumentException::class, function () {
             return [
                 'status' => 400,
-                'title'  => 'Invalid Argument',
+                'title' => 'Invalid Argument',
                 'detail' => 'The argument is invalid',
             ];
         });
@@ -275,7 +272,7 @@ class ExceptionHandlerTest extends TestCase
         $this->handler->registerException(\LogicException::class, function () {
             return [
                 'status' => 500,
-                'title'  => 'Logic Error',
+                'title' => 'Logic Error',
                 'detail' => 'A logic error occurred',
             ];
         });
@@ -311,15 +308,15 @@ class ExceptionHandlerTest extends TestCase
         $logger->expects($this->once())
             ->method('log')
             ->with('error', 'Server broke', $this->callback(function (array $context) {
-                return $context['exception'] === \RuntimeException::class
-                    && $context['status'] === 500;
+                return \RuntimeException::class === $context['exception']
+                    && 500 === $context['status'];
             }));
 
         $handler = new ExceptionHandler(Environment::DEV, $logger);
         $handler->registerException(\RuntimeException::class, function (\RuntimeException $e) {
             return [
                 'status' => 500,
-                'title'  => 'Runtime error',
+                'title' => 'Runtime error',
                 'detail' => $e->getMessage(),
             ];
         }, true);
@@ -339,7 +336,7 @@ class ExceptionHandlerTest extends TestCase
         $handler->registerException(\InvalidArgumentException::class, function (\InvalidArgumentException $e) {
             return [
                 'status' => 400,
-                'title'  => 'Bad Request',
+                'title' => 'Bad Request',
                 'detail' => $e->getMessage(),
             ];
         });
@@ -359,7 +356,7 @@ class ExceptionHandlerTest extends TestCase
         $handler->registerException(\InvalidArgumentException::class, function (\InvalidArgumentException $e) {
             return [
                 'status' => 403,
-                'title'  => 'Forbidden',
+                'title' => 'Forbidden',
                 'detail' => $e->getMessage(),
             ];
         }, true);
@@ -374,7 +371,7 @@ class ExceptionHandlerTest extends TestCase
         $logger->expects($this->once())
             ->method('error')
             ->with('Unexpected', $this->callback(function (array $context) {
-                return $context['status'] === 500;
+                return 500 === $context['status'];
             }));
 
         $handler = new ExceptionHandler(Environment::DEV, $logger);

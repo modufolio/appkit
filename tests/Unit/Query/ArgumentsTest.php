@@ -1,12 +1,11 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Tests\Unit\Query;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-
 use Modufolio\Appkit\Query\Arguments;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(Arguments::class)]

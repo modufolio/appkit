@@ -1,11 +1,10 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Data;
 
 use Modufolio\Appkit\Toolkit\F;
-use Exception;
 
 /**
  * The `Data` class provides readers and
@@ -18,18 +17,17 @@ use Exception;
  * detect which data handler to use in order
  * to correctly encode and decode passed data.
  *
- * @package   Kirby Data
  * @author    Bastian Allgeier <bastian@getkirby.com>
- * @link      https://getkirby.com
+ *
+ * @see      https://getkirby.com
+ *
  * @copyright Bastian Allgeier GmbH
  * @license   https://opensource.org/licenses/MIT
  */
 class Data
 {
     /**
-     * Handler Type Aliases
-     *
-     * @var array
+     * Handler Type Aliases.
      */
     public static array $aliases = [
         'md' => 'txt',
@@ -39,9 +37,7 @@ class Data
     ];
 
     /**
-     * All registered handlers
-     *
-     * @var array
+     * All registered handlers.
      */
     public static array $handlers = [
         'json' => Json::class,
@@ -52,11 +48,9 @@ class Data
     ];
 
     /**
-     * Handler getter
+     * Handler getter.
      *
-     * @param string $type
-     * @return Handler
-     * @throws Exception
+     * @throws \Exception
      */
     public static function handler(string $type): Handler
     {
@@ -68,23 +62,21 @@ class Data
             static::$handlers[static::$aliases[$type] ?? null] ??
             null;
 
-        if ($handler === null) {
-            throw new \RuntimeException('Missing handler for type: "' . $type . '"');
+        if (null === $handler) {
+            throw new \RuntimeException('Missing handler for type: "'.$type.'"');
         }
 
         if (class_exists($handler)) {
             return new $handler();
         }
 
-        throw new \RuntimeException('Missing handler for type: "' . $type . '"');
+        throw new \RuntimeException('Missing handler for type: "'.$type.'"');
     }
 
     /**
-     * Decodes data with the specified handler
+     * Decodes data with the specified handler.
      *
-     * @param string $type
-     * @return array
-     * @throws Exception
+     * @throws \Exception
      */
     public static function decode(mixed $string, string $type): array
     {
@@ -92,11 +84,9 @@ class Data
     }
 
     /**
-     * Encodes data with the specified handler
+     * Encodes data with the specified handler.
      *
-     * @param string $type
-     * @return string
-     * @throws Exception
+     * @throws \Exception
      */
     public static function encode(mixed $data, string $type): string
     {
@@ -106,14 +96,11 @@ class Data
     /**
      * Reads data from a file;
      * the data handler is automatically chosen by
-     * the extension if not specified
+     * the extension if not specified.
      *
-     * @param string $file
-     * @param string|null $type
-     * @return array
-     * @throws Exception
+     * @throws \Exception
      */
-    public static function read(string $file, string|null $type = null): array
+    public static function read(string $file, ?string $type = null): array
     {
         return static::handler($type ?? F::extension($file))->read($file);
     }
@@ -121,15 +108,11 @@ class Data
     /**
      * Writes data to a file;
      * the data handler is automatically chosen by
-     * the extension if not specified
+     * the extension if not specified.
      *
-     * @param string $file
-     * @param array $data
-     * @param string|null $type
-     * @return bool
-     * @throws Exception
+     * @throws \Exception
      */
-    public static function write(string $file, array $data = [], string|null $type = null): bool
+    public static function write(string $file, array $data = [], ?string $type = null): bool
     {
         return static::handler($type ?? F::extension($file))->write($file, $data);
     }

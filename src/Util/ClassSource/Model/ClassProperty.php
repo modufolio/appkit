@@ -1,11 +1,11 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Util\ClassSource\Model;
 
-use Modufolio\Appkit\Exception\RuntimeCommandException;
 use Doctrine\ORM\Mapping\FieldMapping;
+use Modufolio\Appkit\Exception\RuntimeCommandException;
 
 /**
  * @author Jesse Rushlow <jr@rushlow.dev>

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Modufolio\Appkit\Security\Authenticator;
 
-use Modufolio\Psr7\Http\Response;
 use Modufolio\Appkit\Security\Exception\AuthenticationException;
 use Modufolio\Appkit\Security\Exception\UserNotFoundException;
 use Modufolio\Appkit\Security\Token\TokenInterface;
@@ -13,6 +12,7 @@ use Modufolio\Appkit\Security\User\PasswordAuthenticatedUserInterface;
 use Modufolio\Appkit\Security\User\UserInterface;
 use Modufolio\Appkit\Security\User\UserPasswordHasherInterface;
 use Modufolio\Appkit\Security\User\UserProviderInterface;
+use Modufolio\Psr7\Http\Response;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
@@ -34,6 +34,7 @@ class BasicAuthenticator extends AbstractAuthenticator
     public function supports(ServerRequestInterface $request): bool
     {
         $authHeader = $request->getHeaderLine('Authorization');
+
         return str_starts_with($authHeader, 'Basic ');
     }
 
@@ -57,7 +58,7 @@ class BasicAuthenticator extends AbstractAuthenticator
             throw new AuthenticationException('User does not support password authentication.');
         }
 
-        $valid = $this->passwordHasher !== null
+        $valid = null !== $this->passwordHasher
             ? $this->passwordHasher->isPasswordValid($user, $password)
             : password_verify($password, (string) $user->getPassword());
 
@@ -76,8 +77,9 @@ class BasicAuthenticator extends AbstractAuthenticator
 
     private function verifyDummyPassword(string $password): void
     {
-        if ($this->passwordHasher !== null) {
+        if (null !== $this->passwordHasher) {
             $this->passwordHasher->verifyDummy($password);
+
             return;
         }
         password_verify($password, self::DUMMY_HASH);
@@ -100,13 +102,13 @@ class BasicAuthenticator extends AbstractAuthenticator
 
         $base64Credentials = substr($authHeader, 6);
         $decoded = base64_decode($base64Credentials, true);
-        if ($decoded === false || !str_contains($decoded, ':')) {
+        if (false === $decoded || !str_contains($decoded, ':')) {
             throw new AuthenticationException('Invalid Basic authentication header.');
         }
 
         [$username, $password] = explode(':', $decoded, 2);
 
-        if ($username === '' || $password === '') {
+        if ('' === $username || '' === $password) {
             throw new AuthenticationException('Username and password cannot be empty.');
         }
 

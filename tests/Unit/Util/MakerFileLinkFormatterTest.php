@@ -61,7 +61,7 @@ final class MakerFileLinkFormatterTest extends TestCase
         bool $envDisabled,
         string $absolutePath,
         string $relativePath,
-        string $expectedOutput
+        string $expectedOutput,
     ): void {
         // Set environment variable
         if ($envDisabled) {

@@ -115,7 +115,7 @@ class TokenUnserializerTest extends TestCase
         // Create a valid serialization then corrupt it
         $token = new JwtToken($this->user, 'main');
         $serialized = serialize($token);
-        $corrupted = substr($serialized, 0, -10) . 'corrupted';
+        $corrupted = substr($serialized, 0, -10).'corrupted';
 
         $result = TokenUnserializer::create($corrupted);
 

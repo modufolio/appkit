@@ -8,7 +8,7 @@ use Modufolio\Appkit\Security\User\UserInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
 /**
- * Interface for OAuth 2.1 Service
+ * Interface for OAuth 2.1 Service.
  *
  * Defines the contract for OAuth token lifecycle management:
  * creation, validation, refresh (with rotation), revocation, and cleanup.
@@ -46,7 +46,7 @@ interface OAuthServiceInterface
     /**
      * Revoke an access token.
      *
-     * @return bool True if the token was found and revoked.
+     * @return bool true if the token was found and revoked
      */
     public function revokeAccessToken(string $accessToken): bool;
 

@@ -4,21 +4,18 @@ declare(strict_types=1);
 
 namespace Modufolio\Appkit\Form;
 
-use RuntimeException;
-
 /**
  * Exception thrown when form validation fails.
  *
- * @package   Appkit Core
  * @author    Maarten Thiebou
  * @copyright Modufolio
  * @license   https://opensource.org/licenses/MIT
  */
-class ValidationException extends RuntimeException
+class ValidationException extends \RuntimeException
 {
     public function __construct(
         private readonly ValidationResult $result,
-        string $message = 'Validation failed'
+        string $message = 'Validation failed',
     ) {
         parent::__construct($message);
     }

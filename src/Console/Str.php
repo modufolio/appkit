@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Console;
 
@@ -30,7 +30,7 @@ final class Str
      */
     public static function addSuffix(string $value, string $suffix): string
     {
-        return self::removeSuffix($value, $suffix) . $suffix;
+        return self::removeSuffix($value, $suffix).$suffix;
     }
 
     /**
@@ -87,14 +87,14 @@ final class Str
 
     public static function asRoutePath(string $value): string
     {
-        return '/' . str_replace('_', '/', self::asTwigVariable($value));
+        return '/'.str_replace('_', '/', self::asTwigVariable($value));
     }
 
     public static function asRouteName(string $value): string
     {
         $routeName = self::asTwigVariable($value);
 
-        return str_starts_with($routeName, 'app_') ? $routeName : 'app_' . $routeName;
+        return str_starts_with($routeName, 'app_') ? $routeName : 'app_'.$routeName;
     }
 
     public static function asSnakeCase(string $value): string
@@ -115,7 +115,7 @@ final class Str
     public static function getShortClassName(string $class): string
     {
         $pos = strrpos($class, '\\');
-        if ($pos === false) {
+        if (false === $pos) {
             return $class; // no namespace, return as-is
         }
 
@@ -158,7 +158,7 @@ final class Str
     {
         $pos = strrpos($fullClassName, '\\');
 
-        if ($pos === false) {
+        if (false === $pos) {
             return '';
         }
 
@@ -222,7 +222,7 @@ final class Str
      */
     public static function isValidPhpVariableName($name)
     {
-        return (bool)preg_match('/^[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*$/', $name, $matches);
+        return (bool) preg_match('/^[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*$/', $name, $matches);
     }
 
     /**

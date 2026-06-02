@@ -2,14 +2,14 @@
 
 namespace Modufolio\Appkit\Tests\Unit\Security\Authenticator;
 
-use Modufolio\Psr7\Http\ServerRequest;
-use Modufolio\Psr7\Http\Uri;
 use Modufolio\Appkit\Security\Authenticator\ApiKeyAuthenticator;
 use Modufolio\Appkit\Security\Exception\AuthenticationException;
 use Modufolio\Appkit\Security\Token\ApiKeyToken;
 use Modufolio\Appkit\Security\User\InMemoryUser;
 use Modufolio\Appkit\Tests\App\InMemoryUserProvider;
 use Modufolio\Appkit\Tests\Case\AppTestCase;
+use Modufolio\Psr7\Http\ServerRequest;
+use Modufolio\Psr7\Http\Uri;
 
 class ApiKeyAuthenticatorTest extends AppTestCase
 {
@@ -47,7 +47,7 @@ class ApiKeyAuthenticatorTest extends AppTestCase
     public function testConstructorSetsDefaultOptions(): void
     {
         $authenticator = new ApiKeyAuthenticator($this->userProvider, [
-            'api_keys' => $this->apiKeys
+            'api_keys' => $this->apiKeys,
         ]);
 
         $this->assertInstanceOf(ApiKeyAuthenticator::class, $authenticator);
@@ -56,7 +56,7 @@ class ApiKeyAuthenticatorTest extends AppTestCase
     public function testSupportsReturnsTrueWhenApiKeyHeaderExists(): void
     {
         $authenticator = new ApiKeyAuthenticator($this->userProvider, [
-            'api_keys' => $this->apiKeys
+            'api_keys' => $this->apiKeys,
         ]);
 
         $request = new ServerRequest(
@@ -71,7 +71,7 @@ class ApiKeyAuthenticatorTest extends AppTestCase
     public function testSupportsReturnsFalseWhenApiKeyHeaderIsMissing(): void
     {
         $authenticator = new ApiKeyAuthenticator($this->userProvider, [
-            'api_keys' => $this->apiKeys
+            'api_keys' => $this->apiKeys,
         ]);
 
         $request = new ServerRequest(
@@ -87,7 +87,7 @@ class ApiKeyAuthenticatorTest extends AppTestCase
     {
         $authenticator = new ApiKeyAuthenticator($this->userProvider, [
             'api_keys' => $this->apiKeys,
-            'query_parameter' => 'api_key'
+            'query_parameter' => 'api_key',
         ]);
 
         $request = (new ServerRequest(
@@ -102,7 +102,7 @@ class ApiKeyAuthenticatorTest extends AppTestCase
     public function testSupportsReturnsFalseWhenQueryParameterNotConfigured(): void
     {
         $authenticator = new ApiKeyAuthenticator($this->userProvider, [
-            'api_keys' => $this->apiKeys
+            'api_keys' => $this->apiKeys,
         ]);
 
         $request = (new ServerRequest(
@@ -118,7 +118,7 @@ class ApiKeyAuthenticatorTest extends AppTestCase
     {
         $authenticator = new ApiKeyAuthenticator($this->userProvider, [
             'api_keys' => $this->apiKeys,
-            'header_name' => 'X-Custom-API-Key'
+            'header_name' => 'X-Custom-API-Key',
         ]);
 
         $request = new ServerRequest(
@@ -133,7 +133,7 @@ class ApiKeyAuthenticatorTest extends AppTestCase
     public function testAuthenticateThrowsExceptionWhenApiKeyIsMissing(): void
     {
         $authenticator = new ApiKeyAuthenticator($this->userProvider, [
-            'api_keys' => $this->apiKeys
+            'api_keys' => $this->apiKeys,
         ]);
 
         $request = new ServerRequest(
@@ -151,7 +151,7 @@ class ApiKeyAuthenticatorTest extends AppTestCase
     public function testAuthenticateThrowsExceptionWhenApiKeyIsEmpty(): void
     {
         $authenticator = new ApiKeyAuthenticator($this->userProvider, [
-            'api_keys' => $this->apiKeys
+            'api_keys' => $this->apiKeys,
         ]);
 
         $request = new ServerRequest(
@@ -169,7 +169,7 @@ class ApiKeyAuthenticatorTest extends AppTestCase
     public function testAuthenticateThrowsExceptionWhenApiKeyIsInvalid(): void
     {
         $authenticator = new ApiKeyAuthenticator($this->userProvider, [
-            'api_keys' => $this->apiKeys
+            'api_keys' => $this->apiKeys,
         ]);
 
         $request = new ServerRequest(
@@ -188,7 +188,7 @@ class ApiKeyAuthenticatorTest extends AppTestCase
     {
         // Use keys that map to a user NOT in the provider
         $authenticator = new ApiKeyAuthenticator($this->userProvider, [
-            'api_keys' => ['orphan-key' => 'nobody@example.com']
+            'api_keys' => ['orphan-key' => 'nobody@example.com'],
         ]);
 
         $request = new ServerRequest(
@@ -206,7 +206,7 @@ class ApiKeyAuthenticatorTest extends AppTestCase
     public function testAuthenticateSuccessfullyWithHeader(): void
     {
         $authenticator = new ApiKeyAuthenticator($this->userProvider, [
-            'api_keys' => $this->apiKeys
+            'api_keys' => $this->apiKeys,
         ]);
 
         $request = new ServerRequest(
@@ -224,7 +224,7 @@ class ApiKeyAuthenticatorTest extends AppTestCase
     {
         $authenticator = new ApiKeyAuthenticator($this->userProvider, [
             'api_keys' => $this->apiKeys,
-            'query_parameter' => 'api_key'
+            'query_parameter' => 'api_key',
         ]);
 
         $request = (new ServerRequest(
@@ -242,7 +242,7 @@ class ApiKeyAuthenticatorTest extends AppTestCase
     {
         $authenticator = new ApiKeyAuthenticator($this->userProvider, [
             'api_keys' => $this->apiKeys,
-            'query_parameter' => 'api_key'
+            'query_parameter' => 'api_key',
         ]);
 
         $request = (new ServerRequest(
@@ -260,7 +260,7 @@ class ApiKeyAuthenticatorTest extends AppTestCase
     public function testAuthenticateTrimsApiKey(): void
     {
         $authenticator = new ApiKeyAuthenticator($this->userProvider, [
-            'api_keys' => $this->apiKeys
+            'api_keys' => $this->apiKeys,
         ]);
 
         $request = new ServerRequest(
@@ -277,7 +277,7 @@ class ApiKeyAuthenticatorTest extends AppTestCase
     public function testCreateTokenReturnsApiKeyToken(): void
     {
         $authenticator = new ApiKeyAuthenticator($this->userProvider, [
-            'api_keys' => $this->apiKeys
+            'api_keys' => $this->apiKeys,
         ]);
 
         $user = new InMemoryUser('user1@example.com', 'password', ['ROLE_USER']);
@@ -292,7 +292,7 @@ class ApiKeyAuthenticatorTest extends AppTestCase
     public function testUnauthorizedResponseReturns401WithWWWAuthenticate(): void
     {
         $authenticator = new ApiKeyAuthenticator($this->userProvider, [
-            'api_keys' => $this->apiKeys
+            'api_keys' => $this->apiKeys,
         ]);
 
         $request = new ServerRequest(
@@ -315,7 +315,7 @@ class ApiKeyAuthenticatorTest extends AppTestCase
     {
         $authenticator = new ApiKeyAuthenticator($this->userProvider, [
             'api_keys' => $this->apiKeys,
-            'header_name' => 'X-Custom-Key'
+            'header_name' => 'X-Custom-Key',
         ]);
 
         $request = new ServerRequest(

@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Security\User;
 
@@ -15,9 +15,9 @@ class UserPasswordHasher implements UserPasswordHasherInterface
 
     /**
      * @param array{algo?: string|int|null, options?: array<string, mixed>} $options
-     *   options are passed straight to password_hash() and must match the algo
-     *   (e.g. 'cost' for bcrypt, 'memory_cost'/'time_cost'/'threads' for argon2).
-     *   When omitted, PHP applies algorithm-appropriate defaults.
+     *                                                                               options are passed straight to password_hash() and must match the algo
+     *                                                                               (e.g. 'cost' for bcrypt, 'memory_cost'/'time_cost'/'threads' for argon2).
+     *                                                                               When omitted, PHP applies algorithm-appropriate defaults.
      */
     public function __construct(array $options = [])
     {

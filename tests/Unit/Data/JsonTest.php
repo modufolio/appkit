@@ -1,15 +1,12 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Tests\Unit\Data;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-
 use Modufolio\Appkit\Data\Json;
-use InvalidArgumentException;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use stdClass;
 
 #[CoversClass(Json::class)]
 class JsonTest extends TestCase
@@ -17,8 +14,8 @@ class JsonTest extends TestCase
     public function testEncodeDecode(): void
     {
         $array = [
-            'name'     => 'Homer',
-            'children' => ['Lisa', 'Bart', 'Maggie']
+            'name' => 'Homer',
+            'children' => ['Lisa', 'Bart', 'Maggie'],
         ];
 
         $data = Json::encode($array);
@@ -37,23 +34,23 @@ class JsonTest extends TestCase
     public function testDecodeInvalid1(): void
     {
         // pass invalid object
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('Invalid JSON data; please pass a string');
-        Json::decode(new stdClass());
+        Json::decode(new \stdClass());
     }
 
     public function testDecodeInvalid2(): void
     {
         // pass invalid int
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('Invalid JSON data; please pass a string');
         Json::decode(1);
     }
 
     public function testEncodeUnicode(): void
     {
-        $string  = 'здравей';
-        $this->assertSame('"' . $string . '"', Json::encode($string));
+        $string = 'здравей';
+        $this->assertSame('"'.$string.'"', Json::encode($string));
     }
 
     public function testDecodeCorrupted1(): void

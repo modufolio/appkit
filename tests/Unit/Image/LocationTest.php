@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Tests\Unit\Image;
 
@@ -12,10 +12,10 @@ class LocationTest extends TestCase
     protected function _exif(): array
     {
         return [
-            'GPSLatitudeRef'  => 'N',
-            'GPSLatitude'     => ['50/1', '49/1', '8592/1000'],
+            'GPSLatitudeRef' => 'N',
+            'GPSLatitude' => ['50/1', '49/1', '8592/1000'],
             'GPSLongitudeRef' => 'W',
-            'GPSLongitude'    => ['0/1', '1', '/12450']
+            'GPSLongitude' => ['0/1', '1', '/12450'],
         ];
     }
 
@@ -29,9 +29,9 @@ class LocationTest extends TestCase
     public function testToArray(): void
     {
         $camera = new Location($this->_exif());
-        $array  = [
+        $array = [
             'lat' => 50.819053333333336,
-            'lng' => -0.016666666666666666
+            'lng' => -0.016666666666666666,
         ];
         $this->assertSame($array, $camera->toArray());
         $this->assertSame($array, $camera->__debugInfo());
@@ -40,7 +40,7 @@ class LocationTest extends TestCase
     public function testToString(): void
     {
         $camera = new Location($this->_exif());
-        $this->assertStringContainsString('50.8190533333', (string)$camera);
-        $this->assertStringContainsString('-0.016666666666', (string)$camera);
+        $this->assertStringContainsString('50.8190533333', (string) $camera);
+        $this->assertStringContainsString('-0.016666666666', (string) $camera);
     }
 }

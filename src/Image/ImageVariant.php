@@ -3,9 +3,8 @@
 namespace Modufolio\Appkit\Image;
 
 /**
- * Image variant representation
+ * Image variant representation.
  *
- * @package   Image
  * @author    Maarten Thiebou
  * @copyright Modufolio
  * @license   https://opensource.org/licenses/MIT
@@ -22,9 +21,9 @@ class ImageVariant
      */
     public function __construct(array $props)
     {
-        $this->root          = $props['root'] ?? throw new \InvalidArgumentException('Missing root path');
-        $this->url           = $props['url'] ?? throw new \InvalidArgumentException('Missing URL');
-        $this->original      = $props['original'] ?? throw new \InvalidArgumentException('Missing original file');
+        $this->root = $props['root'] ?? throw new \InvalidArgumentException('Missing root path');
+        $this->url = $props['url'] ?? throw new \InvalidArgumentException('Missing URL');
+        $this->original = $props['original'] ?? throw new \InvalidArgumentException('Missing original file');
         $this->modifications = $props['modifications'] ?? [];
     }
 
@@ -71,9 +70,9 @@ class ImageVariant
     public function toArray(): array
     {
         return [
-            'filename'      => $this->filename(),
-            'url'           => $this->url(),
-            'root'          => $this->root(),
+            'filename' => $this->filename(),
+            'url' => $this->url(),
+            'root' => $this->root(),
             'modifications' => $this->modifications(),
         ];
     }

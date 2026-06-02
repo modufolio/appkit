@@ -1,13 +1,12 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Toolkit;
 
 /**
  * This class provides a collection of utility functions for functional programming in PHP.
  *
- * @package   Toolkit
  * @author    Maarten Thiebou
  * @copyright Modufolio
  * @license   https://opensource.org/licenses/MIT
@@ -18,7 +17,8 @@ class Func
      * Compose multiple callable functions into a single callable function.
      *
      * @param callable ...$fns An arbitrary number of callable functions to compose.
-     * @return callable A composed callable function.
+     *
+     * @return callable a composed callable function
      */
     public static function compose(callable ...$fns): callable
     {
@@ -36,23 +36,24 @@ class Func
     /**
      * Pipe data through a series of callable functions.
      *
-     * @param mixed $data The data to be processed.
+     * @param mixed    $data   the data to be processed
      * @param callable ...$fns An arbitrary number of callable functions to apply sequentially.
-     * @return mixed The result of piping the data through the provided functions.
+     *
+     * @return mixed the result of piping the data through the provided functions
      */
     public static function pipe(mixed $data, callable ...$fns): mixed
     {
         return self::compose(...$fns)($data);
     }
 
-
     /**
      * Reduce an iterable collection using a given callable function.
      *
-     * @param callable $fn The callback function to apply for each element in the collection.
-     * @param iterable $coll The iterable collection to be reduced.
-     * @param mixed|null $initial An optional initial value for the reduction.
-     * @return mixed The result of the reduction.
+     * @param callable   $fn      the callback function to apply for each element in the collection
+     * @param iterable   $coll    the iterable collection to be reduced
+     * @param mixed|null $initial an optional initial value for the reduction
+     *
+     * @return mixed the result of the reduction
      */
     public static function reduce(callable $fn, iterable $coll, mixed $initial = null): mixed
     {
@@ -64,5 +65,4 @@ class Func
 
         return $acc;
     }
-
 }

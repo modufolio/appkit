@@ -1,9 +1,10 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Tests\App;
 
+use Doctrine\DBAL\Exception;
 use Modufolio\Appkit\Core\Kernel;
 use Modufolio\Appkit\Core\NativeApplicationState;
 use Modufolio\Appkit\Core\ResetInterface;
@@ -21,17 +22,16 @@ use Modufolio\Appkit\Security\BruteForce\BruteForceProtectionInterface;
 use Modufolio\Appkit\Security\Csrf\CsrfTokenManager;
 use Modufolio\Appkit\Security\Csrf\CsrfTokenManagerInterface;
 use Modufolio\Appkit\Security\TwoFactor\TotpService;
-use Symfony\Component\Clock\Clock;
 use Modufolio\Appkit\Security\User\UserProviderInterface;
 use Modufolio\Appkit\Tests\App\Entity\UserTotpSecret;
 use Modufolio\Appkit\Tests\App\Repository\UserTotpSecretRepository;
-use Doctrine\DBAL\Exception;
 use Modufolio\Psr7\Http\ServerRequest;
 use Modufolio\Psr7\Http\Stream;
 use Modufolio\Psr7\Http\Uri;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\Clock\Clock;
 use Symfony\Component\Config\Loader\LoaderInterface;
 use Symfony\Component\Serializer\Encoder\JsonEncoder;
 use Symfony\Component\Serializer\Normalizer\ArrayDenormalizer;
@@ -69,7 +69,7 @@ class App extends Kernel
         array $factories = [],
         array $fileMap = [],
         array $instances = [],
-        array $repositories = []
+        array $repositories = [],
     ) {
         $this->baseDir = $baseDir;
         $this->routeLoader = $routeLoader;
@@ -129,8 +129,6 @@ class App extends Kernel
     }
 
     /**
-     *
-     * @return self
      * @throws \RuntimeException if called outside test environment
      */
     public function initializeTestState(): self
@@ -139,7 +137,7 @@ class App extends Kernel
             throw new \RuntimeException('initializeTestState() can only be called in test environment');
         }
 
-        if ($this->state === null) {
+        if (null === $this->state) {
             // Create minimal test request
             $request = new ServerRequest(
                 method: 'GET',
@@ -154,7 +152,6 @@ class App extends Kernel
                     'SERVER_PROTOCOL' => 'HTTP/1.1',
                 ]
             );
-
 
             $this->state = new NativeApplicationState($request, $this->baseDir, $this->firewallConfig);
         }
@@ -182,6 +179,7 @@ class App extends Kernel
     public function registerAuthenticator(string $name, \Closure $factory): static
     {
         $this->authenticators[$name] = $factory;
+
         return $this;
     }
 
@@ -243,7 +241,7 @@ class App extends Kernel
                     $serializer,
                     $this->request(),
                     $this->validator()
-                )
+                ),
             ]))
             ->addResolver(new TypeHintContainerResolver($this));
     }

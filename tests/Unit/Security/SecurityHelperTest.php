@@ -116,7 +116,7 @@ class SecurityHelperTest extends TestCase
     public function testGenerateMultiplePasswords(): void
     {
         $passwords = [];
-        for ($i = 0; $i < 10; $i++) {
+        for ($i = 0; $i < 10; ++$i) {
             $passwords[] = SecurityHelper::generatePassword(15);
         }
 

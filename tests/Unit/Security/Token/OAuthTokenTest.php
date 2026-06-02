@@ -110,7 +110,7 @@ class OAuthTokenTest extends TestCase
             'api.users.write',
             'api.posts.read',
             'api.posts.write',
-            'api.comments.delete'
+            'api.comments.delete',
         ];
 
         $token = new OAuthToken($this->user, 'main', $scopes);

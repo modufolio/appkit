@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Tests\Unit\Toolkit;
 
@@ -58,6 +58,4 @@ class FuncTest extends TestCase
 
         $this->assertEquals(15, $result);
     }
-
-
 }

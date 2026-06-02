@@ -1,24 +1,23 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Tests\Unit\Image;
-
-use PHPUnit\Framework\Attributes\CoversClass;
 
 use Modufolio\Appkit\Image\Dimensions;
 use Modufolio\Appkit\Image\Exif;
 use Modufolio\Appkit\Image\Image;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(Image::class)]
 class ImageTest extends TestCase
 {
-    public const FIXTURES = __DIR__ . '/fixtures';
+    public const FIXTURES = __DIR__.'/fixtures';
 
     protected function _image($file = 'cat.jpg'): Image
     {
-        return new Image(static::FIXTURES . '/image/' . $file);
+        return new Image(static::FIXTURES.'/image/'.$file);
     }
 
     public function testDimensions(): void
@@ -65,9 +64,6 @@ class ImageTest extends TestCase
         $this->assertSame(533, $file->height());
     }
 
-
-
-
     public function testImagesize(): void
     {
         $file = $this->_image();
@@ -99,7 +95,7 @@ class ImageTest extends TestCase
         $this->assertTrue($file->isResizable());
 
         // Skip HEIC test if fixture doesn't exist
-        $heicPath = static::FIXTURES . '/image/test.heic';
+        $heicPath = static::FIXTURES.'/image/test.heic';
         if (file_exists($heicPath)) {
             $file = $this->_image('test.heic');
             $this->assertFalse($file->isResizable());
@@ -114,7 +110,7 @@ class ImageTest extends TestCase
         $this->assertTrue($file->isResizable());
 
         // Skip HEIC test if fixture doesn't exist
-        $heicPath = static::FIXTURES . '/image/test.heic';
+        $heicPath = static::FIXTURES.'/image/test.heic';
         if (file_exists($heicPath)) {
             $file = $this->_image('test.heic');
             $this->assertFalse($file->isResizable());
@@ -122,7 +118,6 @@ class ImageTest extends TestCase
             $this->markTestSkipped('HEIC fixture file not available');
         }
     }
-
 
     public function testOrientation(): void
     {
@@ -132,7 +127,7 @@ class ImageTest extends TestCase
 
     public function testRatio(): void
     {
-        $image  = $this->_image();
+        $image = $this->_image();
         $this->assertEqualsWithDelta(1.5009380863039, $image->ratio(), 0.0001);
     }
 

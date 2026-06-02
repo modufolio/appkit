@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\DependencyInjection;
 
@@ -41,6 +41,7 @@ class ParameterBag
         if (isset($this->resolved[$key]) || !$this->isPlaceholder($this->parameters[$key])) {
             return $this->parameters[$key];
         }
+
         return $this->resolved[$key] = $this->resolveValue($this->parameters[$key]);
     }
 
@@ -76,6 +77,7 @@ class ParameterBag
             foreach ($value as $k => $v) {
                 $resolved[$this->isPlaceholder($k) ? $this->resolveValue($k) : $k] = $this->resolveValue($v);
             }
+
             return $resolved;
         }
 
@@ -84,12 +86,13 @@ class ParameterBag
         }
 
         $placeholder = $this->getPlaceholderName($value);
+
         return $this->get($placeholder);
     }
 
     private function isPlaceholder(string $value): bool
     {
-        return preg_match('/^%([^%]+)%$/', $value) === 1;
+        return 1 === preg_match('/^%([^%]+)%$/', $value);
     }
 
     private function getPlaceholderName(string $value): string

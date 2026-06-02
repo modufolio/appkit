@@ -6,8 +6,8 @@ namespace Modufolio\Appkit\Tests\Unit\Core;
 
 use Modufolio\Appkit\Core\ApplicationStateInterface;
 use Modufolio\Appkit\Core\NativeApplicationState;
-use Modufolio\Psr7\Http\ServerRequest;
 use Modufolio\Appkit\Tests\Case\AppTestCase;
+use Modufolio\Psr7\Http\ServerRequest;
 
 /**
  * Tests for simplified firewall pattern matching.
@@ -155,6 +155,7 @@ class ApplicationStateReDoSSecurityTest extends AppTestCase
     private function createApplicationState(array $firewallConfig): ApplicationStateInterface
     {
         $request = new ServerRequest('GET', '/test');
+
         return new NativeApplicationState($request, sys_get_temp_dir(), $firewallConfig);
     }
 

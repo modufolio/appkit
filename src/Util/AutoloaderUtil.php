@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Util;
 
@@ -30,22 +30,22 @@ class AutoloaderUtil
         // lookup is obviously modeled off of Composer's autoload logic
         foreach ($classLoader->getPrefixesPsr4() as $prefix => $paths) {
             if (str_starts_with($className, $prefix)) {
-                return $paths[0] . '/' . str_replace('\\', '/', substr($className, \strlen($prefix))) . '.php';
+                return $paths[0].'/'.str_replace('\\', '/', substr($className, \strlen($prefix))).'.php';
             }
         }
 
         foreach ($classLoader->getPrefixes() as $prefix => $paths) {
             if (str_starts_with($className, $prefix)) {
-                return $paths[0] . '/' . str_replace('\\', '/', $className) . '.php';
+                return $paths[0].'/'.str_replace('\\', '/', $className).'.php';
             }
         }
 
         if ($classLoader->getFallbackDirsPsr4()) {
-            return $classLoader->getFallbackDirsPsr4()[0] . '/' . str_replace('\\', '/', $className) . '.php';
+            return $classLoader->getFallbackDirsPsr4()[0].'/'.str_replace('\\', '/', $className).'.php';
         }
 
         if ($classLoader->getFallbackDirs()) {
-            return $classLoader->getFallbackDirs()[0] . '/' . str_replace('\\', '/', $className) . '.php';
+            return $classLoader->getFallbackDirs()[0].'/'.str_replace('\\', '/', $className).'.php';
         }
 
         return null;
@@ -67,7 +67,7 @@ class AutoloaderUtil
      */
     public function isNamespaceConfiguredToAutoload(string $namespace): bool
     {
-        $namespace = trim($namespace, '\\') . '\\';
+        $namespace = trim($namespace, '\\').'\\';
         $classLoader = $this->getClassLoader();
 
         foreach ($classLoader->getPrefixesPsr4() as $prefix => $paths) {

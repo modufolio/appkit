@@ -7,7 +7,7 @@ namespace Modufolio\Appkit\Security\Token;
 use Modufolio\Appkit\Security\User\UserInterface;
 
 /**
- * OAuth Token
+ * OAuth Token.
  *
  * Represents an authenticated OAuth 2.1 token
  */
@@ -19,7 +19,7 @@ class OAuthToken extends AbstractToken
         UserInterface $user,
         string $firewallName,
         private array $scopes = [],
-        array $roles = []
+        array $roles = [],
     ) {
         parent::__construct($roles);
 

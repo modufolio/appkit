@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Routing\Loader;
 
@@ -11,7 +11,6 @@ use Symfony\Component\Routing\RouteCollection;
 
 class ArrayRouteLoader extends Loader
 {
-
     public function __construct(private FileLocatorInterface $fileLocator)
     {
         parent::__construct();
@@ -19,7 +18,6 @@ class ArrayRouteLoader extends Loader
 
     public function load($resource, $type = null): RouteCollection
     {
-
         // Locate the file using FileLocator
         $filePath = $this->fileLocator->locate($resource);
 

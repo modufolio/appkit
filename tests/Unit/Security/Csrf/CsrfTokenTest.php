@@ -36,7 +36,7 @@ class CsrfTokenTest extends TestCase
     {
         $token = new CsrfToken('test', 'token_value');
 
-        $this->assertSame('token_value', (string)$token);
+        $this->assertSame('token_value', (string) $token);
         $this->assertSame('token_value', $token->__toString());
     }
 

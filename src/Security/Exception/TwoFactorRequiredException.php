@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Security\Exception;
 
@@ -17,7 +17,8 @@ final class TwoFactorRequiredException extends AuthenticationException
     public function getUser(): UserInterface
     {
         $user = parent::getUser();
-        assert($user !== null);
+        assert(null !== $user);
+
         return $user;
     }
 }

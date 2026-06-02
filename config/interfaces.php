@@ -1,5 +1,6 @@
 <?php
 
+use Doctrine\ORM\EntityManagerInterface;
 use Modufolio\Appkit\Core\Environment;
 use Modufolio\Appkit\Doctrine\Middleware\Debug\DebugStack;
 use Modufolio\Appkit\Factory\Psr17Factory;
@@ -14,7 +15,6 @@ use Modufolio\Appkit\Security\User\UserCheckerInterface;
 use Modufolio\Appkit\Security\User\UserPasswordHasher;
 use Modufolio\Appkit\Security\User\UserPasswordHasherInterface;
 use Modufolio\Appkit\Security\User\UserProviderInterface;
-use Doctrine\ORM\EntityManagerInterface;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Symfony\Component\HttpFoundation\Session\Flash\FlashBagInterface;

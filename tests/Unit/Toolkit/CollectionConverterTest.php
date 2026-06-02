@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Tests\Unit\Toolkit;
 
@@ -12,8 +12,8 @@ class CollectionConverterTest extends TestCase
     public function testToArray()
     {
         $array = [
-            'one'   => 'eins',
-            'two'   => 'zwei'
+            'one' => 'eins',
+            'two' => 'zwei',
         ];
         $collection = new Collection($array);
         $this->assertSame($array, $collection->toArray());
@@ -22,22 +22,22 @@ class CollectionConverterTest extends TestCase
     public function testToArrayMap()
     {
         $collection = new Collection([
-            'one'   => 'eins',
-            'two'   => 'zwei'
+            'one' => 'eins',
+            'two' => 'zwei',
         ]);
         $this->assertSame([
-            'one'   => 'einsy',
-            'two'   => 'zweiy'
+            'one' => 'einsy',
+            'two' => 'zweiy',
         ], $collection->toArray(function ($item) {
-            return $item . 'y';
+            return $item.'y';
         }));
     }
 
     public function testToJson()
     {
         $collection = new Collection([
-            'one'   => 'eins',
-            'two'   => 'zwei'
+            'one' => 'eins',
+            'two' => 'zwei',
         ]);
         $this->assertSame('{"one":"eins","two":"zwei"}', $collection->toJson());
     }
@@ -45,11 +45,11 @@ class CollectionConverterTest extends TestCase
     public function testToString()
     {
         $collection = new Collection([
-            'one'   => 'eins',
-            'two'   => 'zwei'
+            'one' => 'eins',
+            'two' => 'zwei',
         ]);
         $string = 'one<br />two';
         $this->assertSame($string, $collection->toString());
-        $this->assertSame($string, (string)$collection);
+        $this->assertSame($string, (string) $collection);
     }
 }

@@ -1,19 +1,19 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Tests\App\Entity;
 
-use Modufolio\Appkit\Tests\App\Entity\Traits\Timestampable;
-use Modufolio\JsonApi\JsonApiResource;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Modufolio\Appkit\Tests\App\Entity\Traits\Timestampable;
+use Modufolio\JsonApi\JsonApiResource;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'accounts')]
 #[ORM\HasLifecycleCallbacks]
-class  Account implements JsonApiResource
+class Account implements JsonApiResource
 {
     use Timestampable;
     #[ORM\Id]
@@ -58,7 +58,7 @@ class  Account implements JsonApiResource
             'id',
             'name',
             'createdAt',
-            'updatedAt'
+            'updatedAt',
         ];
     }
 
@@ -66,7 +66,7 @@ class  Account implements JsonApiResource
     {
         return [
             'organizations',
-            'contacts'
+            'contacts',
         ];
     }
 
@@ -77,7 +77,7 @@ class  Account implements JsonApiResource
             'show' => true,
             'create' => true,
             'update' => true,
-            'delete' => true
+            'delete' => true,
         ];
     }
 

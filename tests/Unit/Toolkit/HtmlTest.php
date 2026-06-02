@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Tests\Unit\Toolkit;
 
@@ -37,7 +37,7 @@ class HtmlTest extends TestCase
             [['a' => 'a', 'b' => false], null,  'a="a"'],
             [['a' => 'a', 'b' => null],  null,  'a="a"'],
             [['a' => 'a', 'b' => []],    null,  'a="a"'],
-            [['a', 'b' => true],         null,  'a b']
+            [['a', 'b' => true],         null,  'a b'],
         ];
     }
 

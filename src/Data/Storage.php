@@ -1,16 +1,14 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Data;
 
 use Modufolio\Appkit\Toolkit\A;
-use Exception;
 
 /**
- * Dispatch
+ * Dispatch.
  *
- * @package   Appkit Data
  * @author    Maarten Thiebou
  * @copyright Modufolio
  * @license   https://opensource.org/licenses/MIT
@@ -28,32 +26,28 @@ class Storage
     {
         if (!is_array($key)) {
             $this->data[$key] = $value;
+
             return $this;
         }
 
         $this->data = array_merge($this->data, $key);
+
         return $this;
     }
 
     /**
-     * @throws Exception
+     * @throws \Exception
      */
     public function save(): Storage
     {
         PHP::write($this->filePath, $this->data);
+
         return $this;
     }
 
-
-
-    /**
-     * @param array|string|null $key
-     * @param mixed|null $default
-     * @return mixed
-     */
     public function get(array|string|null $key = null, mixed $default = null): mixed
     {
-        if ($key === null) {
+        if (null === $key) {
             return $this->data;
         }
 
@@ -66,15 +60,12 @@ class Storage
     }
 
     /**
-     * Removes an item from the data array
-     *
-     * @param string|null $key
-     * @return array
+     * Removes an item from the data array.
      */
     public function remove(?string $key = null): array
     {
         // reset the entire array
-        if ($key === null) {
+        if (null === $key) {
             return $this->data = [];
         }
 

@@ -2,6 +2,9 @@
 
 namespace Modufolio\Appkit\Tests\Unit\Util;
 
+use Doctrine\ORM\Mapping\Column;
+use Doctrine\ORM\Mapping\Entity;
+use Doctrine\ORM\Mapping\FieldMapping;
 use Modufolio\Appkit\Console\Doctrine\RelationManyToMany;
 use Modufolio\Appkit\Console\Doctrine\RelationManyToOne;
 use Modufolio\Appkit\Console\Doctrine\RelationOneToMany;
@@ -9,9 +12,6 @@ use Modufolio\Appkit\Console\Doctrine\RelationOneToOne;
 use Modufolio\Appkit\Security\User\UserInterface;
 use Modufolio\Appkit\Util\ClassSource\Model\ClassProperty;
 use Modufolio\Appkit\Util\ClassSourceManipulator;
-use Doctrine\ORM\Mapping\Column;
-use Doctrine\ORM\Mapping\Entity;
-use Doctrine\ORM\Mapping\FieldMapping;
 use PhpParser\Builder\Param;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -21,8 +21,8 @@ class ClassSourceManipulatorTest extends TestCase
     #[DataProvider('getAddPropertyTests')]
     public function testAddProperty(string $sourceFilename, $propertyName, array $commentLines, $expectedSourceFilename): void
     {
-        $source = file_get_contents(__DIR__ . '/fixtures/source/' . $sourceFilename);
-        $expectedSource = file_get_contents(__DIR__ . '/fixtures/add_property/' . $expectedSourceFilename);
+        $source = file_get_contents(__DIR__.'/fixtures/source/'.$sourceFilename);
+        $expectedSource = file_get_contents(__DIR__.'/fixtures/add_property/'.$expectedSourceFilename);
 
         $manipulator = new ClassSourceManipulator($source);
         $manipulator->addProperty(name: $propertyName, comments: $commentLines);
@@ -64,12 +64,11 @@ class ClassSourceManipulatorTest extends TestCase
         ];
     }
 
-
     #[DataProvider('getAddGetterTests')]
     public function testAddGetter(string $sourceFilename, string $propertyName, string $type, array $commentLines, $expectedSourceFilename): void
     {
-        $source = file_get_contents(__DIR__ . '/fixtures/source/' . $sourceFilename);
-        $expectedSource = file_get_contents(__DIR__ . '/fixtures/add_getter/' . $expectedSourceFilename);
+        $source = file_get_contents(__DIR__.'/fixtures/source/'.$sourceFilename);
+        $expectedSource = file_get_contents(__DIR__.'/fixtures/add_getter/'.$expectedSourceFilename);
 
         $manipulator = new ClassSourceManipulator($source);
         $manipulator->addGetter($propertyName, $type, true, $commentLines);
@@ -134,8 +133,8 @@ class ClassSourceManipulatorTest extends TestCase
     #[DataProvider('getAddSetterTests')]
     public function testAddSetter(string $sourceFilename, string $propertyName, ?string $type, bool $isNullable, array $commentLines, $expectedSourceFilename): void
     {
-        $source = file_get_contents(__DIR__ . '/fixtures/source/' . $sourceFilename);
-        $expectedSource = file_get_contents(__DIR__ . '/fixtures/add_setter/' . $expectedSourceFilename);
+        $source = file_get_contents(__DIR__.'/fixtures/source/'.$sourceFilename);
+        $expectedSource = file_get_contents(__DIR__.'/fixtures/add_setter/'.$expectedSourceFilename);
 
         $manipulator = new ClassSourceManipulator($source);
         $manipulator->addSetter($propertyName, $type, $isNullable, $commentLines);
@@ -197,8 +196,8 @@ class ClassSourceManipulatorTest extends TestCase
     #[DataProvider('getAttributeClassTests')]
     public function testAddAttributeToClass(string $sourceFilename, string $expectedSourceFilename, string $attributeClass, array $attributeOptions, ?string $attributePrefix = null): void
     {
-        $source = file_get_contents(__DIR__ . '/fixtures/source/' . $sourceFilename);
-        $expectedSource = file_get_contents(__DIR__ . '/fixtures/add_class_attribute/' . $expectedSourceFilename);
+        $source = file_get_contents(__DIR__.'/fixtures/source/'.$sourceFilename);
+        $expectedSource = file_get_contents(__DIR__.'/fixtures/add_class_attribute/'.$expectedSourceFilename);
         $manipulator = new ClassSourceManipulator($source);
         $manipulator->addAttributeToClass($attributeClass, $attributeOptions, $attributePrefix);
 
@@ -225,8 +224,8 @@ class ClassSourceManipulatorTest extends TestCase
     #[DataProvider('getAddEntityFieldTests')]
     public function testAddEntityField(string $sourceFilename, ClassProperty $propertyModel, $expectedSourceFilename): void
     {
-        $sourcePath = __DIR__ . '/fixtures/source';
-        $expectedPath = __DIR__ . '/fixtures/add_entity_field';
+        $sourcePath = __DIR__.'/fixtures/source';
+        $expectedPath = __DIR__.'/fixtures/add_entity_field';
 
         $this->runAddEntityFieldTests(
             file_get_contents(\sprintf('%s/%s', $sourcePath, $sourceFilename)),
@@ -294,8 +293,8 @@ class ClassSourceManipulatorTest extends TestCase
     #[DataProvider('getAddManyToOneRelationTests')]
     public function testAddManyToOneRelation(string $sourceFilename, $expectedSourceFilename, RelationManyToOne $manyToOne): void
     {
-        $sourcePath = __DIR__ . '/fixtures/source';
-        $expectedPath = __DIR__ . '/fixtures/add_many_to_one_relation';
+        $sourcePath = __DIR__.'/fixtures/source';
+        $expectedPath = __DIR__.'/fixtures/add_many_to_one_relation';
 
         $this->runAddManyToOneRelationTests(
             file_get_contents(\sprintf('%s/%s', $sourcePath, $sourceFilename)),
@@ -390,8 +389,8 @@ class ClassSourceManipulatorTest extends TestCase
     #[DataProvider('getAddOneToManyRelationTests')]
     public function testAddOneToManyRelation(string $sourceFilename, string $expectedSourceFilename, RelationOneToMany $oneToMany): void
     {
-        $sourcePath = __DIR__ . '/fixtures/source';
-        $expectedPath = __DIR__ . '/fixtures/add_one_to_many_relation';
+        $sourcePath = __DIR__.'/fixtures/source';
+        $expectedPath = __DIR__.'/fixtures/add_one_to_many_relation';
 
         // @legacy - Remove when Doctrine/ORM 2.x is no longer supported.
         if (!class_exists(FieldMapping::class)) {
@@ -454,8 +453,8 @@ class ClassSourceManipulatorTest extends TestCase
     #[DataProvider('getAddManyToManyRelationTests')]
     public function testAddManyToManyRelation(string $sourceFilename, $expectedSourceFilename, RelationManyToMany $manyToMany): void
     {
-        $sourcePath = __DIR__ . '/fixtures/source';
-        $expectedPath = __DIR__ . '/fixtures/add_many_to_many_relation';
+        $sourcePath = __DIR__.'/fixtures/source';
+        $expectedPath = __DIR__.'/fixtures/add_many_to_many_relation';
 
         $this->runAddManyToManyRelationTest(
             file_get_contents(\sprintf('%s/%s', $sourcePath, $sourceFilename)),
@@ -511,8 +510,8 @@ class ClassSourceManipulatorTest extends TestCase
     #[DataProvider('getAddOneToOneRelationTests')]
     public function testAddOneToOneRelation(string $sourceFilename, $expectedSourceFilename, RelationOneToOne $oneToOne): void
     {
-        $sourcePath = __DIR__ . '/fixtures/source';
-        $expectedPath = __DIR__ . '/fixtures/add_one_to_one_relation';
+        $sourcePath = __DIR__.'/fixtures/source';
+        $expectedPath = __DIR__.'/fixtures/add_one_to_one_relation';
 
         $this->runAddOneToOneRelation(
             file_get_contents(\sprintf('%s/%s', $sourcePath, $sourceFilename)),
@@ -531,7 +530,6 @@ class ClassSourceManipulatorTest extends TestCase
 
     public static function getAddOneToOneRelationTests(): \Generator
     {
-
         yield 'one_to_one_owning' => [
             'User_simple.php',
             'User_simple_owning.php',
@@ -628,8 +626,8 @@ class ClassSourceManipulatorTest extends TestCase
 
     public function testAddInterface(): void
     {
-        $source = file_get_contents(__DIR__ . '/fixtures/source/User_simple.php');
-        $expectedSource = file_get_contents(__DIR__ . '/fixtures/implements_interface/User_simple.php');
+        $source = file_get_contents(__DIR__.'/fixtures/source/User_simple.php');
+        $expectedSource = file_get_contents(__DIR__.'/fixtures/implements_interface/User_simple.php');
 
         $manipulator = new ClassSourceManipulator($source);
         $manipulator->addInterface(UserInterface::class);
@@ -639,8 +637,8 @@ class ClassSourceManipulatorTest extends TestCase
 
     public function testAddInterfaceToClassWithOtherInterface(): void
     {
-        $source = file_get_contents(__DIR__ . '/fixtures/source/User_simple_with_interface.php');
-        $expectedSource = file_get_contents(__DIR__ . '/fixtures/implements_interface/User_simple_with_interface.php');
+        $source = file_get_contents(__DIR__.'/fixtures/source/User_simple_with_interface.php');
+        $expectedSource = file_get_contents(__DIR__.'/fixtures/implements_interface/User_simple_with_interface.php');
 
         $manipulator = new ClassSourceManipulator($source);
         $manipulator->addInterface(UserInterface::class);
@@ -650,8 +648,8 @@ class ClassSourceManipulatorTest extends TestCase
 
     public function testAddMethodBuilder(): void
     {
-        $source = file_get_contents(__DIR__ . '/fixtures/source/User_empty.php');
-        $expectedSource = file_get_contents(__DIR__ . '/fixtures/add_method/UserEmpty_with_newMethod.php');
+        $source = file_get_contents(__DIR__.'/fixtures/source/User_empty.php');
+        $expectedSource = file_get_contents(__DIR__.'/fixtures/add_method/UserEmpty_with_newMethod.php');
 
         $manipulator = new ClassSourceManipulator($source);
 
@@ -673,8 +671,8 @@ class ClassSourceManipulatorTest extends TestCase
 
     public function testAddMethodWithBody(): void
     {
-        $source = file_get_contents(__DIR__ . '/fixtures/source/EmptyController.php');
-        $expectedSource = file_get_contents(__DIR__ . '/fixtures/add_method/Controller_with_action.php');
+        $source = file_get_contents(__DIR__.'/fixtures/source/EmptyController.php');
+        $expectedSource = file_get_contents(__DIR__.'/fixtures/add_method/Controller_with_action.php');
 
         $manipulator = new ClassSourceManipulator($source);
 
@@ -698,8 +696,8 @@ class ClassSourceManipulatorTest extends TestCase
 
     public function testAddTraitInEmptyClass(): void
     {
-        $source = file_get_contents(__DIR__ . '/fixtures/source/User_empty.php');
-        $expectedSource = file_get_contents(__DIR__ . '/fixtures/add_trait/User_with_only_trait.php');
+        $source = file_get_contents(__DIR__.'/fixtures/source/User_empty.php');
+        $expectedSource = file_get_contents(__DIR__.'/fixtures/add_trait/User_with_only_trait.php');
 
         $manipulator = new ClassSourceManipulator($source);
 
@@ -710,8 +708,8 @@ class ClassSourceManipulatorTest extends TestCase
 
     public function testAddTraitWithProperty(): void
     {
-        $source = file_get_contents(__DIR__ . '/fixtures/source/User_simple.php');
-        $expectedSource = file_get_contents(__DIR__ . '/fixtures/add_trait/User_with_prop_trait.php');
+        $source = file_get_contents(__DIR__.'/fixtures/source/User_simple.php');
+        $expectedSource = file_get_contents(__DIR__.'/fixtures/add_trait/User_with_prop_trait.php');
 
         $manipulator = new ClassSourceManipulator($source);
 
@@ -722,8 +720,8 @@ class ClassSourceManipulatorTest extends TestCase
 
     public function testAddTraitWithConstant(): void
     {
-        $source = file_get_contents(__DIR__ . '/fixtures/source/User_with_const.php');
-        $expectedSource = file_get_contents(__DIR__ . '/fixtures/add_trait/User_with_const_trait.php');
+        $source = file_get_contents(__DIR__.'/fixtures/source/User_with_const.php');
+        $expectedSource = file_get_contents(__DIR__.'/fixtures/add_trait/User_with_const_trait.php');
 
         $manipulator = new ClassSourceManipulator($source);
 
@@ -734,8 +732,8 @@ class ClassSourceManipulatorTest extends TestCase
 
     public function testAddTraitWithTrait(): void
     {
-        $source = file_get_contents(__DIR__ . '/fixtures/source/User_with_trait.php');
-        $expectedSource = file_get_contents(__DIR__ . '/fixtures/add_trait/User_with_trait_trait.php');
+        $source = file_get_contents(__DIR__.'/fixtures/source/User_with_trait.php');
+        $expectedSource = file_get_contents(__DIR__.'/fixtures/add_trait/User_with_trait_trait.php');
 
         $manipulator = new ClassSourceManipulator($source);
 
@@ -746,8 +744,8 @@ class ClassSourceManipulatorTest extends TestCase
 
     public function testAddTraitAlReadyExists(): void
     {
-        $source = file_get_contents(__DIR__ . '/fixtures/add_trait/User_with_trait_trait.php');
-        $expectedSource = file_get_contents(__DIR__ . '/fixtures/add_trait/User_with_trait_trait.php');
+        $source = file_get_contents(__DIR__.'/fixtures/add_trait/User_with_trait_trait.php');
+        $expectedSource = file_get_contents(__DIR__.'/fixtures/add_trait/User_with_trait_trait.php');
 
         $manipulator = new ClassSourceManipulator($source);
 
@@ -758,8 +756,8 @@ class ClassSourceManipulatorTest extends TestCase
 
     public function testAddConstructor(): void
     {
-        $source = file_get_contents(__DIR__ . '/fixtures/source/User_empty.php');
-        $expectedSource = file_get_contents(__DIR__ . '/fixtures/add_constructor/UserEmpty_with_constructor.php');
+        $source = file_get_contents(__DIR__.'/fixtures/source/User_empty.php');
+        $expectedSource = file_get_contents(__DIR__.'/fixtures/add_constructor/UserEmpty_with_constructor.php');
 
         $manipulator = new ClassSourceManipulator($source);
 
@@ -780,8 +778,8 @@ class ClassSourceManipulatorTest extends TestCase
 
     public function testAddConstructorInClassContainsPropsAndMethods(): void
     {
-        $source = file_get_contents(__DIR__ . '/fixtures/source/User_simple.php');
-        $expectedSource = file_get_contents(__DIR__ . '/fixtures/add_constructor/UserSimple_with_constructor.php');
+        $source = file_get_contents(__DIR__.'/fixtures/source/User_simple.php');
+        $expectedSource = file_get_contents(__DIR__.'/fixtures/add_constructor/UserSimple_with_constructor.php');
 
         $manipulator = new ClassSourceManipulator($source);
 
@@ -802,8 +800,8 @@ class ClassSourceManipulatorTest extends TestCase
 
     public function testAddConstructorInClassContainsOnlyConstants(): void
     {
-        $source = file_get_contents(__DIR__ . '/fixtures/source/User_with_const.php');
-        $expectedSource = file_get_contents(__DIR__ . '/fixtures/add_constructor/User_with_constructor_constante.php');
+        $source = file_get_contents(__DIR__.'/fixtures/source/User_with_const.php');
+        $expectedSource = file_get_contents(__DIR__.'/fixtures/add_constructor/User_with_constructor_constante.php');
 
         $manipulator = new ClassSourceManipulator($source);
 
@@ -824,7 +822,7 @@ class ClassSourceManipulatorTest extends TestCase
 
     public function testAddConstructorInClassContainsConstructor(): void
     {
-        $source = file_get_contents(__DIR__ . '/fixtures/source/User_with_constructor.php');
+        $source = file_get_contents(__DIR__.'/fixtures/source/User_with_constructor.php');
 
         $manipulator = new ClassSourceManipulator($source);
 

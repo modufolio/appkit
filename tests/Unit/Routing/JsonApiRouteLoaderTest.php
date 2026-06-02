@@ -22,7 +22,7 @@ class JsonApiRouteLoaderTest extends TestCase
     {
         parent::setUp();
 
-        $this->configDir = __DIR__ . '/../../..';
+        $this->configDir = __DIR__.'/../../..';
 
         $fileLocator = new FileLocator($this->configDir);
         $this->loader = new JsonApiRouteLoader(

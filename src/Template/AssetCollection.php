@@ -5,12 +5,11 @@ declare(strict_types=1);
 namespace Modufolio\Appkit\Template;
 
 /**
- * Shared asset collection for CSS and JavaScript
+ * Shared asset collection for CSS and JavaScript.
  *
  * This collection is shared between template and snippet instances,
  * allowing snippets to add assets that bubble up to the parent template.
  *
- * @package   Appkit Core
  * @author    Maarten Thiebou
  * @copyright Modufolio
  * @license   https://opensource.org/licenses/MIT
@@ -21,7 +20,7 @@ class AssetCollection
     protected array $js = [];
 
     /**
-     * Add CSS file(s) to the collection
+     * Add CSS file(s) to the collection.
      */
     public function addCss(string $url, array $options = []): void
     {
@@ -29,7 +28,7 @@ class AssetCollection
     }
 
     /**
-     * Add JavaScript file(s) to the collection
+     * Add JavaScript file(s) to the collection.
      */
     public function addJs(string $url, array $options = []): void
     {
@@ -37,7 +36,7 @@ class AssetCollection
     }
 
     /**
-     * Get all CSS files
+     * Get all CSS files.
      */
     public function getCss(): array
     {
@@ -45,7 +44,7 @@ class AssetCollection
     }
 
     /**
-     * Get all JavaScript files
+     * Get all JavaScript files.
      */
     public function getJs(): array
     {
@@ -53,7 +52,7 @@ class AssetCollection
     }
 
     /**
-     * Clear all CSS files
+     * Clear all CSS files.
      */
     public function clearCss(): void
     {
@@ -61,7 +60,7 @@ class AssetCollection
     }
 
     /**
-     * Clear all JavaScript files
+     * Clear all JavaScript files.
      */
     public function clearJs(): void
     {

@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Resolver;
 
@@ -21,15 +21,15 @@ readonly class MapRequestPayloadResolver implements AttributeResolverInterface
     public function __construct(
         private DenormalizerInterface $serializer,
         private ServerRequestInterface $request,
-        private ValidatorInterface $validator
+        private ValidatorInterface $validator,
     ) {
     }
 
     public function supports(\ReflectionParameter $parameter): bool
     {
-        return !empty($parameter->getAttributes(MapRequestPayload::class)) ||
-            !empty($parameter->getAttributes(MapQueryString::class)) ||
-            !empty($parameter->getAttributes(MapFilter::class));
+        return !empty($parameter->getAttributes(MapRequestPayload::class))
+            || !empty($parameter->getAttributes(MapQueryString::class))
+            || !empty($parameter->getAttributes(MapFilter::class));
     }
 
     /**
@@ -140,10 +140,7 @@ readonly class MapRequestPayloadResolver implements AttributeResolverInterface
         $type = $parameter->getType();
 
         if (!$type instanceof \ReflectionNamedType) {
-            throw new \LogicException(sprintf(
-                'Parameter "%s" must have a named type hint.',
-                $parameter->getName()
-            ));
+            throw new \LogicException(sprintf('Parameter "%s" must have a named type hint.', $parameter->getName()));
         }
 
         return $type->getName();
@@ -166,6 +163,7 @@ readonly class MapRequestPayloadResolver implements AttributeResolverInterface
             $message = $trans($template, $parameters);
             $violations->add(new ConstraintViolation($message, $template, $parameters, null, $error->getPath(), null));
         }
+
         return $violations;
     }
 }

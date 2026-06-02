@@ -1,14 +1,14 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Console\Doctrine;
 
+use Doctrine\ORM\EntityRepository;
 use Modufolio\Appkit\Console\Generator;
 use Modufolio\Appkit\Console\Str;
 use Modufolio\Appkit\Util\ClassNameDetails;
 use Modufolio\Appkit\Util\UseStatementGenerator;
-use Doctrine\ORM\EntityRepository;
 
 final class EntityClassGenerator
 {

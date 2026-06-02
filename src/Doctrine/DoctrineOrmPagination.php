@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Doctrine;
 
@@ -30,7 +30,7 @@ class DoctrineOrmPagination
             ->setMaxResults($this->limit);
 
         $this->total = $paginator->count();
-        $this->lastPage = max(1, (int)ceil($this->total / $this->limit));
+        $this->lastPage = max(1, (int) ceil($this->total / $this->limit));
         $this->items = $paginator;
 
         return $this;
@@ -58,12 +58,12 @@ class DoctrineOrmPagination
 
     public function start(): int
     {
-        return $this->total === 0 ? 0 : ($this->page - 1) * $this->limit + 1;
+        return 0 === $this->total ? 0 : ($this->page - 1) * $this->limit + 1;
     }
 
     public function end(): int
     {
-        return $this->total === 0 ? 0 : min($this->total, $this->start() + $this->limit - 1);
+        return 0 === $this->total ? 0 : min($this->total, $this->start() + $this->limit - 1);
     }
 
     public function pages(): int
@@ -73,7 +73,7 @@ class DoctrineOrmPagination
 
     public function firstPage(): int
     {
-        return $this->total === 0 ? 0 : 1;
+        return 0 === $this->total ? 0 : 1;
     }
 
     public function lastPage(): int
@@ -128,7 +128,7 @@ class DoctrineOrmPagination
 
     public function range(int $range = 5): array
     {
-        if ($this->total === 0) {
+        if (0 === $this->total) {
             return [];
         }
 

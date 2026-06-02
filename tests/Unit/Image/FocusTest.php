@@ -1,12 +1,11 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Tests\Unit\Image;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-
 use Modufolio\Appkit\Image\Focus;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(Focus::class)]
@@ -15,10 +14,10 @@ class FocusTest extends TestCase
     public function testCoords(): void
     {
         $options = [
-            'sourceWidth'  => 1200,
+            'sourceWidth' => 1200,
             'sourceHeight' => 700,
-            'width'        => 400,
-            'height'       => 350
+            'width' => 400,
+            'height' => 350,
         ];
 
         $options['crop'] = '0%, 0%';
@@ -57,10 +56,10 @@ class FocusTest extends TestCase
         $this->assertSame(700, $focus['y2']);
 
         $options = [
-            'sourceWidth'  => 700,
+            'sourceWidth' => 700,
             'sourceHeight' => 1200,
-            'width'        => 400,
-            'height'       => 350
+            'width' => 400,
+            'height' => 350,
         ];
 
         $options['crop'] = '0%, 0%';
@@ -102,11 +101,11 @@ class FocusTest extends TestCase
     public function testCoordsSameRatio(): void
     {
         $options = [
-            'sourceWidth'  => 1200,
+            'sourceWidth' => 1200,
             'sourceHeight' => 700,
-            'width'        => 600,
-            'height'       => 350,
-            'crop'         => '30% 70%'
+            'width' => 600,
+            'height' => 350,
+            'crop' => '30% 70%',
         ];
 
         $this->assertNull(Focus::coords(...$options));

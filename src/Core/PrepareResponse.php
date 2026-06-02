@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Core;
 
@@ -23,12 +23,12 @@ use Psr\Http\Message\ServerRequestInterface;
  */
 class PrepareResponse implements PrepareResponseInterface
 {
-
     /**
      * Prepare the response before emission.
      *
-     * @param ServerRequestInterface $request The server request
-     * @param ResponseInterface $response The response to prepare
+     * @param ServerRequestInterface $request  The server request
+     * @param ResponseInterface      $response The response to prepare
+     *
      * @return ResponseInterface The prepared response
      */
     public function prepare(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
@@ -41,16 +41,16 @@ class PrepareResponse implements PrepareResponseInterface
         // Set Content-Length if not present
         if (!$response->hasHeader('Content-Length')) {
             $length = $response->getBody()->getSize();
-            if ($length !== null && !$response->hasHeader('Transfer-Encoding')) {
-                $response = $response->withHeader('Content-Length', (string)$length);
+            if (null !== $length && !$response->hasHeader('Transfer-Encoding')) {
+                $response = $response->withHeader('Content-Length', (string) $length);
             }
         }
 
         // HEAD method – clear content, preserve Content-Length
-        if ($request->getMethod() === 'HEAD') {
+        if ('HEAD' === $request->getMethod()) {
             $len = $response->getHeaderLine('Content-Length');
             $response = $response->withBody(Stream::create(''));
-            if ($len !== '') {
+            if ('' !== $len) {
                 $response = $response->withHeader('Content-Length', $len);
             }
         }
@@ -58,8 +58,8 @@ class PrepareResponse implements PrepareResponseInterface
         // Inertia support
         if ($request->hasHeader('X-Inertia')) {
             if (
-                $response->getStatusCode() === 302 &&
-                in_array($request->getMethod(), ['PUT', 'PATCH', 'DELETE'], true)
+                302 === $response->getStatusCode()
+                && in_array($request->getMethod(), ['PUT', 'PATCH', 'DELETE'], true)
             ) {
                 $response = $response->withStatus(303);
             }

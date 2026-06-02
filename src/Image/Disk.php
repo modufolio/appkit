@@ -5,13 +5,12 @@ declare(strict_types=1);
 namespace Modufolio\Appkit\Image;
 
 /**
- * Disk configuration for file storage
+ * Disk configuration for file storage.
  *
  * Represents a named storage location with its own root path and URL.
  * Can be used to organize files across different storage locations
  * (e.g., user uploads, product images, etc.).
  *
- * @package   Image
  * @author    Maarten Thiebou
  * @copyright Modufolio
  * @license   https://opensource.org/licenses/MIT
@@ -27,7 +26,7 @@ class Disk implements DiskInterface
         string $name,
         string $root,
         string $url = '',
-        array $config = []
+        array $config = [],
     ) {
         $this->name = $name;
         $this->root = rtrim($root, '/');

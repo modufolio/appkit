@@ -2,7 +2,6 @@
 
 namespace Modufolio\Appkit\Http;
 
-use InvalidArgumentException;
 use Modufolio\Appkit\Toolkit\F;
 use Psr\Http\Message\UploadedFileInterface;
 
@@ -23,31 +22,26 @@ class UploadedFileErrorHandler
     private array $allowedMimeTypes = [];
 
     /** @var int|null */
-    private $maxSize = null;
+    private $maxSize;
 
     /** @var int|null */
-    private $minSize = null;
+    private $minSize;
 
     /**
      * Create a new file wrapper.
-     *
-     * @param UploadedFileInterface $file
      */
     public function __construct(UploadedFileInterface $file)
     {
         $this->file = $file;
 
         // Check for upload errors immediately
-        if ($this->file->getError() !== UPLOAD_ERR_OK) {
+        if (UPLOAD_ERR_OK !== $this->file->getError()) {
             $this->addError($this->translateError($this->file->getError()));
         }
     }
 
     /**
      * Factory method to create a new wrapper instance.
-     *
-     * @param UploadedFileInterface $file
-     * @return self
      */
     public static function from(UploadedFileInterface $file): self
     {
@@ -58,8 +52,7 @@ class UploadedFileErrorHandler
      * Assert the file has a specific extension.
      *
      * @param string|array $extension Extension or array of extensions
-     * @param string|null $message Custom error message
-     * @return self
+     * @param string|null  $message   Custom error message
      */
     public function hasExtension($extension, ?string $message = null): self
     {
@@ -81,8 +74,7 @@ class UploadedFileErrorHandler
      * Assert the file has a specific mime type.
      *
      * @param string|array $mimeType Mime type or array of mime types
-     * @param string|null $message Custom error message
-     * @return self
+     * @param string|null  $message  Custom error message
      */
     public function hasMimeType($mimeType, ?string $message = null): self
     {
@@ -123,7 +115,6 @@ class UploadedFileErrorHandler
      * Assert the file is an image.
      *
      * @param string|null $message Custom error message
-     * @return self
      */
     public function isImage(?string $message = null): self
     {
@@ -132,16 +123,15 @@ class UploadedFileErrorHandler
             'image/png',
             'image/gif',
             'image/webp',
-            'image/svg+xml'
+            'image/svg+xml',
         ], $message ?? 'File must be an image.');
     }
 
     /**
      * Assert the file size is less than or equal to a maximum size in bytes.
      *
-     * @param int $size Maximum size in bytes
+     * @param int         $size    Maximum size in bytes
      * @param string|null $message Custom error message
-     * @return self
      */
     public function maxSize(int $size, ?string $message = null): self
     {
@@ -161,9 +151,8 @@ class UploadedFileErrorHandler
     /**
      * Assert the file size is greater than or equal to a minimum size in bytes.
      *
-     * @param int $size Minimum size in bytes
+     * @param int         $size    Minimum size in bytes
      * @param string|null $message Custom error message
-     * @return self
      */
     public function minSize(int $size, ?string $message = null): self
     {
@@ -183,9 +172,8 @@ class UploadedFileErrorHandler
     /**
      * Assert the filename matches a specific pattern.
      *
-     * @param string $pattern Regular expression pattern
+     * @param string      $pattern Regular expression pattern
      * @param string|null $message Custom error message
-     * @return self
      */
     public function matchesFilenamePattern(string $pattern, ?string $message = null): self
     {
@@ -204,8 +192,7 @@ class UploadedFileErrorHandler
      * Assert the file passes a custom validation.
      *
      * @param callable $validator Function that returns true if valid, false otherwise
-     * @param string $message Error message
-     * @return self
+     * @param string   $message   Error message
      */
     public function assert(callable $validator, string $message): self
     {
@@ -219,21 +206,19 @@ class UploadedFileErrorHandler
     /**
      * Save the file to a specific location.
      *
-     * @param string $path Where to save the file
+     * @param string      $path     Where to save the file
      * @param string|null $filename Optional filename (defaults to the original name)
-     * @return self
-     * @throws InvalidArgumentException If validation fails
+     *
+     * @throws \InvalidArgumentException If validation fails
      */
     public function saveTo(string $path, ?string $filename = null): self
     {
         if ($this->hasErrors) {
-            throw new InvalidArgumentException(
-                'Cannot save file due to validation errors: ' . implode(', ', $this->errors)
-            );
+            throw new \InvalidArgumentException('Cannot save file due to validation errors: '.implode(', ', $this->errors));
         }
 
         $filename = F::safeName($filename ?? $this->file->getClientFilename());
-        $fullPath = rtrim($path, '/') . '/' . $filename;
+        $fullPath = rtrim($path, '/').'/'.$filename;
 
         // Create directory if it doesn't exist
         if (!is_dir($path)) {
@@ -249,8 +234,6 @@ class UploadedFileErrorHandler
 
     /**
      * Get the underlying PSR-7 UploadedFileInterface.
-     *
-     * @return UploadedFileInterface
      */
     public function getFile(): UploadedFileInterface
     {
@@ -259,8 +242,6 @@ class UploadedFileErrorHandler
 
     /**
      * Check if the file has validation errors.
-     *
-     * @return bool
      */
     public function hasErrors(): bool
     {
@@ -269,8 +250,6 @@ class UploadedFileErrorHandler
 
     /**
      * Get all validation errors.
-     *
-     * @return array
      */
     public function getErrors(): array
     {
@@ -281,7 +260,6 @@ class UploadedFileErrorHandler
      * Add an error message to the errors list.
      *
      * @param string $message Error message
-     * @return void
      */
     private function addError(string $message): void
     {
@@ -293,8 +271,6 @@ class UploadedFileErrorHandler
      * Format bytes to a human-readable string.
      *
      * @param int $bytes Number of bytes
-     * @param int $precision
-     * @return string
      */
     private function formatBytes(int $bytes, int $precision = 2): string
     {
@@ -306,7 +282,7 @@ class UploadedFileErrorHandler
 
         $bytes /= (1 << (10 * $pow));
 
-        return round($bytes, $precision) . ' ' . $units[$pow];
+        return round($bytes, $precision).' '.$units[$pow];
     }
 
     public function getStoredFilePath(): string
@@ -316,9 +292,6 @@ class UploadedFileErrorHandler
 
     /**
      * Translates a PHP file upload error code to a human-readable message.
-     *
-     * @param int $errorCode
-     * @return string
      */
     private function translateError(int $errorCode): string
     {
@@ -329,7 +302,7 @@ class UploadedFileErrorHandler
             UPLOAD_ERR_NO_FILE => 'No file was uploaded',
             UPLOAD_ERR_NO_TMP_DIR => 'Missing temporary folder',
             UPLOAD_ERR_CANT_WRITE => 'Failed to write file to disk',
-            UPLOAD_ERR_EXTENSION => 'A PHP extension stopped the file upload'
+            UPLOAD_ERR_EXTENSION => 'A PHP extension stopped the file upload',
         ];
 
         return $errors[$errorCode] ?? 'Unknown upload error';

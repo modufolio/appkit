@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Image;
 
@@ -8,24 +8,25 @@ use Modufolio\Appkit\Toolkit\A;
 use Modufolio\Appkit\Toolkit\Str;
 
 /**
- * @package   Kirby Image
  * @author    Nico Hoffmann <nico@getkirby.com>
- * @link      https://getkirby.com
+ *
+ * @see      https://getkirby.com
+ *
  * @copyright Bastian Allgeier
  * @license   https://opensource.org/licenses/MIT
  */
 class Focus
 {
     /**
-     * Generates crop coordinates based on focal point
+     * Generates crop coordinates based on focal point.
      */
     public static function coords(
         string $crop,
         int $sourceWidth,
         int $sourceHeight,
         int $width,
-        int $height
-    ): array|null {
+        int $height,
+    ): ?array {
         [$x, $y] = static::parse($crop);
 
         // determine aspect ratios
@@ -64,29 +65,30 @@ class Focus
         }
 
         return [
-            'x1' => (int)floor($x1),
-            'y1' => (int)floor($y1),
-            'x2' => (int)floor($x1 + $width),
-            'y2' => (int)floor($y1 + $height),
-            'width' => (int)floor($width),
-            'height' => (int)floor($height),
+            'x1' => (int) floor($x1),
+            'y1' => (int) floor($y1),
+            'x2' => (int) floor($x1 + $width),
+            'y2' => (int) floor($y1 + $height),
+            'width' => (int) floor($width),
+            'height' => (int) floor($height),
         ];
     }
 
     public static function isFocalPoint(string $value): bool
     {
-        return Str::contains($value, '%') === true;
+        return true === Str::contains($value, '%');
     }
 
     /**
      * Transforms the focal point's string value (from content field)
-     * to a [x, y] array (values 0.0-1.0)
+     * to a [x, y] array (values 0.0-1.0).
      */
     public static function parse(string $value): array
     {
         // support for former Focus plugin
-        if (Str::startsWith($value, '{') === true) {
+        if (true === Str::startsWith($value, '{')) {
             $focus = json_decode($value);
+
             return [$focus->x, $focus->y];
         }
 
@@ -95,18 +97,19 @@ class Focus
         return A::map(
             $points[1],
             static function ($point) {
-                $point = (float)$point;
+                $point = (float) $point;
                 $point = $point > 1 ? $point / 100 : $point;
+
                 return round($point, 3);
             }
         );
     }
 
     /**
-     * Calculates the image ratio
+     * Calculates the image ratio.
      */
     public static function ratio(int $width, int $height): float
     {
-        return $height !== 0 ? $width / $height : 0;
+        return 0 !== $height ? $width / $height : 0;
     }
 }

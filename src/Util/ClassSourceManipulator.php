@@ -1,19 +1,9 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Util;
 
-use Modufolio\Appkit\Console\ConsoleStyle;
-use Modufolio\Appkit\Console\Doctrine\BaseCollectionRelation;
-use Modufolio\Appkit\Console\Doctrine\BaseRelation;
-use Modufolio\Appkit\Console\Doctrine\DoctrineHelper;
-use Modufolio\Appkit\Console\Doctrine\RelationManyToMany;
-use Modufolio\Appkit\Console\Doctrine\RelationManyToOne;
-use Modufolio\Appkit\Console\Doctrine\RelationOneToMany;
-use Modufolio\Appkit\Console\Doctrine\RelationOneToOne;
-use Modufolio\Appkit\Console\Str;
-use Modufolio\Appkit\Util\ClassSource\Model\ClassProperty;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
@@ -24,6 +14,16 @@ use Doctrine\ORM\Mapping\ManyToMany;
 use Doctrine\ORM\Mapping\ManyToOne;
 use Doctrine\ORM\Mapping\OneToMany;
 use Doctrine\ORM\Mapping\OneToOne;
+use Modufolio\Appkit\Console\ConsoleStyle;
+use Modufolio\Appkit\Console\Doctrine\BaseCollectionRelation;
+use Modufolio\Appkit\Console\Doctrine\BaseRelation;
+use Modufolio\Appkit\Console\Doctrine\DoctrineHelper;
+use Modufolio\Appkit\Console\Doctrine\RelationManyToMany;
+use Modufolio\Appkit\Console\Doctrine\RelationManyToOne;
+use Modufolio\Appkit\Console\Doctrine\RelationOneToMany;
+use Modufolio\Appkit\Console\Doctrine\RelationOneToOne;
+use Modufolio\Appkit\Console\Str;
+use Modufolio\Appkit\Util\ClassSource\Model\ClassProperty;
 use PhpParser\Builder;
 use PhpParser\BuilderHelpers;
 use PhpParser\Lexer;
@@ -133,7 +133,7 @@ final class ClassSourceManipulator
         $propertyType = $typeHint;
         if ($propertyType && !$defaultValue && 'mixed' !== $propertyType) {
             // all property types
-            $propertyType = '?' . $propertyType;
+            $propertyType = '?'.$propertyType;
         }
 
         $this->addProperty(
@@ -282,12 +282,12 @@ final class ClassSourceManipulator
     private function getGetterName(string $propertyName, $returnType): string
     {
         if ('bool' !== $returnType) {
-            return 'get' . Str::asCamelCase($propertyName);
+            return 'get'.Str::asCamelCase($propertyName);
         }
 
         // exclude is & has from getter definition if already in property name
         if (0 !== strncasecmp($propertyName, 'is', 2) && 0 !== strncasecmp($propertyName, 'has', 3)) {
-            return 'is' . Str::asCamelCase($propertyName);
+            return 'is'.Str::asCamelCase($propertyName);
         }
 
         return Str::asLowerCamelCase($propertyName);
@@ -473,7 +473,7 @@ final class ClassSourceManipulator
 
     private function getSetterName(string $propertyName, $type): string
     {
-        return 'set' . Str::asCamelCase($propertyName);
+        return 'set'.Str::asCamelCase($propertyName);
     }
 
     private function addSingularRelation(BaseRelation $relation): void
@@ -518,7 +518,7 @@ final class ClassSourceManipulator
             name: $relation->getPropertyName(),
             defaultValue: null,
             attributes: $attributes,
-            propertyType: '?' . $typeHint,
+            propertyType: '?'.$typeHint,
         );
 
         $this->addGetter(
@@ -806,7 +806,7 @@ final class ClassSourceManipulator
                     $alias = $use->alias ? $use->alias->name : $use->name->getLast();
 
                     // the use statement already exists? Don't add it again
-                    if ($class === (string)$use->name) {
+                    if ($class === (string) $use->name) {
                         return $alias;
                     }
 
@@ -818,13 +818,13 @@ final class ClassSourceManipulator
                         // we have a conflicting alias!
                         // to be safe, use the fully-qualified class name
                         // everywhere and do not add another use statement
-                        return '\\' . $class;
+                        return '\\'.$class;
                     }
                 }
 
                 // if $class is alphabetically before this use statement, place it before
                 // only set $targetIndex the first time you find it
-                if (null === $targetIndex && Str::areClassesAlphabetical($class, (string)$stmt->uses[0]->name)) {
+                if (null === $targetIndex && Str::areClassesAlphabetical($class, (string) $stmt->uses[0]->name)) {
                     $targetIndex = $index;
                 }
 
@@ -869,8 +869,8 @@ final class ClassSourceManipulator
     /**
      * Builds a PHPParser attribute node.
      *
-     * @param string $attributeClass The attribute class which should be used for the attribute E.g. #[Column()]
-     * @param array $options The named arguments for the attribute ($key = argument name, $value = argument value)
+     * @param string  $attributeClass  The attribute class which should be used for the attribute E.g. #[Column()]
+     * @param array   $options         The named arguments for the attribute ($key = argument name, $value = argument value)
      * @param ?string $attributePrefix If a prefix is provided, the node is built using the prefix. E.g. #[ORM\Column()]
      */
     public function buildAttributeNode(string $attributeClass, array $options, ?string $attributePrefix = null): Node\Attribute
@@ -896,7 +896,7 @@ final class ClassSourceManipulator
 
             if ('enumType' === $option) {
                 return new Node\Arg(
-                    new Node\Expr\ConstFetch(new Node\Name(Str::getShortClassName($value) . '::class')),
+                    new Node\Expr\ConstFetch(new Node\Name(Str::getShortClassName($value).'::class')),
                     false,
                     false,
                     [],
@@ -938,7 +938,7 @@ final class ClassSourceManipulator
                 continue;
             }
 
-            $newCode = str_replace($placeholder, '// ' . $comment, $newCode);
+            $newCode = str_replace($placeholder, '// '.$comment, $newCode);
         }
         $this->pendingComments = [];
 
@@ -1032,7 +1032,7 @@ final class ClassSourceManipulator
             self::CONTEXT_CLASS_METHOD => new Node\Expr\Variable(
                 '__EXTRA__LINE'
             ),
-            default => throw new \Exception('Unknown context: ' . $context),
+            default => throw new \Exception('Unknown context: '.$context),
         };
     }
 
@@ -1049,7 +1049,7 @@ final class ClassSourceManipulator
             case self::CONTEXT_CLASS_METHOD:
                 return BuilderHelpers::normalizeStmt(new Node\Expr\Variable(\sprintf('__COMMENT__VAR_%d', \count($this->pendingComments) - 1)));
             default:
-                throw new \Exception('Unknown context: ' . $context);
+                throw new \Exception('Unknown context: '.$context);
         }
     }
 
@@ -1134,7 +1134,7 @@ final class ClassSourceManipulator
 
     private function getThisFullClassName(): string
     {
-        return (string)$this->getClassNode()->namespacedName;
+        return (string) $this->getClassNode()->namespacedName;
     }
 
     /**

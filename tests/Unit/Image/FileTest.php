@@ -10,7 +10,6 @@ use Modufolio\Appkit\Image\File;
 use Modufolio\Appkit\Image\FileInterface;
 use Modufolio\Appkit\Image\ImageException;
 use Modufolio\Appkit\Image\Storage;
-use Modufolio\Appkit\Image\StorageInterface;
 use PHPUnit\Framework\TestCase;
 
 class FileTest extends TestCase
@@ -22,7 +21,7 @@ class FileTest extends TestCase
     protected function setUp(): void
     {
         // Create a temporary test file
-        $this->testFile = sys_get_temp_dir() . '/test_image_' . uniqid() . '.txt';
+        $this->testFile = sys_get_temp_dir().'/test_image_'.uniqid().'.txt';
         file_put_contents($this->testFile, 'test content');
 
         $this->storage = new Storage(

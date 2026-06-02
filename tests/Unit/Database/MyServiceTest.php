@@ -2,9 +2,9 @@
 
 namespace Modufolio\Appkit\Tests\Unit\Database;
 
+use Doctrine\DBAL\Exception;
 use Modufolio\Appkit\Tests\Traits\DatabaseTestConfiguration;
 use Modufolio\Appkit\Tests\Traits\DatabaseTestingCapabilities;
-use Doctrine\DBAL\Exception;
 use PHPUnit\Framework\TestCase;
 
 class MyServiceTest extends TestCase
@@ -24,8 +24,8 @@ class MyServiceTest extends TestCase
             ->enableStrictMode()            // Enable strict validations
             ->withFixtures([                // Load test data
                 'users' => [
-                    ['id' => 1, 'name' => 'John', 'email' => 'john@example.com']
-                ]
+                    ['id' => 1, 'name' => 'John', 'email' => 'john@example.com'],
+                ],
             ]);
     }
 
@@ -34,20 +34,16 @@ class MyServiceTest extends TestCase
      */
     public function testDatabaseOperation(): void
     {
-
         // Execute your code
         $this->connection->insert('users', [
             'id' => 1,
             'name' => 'John',
             'email' => 'john@example.com',
-            'created_at' => (new \DateTime())->format('Y-m-d H:i:s')
+            'created_at' => (new \DateTime())->format('Y-m-d H:i:s'),
         ]);
-
-
 
         // Assertions
         $this->assertQueryCount(1, 'INSERT');
         $this->assertNoSlowQueries();
-      
     }
 }

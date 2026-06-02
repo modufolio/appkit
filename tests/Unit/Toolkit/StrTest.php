@@ -1,15 +1,14 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Tests\Unit\Toolkit;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-
+use IntlDateFormatter;
 use Modufolio\Appkit\Query\Query;
 use Modufolio\Appkit\Toolkit\Html;
 use Modufolio\Appkit\Toolkit\Str;
-use IntlDateFormatter;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(Str::class)]
@@ -47,7 +46,6 @@ class StrTest extends TestCase
         $this->assertSame('<b>', Str::esc('<b>', 'bogus'));
     }
 
-
     public function testAscii(): void
     {
         $this->assertSame('aouss', Str::ascii('äöüß'));
@@ -74,8 +72,6 @@ class StrTest extends TestCase
         $this->assertSame('', Str::after('string', '.'), 'string with non-existing character should return false');
     }
 
-
-
     public function testBefore(): void
     {
         $string = 'Hellö Wörld';
@@ -90,7 +86,6 @@ class StrTest extends TestCase
         $this->assertSame('Hell', Str::before($string, 'Ö', true));
         $this->assertSame('', Str::before($string, 'x', true));
     }
-
 
     public function testBetween(): void
     {
@@ -172,7 +167,7 @@ class StrTest extends TestCase
         // $formatter = new IntlDateFormatter('en-US', IntlDateFormatter::LONG, IntlDateFormatter::SHORT);
         $this->assertSame($time, Str::date($time, null, 'intl'));
         $this->assertSame('29/1/2020 01:01', Str::date($time, 'd/M/yyyy HH:mm', 'intl'));
-        //$this->assertSame('January 29, 2020 at 1:01 AM', Str::date($time, $formatter));
+        // $this->assertSame('January 29, 2020 at 1:01 AM', Str::date($time, $formatter));
     }
 
     public function testEncode(): void
@@ -207,18 +202,18 @@ class StrTest extends TestCase
 
     public function testExcerpt(): void
     {
-        $string   = 'This is a long text<br>with some html';
+        $string = 'This is a long text<br>with some html';
         $expected = 'This is a long text with …';
-        $result   = Str::excerpt($string, 27);
+        $result = Str::excerpt($string, 27);
 
         $this->assertSame($expected, $result);
     }
 
     public function testExcerptWithoutChars(): void
     {
-        $string   = 'This is a long text<br>with some html';
+        $string = 'This is a long text<br>with some html';
         $expected = 'This is a long text with some html';
-        $result   = Str::excerpt($string);
+        $result = Str::excerpt($string);
 
         $this->assertSame($expected, $result);
     }
@@ -233,58 +228,57 @@ class StrTest extends TestCase
 
     public function testExcerptWithoutStripping(): void
     {
-        $string   = 'This is a long text<br>with some html';
+        $string = 'This is a long text<br>with some html';
         $expected = 'This is a long text<br>with …';
-        $result   = Str::excerpt($string, 30, false);
+        $result = Str::excerpt($string, 30, false);
 
         $this->assertSame($expected, $result);
     }
 
     public function testExcerptWithDifferentRep(): void
     {
-        $string   = 'This is a long text<br>with some html';
+        $string = 'This is a long text<br>with some html';
         $expected = 'This is a long text with ...';
-        $result   = Str::excerpt($string, 27, true, ' ...');
+        $result = Str::excerpt($string, 27, true, ' ...');
 
         $this->assertSame($expected, $result);
     }
 
     public function testExcerptWithSpaces(): void
     {
-        $string   = 'This is a long text   <br>with some html';
+        $string = 'This is a long text   <br>with some html';
         $expected = 'This is a long text with …';
-        $result   = Str::excerpt($string, 27);
+        $result = Str::excerpt($string, 27);
 
         $this->assertSame($expected, $result);
     }
 
     public function testExcerptWithLineBreaks(): void
     {
-        $string   = 'This is a long text ' . PHP_EOL . ' with some html';
+        $string = 'This is a long text '.PHP_EOL.' with some html';
         $expected = 'This is a long text with …';
-        $result   = Str::excerpt($string, 27);
+        $result = Str::excerpt($string, 27);
 
         $this->assertSame($expected, $result);
     }
 
     public function testExcerptWithUnicodeChars(): void
     {
-        $string   = 'Hellö Wörld text<br>with söme htmäl';
+        $string = 'Hellö Wörld text<br>with söme htmäl';
         $expected = 'Hellö Wörld text …';
-        $result   = Str::excerpt($string, 20);
+        $result = Str::excerpt($string, 20);
 
         $this->assertSame($expected, $result);
     }
 
     public function testExcerptWithTagFollowedByInterpunctuation(): void
     {
-        $string   = 'Why not <a href="https://getkirby.com/">Get Kirby</a>?';
+        $string = 'Why not <a href="https://getkirby.com/">Get Kirby</a>?';
         $expected = 'Why not Get Kirby?';
-        $result   = Str::excerpt($string, 100);
+        $result = Str::excerpt($string, 100);
 
         $this->assertSame($expected, $result);
     }
-
 
     public function testFrom(): void
     {
@@ -311,7 +305,6 @@ class StrTest extends TestCase
         $this->assertEquals('string', Str::getType('Hello, world!'));
         $this->assertEquals('string', Str::getType('123abc'));
     }
-
 
     public function testIncrement(): void
     {
@@ -391,7 +384,6 @@ class StrTest extends TestCase
         $this->assertNull(Str::match('one two three', '/(four)/'));
     }
 
-
     public function testMatches(): void
     {
         $this->assertTrue(Str::matches('test', '/t(es)t/'));
@@ -414,24 +406,22 @@ class StrTest extends TestCase
         $this->assertNull(Str::matchAll('one two three', '/(four)/'));
     }
 
-
     public function testPosition(): void
     {
         $string = 'Hellö Wörld';
 
         // case sensitive
-        $this->assertTrue(Str::position($string, 'H') === 0);
-        $this->assertFalse(Str::position($string, 'h') === 0);
-        $this->assertTrue(Str::position($string, 'ö') === 4);
-        $this->assertFalse(Str::position($string, 'Ö') === 4);
+        $this->assertTrue(0 === Str::position($string, 'H'));
+        $this->assertFalse(0 === Str::position($string, 'h'));
+        $this->assertTrue(4 === Str::position($string, 'ö'));
+        $this->assertFalse(4 === Str::position($string, 'Ö'));
 
         // case insensitive
-        $this->assertTrue(Str::position($string, 'H', true) === 0);
-        $this->assertTrue(Str::position($string, 'h', true) === 0);
-        $this->assertTrue(Str::position($string, 'ö', true) === 4);
-        $this->assertTrue(Str::position($string, 'Ö', true) === 4);
+        $this->assertTrue(0 === Str::position($string, 'H', true));
+        $this->assertTrue(0 === Str::position($string, 'h', true));
+        $this->assertTrue(4 === Str::position($string, 'ö', true));
+        $this->assertTrue(4 === Str::position($string, 'Ö', true));
     }
-
 
     public function testQuery(): void
     {
@@ -470,40 +460,40 @@ class StrTest extends TestCase
     {
         // simple example
         $this->assertSame([
-            ['search' => 'a', 'replace' => 'b', 'limit' => 2]
+            ['search' => 'a', 'replace' => 'b', 'limit' => 2],
         ], Str::replacements('a', 'b', 2));
 
         // multiple searches
         $this->assertSame([
             ['search' => 'a', 'replace' => 'c', 'limit' => 2],
-            ['search' => 'b', 'replace' => 'c', 'limit' => 2]
+            ['search' => 'b', 'replace' => 'c', 'limit' => 2],
         ], Str::replacements(['a', 'b'], 'c', 2));
 
         // multiple replacements
         $this->assertSame([
             ['search' => 'a', 'replace' => 'c', 'limit' => 2],
-            ['search' => 'b', 'replace' => 'd', 'limit' => 2]
+            ['search' => 'b', 'replace' => 'd', 'limit' => 2],
         ], Str::replacements(['a', 'b'], ['c', 'd'], 2));
 
         $this->assertSame([
             ['search' => 'a', 'replace' => 'c', 'limit' => 2],
-            ['search' => 'b', 'replace' => '', 'limit' => 2]
+            ['search' => 'b', 'replace' => '', 'limit' => 2],
         ], Str::replacements(['a', 'b'], ['c'], 2));
 
         // multiple limits
         $this->assertSame([
             ['search' => 'a', 'replace' => 'c', 'limit' => 2],
-            ['search' => 'b', 'replace' => 'c', 'limit' => 1]
+            ['search' => 'b', 'replace' => 'c', 'limit' => 1],
         ], Str::replacements(['a', 'b'], 'c', [2, 1]));
 
         $this->assertSame([
             ['search' => 'a', 'replace' => 'c', 'limit' => 2],
-            ['search' => 'b', 'replace' => 'd', 'limit' => 1]
+            ['search' => 'b', 'replace' => 'd', 'limit' => 1],
         ], Str::replacements(['a', 'b'], ['c', 'd'], [2, 1]));
 
         $this->assertSame([
             ['search' => 'a', 'replace' => 'c', 'limit' => 2],
-            ['search' => 'b', 'replace' => 'd', 'limit' => -1]
+            ['search' => 'b', 'replace' => 'd', 'limit' => -1],
         ], Str::replacements(['a', 'b'], ['c', 'd'], [2]));
     }
 
@@ -520,10 +510,10 @@ class StrTest extends TestCase
             'other other string',
             Str::replaceReplacements('some some string', [
                 [
-                    'search'  => 'some',
+                    'search' => 'some',
                     'replace' => 'other',
-                    'limit'   => -1
-                ]
+                    'limit' => -1,
+                ],
             ])
         );
 
@@ -531,20 +521,20 @@ class StrTest extends TestCase
             'other interesting story',
             Str::replaceReplacements('some some string', [
                 [
-                    'search'  => 'some',
+                    'search' => 'some',
                     'replace' => 'other',
-                    'limit'   => -1
+                    'limit' => -1,
                 ],
                 [
-                    'search'  => 'other string',
+                    'search' => 'other string',
                     'replace' => 'interesting string',
-                    'limit'   => 1
+                    'limit' => 1,
                 ],
                 [
-                    'search'  => 'string',
+                    'search' => 'string',
                     'replace' => 'story',
-                    'limit'   => 5
-                ]
+                    'limit' => 5,
+                ],
             ])
         );
 
@@ -557,10 +547,10 @@ class StrTest extends TestCase
 
         Str::replaceReplacements('some string', [
             [
-                'search'  => 'some',
+                'search' => 'some',
                 'replace' => 'other',
-                'limit'   => 'string'
-            ]
+                'limit' => 'string',
+            ],
         ]);
     }
 
@@ -606,68 +596,68 @@ class StrTest extends TestCase
     {
         $this->assertSame([
             'matches' => 0,
-            'percent' => 0.0
+            'percent' => 0.0,
         ], Str::similarity('foo', 'bar'));
 
         $this->assertSame([
             'matches' => 0,
-            'percent' => 0.0
+            'percent' => 0.0,
         ], Str::similarity('foo', ''));
 
         $this->assertSame([
             'matches' => 0,
-            'percent' => 0.0
+            'percent' => 0.0,
         ], Str::similarity('', 'foo'));
 
         $this->assertSame([
             'matches' => 0,
-            'percent' => 0.0
+            'percent' => 0.0,
         ], Str::similarity('', ''));
 
         $this->assertSame([
             'matches' => 3,
-            'percent' => 66.66666666666667
+            'percent' => 66.66666666666667,
         ], Str::similarity('foo', 'fooBar'));
 
         $this->assertSame([
             'matches' => 3,
-            'percent' => 100.0
+            'percent' => 100.0,
         ], Str::similarity('foo', 'foo'));
 
         $this->assertSame([
             'matches' => 4,
-            'percent' => 100.0
+            'percent' => 100.0,
         ], Str::similarity('tête', 'tête'));
 
         $this->assertSame([
             'matches' => 3,
-            'percent' => 75.0
+            'percent' => 75.0,
         ], Str::similarity('Tête', 'tête'));
 
         $this->assertSame([
             'matches' => 0,
-            'percent' => 0.0
+            'percent' => 0.0,
         ], Str::similarity('foo', 'FOO'));
 
         $this->assertSame([
             'matches' => 1,
-            'percent' => 20.0
+            'percent' => 20.0,
         ], Str::similarity('Kirby', 'KIRBY'));
 
         // case-insensitive
         $this->assertSame([
             'matches' => 4,
-            'percent' => 100.0
+            'percent' => 100.0,
         ], Str::similarity('Tête', 'tête', true));
 
         $this->assertSame([
             'matches' => 2,
-            'percent' => 66.66666666666667
+            'percent' => 66.66666666666667,
         ], Str::similarity('foo', 'FOU', true));
 
         $this->assertSame([
             'matches' => 5,
-            'percent' => 100.0
+            'percent' => 100.0,
         ], Str::similarity('Kirby', 'KIRBY', true));
     }
 
@@ -705,7 +695,7 @@ class StrTest extends TestCase
 
         // Custom str defaults
         Str::$defaults['slug']['separator'] = '+';
-        Str::$defaults['slug']['allowed']   = 'a-z0-9_';
+        Str::$defaults['slug']['allowed'] = 'a-z0-9_';
 
         $this->assertSame('a+b', Str::slug('a-b'));
         $this->assertSame('a_b', Str::slug('a_b'));
@@ -816,28 +806,27 @@ EOT;
         // query with an array
         $template = Str::template('Hello {{ user.username }}', [
             'user' => [
-                'username' => 'homer'
-            ]
+                'username' => 'homer',
+            ],
         ]);
         $this->assertSame('Hello homer', $template);
 
         $template = Str::template('{{ user.greeting }} {{ user.username }}', [
             'user' => [
-                'username' => 'homer'
-            ]
+                'username' => 'homer',
+            ],
         ]);
         $this->assertSame('{{ user.greeting }} homer', $template);
 
         // query with an array and callback
         $template = Str::template('Hello {{ user.username }}', [
             'user' => [
-                'username' => 'homer'
-            ]
+                'username' => 'homer',
+            ],
         ], [
-            'callback' => fn ($result) => Str::ucfirst($result)
+            'callback' => fn ($result) => Str::ucfirst($result),
         ]);
         $this->assertSame('Hello Homer', $template);
-
     }
 
     public function testToBytes(): void
@@ -942,6 +931,7 @@ EOT;
         $this->assertEquals(4, Str::wordCount('This  is  a  test')); // test double spaces
         $this->assertEquals(2, Str::wordCount("I'm sorry")); // test punctuation
     }
+
     public function testWords(): void
     {
         $longString = 'Why do programmers prefer dark mode? Because light attracts bugs. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Mauris et felis lacus. Suspendisse eget interdum velit, vel laoreet velit. Fusce nec enim vitae ex dictum sagittis. Integer mollis aliquam lacinia. Proin faucibus justo nisl, id pretium sem rhoncus eget. Morbi eu enim id elit scelerisque suscipit eu in eros. Duis bibendum, velit in ultricies vulputate, libero sapien eleifend purus, non facilisis metus ipsum eu risus. Nulla commodo sit amet tortor id aliquam. Why don’t scientists trust atoms? Because they make up everything.';

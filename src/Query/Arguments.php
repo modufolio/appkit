@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Query;
 
@@ -9,11 +9,12 @@ use Modufolio\Appkit\Toolkit\Collection;
 
 /**
  * The Arguments class helps splitting a
- * parameter string into processable arguments
+ * parameter string into processable arguments.
  *
- * @package   Kirby Query
  * @author    Nico Hoffmann <nico@getkirby.com>
- * @link      https://getkirby.com
+ *
+ * @see      https://getkirby.com
+ *
  * @copyright Bastian Allgeier
  * @license   https://opensource.org/licenses/MIT
  */
@@ -29,18 +30,18 @@ final class Arguments extends Collection
     public const NO_SLQU = '\'(?:[^\'\\\\]|\\\\.)*\'(*SKIP)(*FAIL)';
     // skip all matches inside of any of the above skip groups
     public const OUTSIDE =
-        self::NO_PNTH . '|' . self::NO_SQBR . '|' .
-        self::NO_DLQU . '|' . self::NO_SLQU;
+        self::NO_PNTH.'|'.self::NO_SQBR.'|'.
+        self::NO_DLQU.'|'.self::NO_SLQU;
 
     /**
      * Splits list of arguments into individual
-     * Argument instances while respecting skip groups
+     * Argument instances while respecting skip groups.
      */
     public static function factory(string $arguments): static
     {
         $arguments = A::map(
             // split by comma, but not inside skip groups
-            preg_split('!,|' . self::OUTSIDE . '!', $arguments),
+            preg_split('!,|'.self::OUTSIDE.'!', $arguments),
             fn ($argument) => Argument::factory($argument)
         );
 
@@ -49,7 +50,7 @@ final class Arguments extends Collection
 
     /**
      * Resolve each argument, so that they can
-     * passed together to the actual method call
+     * passed together to the actual method call.
      */
     public function resolve(array|object $data = []): array
     {

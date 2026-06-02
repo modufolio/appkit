@@ -7,9 +7,8 @@ namespace Modufolio\Appkit\Image;
 use Modufolio\Appkit\Data\Data;
 
 /**
- * JSON file-based storage for image transformation jobs
+ * JSON file-based storage for image transformation jobs.
  *
- * @package   Image
  * @author    Maarten Thiebou
  * @copyright Modufolio
  * @license   https://opensource.org/licenses/MIT
@@ -26,7 +25,7 @@ class JsonJobStorage implements JobStorageInterface
     public function saveJob(
         string $mediaRoot,
         string $thumbName,
-        array $options
+        array $options,
     ): void {
         $jobFile = $this->getJobPath($mediaRoot, $thumbName);
 
@@ -37,7 +36,7 @@ class JsonJobStorage implements JobStorageInterface
         }
     }
 
-    public function loadJob(string $mediaRoot, string $thumbName): array|null
+    public function loadJob(string $mediaRoot, string $thumbName): ?array
     {
         $jobFile = $this->getJobPath($mediaRoot, $thumbName);
 
@@ -76,11 +75,12 @@ class JsonJobStorage implements JobStorageInterface
     }
 
     /**
-     * Get the full path to a job file
+     * Get the full path to a job file.
      */
     private function getJobPath(string $mediaRoot, string $thumbName): string
     {
-        $jobsDir = rtrim($mediaRoot, '/') . '/' . $this->jobsSubdir;
-        return $jobsDir . '/' . basename($thumbName) . '.json';
+        $jobsDir = rtrim($mediaRoot, '/').'/'.$this->jobsSubdir;
+
+        return $jobsDir.'/'.basename($thumbName).'.json';
     }
 }

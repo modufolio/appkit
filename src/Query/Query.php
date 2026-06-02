@@ -1,10 +1,8 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Query;
-
-use Closure;
 
 /**
  * The Query class can be used to query arrays and objects,
@@ -18,35 +16,36 @@ use Closure;
  * - Arguments		Method call parameters (`'template', '!=', 'note'`)
  * - Argument		Single parameter, resolving into actual types
  *
- * @package   Kirby Query
  * @author    Bastian Allgeier <bastian@getkirby.com>,
  * 			  Nico Hoffmann <nico@getkirby.com>
- * @link      https://getkirby.com
+ *
+ * @see      https://getkirby.com
+ *
  * @copyright Bastian Allgeier
  * @license   https://opensource.org/licenses/MIT
  */
 final class Query
 {
     /**
-     * Default data entries
+     * Default data entries.
      */
     public static array $entries = [];
 
     /**
-     * Creates a new Query object
+     * Creates a new Query object.
      */
     public function __construct(
-        public string|null $query = null
+        public ?string $query = null,
     ) {
-        if ($query !== null) {
+        if (null !== $query) {
             $this->query = trim($query);
         }
     }
 
     /**
-     * Creates a new Query object
+     * Creates a new Query object.
      */
-    public static function factory(string|null $query): static
+    public static function factory(?string $query): static
     {
         return new static(query: $query);
     }
@@ -62,27 +61,27 @@ final class Query
 
     /**
      * Returns the query result if anything
-     * can be found, otherwise returns null
+     * can be found, otherwise returns null.
      */
     public function resolve(array|object $data = []): mixed
     {
-        if (empty($this->query) === true) {
+        if (true === empty($this->query)) {
             return $data;
         }
 
         // merge data with default entries
-        if (is_array($data) === true) {
+        if (true === is_array($data)) {
             $data = array_merge(static::$entries, $data);
         }
 
         // direct data array access via key
         if (
-            is_array($data) === true &&
-            array_key_exists($this->query, $data) === true
+            true === is_array($data)
+            && true === array_key_exists($this->query, $data)
         ) {
             $value = $data[$this->query];
 
-            if ($value instanceof Closure) {
+            if ($value instanceof \Closure) {
                 $value = $value();
             }
 

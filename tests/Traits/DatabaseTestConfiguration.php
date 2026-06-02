@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Tests\Traits;
 
@@ -15,6 +15,7 @@ trait DatabaseTestConfiguration
 {
     /**
      * Schema definition for test database setup.
+     *
      * @throws TypesException
      */
     public function getTestSchema(): Schema
@@ -137,7 +138,7 @@ trait DatabaseTestConfiguration
         $users = [];
         $faker = \Faker\Factory::create();
 
-        for ($i = 1; $i <= $count; $i++) {
+        for ($i = 1; $i <= $count; ++$i) {
             $users[] = [
                 'id' => $i,
                 'name' => $faker->name(),

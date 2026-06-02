@@ -7,7 +7,7 @@ namespace Modufolio\Appkit\Security\Token;
 use Modufolio\Appkit\Security\User\UserInterface;
 
 /**
- * Partial authentication token for 2FA flow
+ * Partial authentication token for 2FA flow.
  *
  * This token represents a user who has successfully authenticated with their
  * password but still needs to provide their second factor (TOTP/backup code).
@@ -22,7 +22,7 @@ class TwoFactorToken extends AbstractToken
     public function __construct(
         UserInterface $user,
         string $firewallName,
-        array $roles = []
+        array $roles = [],
     ) {
         parent::__construct($roles);
 
@@ -46,12 +46,13 @@ class TwoFactorToken extends AbstractToken
     }
 
     /**
-     * Check if token has expired (10 minutes)
+     * Check if token has expired (10 minutes).
      */
     public function isExpired(): bool
     {
         $now = new \DateTimeImmutable();
         $diff = $now->getTimestamp() - $this->createdAt->getTimestamp();
+
         return $diff > 600; // 10 minutes
     }
 

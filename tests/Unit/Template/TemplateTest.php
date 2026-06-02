@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Tests\Unit\Template;
 
@@ -15,8 +15,8 @@ class TemplateTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->templatePath = __DIR__ . '/fixtures/site/templates';
-        $this->layoutPath = __DIR__ . '/fixtures/site/layouts';
+        $this->templatePath = __DIR__.'/fixtures/site/templates';
+        $this->layoutPath = __DIR__.'/fixtures/site/layouts';
 
         $this->template = new Template(
             name: 'default',
@@ -27,7 +27,7 @@ class TemplateTest extends TestCase
 
     public function testConstructor(): void
     {
-        $this->assertEquals('default', (string)$this->template);
+        $this->assertEquals('default', (string) $this->template);
     }
 
     public function testExists(): void
@@ -37,7 +37,7 @@ class TemplateTest extends TestCase
 
     public function testFile(): void
     {
-        $expectedFile = $this->templatePath . '/default.php';
+        $expectedFile = $this->templatePath.'/default.php';
         $this->assertEquals($expectedFile, $this->template->file());
     }
 
@@ -142,7 +142,7 @@ class TemplateTest extends TestCase
     {
         $output = $this->template->snippet('card', [
             'title' => 'My Card',
-            'buttonText' => 'Learn More'
+            'buttonText' => 'Learn More',
         ]);
 
         // Should contain the card wrapper
@@ -174,7 +174,7 @@ class TemplateTest extends TestCase
         $this->template->css('/css/main.css');
 
         // Create a snippet that adds its own CSS
-        $snippetFile = $this->templatePath . '/../snippets/widget.php';
+        $snippetFile = $this->templatePath.'/../snippets/widget.php';
         file_put_contents($snippetFile, '<?php $this->css("/css/widget.css") ?>Widget');
 
         // Render the snippet
@@ -193,8 +193,8 @@ class TemplateTest extends TestCase
     public function testExtractSkipProtectsInternalVariables(): void
     {
         // Create a snippet that tries to access $this
-        $snippetFile = $this->templatePath . '/../snippets/test-this.php';
-        file_put_contents($snippetFile, '<?php echo get_class($this); ?>');
+        $snippetFile = $this->templatePath.'/../snippets/test-this.php';
+        file_put_contents($snippetFile, '<?= get_class($this) ?>');
 
         // Pass data that tries to overwrite 'template' variable
         // EXTR_SKIP should prevent this from breaking $this access

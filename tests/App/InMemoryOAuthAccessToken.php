@@ -32,53 +32,152 @@ class InMemoryOAuthAccessToken implements OAuthAccessTokenInterface
         $this->expiresAt = new \DateTimeImmutable('+1 hour');
     }
 
-    public function getUser(): UserInterface { return $this->user; }
-    public function setUser(UserInterface $user): void { $this->user = $user; }
+    public function getUser(): UserInterface
+    {
+        return $this->user;
+    }
 
-    public function getToken(): string { return $this->token; }
-    public function setToken(string $token): void { $this->token = $token; }
+    public function setUser(UserInterface $user): void
+    {
+        $this->user = $user;
+    }
 
-    public function getClientId(): string { return $this->clientId; }
-    public function setClientId(string $clientId): void { $this->clientId = $clientId; }
+    public function getToken(): string
+    {
+        return $this->token;
+    }
 
-    public function getGrantType(): string { return $this->grantType; }
-    public function setGrantType(string $grantType): void { $this->grantType = $grantType; }
+    public function setToken(string $token): void
+    {
+        $this->token = $token;
+    }
 
-    public function getScopes(): array { return $this->scopes; }
-    public function setScopes(array $scopes): void { $this->scopes = $scopes; }
+    public function getClientId(): string
+    {
+        return $this->clientId;
+    }
 
-    public function getExpiresAt(): \DateTimeImmutable { return $this->expiresAt; }
-    public function setExpiresAt(\DateTimeImmutable $expiresAt): void { $this->expiresAt = $expiresAt; }
+    public function setClientId(string $clientId): void
+    {
+        $this->clientId = $clientId;
+    }
 
-    public function getRefreshToken(): ?string { return $this->refreshToken; }
-    public function setRefreshToken(?string $refreshToken): void { $this->refreshToken = $refreshToken; }
+    public function getGrantType(): string
+    {
+        return $this->grantType;
+    }
 
-    public function getRefreshTokenExpiresAt(): ?\DateTimeImmutable { return $this->refreshTokenExpiresAt; }
-    public function setRefreshTokenExpiresAt(?\DateTimeImmutable $expiresAt): void { $this->refreshTokenExpiresAt = $expiresAt; }
+    public function setGrantType(string $grantType): void
+    {
+        $this->grantType = $grantType;
+    }
+
+    public function getScopes(): array
+    {
+        return $this->scopes;
+    }
+
+    public function setScopes(array $scopes): void
+    {
+        $this->scopes = $scopes;
+    }
+
+    public function getExpiresAt(): \DateTimeImmutable
+    {
+        return $this->expiresAt;
+    }
+
+    public function setExpiresAt(\DateTimeImmutable $expiresAt): void
+    {
+        $this->expiresAt = $expiresAt;
+    }
+
+    public function getRefreshToken(): ?string
+    {
+        return $this->refreshToken;
+    }
+
+    public function setRefreshToken(?string $refreshToken): void
+    {
+        $this->refreshToken = $refreshToken;
+    }
+
+    public function getRefreshTokenExpiresAt(): ?\DateTimeImmutable
+    {
+        return $this->refreshTokenExpiresAt;
+    }
+
+    public function setRefreshTokenExpiresAt(?\DateTimeImmutable $expiresAt): void
+    {
+        $this->refreshTokenExpiresAt = $expiresAt;
+    }
 
     public function isRefreshTokenExpired(): bool
     {
-        if ($this->refreshTokenExpiresAt === null) {
+        if (null === $this->refreshTokenExpiresAt) {
             return true;
         }
+
         return $this->refreshTokenExpiresAt < new \DateTimeImmutable();
     }
 
-    public function isRevoked(): bool { return $this->revoked; }
-    public function revoke(): void { $this->revoked = true; }
+    public function isRevoked(): bool
+    {
+        return $this->revoked;
+    }
 
-    public function getLastUsedAt(): ?\DateTimeImmutable { return $this->lastUsedAt; }
-    public function setLastUsedAt(?\DateTimeImmutable $lastUsedAt): void { $this->lastUsedAt = $lastUsedAt; }
+    public function revoke(): void
+    {
+        $this->revoked = true;
+    }
 
-    public function getIpAddress(): ?string { return $this->ipAddress; }
-    public function setIpAddress(?string $ipAddress): void { $this->ipAddress = $ipAddress; }
+    public function getLastUsedAt(): ?\DateTimeImmutable
+    {
+        return $this->lastUsedAt;
+    }
 
-    public function getUserAgent(): ?string { return $this->userAgent; }
-    public function setUserAgent(?string $userAgent): void { $this->userAgent = $userAgent; }
+    public function setLastUsedAt(?\DateTimeImmutable $lastUsedAt): void
+    {
+        $this->lastUsedAt = $lastUsedAt;
+    }
 
-    public function getPlainAccessToken(): ?string { return $this->plainAccessToken; }
-    public function setPlainAccessToken(?string $token): void { $this->plainAccessToken = $token; }
+    public function getIpAddress(): ?string
+    {
+        return $this->ipAddress;
+    }
 
-    public function getPlainRefreshToken(): ?string { return $this->plainRefreshToken; }
-    public function setPlainRefreshToken(?string $token): void { $this->plainRefreshToken = $token; }
+    public function setIpAddress(?string $ipAddress): void
+    {
+        $this->ipAddress = $ipAddress;
+    }
+
+    public function getUserAgent(): ?string
+    {
+        return $this->userAgent;
+    }
+
+    public function setUserAgent(?string $userAgent): void
+    {
+        $this->userAgent = $userAgent;
+    }
+
+    public function getPlainAccessToken(): ?string
+    {
+        return $this->plainAccessToken;
+    }
+
+    public function setPlainAccessToken(?string $token): void
+    {
+        $this->plainAccessToken = $token;
+    }
+
+    public function getPlainRefreshToken(): ?string
+    {
+        return $this->plainRefreshToken;
+    }
+
+    public function setPlainRefreshToken(?string $token): void
+    {
+        $this->plainRefreshToken = $token;
+    }
 }

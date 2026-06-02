@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Core;
 
@@ -25,8 +25,9 @@ interface PrepareResponseInterface
     /**
      * Prepare the response before emission.
      *
-     * @param ServerRequestInterface $request The server request
-     * @param ResponseInterface $response The response to prepare
+     * @param ServerRequestInterface $request  The server request
+     * @param ResponseInterface      $response The response to prepare
+     *
      * @return ResponseInterface The prepared response
      */
     public function prepare(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface;

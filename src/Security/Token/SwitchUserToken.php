@@ -7,7 +7,7 @@ namespace Modufolio\Appkit\Security\Token;
 use Modufolio\Appkit\Security\User\UserInterface;
 
 /**
- * Switch User Token for user impersonation
+ * Switch User Token for user impersonation.
  *
  * This token wraps the original authenticated token and allows administrators
  * to impersonate other users for debugging and support purposes.
@@ -23,7 +23,7 @@ class SwitchUserToken extends AbstractToken
         UserInterface $user,
         string $firewallName,
         array $roles,
-        TokenInterface $originalToken
+        TokenInterface $originalToken,
     ) {
         parent::__construct($roles);
 
@@ -42,7 +42,7 @@ class SwitchUserToken extends AbstractToken
     }
 
     /**
-     * Get the original token before user switch
+     * Get the original token before user switch.
      */
     public function getOriginalToken(): TokenInterface
     {
@@ -50,7 +50,7 @@ class SwitchUserToken extends AbstractToken
     }
 
     /**
-     * Get the firewall name
+     * Get the firewall name.
      */
     public function getFirewallName(): string
     {
@@ -58,7 +58,7 @@ class SwitchUserToken extends AbstractToken
     }
 
     /**
-     * Check if this is an impersonation token
+     * Check if this is an impersonation token.
      */
     public function isImpersonating(): bool
     {

@@ -1,11 +1,10 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Modufolio\Appkit\Tests\Attribute;
 
-use \Attribute;
-
-#[Attribute(Attribute::TARGET_CLASS | Attribute::TARGET_METHOD)]
+#[\Attribute(\Attribute::TARGET_CLASS | \Attribute::TARGET_METHOD)]
 final class RequiresCommand
 {
     public array $commands;

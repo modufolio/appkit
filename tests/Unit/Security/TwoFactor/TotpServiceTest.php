@@ -34,8 +34,8 @@ class TotpServiceTest extends AppTestCase
         self::mockTime('2024-01-01 00:00:00');
 
         $service = $this->app()->totpService();
-        $secret  = $service->generateSecret($this->fixtureUser());
-        $code    = $this->codeFor($secret);
+        $secret = $service->generateSecret($this->fixtureUser());
+        $code = $this->codeFor($secret);
 
         // First presentation of the code is accepted.
         $this->assertTrue($service->verifyCode($secret, $code));
@@ -52,10 +52,10 @@ class TotpServiceTest extends AppTestCase
         self::mockTime('2024-01-01 00:00:00');
 
         $service = $this->app()->totpService();
-        $secret  = $service->generateSecret($this->fixtureUser());
+        $secret = $service->generateSecret($this->fixtureUser());
 
         // Five wrong codes trip the lockout.
-        for ($i = 0; $i < 5; $i++) {
+        for ($i = 0; $i < 5; ++$i) {
             $this->assertFalse($service->verifyCode($secret, '000000'));
         }
 
@@ -72,9 +72,9 @@ class TotpServiceTest extends AppTestCase
         $clock = self::mockTime('2024-01-01 00:00:00');
 
         $service = $this->app()->totpService();
-        $secret  = $service->generateSecret($this->fixtureUser());
+        $secret = $service->generateSecret($this->fixtureUser());
 
-        for ($i = 0; $i < 5; $i++) {
+        for ($i = 0; $i < 5; ++$i) {
             $service->verifyCode($secret, '000000');
         }
         $this->assertNotNull($secret->getLockedUntil());
@@ -93,10 +93,10 @@ class TotpServiceTest extends AppTestCase
         self::mockTime('2024-01-01 00:00:00');
 
         $service = $this->app()->totpService();
-        $secret  = $service->generateSecret($this->fixtureUser());
+        $secret = $service->generateSecret($this->fixtureUser());
 
         // Wrong backup codes are brute-forceable too, so they share the lockout.
-        for ($i = 0; $i < 5; $i++) {
+        for ($i = 0; $i < 5; ++$i) {
             $this->assertFalse($service->verifyBackupCode($secret, 'not-a-real-code'));
         }
         $this->assertNotNull($secret->getLockedUntil());

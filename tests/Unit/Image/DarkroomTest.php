@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Tests\Unit\Image;
 
@@ -9,23 +9,23 @@ use PHPUnit\Framework\TestCase;
 
 class DarkroomTest extends TestCase
 {
-    public const FIXTURES = __DIR__ . '/fixtures';
+    public const FIXTURES = __DIR__.'/fixtures';
 
-    public function file(string|null $driver = null): string
+    public function file(?string $driver = null): string
     {
-        if ($driver !== null) {
-            return static::FIXTURES . '/image/cat-' . $driver . '.jpg';
+        if (null !== $driver) {
+            return static::FIXTURES.'/image/cat-'.$driver.'.jpg';
         }
 
-        return static::FIXTURES . '/image/cat.jpg';
+        return static::FIXTURES.'/image/cat.jpg';
     }
 
     public function testCropWithoutPosition(): void
     {
         $darkroom = new GdLib();
-        $options  = $darkroom->preprocess($this->file(), [
-            'crop'  => true,
-            'width' => 100
+        $options = $darkroom->preprocess($this->file(), [
+            'crop' => true,
+            'width' => 100,
         ]);
 
         $this->assertSame('center', $options['crop']);
@@ -34,7 +34,7 @@ class DarkroomTest extends TestCase
     public function testBlurWithoutPosition(): void
     {
         $darkroom = new GdLib();
-        $options  = $darkroom->preprocess($this->file(), [
+        $options = $darkroom->preprocess($this->file(), [
             'blur' => true,
         ]);
 
@@ -44,7 +44,7 @@ class DarkroomTest extends TestCase
     public function testQualityWithoutValue(): void
     {
         $darkroom = new GdLib();
-        $options  = $darkroom->preprocess($this->file(), [
+        $options = $darkroom->preprocess($this->file(), [
             'quality' => null,
         ]);
 
@@ -54,9 +54,9 @@ class DarkroomTest extends TestCase
     public function testSharpenWithoutValue(): void
     {
         $darkroom = new GdLib();
-        $options  = $darkroom->preprocess($this->file(), [
+        $options = $darkroom->preprocess($this->file(), [
             'sharpen' => true,
-            'width'   => 100
+            'width' => 100,
         ]);
 
         $this->assertSame(50, $options['sharpen']);
@@ -66,7 +66,7 @@ class DarkroomTest extends TestCase
     {
         $darkroom = new GdLib();
         // Use PDF file which won't have image dimensions
-        $options  = $darkroom->preprocess(static::FIXTURES . '/image/blank.pdf');
+        $options = $darkroom->preprocess(static::FIXTURES.'/image/blank.pdf');
 
         $this->assertTrue($options['autoOrient']);
         $this->assertFalse($options['crop']);
@@ -80,7 +80,7 @@ class DarkroomTest extends TestCase
     public function testGlobalOptions(): void
     {
         $darkroom = new GdLib([
-            'quality' => 20
+            'quality' => 20,
         ]);
 
         $options = $darkroom->preprocess($this->file());
@@ -91,11 +91,11 @@ class DarkroomTest extends TestCase
     public function testPassedOptions(): void
     {
         $darkroom = new GdLib([
-            'quality' => 20
+            'quality' => 20,
         ]);
 
         $options = $darkroom->preprocess($this->file(), [
-            'quality' => 30
+            'quality' => 30,
         ]);
 
         $this->assertSame(30, $options['quality']);
@@ -104,11 +104,11 @@ class DarkroomTest extends TestCase
     public function testProcess(): void
     {
         $darkroom = new GdLib([
-            'quality' => 20
+            'quality' => 20,
         ]);
 
         $options = $darkroom->process($this->file(), [
-            'quality' => 30
+            'quality' => 30,
         ]);
 
         $this->assertSame(30, $options['quality']);
@@ -120,14 +120,14 @@ class DarkroomTest extends TestCase
 
         // grayscale
         $options = $darkroom->preprocess($this->file(), [
-            'grayscale' => true
+            'grayscale' => true,
         ]);
 
         $this->assertTrue($options['grayscale']);
 
         // greyscale
         $options = $darkroom->preprocess($this->file(), [
-            'greyscale' => true
+            'greyscale' => true,
         ]);
 
         $this->assertTrue($options['grayscale']);
@@ -135,7 +135,7 @@ class DarkroomTest extends TestCase
 
         // bw
         $options = $darkroom->preprocess($this->file(), [
-            'bw' => true
+            'bw' => true,
         ]);
 
         $this->assertTrue($options['grayscale']);

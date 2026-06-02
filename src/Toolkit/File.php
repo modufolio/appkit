@@ -1,25 +1,22 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Toolkit;
 
-use Exception;
-use SplFileObject;
-
 class File
 {
-    private ?SplFileObject $fileObject = null;
+    private ?\SplFileObject $fileObject = null;
 
     /**
-     * @throws Exception
+     * @throws \Exception
      */
     public function __construct(string $filename, $mode = 'r')
     {
-        if (!file_exists($filename) && $mode === 'r') {
+        if (!file_exists($filename) && 'r' === $mode) {
             throw new \RuntimeException("File does not exist: $filename");
         }
-        $this->fileObject = new SplFileObject($filename, $mode);
+        $this->fileObject = new \SplFileObject($filename, $mode);
     }
 
     public function readLine(): string
@@ -34,12 +31,13 @@ class File
         while (!$this->fileObject->eof()) {
             $content .= $this->fileObject->fgets();
         }
+
         return $content;
     }
 
     public function writeLine($data): void
     {
-        $this->fileObject->fwrite($data . PHP_EOL);
+        $this->fileObject->fwrite($data.PHP_EOL);
     }
 
     public function writeAll($data): void
@@ -55,19 +53,21 @@ class File
         foreach ($this->fileObject as $line) {
             $lines[] = $line;
         }
+
         return $lines;
     }
 
     public function readCsv($delimiter = ',', $enclosure = '"', $escape = '\\'): array
     {
-        $this->fileObject->setFlags(SplFileObject::READ_CSV);
+        $this->fileObject->setFlags(\SplFileObject::READ_CSV);
         $rows = [];
         while (!$this->fileObject->eof()) {
             $row = $this->fileObject->fgetcsv($delimiter, $enclosure, $escape);
-            if (is_array($row) && $row[0] !== null) { // avoiding empty lines
+            if (is_array($row) && null !== $row[0]) { // avoiding empty lines
                 $rows[] = $row;
             }
         }
+
         return $rows;
     }
 
@@ -77,6 +77,7 @@ class File
         foreach ($data as $row) {
             $state = is_int($this->fileObject->fputcsv($row, $delimiter, $enclosure, $escape));
         }
+
         return $state;
     }
 
@@ -98,6 +99,7 @@ class File
                 $lines[] = $line;
             }
         }
+
         return $lines;
     }
 

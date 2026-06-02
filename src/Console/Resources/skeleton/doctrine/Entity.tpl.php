@@ -1,17 +1,16 @@
 <?php
 
-
 ?>
-<?= "<?php\n" ?>
+<?= "<?php\n"; ?>
 
-namespace <?= $namespace ?>;
+namespace <?= $namespace; ?>;
 
 <?= $use_statements; ?>
 
-#[ORM\Entity(repositoryClass: <?= $repository_class_name ?>::class)]
+#[ORM\Entity(repositoryClass: <?= $repository_class_name; ?>::class)]
 <?php if ($should_escape_table_name): ?>#[ORM\Table(name: '`<?= $table_name ?>`')]
-<?php endif ?>
-class <?= $class_name . "\n" ?>
+<?php endif; ?>
+class <?= $class_name."\n"; ?>
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]

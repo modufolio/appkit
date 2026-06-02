@@ -1,9 +1,11 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Core;
 
+use Doctrine\DBAL\Exception;
+use Doctrine\ORM\EntityManagerInterface;
 use Modufolio\Appkit\DependencyInjection\ParameterBag;
 use Modufolio\Appkit\DependencyInjection\ReflectionControllerArgumentResolver;
 use Modufolio\Appkit\Doctrine\EntityManagerFactory;
@@ -19,8 +21,6 @@ use Modufolio\Appkit\Security\SecurityConfigurator;
 use Modufolio\Appkit\Security\Token\TokenStorageInterface;
 use Modufolio\Appkit\Security\TokenUnserializer;
 use Modufolio\Appkit\Security\User\UserProviderInterface;
-use Doctrine\DBAL\Exception;
-use Doctrine\ORM\EntityManagerInterface;
 use Modufolio\Psr7\Http\Emitter;
 use Modufolio\Psr7\Http\EmitterInterface;
 use Psr\Container\ContainerExceptionInterface;
@@ -105,7 +105,7 @@ abstract class Kernel implements AppInterface
         $this->interfaceMap = require $this->fileMap['interfaces'];
 
         $this->setRouterOptions([
-            'cache_dir' => $this->environment()->isProd() ? $this->baseDir . '/var/cache/router' : null,
+            'cache_dir' => $this->environment()->isProd() ? $this->baseDir.'/var/cache/router' : null,
             'debug' => $this->environment()->isDev(),
             'resource_type' => null,
             'strict_requirements' => true,
@@ -147,7 +147,7 @@ abstract class Kernel implements AppInterface
      * 2. Route matching
      * 3. Controller instantiation
      * 4. Parameter resolution
-     * 5. Controller method execution
+     * 5. Controller method execution.
      *
      * @throws \ReflectionException
      */
@@ -159,18 +159,18 @@ abstract class Kernel implements AppInterface
 
         $controller = $parameters['_controller'] ?? null;
 
-        if ($controller === null) {
+        if (null === $controller) {
             throw new ResourceNotFoundException('No controller found for request');
         }
 
         $this->enforceAttributeAccessControl($parameters);
 
-        if (!is_array($controller) || count($controller) !== 2) {
+        if (!is_array($controller) || 2 !== count($controller)) {
             throw new \InvalidArgumentException('One of the routes does not have a valid controller definition. Expected format: [ClassName, methodName].');
         }
 
         foreach ($parameters as $key => $value) {
-            if ($key[0] !== '_') {
+            if ('_' !== $key[0]) {
                 $request = $request->withAttribute($key, $value);
             }
         }
@@ -183,11 +183,11 @@ abstract class Kernel implements AppInterface
         }
 
         $reflection = new \ReflectionMethod($class, $method);
-        $arg = $reflection->getParameters() === [] ? [] : $this->parameterResolver()->getParameters($reflection, [
+        $arg = [] === $reflection->getParameters() ? [] : $this->parameterResolver()->getParameters($reflection, [
             ServerRequestInterface::class => $request,
             RequestHandlerInterface::class => $this,
             'firewall' => $this->getFirewallName($request->getUri()->getPath()),
-            ...$parameters
+            ...$parameters,
         ], []);
 
         return call_user_func_array([$classObject, $method], $arg);
@@ -202,9 +202,10 @@ abstract class Kernel implements AppInterface
 
         $namedDependencies = $this->getControllerDependencies($id);
 
-        if ($namedDependencies === []) {
+        if ([] === $namedDependencies) {
             $controller = $this->instantiateController($id);
             $this->state->setRequestInstance($id, $controller);
+
             return $controller;
         }
 
@@ -219,6 +220,7 @@ abstract class Kernel implements AppInterface
     {
         if (!isset($this->controllers[$id])) {
             $resolver = new ReflectionControllerArgumentResolver($this);
+
             return $resolver->resolveArguments($id);
         }
 
@@ -251,6 +253,7 @@ abstract class Kernel implements AppInterface
             if (!method_exists($this, $method)) {
                 throw new \InvalidArgumentException("Service method '$method' not found.");
             }
+
             return $this->$method();
         }
 
@@ -313,7 +316,6 @@ abstract class Kernel implements AppInterface
         );
     }
 
-
     public function logger(): LoggerInterface
     {
         return $this->logger;
@@ -338,7 +340,7 @@ abstract class Kernel implements AppInterface
 
     public function session(): FlashBagAwareSessionInterface
     {
-        if ($this->state === null) {
+        if (null === $this->state) {
             throw new \RuntimeException('Session is not available. ApplicationState must be initialized by handling a request first.');
         }
 
@@ -347,7 +349,7 @@ abstract class Kernel implements AppInterface
 
     public function tokenStorage(): TokenStorageInterface
     {
-        if ($this->state === null) {
+        if (null === $this->state) {
             throw new \RuntimeException('TokenStorage is not available. ApplicationState must be initialized by handling a request first.');
         }
 
@@ -383,11 +385,7 @@ abstract class Kernel implements AppInterface
 
         try {
             if ($this->isKernelClass($id)) {
-                throw new \LogicException(sprintf(
-                    'Injecting "%s" (the kernel/app) as a dependency is not allowed. ' .
-                    'Use specific service accessors instead (e.g. router(), serializer(), session()).',
-                    $id
-                ));
+                throw new \LogicException(sprintf('Injecting "%s" (the kernel/app) as a dependency is not allowed. Use specific service accessors instead (e.g. router(), serializer(), session()).', $id));
             }
 
             if (array_key_exists($id, $this->interfaceMap)) {
@@ -405,21 +403,13 @@ abstract class Kernel implements AppInterface
             }
 
             if ($interface && !$instance instanceof $interface) {
-                throw new \RuntimeException(sprintf(
-                    'Service "%s" does not implement required interface "%s".',
-                    get_debug_type($instance),
-                    $interface
-                ));
+                throw new \RuntimeException(sprintf('Service "%s" does not implement required interface "%s".', get_debug_type($instance), $interface));
             }
 
             return $instance;
         } catch (\Error $e) {
             if ($e instanceof \ArgumentCountError) {
-                throw new \InvalidArgumentException(
-                    \sprintf('Class "%s" has required constructor arguments that dont exist in container.', $id),
-                    0,
-                    $e
-                );
+                throw new \InvalidArgumentException(\sprintf('Class "%s" has required constructor arguments that dont exist in container.', $id), 0, $e);
             }
             throw $e;
         }
@@ -443,10 +433,10 @@ abstract class Kernel implements AppInterface
             return false;
         }
 
-        return isset($this->instances[$id]) ||
-            array_key_exists($id, $this->interfaceMap) ||
-            array_key_exists($id, $this->repositories()) ||
-            isset($this->factories[$id]);
+        return isset($this->instances[$id])
+            || array_key_exists($id, $this->interfaceMap)
+            || array_key_exists($id, $this->repositories())
+            || isset($this->factories[$id]);
     }
 
     /**
@@ -486,6 +476,7 @@ abstract class Kernel implements AppInterface
         }
 
         $entityClass = $repositories[$repositoryClass];
+
         return $this->entityManager()->getRepository($entityClass);
     }
 
@@ -506,10 +497,7 @@ abstract class Kernel implements AppInterface
     }
 
     /**
-     * Configure security using SecurityConfigurator (new fluent API)
-     *
-     * @param SecurityConfigurator $configurator
-     * @return static
+     * Configure security using SecurityConfigurator (new fluent API).
      */
     public function configureSecurity(SecurityConfigurator $configurator): static
     {
@@ -562,14 +550,16 @@ abstract class Kernel implements AppInterface
     public function registerAuthenticator(string $name, \Closure $factory): static
     {
         $this->authenticators[$name] = $factory;
+
         return $this;
     }
 
     public function getFirewallName(string $path): ?string
     {
-        if ($this->state === null) {
+        if (null === $this->state) {
             throw new \RuntimeException('Firewall resolution is not available. ApplicationState must be initialized by handling a request first.');
         }
+
         return $this->state->getFirewallName($path);
     }
 
@@ -599,7 +589,7 @@ abstract class Kernel implements AppInterface
     }
 
     /**
-     * Generate URL from route name and parameters
+     * Generate URL from route name and parameters.
      */
     public function generateUrl(string $name, array $parameters = [], int $referenceType = UrlGeneratorInterface::ABSOLUTE_PATH): string
     {
@@ -616,7 +606,7 @@ abstract class Kernel implements AppInterface
         $baseUrl = rtrim($this->baseUrl(), '/');
         $path = ltrim($path, '/');
 
-        return $path === '' ? $baseUrl : $baseUrl . '/' . $path;
+        return '' === $path ? $baseUrl : $baseUrl.'/'.$path;
     }
 
     public function baseUrl(): string

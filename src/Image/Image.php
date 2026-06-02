@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Image;
 
@@ -8,20 +8,19 @@ use Modufolio\Appkit\Toolkit\F;
 use Modufolio\Appkit\Toolkit\Mime;
 
 /**
- * Image
+ * Image.
  *
  * Provides access to image metadata: dimensions, EXIF data,
  * and image type checking. Completely original design.
  *
- * @package   Image
  * @author    Maarten Thiebou
  * @copyright Modufolio
  * @license   https://opensource.org/licenses/MIT
  */
 class Image extends File
 {
-    protected Exif|null $exif = null;
-    protected Dimensions|null $dimensions = null;
+    protected ?Exif $exif = null;
+    protected ?Dimensions $dimensions = null;
     protected ?string $url = null;
 
     public static array $resizableTypes = [
@@ -29,7 +28,7 @@ class Image extends File
         'jpeg',
         'gif',
         'png',
-        'webp'
+        'webp',
     ];
 
     public static array $viewableTypes = [
@@ -39,28 +38,28 @@ class Image extends File
         'gif',
         'png',
         'svg',
-        'webp'
+        'webp',
     ];
 
     /**
-     * Validation rules to be used for `::match()`
+     * Validation rules to be used for `::match()`.
      */
     public static array $validations = [
-        'maxsize'     => ['size',   'max'],
-        'minsize'     => ['size',   'min'],
-        'maxwidth'    => ['width',  'max'],
-        'minwidth'    => ['width',  'min'],
-        'maxheight'   => ['height', 'max'],
-        'minheight'   => ['height', 'min'],
-        'orientation' => ['orientation', 'same']
+        'maxsize' => ['size',   'max'],
+        'minsize' => ['size',   'min'],
+        'maxwidth' => ['width',  'max'],
+        'minwidth' => ['width',  'min'],
+        'maxheight' => ['height', 'max'],
+        'minheight' => ['height', 'min'],
+        'orientation' => ['orientation', 'same'],
     ];
 
     /**
-     * Returns the dimensions of the file if possible
+     * Returns the dimensions of the file if possible.
      */
     public function dimensions(): Dimensions
     {
-        if ($this->dimensions !== null) {
+        if (null !== $this->dimensions) {
             return $this->dimensions;
         }
 
@@ -69,12 +68,12 @@ class Image extends File
             'image/jp2',
             'image/png',
             'image/gif',
-            'image/webp'
+            'image/webp',
         ])) {
             return $this->dimensions = Dimensions::forImage($this->root());
         }
 
-        if ($this->extension() === 'svg') {
+        if ('svg' === $this->extension()) {
             return $this->dimensions = Dimensions::forSvg($this->root());
         }
 
@@ -82,7 +81,7 @@ class Image extends File
     }
 
     /**
-     * Returns the exif object for this file (if image)
+     * Returns the exif object for this file (if image).
      */
     public function exif(): Exif
     {
@@ -90,7 +89,7 @@ class Image extends File
     }
 
     /**
-     * Returns the height of the asset
+     * Returns the height of the asset.
      */
     public function height(): int
     {
@@ -98,7 +97,7 @@ class Image extends File
     }
 
     /**
-     * Returns the PHP imagesize array
+     * Returns the PHP imagesize array.
      */
     public function imagesize(): array
     {
@@ -106,7 +105,7 @@ class Image extends File
     }
 
     /**
-     * Checks if the dimensions of the asset are portrait
+     * Checks if the dimensions of the asset are portrait.
      */
     public function isPortrait(): bool
     {
@@ -114,7 +113,7 @@ class Image extends File
     }
 
     /**
-     * Checks if the dimensions of the asset are landscape
+     * Checks if the dimensions of the asset are landscape.
      */
     public function isLandscape(): bool
     {
@@ -122,7 +121,7 @@ class Image extends File
     }
 
     /**
-     * Checks if the dimensions of the asset are square
+     * Checks if the dimensions of the asset are square.
      */
     public function isSquare(): bool
     {
@@ -131,7 +130,7 @@ class Image extends File
 
     /**
      * Checks if the file is a resizable image
-     * Validates both extension and MIME type to prevent spoofing
+     * Validates both extension and MIME type to prevent spoofing.
      */
     public function isResizable(): bool
     {
@@ -148,7 +147,7 @@ class Image extends File
 
     /**
      * Validates that the MIME type matches the file extension
-     * Prevents MIME type spoofing attacks
+     * Prevents MIME type spoofing attacks.
      *
      * @throws ImageException If MIME type doesn't match extension
      */
@@ -159,10 +158,10 @@ class Image extends File
 
         // Map of extensions to valid MIME types
         $validMimeTypes = [
-            'jpg'  => ['image/jpeg', 'image/pjpeg'],
+            'jpg' => ['image/jpeg', 'image/pjpeg'],
             'jpeg' => ['image/jpeg', 'image/pjpeg'],
-            'png'  => ['image/png'],
-            'gif'  => ['image/gif'],
+            'png' => ['image/png'],
+            'gif' => ['image/gif'],
             'webp' => ['image/webp'],
         ];
 
@@ -181,11 +180,11 @@ class Image extends File
 
     /**
      * Checks if a preview can be displayed for the file
-     * in the Panel or in the frontend
+     * in the Panel or in the frontend.
      */
     public function isViewable(): bool
     {
-        return in_array($this->extension(), static::$viewableTypes) === true;
+        return true === in_array($this->extension(), static::$viewableTypes);
     }
 
     public function modified(): int
@@ -194,7 +193,7 @@ class Image extends File
     }
 
     /**
-     * Returns the ratio of the asset
+     * Returns the ratio of the asset.
      */
     public function ratio(): float
     {
@@ -203,7 +202,7 @@ class Image extends File
 
     /**
      * Returns the orientation as string
-     * `landscape` | `portrait` | `square`
+     * `landscape` | `portrait` | `square`.
      */
     public function orientation(): string|false
     {
@@ -211,7 +210,7 @@ class Image extends File
     }
 
     /**
-     * Converts the object to an array
+     * Converts the object to an array.
      *
      * @param bool $includeLocation Whether to include GPS location data from EXIF (privacy-sensitive)
      */
@@ -219,7 +218,7 @@ class Image extends File
     {
         $array = [
             'dimensions' => $this->dimensions()->toArray(),
-            'exif'       => $this->exif()->toArray($includeLocation),
+            'exif' => $this->exif()->toArray($includeLocation),
         ];
 
         ksort($array);
@@ -233,11 +232,10 @@ class Image extends File
     }
 
     /**
-     * Returns the width of the asset
+     * Returns the width of the asset.
      */
     public function width(): int
     {
         return $this->dimensions()->width();
     }
-
 }

@@ -18,7 +18,7 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**
- * Two-Factor Authentication Controller (test stub)
+ * Two-Factor Authentication Controller (test stub).
  *
  * Reduced test-case controller for testing the 2FA flow through
  * TotpService and AppSecurity hardcoded routes (/2fa, /2fa/cancel).
@@ -35,7 +35,7 @@ class TwoFactorController
     }
 
     /**
-     * Get current 2FA status for the authenticated user
+     * Get current 2FA status for the authenticated user.
      */
     #[Route(path: '/api/2fa/status', name: 'api_2fa_status', methods: ['GET'])]
     public function status(ServerRequestInterface $request): ResponseInterface
@@ -43,7 +43,7 @@ class TwoFactorController
         $user = $this->getAuthenticatedUser();
 
         $totpSecret = $this->totpService->getTotpSecret($user);
-        $isEnabled = $totpSecret !== null && $totpSecret->isEnabled() && $totpSecret->isConfirmed();
+        $isEnabled = null !== $totpSecret && $totpSecret->isEnabled() && $totpSecret->isConfirmed();
 
         return Response::json([
             'enabled' => $isEnabled,
@@ -52,7 +52,7 @@ class TwoFactorController
     }
 
     /**
-     * Generate a new TOTP secret and QR code
+     * Generate a new TOTP secret and QR code.
      */
     #[Route(path: '/api/2fa/setup', name: 'api_2fa_setup', methods: ['POST'])]
     public function setup(ServerRequestInterface $request): ResponseInterface
@@ -77,7 +77,7 @@ class TwoFactorController
     }
 
     /**
-     * Verify TOTP code and enable 2FA
+     * Verify TOTP code and enable 2FA.
      */
     #[Route(path: '/api/2fa/enable', name: 'api_2fa_enable', methods: ['POST'])]
     public function enable(ServerRequestInterface $request): ResponseInterface
@@ -92,7 +92,7 @@ class TwoFactorController
 
         $totpSecret = $this->totpService->getTotpSecret($user);
 
-        if ($totpSecret === null) {
+        if (null === $totpSecret) {
             return Response::json(['success' => false, 'error' => 'No TOTP secret found. Please setup 2FA first.'], 400);
         }
 
@@ -115,7 +115,7 @@ class TwoFactorController
     }
 
     /**
-     * Disable 2FA for the authenticated user
+     * Disable 2FA for the authenticated user.
      */
     #[Route(path: '/api/2fa/disable', name: 'api_2fa_disable', methods: ['POST'])]
     public function disable(ServerRequestInterface $request): ResponseInterface
@@ -143,12 +143,14 @@ class TwoFactorController
 
         if (!$token instanceof TwoFactorToken) {
             $this->session->remove('_2fa_token');
+
             return Response::redirect($this->urlGenerator->generate('login'));
         }
 
         if ($token->isExpired()) {
             $this->session->remove('_2fa_token');
             $this->session->getFlashBag()->add('error', 'Two-factor authentication session expired.');
+
             return Response::redirect($this->urlGenerator->generate('login'));
         }
 
@@ -176,12 +178,14 @@ class TwoFactorController
 
         if (!$token instanceof TwoFactorToken) {
             $this->session->remove('_2fa_token');
+
             return Response::redirect($this->urlGenerator->generate('login'));
         }
 
         if ($token->isExpired()) {
             $this->session->remove('_2fa_token');
             $this->session->getFlashBag()->add('error', 'Two-factor authentication session expired.');
+
             return Response::redirect($this->urlGenerator->generate('login'));
         }
 
@@ -190,19 +194,22 @@ class TwoFactorController
 
         if (!$this->csrfTokenManager->validateToken('2fa_verify', $csrfToken)) {
             $this->session->getFlashBag()->add('2fa_error', 'Invalid CSRF token');
+
             return Response::redirect($this->urlGenerator->generate('2fa_form'));
         }
 
         $user = $token->getUser();
         if (!$user instanceof UserInterface) {
             $this->session->remove('_2fa_token');
+
             return Response::redirect($this->urlGenerator->generate('login'));
         }
 
         $totpSecret = $this->totpService->getTotpSecret($user);
-        if ($totpSecret === null || !$totpSecret->isEnabled()) {
+        if (null === $totpSecret || !$totpSecret->isEnabled()) {
             $this->session->remove('_2fa_token');
             $this->session->getFlashBag()->add('error', 'Two-factor authentication is not configured.');
+
             return Response::redirect($this->urlGenerator->generate('login'));
         }
 
@@ -215,6 +222,7 @@ class TwoFactorController
                 $verified = $this->totpService->verifyCode($totpSecret, $totpCode);
             } catch (\RuntimeException $e) {
                 $this->session->getFlashBag()->add('2fa_error', $e->getMessage());
+
                 return Response::redirect($this->urlGenerator->generate('2fa_form'));
             }
         }
@@ -225,6 +233,7 @@ class TwoFactorController
 
         if (!$verified) {
             $this->session->getFlashBag()->add('2fa_error', 'Invalid authentication code');
+
             return Response::redirect($this->urlGenerator->generate('2fa_form'));
         }
 
@@ -258,7 +267,7 @@ class TwoFactorController
     {
         $token = $this->tokenStorage->getToken();
 
-        if ($token === null) {
+        if (null === $token) {
             throw new \RuntimeException('Not authenticated.');
         }
 

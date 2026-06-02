@@ -21,9 +21,9 @@ class FlatFileRouteLoaderTest extends TestCase
     {
         parent::setUp();
 
-        $this->fixturesDir = __DIR__ . '/../../App/FlatFile/fixtures';
+        $this->fixturesDir = __DIR__.'/../../App/FlatFile/fixtures';
 
-        $fileLocator = new FileLocator(__DIR__ . '/../../App/FlatFile');
+        $fileLocator = new FileLocator(__DIR__.'/../../App/FlatFile');
         $this->loader = new FlatFileRouteLoader(
             locator: $fileLocator,
             controllerClass: FlatFileController::class,
@@ -199,7 +199,7 @@ class FlatFileRouteLoaderTest extends TestCase
 
     public function testCustomFileExtension(): void
     {
-        $fileLocator = new FileLocator(__DIR__ . '/../../App/FlatFile');
+        $fileLocator = new FileLocator(__DIR__.'/../../App/FlatFile');
         $loader = new FlatFileRouteLoader(
             locator: $fileLocator,
             controllerClass: FlatFileController::class,
@@ -318,7 +318,7 @@ class FlatFileRouteLoaderTest extends TestCase
 
     public function testCustomHomeFolder(): void
     {
-        $fileLocator = new FileLocator(__DIR__ . '/../../App/FlatFile');
+        $fileLocator = new FileLocator(__DIR__.'/../../App/FlatFile');
         $loader = new FlatFileRouteLoader(
             locator: $fileLocator,
             controllerClass: FlatFileController::class,

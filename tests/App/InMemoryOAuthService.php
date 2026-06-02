@@ -48,7 +48,7 @@ class InMemoryOAuthService implements OAuthServiceInterface
             $this->refreshTokens[hash('sha256', $plainRefreshToken)] = $token;
         }
 
-        if ($request !== null) {
+        if (null !== $request) {
             $serverParams = $request->getServerParams();
             $token->setIpAddress($serverParams['REMOTE_ADDR'] ?? null);
             $token->setUserAgent($request->getHeaderLine('User-Agent'));
@@ -62,7 +62,7 @@ class InMemoryOAuthService implements OAuthServiceInterface
 
     public function validateAccessToken(string $accessToken): ?OAuthAccessTokenInterface
     {
-        if ($this->validateException !== null) {
+        if (null !== $this->validateException) {
             throw $this->validateException;
         }
 
@@ -153,7 +153,7 @@ class InMemoryOAuthService implements OAuthServiceInterface
         ];
 
         $plainRefresh = $token->getPlainRefreshToken();
-        if ($plainRefresh !== null) {
+        if (null !== $plainRefresh) {
             $response['refresh_token'] = $plainRefresh;
         }
 
@@ -168,7 +168,7 @@ class InMemoryOAuthService implements OAuthServiceInterface
         foreach ($this->tokens as $hash => $token) {
             if ($token->getExpiresAt() < $now) {
                 unset($this->tokens[$hash]);
-                $count++;
+                ++$count;
             }
         }
 

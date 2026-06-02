@@ -10,7 +10,6 @@ use Symfony\Component\HttpFoundation\Session\SessionInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 return [
-
     TwoFactorController::class => [
         TotpService::class,
         TokenStorageInterface::class,
@@ -18,5 +17,4 @@ return [
         CsrfTokenManagerInterface::class,
         UrlGeneratorInterface::class,
     ],
-
 ];

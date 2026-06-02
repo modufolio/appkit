@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Modufolio\Appkit\Resolver;
 
+use Doctrine\ORM\EntityManagerInterface;
 use Modufolio\Appkit\Attributes\DataGrid;
 use Modufolio\Appkit\DataGrid\ArrayWriter;
 use Modufolio\Appkit\DataGrid\Doctrine\QueryBuilderAdapter;
 use Modufolio\Appkit\DataGrid\Doctrine\QueryBuilderWriter;
 use Modufolio\Appkit\DataGrid\GridMetadata;
 use Modufolio\Appkit\DataGrid\GridResult;
-use Doctrine\ORM\EntityManagerInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Spiral\DataGrid\Compiler;
 use Spiral\DataGrid\Grid;
@@ -29,8 +29,9 @@ readonly class DataGridResolver implements AttributeResolverInterface
     public function supports(\ReflectionParameter $parameter): bool
     {
         $type = $parameter->getType();
+
         return $type instanceof \ReflectionNamedType
-            && $type->getName() === GridResult::class
+            && GridResult::class === $type->getName()
             && !empty($parameter->getAttributes(DataGrid::class));
     }
 
@@ -39,10 +40,7 @@ readonly class DataGridResolver implements AttributeResolverInterface
         $attributes = $parameter->getAttributes(DataGrid::class);
 
         if (empty($attributes)) {
-            throw new \LogicException(sprintf(
-                'Parameter "%s" does not have the required DataGrid attribute.',
-                $parameter->getName()
-            ));
+            throw new \LogicException(sprintf('Parameter "%s" does not have the required DataGrid attribute.', $parameter->getName()));
         }
 
         /** @var DataGrid $attr */
@@ -76,20 +74,13 @@ readonly class DataGridResolver implements AttributeResolverInterface
     private function resolveSchema(string $schemaClass): GridSchema
     {
         if (!class_exists($schemaClass)) {
-            throw new \LogicException(sprintf(
-                'Grid schema class "%s" does not exist.',
-                $schemaClass
-            ));
+            throw new \LogicException(sprintf('Grid schema class "%s" does not exist.', $schemaClass));
         }
 
         $schema = new $schemaClass();
 
         if (!$schema instanceof GridSchema) {
-            throw new \LogicException(sprintf(
-                'Grid schema class "%s" must extend %s.',
-                $schemaClass,
-                GridSchema::class
-            ));
+            throw new \LogicException(sprintf('Grid schema class "%s" must extend %s.', $schemaClass, GridSchema::class));
         }
 
         return $schema;
@@ -97,15 +88,12 @@ readonly class DataGridResolver implements AttributeResolverInterface
 
     private function resolveSource(?string $sourceClass): QueryBuilderAdapter|array
     {
-        if ($sourceClass === null) {
+        if (null === $sourceClass) {
             return [];
         }
 
         if (!class_exists($sourceClass)) {
-            throw new \LogicException(sprintf(
-                'Source class "%s" does not exist.',
-                $sourceClass
-            ));
+            throw new \LogicException(sprintf('Source class "%s" does not exist.', $sourceClass));
         }
 
         $repository = $this->entityManager->getRepository($sourceClass);

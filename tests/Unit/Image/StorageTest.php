@@ -6,7 +6,6 @@ namespace Modufolio\Appkit\Tests\Unit\Image;
 
 use Modufolio\Appkit\Image\Storage;
 use Modufolio\Appkit\Image\StorageInterface;
-use Modufolio\Appkit\Image\File;
 use PHPUnit\Framework\TestCase;
 
 class StorageTest extends TestCase

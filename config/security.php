@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use Modufolio\Appkit\Security\SecurityConfigurator;
 
-/**
+/*
  * Test-app security configuration.
  *
  * Only firewalls, access control, and role hierarchy are consumed by the
@@ -12,16 +12,16 @@ use Modufolio\Appkit\Security\SecurityConfigurator;
  */
 return function (SecurityConfigurator $security): void {
     $security->firewall('main', [
-        'pattern'        => '/',
+        'pattern' => '/',
         'authenticators' => ['form_login'],
-        'entry_point'    => '/login',
-        'logout'         => [
-            'path'   => '/logout',
+        'entry_point' => '/login',
+        'logout' => [
+            'path' => '/logout',
             'target' => '/login',
         ],
         'switch_user' => [
-            'enabled'   => true,
-            'role'      => 'ROLE_ADMIN',
+            'enabled' => true,
+            'role' => 'ROLE_ADMIN',
             'parameter' => '_switch_user',
         ],
     ]);
@@ -32,8 +32,8 @@ return function (SecurityConfigurator $security): void {
 
     $security->roleHierarchy([
         'ROLE_SUPER_ADMIN' => ['ROLE_ADMIN'],
-        'ROLE_ADMIN'       => ['ROLE_USER'],
-        'ROLE_USER'        => ['ROLE_GUEST'],
-        'ROLE_API_USER'    => ['ROLE_GUEST'],
+        'ROLE_ADMIN' => ['ROLE_USER'],
+        'ROLE_USER' => ['ROLE_GUEST'],
+        'ROLE_API_USER' => ['ROLE_GUEST'],
     ]);
 };

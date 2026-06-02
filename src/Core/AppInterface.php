@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Modufolio\Appkit\Core;
 
+use Doctrine\ORM\EntityManagerInterface;
 use Modufolio\Appkit\Resolver\ParameterResolverInterface;
 use Modufolio\Appkit\Security\Token\TokenStorageInterface;
 use Modufolio\Appkit\Security\User\UserProviderInterface;
-use Doctrine\ORM\EntityManagerInterface;
 use Psr\Container\ContainerInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
@@ -77,6 +77,6 @@ interface AppInterface extends ContainerInterface, RequestHandlerInterface, Rese
     public function generateUrl(
         string $name,
         array $parameters = [],
-        int $referenceType = UrlGeneratorInterface::ABSOLUTE_PATH
+        int $referenceType = UrlGeneratorInterface::ABSOLUTE_PATH,
     ): string;
 }

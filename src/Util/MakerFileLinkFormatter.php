@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Util;
 
@@ -22,7 +22,7 @@ final class MakerFileLinkFormatter
 
     public function __construct(?string $fileLinkFormat = null)
     {
-        if ($fileLinkFormat === null || $fileLinkFormat === '') {
+        if (null === $fileLinkFormat || '' === $fileLinkFormat) {
             $this->fileLinkFormat = 'file://%f#L%l';
         } else {
             $this->fileLinkFormat = self::IDE_LINK_FORMATS[$fileLinkFormat] ?? $fileLinkFormat;

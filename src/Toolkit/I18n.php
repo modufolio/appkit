@@ -1,59 +1,60 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Toolkit;
 
 /**
- * Localization class, roughly inspired by VueI18n
+ * Localization class, roughly inspired by VueI18n.
  *
- * @package   Kirby Toolkit
  * @author    Bastian Allgeier <bastian@getkirby.com>
- * @link      https://getkirby.com
+ *
+ * @see      https://getkirby.com
+ *
  * @copyright Bastian Allgeier
  * @license   https://opensource.org/licenses/MIT
  */
 class I18n
 {
     /**
-     * Custom loader function
+     * Custom loader function.
      */
-    public static \Closure|null $load = null;
+    public static ?\Closure $load = null;
 
     /**
-     * Current locale
+     * Current locale.
      */
     public static string|\Closure|null $locale = 'en';
 
     /**
-     * All registered translations
+     * All registered translations.
      */
     public static array $translations = [];
 
     /**
-     * The fallback locale or a list of fallback locales
+     * The fallback locale or a list of fallback locales.
      */
     public static string|array|\Closure|null $fallback = ['en'];
 
     /**
-     * Cache of `NumberFormatter` objects by locale
+     * Cache of `NumberFormatter` objects by locale.
      */
     protected static array $decimalsFormatters = [];
 
     /**
-     * Returns the list of fallback locales
+     * Returns the list of fallback locales.
      */
     public static function fallbacks(): array
     {
-        if (is_callable(static::$fallback) === true) {
+        if (true === is_callable(static::$fallback)) {
             static::$fallback = (static::$fallback)();
         }
 
-        if (is_array(static::$fallback) === true) {
+        if (true === is_array(static::$fallback)) {
             return static::$fallback;
         }
 
-        if (is_string(static::$fallback) === true) {
+        if (true === is_string(static::$fallback)) {
             return A::wrap(static::$fallback);
         }
 
@@ -61,45 +62,46 @@ class I18n
     }
 
     /**
-     * Returns singular or plural depending on the given number
+     * Returns singular or plural depending on the given number.
      *
      * @param bool $none If true, 'none' will be returned if the count is 0
      */
     public static function form(int $count, bool $none = false): string
     {
-        if ($none === true && $count === 0) {
+        if (true === $none && 0 === $count) {
             return 'none';
         }
 
         return match ($count) {
-            1       => 'singular',
-            default => 'plural'
+            1 => 'singular',
+            default => 'plural',
         };
     }
 
     /**
-     * Formats a number
+     * Formats a number.
      */
     public static function formatNumber(
         int|float $number,
-        string|null $locale = null
+        ?string $locale = null,
     ): string {
-        $locale  ??= static::locale();
+        $locale ??= static::locale();
         $formatter = static::decimalNumberFormatter($locale);
-        $number    = $formatter?->format($number) ?? $number;
-        return (string)$number;
+        $number = $formatter?->format($number) ?? $number;
+
+        return (string) $number;
     }
 
     /**
-     * Returns the current locale code
+     * Returns the current locale code.
      */
     public static function locale(): string
     {
-        if (is_callable(static::$locale) === true) {
+        if (true === is_callable(static::$locale)) {
             static::$locale = (static::$locale)();
         }
 
-        if (is_string(static::$locale) === true) {
+        if (true === is_string(static::$locale)) {
             return static::$locale;
         }
 
@@ -108,18 +110,18 @@ class I18n
 
     /**
      * Translate by key and then replace
-     * placeholders in the text
+     * placeholders in the text.
      */
     public static function template(
         string $key,
         string|array|null $fallback = null,
-        array|null $replace = null,
-        string|null $locale = null
+        ?array $replace = null,
+        ?string $locale = null,
     ): string {
-        if (is_array($fallback) === true) {
-            $replace  = $fallback;
+        if (true === is_array($fallback)) {
+            $replace = $fallback;
             $fallback = null;
-            $locale   = null;
+            $locale = null;
         }
 
         $template = static::translate($key, $fallback, $locale);
@@ -130,12 +132,12 @@ class I18n
     /**
      * Translates either a given i18n key from global translations
      * or chooses correct entry from array of translations
-     * according to the currently set locale
+     * according to the currently set locale.
      */
     public static function translate(
         string|array|null $key,
         string|array|null $fallback = null,
-        string|null $locale = null
+        ?string $locale = null,
     ): string|array|\Closure|null {
         // use current locale if no specific is passed
         $locale ??= static::locale();
@@ -150,7 +152,7 @@ class I18n
         // explicitly via the parameter and/or from global defaults.
 
         // (1) string $key: look up i18n string from global translations
-        if (is_string($key) === true) {
+        if (true === is_string($key)) {
             // look up locale in global translations list,
             if ($result = static::translation($locale)[$key] ?? null) {
                 return $result;
@@ -158,8 +160,8 @@ class I18n
 
             // prefer any direct provided $fallback
             // over further fallback alternatives
-            if ($fallback !== null) {
-                if (is_array($fallback) === true) {
+            if (null !== $fallback) {
+                if (true === is_array($fallback)) {
                     return static::translate($fallback, null, $locale);
                 }
 
@@ -225,16 +227,16 @@ class I18n
         }
 
         // if a string was provided as fallback, use that one
-        if (is_string($fallback) === true) {
+        if (true === is_string($fallback)) {
             return $fallback;
         }
 
         // otherwise the first array element of the input
         // or the first array element of the fallback
-        if (is_array($key) === true) {
+        if (true === is_array($key)) {
             return reset($key);
         }
-        if (is_array($fallback) === true) {
+        if (true === is_array($fallback)) {
             return reset($fallback);
         }
 
@@ -246,7 +248,7 @@ class I18n
      * by locale. If the translation does not exist
      * yet, the loader will try to load it, if defined.
      */
-    public static function translation(string|null $locale = null): array
+    public static function translation(?string $locale = null): array
     {
         $locale ??= static::locale();
 
@@ -267,7 +269,7 @@ class I18n
     }
 
     /**
-     * Returns all loaded or defined translations
+     * Returns all loaded or defined translations.
      */
     public static function translations(): array
     {
@@ -275,18 +277,18 @@ class I18n
     }
 
     /**
-     * Returns (and creates) a decimal number formatter for a given locale
+     * Returns (and creates) a decimal number formatter for a given locale.
      */
     protected static function decimalNumberFormatter(
-        string $locale
-    ): \NumberFormatter|null {
+        string $locale,
+    ): ?\NumberFormatter {
         if ($formatter = static::$decimalsFormatters[$locale] ?? null) {
             return $formatter;
         }
 
         if (
-            extension_loaded('intl') !== true ||
-            class_exists('NumberFormatter') !== true
+            true !== extension_loaded('intl')
+            || true !== class_exists('NumberFormatter')
         ) {
             return null; // @codeCoverageIgnore
         }
@@ -295,7 +297,7 @@ class I18n
     }
 
     /**
-     * Translates amounts
+     * Translates amounts.
      *
      * Translation definition options:
      * - Translation is a simple string: `{{ count }}` gets replaced in the template
@@ -309,13 +311,13 @@ class I18n
     public static function translateCount(
         string $key,
         int $count,
-        string|null $locale = null,
-        bool $formatNumber = true
+        ?string $locale = null,
+        bool $formatNumber = true,
     ) {
-        $locale    ??= static::locale();
+        $locale ??= static::locale();
         $translation = static::translate($key, null, $locale);
 
-        if ($translation === null) {
+        if (null === $translation) {
             return null;
         }
 
@@ -324,12 +326,12 @@ class I18n
         }
 
         $message = match (true) {
-            is_string($translation)     => $translation,
+            is_string($translation) => $translation,
             isset($translation[$count]) => $translation[$count],
-            default 				    => end($translation)
+            default => end($translation),
         };
 
-        if ($formatNumber === true) {
+        if (true === $formatNumber) {
             $count = static::formatNumber($count, $locale);
         }
 

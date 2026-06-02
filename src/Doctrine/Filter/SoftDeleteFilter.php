@@ -14,6 +14,6 @@ class SoftDeleteFilter extends SQLFilter
             return '';
         }
 
-        return $targetTableAlias . '.deleted_at IS NULL';
+        return $targetTableAlias.'.deleted_at IS NULL';
     }
 }

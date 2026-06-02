@@ -1,13 +1,12 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Tests\Unit\Query;
 
 use Modufolio\Appkit\Query\Segment;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use stdClass;
 
 class MyObj
 {
@@ -15,7 +14,7 @@ class MyObj
 
     public function foo(int $count)
     {
-        return $count . 'bar';
+        return $count.'bar';
     }
 }
 
@@ -23,7 +22,7 @@ class MyCallObj
 {
     public function __call($name, $args)
     {
-        return $args[0] . 'bar';
+        return $args[0].'bar';
     }
 }
 
@@ -45,7 +44,7 @@ class TestUser
     public function profiles(): array
     {
         return [
-            'mastodon' => '@homer'
+            'mastodon' => '@homer',
         ];
     }
 
@@ -92,7 +91,7 @@ class TestUser
     public function likes(array $arguments)
     {
         foreach ($arguments as $arg) {
-            if (in_array($arg, ['(', ')', ',', ']', '[']) === false) {
+            if (false === in_array($arg, ['(', ')', ',', ']', '['])) {
                 throw new \Exception();
             }
         }
@@ -106,7 +105,6 @@ class TestUser
     }
 }
 
-
 class SegmentTest extends TestCase
 {
     public static function scalarProvider(): array
@@ -117,7 +115,7 @@ class SegmentTest extends TestCase
             [1.1, 'float'],
             [true, 'boolean'],
             [false, 'boolean'],
-            [null, 'null']
+            [null, 'null'],
         ];
     }
 
@@ -125,7 +123,7 @@ class SegmentTest extends TestCase
     public function testErrorWithScalars($scalar, $label)
     {
         $this->expectException(\BadMethodCallException::class);
-        $this->expectExceptionMessage('Access to method "foo" on ' . $label);
+        $this->expectExceptionMessage('Access to method "foo" on '.$label);
 
         Segment::error($scalar, 'foo', 'method');
     }
@@ -135,7 +133,7 @@ class SegmentTest extends TestCase
         $this->expectException(\BadMethodCallException::class);
         $this->expectExceptionMessage('Access to non-existing method "foo" on object');
 
-        Segment::error(new stdClass(), 'foo', 'method');
+        Segment::error(new \stdClass(), 'foo', 'method');
     }
 
     public function testFactory()
@@ -161,28 +159,28 @@ class SegmentTest extends TestCase
 
         // with parameters
         $segment = Segment::factory('foo(2, "bar")');
-        $this->assertSame('2bar', $segment->resolve(null, ['foo' => fn (int $a, string $b) => $a . $b]));
+        $this->assertSame('2bar', $segment->resolve(null, ['foo' => fn (int $a, string $b) => $a.$b]));
     }
 
     public function testResolveFirstWithDataObject()
     {
-        $obj      = new stdClass();
+        $obj = new \stdClass();
         $obj->foo = 'bar';
-        $segment  = Segment::factory('foo');
+        $segment = Segment::factory('foo');
         $this->assertSame('bar', $segment->resolve(null, $obj));
     }
 
     public function testResolveArray()
     {
         $segment = Segment::factory('foo', 1);
-        $data    = ['foo' => $expected = [1, 2]];
+        $data = ['foo' => $expected = [1, 2]];
         $this->assertSame($expected, $segment->resolve($data));
     }
 
     public function testResolveArrayClosure()
     {
         $segment = Segment::factory('foo', 0);
-        $data    = ['foo' => fn () => 'bar'];
+        $data = ['foo' => fn () => 'bar'];
         $this->assertSame('bar', $segment->resolve(null, $data));
     }
 
@@ -197,19 +195,19 @@ class SegmentTest extends TestCase
 
     public function testResolveObject()
     {
-        $obj     = new MyObj();
+        $obj = new MyObj();
         $segment = Segment::factory('foo(2)', 1);
         $this->assertSame('2bar', $segment->resolve($obj));
 
-        $obj     = new MyObj();
+        $obj = new MyObj();
         $segment = Segment::factory('homer', 1);
         $this->assertSame('simpson', $segment->resolve($obj));
 
-        $obj     = new MyCallObj();
+        $obj = new MyCallObj();
         $segment = Segment::factory('foo(2)', 1);
         $this->assertSame('2bar', $segment->resolve($obj));
 
-        $obj     = new MyGetObj();
+        $obj = new MyGetObj();
         $segment = Segment::factory('homer', 1);
         $this->assertSame('simpson', $segment->resolve($obj));
     }
@@ -228,7 +226,7 @@ class SegmentTest extends TestCase
         $this->expectException(\BadMethodCallException::class);
         $this->expectExceptionMessage('Access to non-existing method/property "notfound" on object');
 
-        $obj     = new MyObj();
+        $obj = new MyObj();
         $segment = Segment::factory('notfound', 1);
         $segment->resolve($obj);
     }

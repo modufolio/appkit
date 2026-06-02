@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Tests\Unit\Toolkit;
 
@@ -12,11 +12,11 @@ class CollectionPaginatorTest extends TestCase
     public function testSlice()
     {
         $collection = new Collection([
-            'one'   => 'eins',
-            'two'   => 'zwei',
+            'one' => 'eins',
+            'two' => 'zwei',
             'three' => 'drei',
-            'four'  => 'vier',
-            'five'  => 'fünf'
+            'four' => 'vier',
+            'five' => 'fünf',
         ]);
 
         $this->assertSame('drei', $collection->slice(2)->first());
@@ -26,11 +26,11 @@ class CollectionPaginatorTest extends TestCase
     public function testSliceNotReally()
     {
         $collection = new Collection([
-            'one'   => 'eins',
-            'two'   => 'zwei',
+            'one' => 'eins',
+            'two' => 'zwei',
             'three' => 'drei',
-            'four'  => 'vier',
-            'five'  => 'fünf'
+            'four' => 'vier',
+            'five' => 'fünf',
         ]);
 
         $this->assertSame($collection, $collection->slice());
@@ -39,11 +39,11 @@ class CollectionPaginatorTest extends TestCase
     public function testLimit()
     {
         $collection = new Collection([
-            'one'   => 'eins',
-            'two'   => 'zwei',
+            'one' => 'eins',
+            'two' => 'zwei',
             'three' => 'drei',
-            'four'  => 'vier',
-            'five'  => 'fünf'
+            'four' => 'vier',
+            'five' => 'fünf',
         ]);
 
         $this->assertSame('drei', $collection->limit(3)->last());
@@ -53,11 +53,11 @@ class CollectionPaginatorTest extends TestCase
     public function testOffset()
     {
         $collection = new Collection([
-            'one'   => 'eins',
-            'two'   => 'zwei',
+            'one' => 'eins',
+            'two' => 'zwei',
             'three' => 'drei',
-            'four'  => 'vier',
-            'five'  => 'fünf'
+            'four' => 'vier',
+            'five' => 'fünf',
         ]);
 
         $this->assertSame('drei', $collection->offset(2)->first());
@@ -68,22 +68,22 @@ class CollectionPaginatorTest extends TestCase
     public function testPaginate()
     {
         $collection = new Collection([
-            'one'   => 'eins',
-            'two'   => 'zwei',
+            'one' => 'eins',
+            'two' => 'zwei',
             'three' => 'drei',
-            'four'  => 'vier',
-            'five'  => 'fünf'
+            'four' => 'vier',
+            'five' => 'fünf',
         ]);
 
         $this->assertSame('eins', $collection->paginate(2)->first());
         $this->assertSame('drei', $collection->paginate(2, 2)->first());
 
         $this->assertSame('eins', $collection->paginate([
-            'foo' => 'bar'
+            'foo' => 'bar',
         ])->first());
         $this->assertSame('fünf', $collection->paginate([
             'limit' => 2,
-            'page' => 3
+            'page' => 3,
         ])->first());
 
         $this->assertSame(3, $collection->pagination()->page());
@@ -92,11 +92,11 @@ class CollectionPaginatorTest extends TestCase
     public function testChunk()
     {
         $collection = new Collection([
-            'one'   => 'eins',
-            'two'   => 'zwei',
+            'one' => 'eins',
+            'two' => 'zwei',
             'three' => 'drei',
-            'four'  => 'vier',
-            'five'  => 'fünf'
+            'four' => 'vier',
+            'five' => 'fünf',
         ]);
 
         $this->assertCount(3, $collection->chunk(2));

@@ -2,8 +2,8 @@
 
 namespace Modufolio\Appkit\Tests\Unit\Auth;
 
-use Modufolio\Appkit\Tests\Case\AppTestCase;
 use Modufolio\Appkit\Security\User\UserInterface;
+use Modufolio\Appkit\Tests\Case\AppTestCase;
 
 class LoginTest extends AppTestCase
 {
@@ -23,13 +23,12 @@ class LoginTest extends AppTestCase
                     'entry_point' => '/login',
                     'logout' => [
                         'path' => '/logout',
-                        'target' => '/'
-                    ]
-                ]
-            ]
+                        'target' => '/',
+                    ],
+                ],
+            ],
         ]);
     }
-
 
     public function testLoginRegeneratesSessionIdToPreventFixation(): void
     {
@@ -42,8 +41,8 @@ class LoginTest extends AppTestCase
         $csrfToken = $this->app()->csrfTokenManager()->getToken('authenticate')->getValue();
 
         $this->form('/login', [
-            'email'       => 'johndoe@example.com',
-            'password'    => 'secret',
+            'email' => 'johndoe@example.com',
+            'password' => 'secret',
             '_csrf_token' => $csrfToken,
         ]);
 

@@ -8,7 +8,7 @@ namespace Modufolio\Appkit\Attributes;
 class DataGrid
 {
     /**
-     * @param class-string $schema The GridSchema class to use
+     * @param class-string      $schema The GridSchema class to use
      * @param class-string|null $source The entity class or null for array sources
      */
     public function __construct(

@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Security\User;
 
@@ -82,8 +82,8 @@ final class InMemoryUser implements UserInterface, PasswordAuthenticatedUserInte
             return false;
         }
 
-        $currentRoles = array_map('strval', (array)$this->getRoles());
-        $newRoles = array_map('strval', (array)$user->getRoles());
+        $currentRoles = array_map('strval', (array) $this->getRoles());
+        $newRoles = array_map('strval', (array) $user->getRoles());
         $rolesChanged = \count($currentRoles) !== \count($newRoles) || \count($currentRoles) !== \count(array_intersect($currentRoles, $newRoles));
         if ($rolesChanged) {
             return false;

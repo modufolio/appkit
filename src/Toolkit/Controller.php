@@ -12,12 +12,13 @@ namespace Modufolio\Appkit\Toolkit;
 class Controller
 {
     public function __construct(
-        protected \Closure $function
+        protected \Closure $function,
     ) {
     }
 
     /**
-     * Get arguments for the closure based on available data
+     * Get arguments for the closure based on available data.
+     *
      * @throws \ReflectionException
      */
     public function arguments(array $data = []): array
@@ -28,13 +29,13 @@ class Controller
         foreach ($info->getParameters() as $param) {
             $name = $param->getName();
 
-            if ($param->isVariadic() === true) {
+            if (true === $param->isVariadic()) {
                 // Variadic ... argument collects all remaining values
                 $args += $data;
-            } elseif (isset($data[$name]) === true) {
+            } elseif (true === isset($data[$name])) {
                 // Use provided argument value if available
                 $args[$name] = $data[$name];
-            } elseif ($param->isDefaultValueAvailable() === false) {
+            } elseif (false === $param->isDefaultValueAvailable()) {
                 // Use null for any other arguments that don't define
                 // a default value for themselves
                 $args[$name] = null;
@@ -45,14 +46,14 @@ class Controller
     }
 
     /**
-     * Call the closure with dependency injection
+     * Call the closure with dependency injection.
      */
     public function call($bind = null, $data = []): mixed
     {
         // Get matched arguments based on parameter names
         $args = $this->arguments($data);
 
-        if ($bind === null) {
+        if (null === $bind) {
             return ($this->function)(...$args);
         }
 
@@ -60,7 +61,7 @@ class Controller
     }
 
     /**
-     * Load a controller from a PHP file
+     * Load a controller from a PHP file.
      */
     public static function load(string $file, ?string $in = null): ?static
     {
@@ -68,14 +69,14 @@ class Controller
             return null;
         }
 
-        if ($in !== null) {
+        if (null !== $in) {
             $root = realpath($in);
             $real = realpath($file);
 
             if (
-                $root === false ||
-                $real === false ||
-                !str_starts_with($real, rtrim($root, '/\\') . DIRECTORY_SEPARATOR)
+                false === $root
+                || false === $real
+                || !str_starts_with($real, rtrim($root, '/\\').DIRECTORY_SEPARATOR)
             ) {
                 return null;
             }

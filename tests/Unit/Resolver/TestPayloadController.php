@@ -13,27 +13,27 @@ class TestPayloadController
 {
     public function storeWithThrow(
         ServerRequestInterface $request,
-        #[MapRequestPayload] TestCreateUserDto $dto
+        #[MapRequestPayload] TestCreateUserDto $dto,
     ): void {
     }
 
     public function storeWithValidationResult(
         ServerRequestInterface $request,
         #[MapRequestPayload(throwOnError: false)] TestCreateUserDto $dto,
-        ValidationResult $result
+        ValidationResult $result,
     ): void {
     }
 
     public function listWithValidationResult(
         ServerRequestInterface $request,
         #[MapQueryString(throwOnError: false)] TestCreateUserDto $query,
-        ValidationResult $result
+        ValidationResult $result,
     ): void {
     }
 
     public function storeDefault(
         ServerRequestInterface $request,
-        #[MapRequestPayload] TestCreateUserDto $dto
+        #[MapRequestPayload] TestCreateUserDto $dto,
     ): void {
     }
 }

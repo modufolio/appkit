@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Modufolio\Appkit\Tests\Unit\Database;
 
-use Modufolio\Appkit\Tests\Traits\DatabaseTestingCapabilities;
 use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Types\Exception\TypesException;
+use Modufolio\Appkit\Tests\Traits\DatabaseTestingCapabilities;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -17,7 +17,6 @@ use PHPUnit\Framework\TestCase;
 final class ExampleDatabaseTest extends TestCase
 {
     use DatabaseTestingCapabilities;
-
 
     /**
      * @throws Exception
@@ -35,6 +34,7 @@ final class ExampleDatabaseTest extends TestCase
 
     /**
      * Define your test schema.
+     *
      * @throws TypesException
      */
     public function getTestSchema(): Schema
@@ -61,11 +61,9 @@ final class ExampleDatabaseTest extends TestCase
         return $schema;
     }
 
-
-
-
     /**
      * Test basic CRUD operations with query tracking.
+     *
      * @throws Exception
      */
     public function testBasicCrudOperations(): void
@@ -119,6 +117,7 @@ final class ExampleDatabaseTest extends TestCase
 
     /**
      * Test query counting by type.
+     *
      * @throws Exception
      */
     public function testQueryCountingByType(): void
@@ -138,7 +137,7 @@ final class ExampleDatabaseTest extends TestCase
 
         $this->connection->executeStatement('UPDATE users SET name = ? WHERE email = ?', [
             'Alice Smith',
-            'alice@example.com'
+            'alice@example.com',
         ]);
 
         $this->connection->fetchAllAssociative('SELECT * FROM users');
@@ -151,6 +150,7 @@ final class ExampleDatabaseTest extends TestCase
 
     /**
      * Test asserting specific tables were NOT queried.
+     *
      * @throws Exception
      */
     public function testTableNotQueried(): void
@@ -173,6 +173,7 @@ final class ExampleDatabaseTest extends TestCase
 
     /**
      * Test query performance assertions.
+     *
      * @throws Exception
      */
     public function testQueryPerformance(): void
@@ -195,6 +196,7 @@ final class ExampleDatabaseTest extends TestCase
 
     /**
      * Test query log filtering.
+     *
      * @throws Exception
      */
     public function testQueryLogFiltering(): void
@@ -232,6 +234,7 @@ final class ExampleDatabaseTest extends TestCase
 
     /**
      * Test using debug stack directly.
+     *
      * @throws Exception
      */
     public function testDebugStackAccess(): void
@@ -262,12 +265,13 @@ final class ExampleDatabaseTest extends TestCase
 
     /**
      * Test performance reporting.
+     *
      * @throws Exception
      */
     public function testPerformanceReporting(): void
     {
         // Perform some operations
-        for ($i = 1; $i <= 5; $i++) {
+        for ($i = 1; $i <= 5; ++$i) {
             $this->connection->insert('users', [
                 'name' => "User {$i}",
                 'email' => "user{$i}@example.com",
@@ -292,6 +296,7 @@ final class ExampleDatabaseTest extends TestCase
 
     /**
      * Test database assertions.
+     *
      * @throws Exception
      */
     public function testDatabaseAssertions(): void
@@ -326,6 +331,7 @@ final class ExampleDatabaseTest extends TestCase
 
     /**
      * Example showing how to use fixtures.
+     *
      * @throws Exception
      */
     public function testWithFixtures(): void

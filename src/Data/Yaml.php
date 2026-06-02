@@ -1,26 +1,26 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Data;
 
 use Modufolio\Appkit\Toolkit\A;
-use InvalidArgumentException;
 use Symfony\Component\Yaml\Yaml as Symfony;
 
 /**
- * Simple Wrapper around the Symfony YAML class
+ * Simple Wrapper around the Symfony YAML class.
  *
- * @package   Kirby Data
  * @author    Bastian Allgeier <bastian@getkirby.com>
- * @link      https://getkirby.com
+ *
+ * @see      https://getkirby.com
+ *
  * @copyright Bastian Allgeier
  * @license   https://opensource.org/licenses/MIT
  */
 class Yaml extends Handler
 {
     /**
-     * Converts an array to an encoded YAML string
+     * Converts an array to an encoded YAML string.
      */
     public static function encode(mixed $data): string
     {
@@ -33,24 +33,26 @@ class Yaml extends Handler
     }
 
     /**
-     * Parses an encoded YAML string and returns a multidimensional array
-     * @throws InvalidArgumentException
+     * Parses an encoded YAML string and returns a multidimensional array.
+     *
+     * @throws \InvalidArgumentException
      */
     public static function decode(mixed $string): array
     {
-        if ($string === null || $string === '') {
+        if (null === $string || '' === $string) {
             return [];
         }
 
-        if (is_array($string) === true) {
+        if (true === is_array($string)) {
             return $string;
         }
 
-        if (is_string($string) === false) {
-            throw new InvalidArgumentException('Invalid YAML data; please pass a string');
+        if (false === is_string($string)) {
+            throw new \InvalidArgumentException('Invalid YAML data; please pass a string');
         }
 
         $result = Symfony::parse($string);
+
         return A::wrap($result);
     }
 }

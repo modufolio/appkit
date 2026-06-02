@@ -41,7 +41,7 @@ class FormLoginAuthenticator extends AbstractAuthenticator
         private ?TwoFactorServiceInterface $totpService = null,
         private ?UserPasswordHasherInterface $passwordHasher = null,
         private ?BruteForceProtectionInterface $bruteForce = null,
-        array $options = []
+        array $options = [],
     ) {
         $this->options = array_merge([
             'username_parameter' => 'email',
@@ -61,7 +61,7 @@ class FormLoginAuthenticator extends AbstractAuthenticator
             return false;
         }
 
-        return !$this->options['post_only'] || $request->getMethod() === 'POST';
+        return !$this->options['post_only'] || 'POST' === $request->getMethod();
     }
 
     /**
@@ -92,7 +92,7 @@ class FormLoginAuthenticator extends AbstractAuthenticator
             throw new AuthenticationException('Invalid credentials');
         }
 
-        $valid = $this->passwordHasher !== null
+        $valid = null !== $this->passwordHasher
             ? $this->passwordHasher->isPasswordValid($user, $password)
             : password_verify($password, (string) $user->getPassword());
 
@@ -101,10 +101,10 @@ class FormLoginAuthenticator extends AbstractAuthenticator
             throw new AuthenticationException('Invalid credentials');
         }
 
-        if ($this->totpService !== null) {
+        if (null !== $this->totpService) {
             $totpSecret = $this->totpService->getTwoFactorSecret($user);
 
-            if ($totpSecret !== null && $totpSecret->isEnabled()) {
+            if (null !== $totpSecret && $totpSecret->isEnabled()) {
                 // 2FA is required but not yet provided — do not reset the
                 // brute-force counter here; only a fully successful login should.
                 throw new TwoFactorRequiredException($user);
@@ -118,8 +118,9 @@ class FormLoginAuthenticator extends AbstractAuthenticator
 
     private function verifyDummyPassword(string $password): void
     {
-        if ($this->passwordHasher !== null) {
+        if (null !== $this->passwordHasher) {
             $this->passwordHasher->verifyDummy($password);
+
             return;
         }
         password_verify($password, self::DUMMY_HASH);
@@ -182,7 +183,7 @@ class FormLoginAuthenticator extends AbstractAuthenticator
         $username = is_string($username) ? trim($username) : '';
         $password = is_string($password) ? $password : '';
 
-        if ($username === '' || $password === '') {
+        if ('' === $username || '' === $password) {
             throw new AuthenticationException('Username and password cannot be empty.');
         }
 
@@ -197,7 +198,7 @@ class FormLoginAuthenticator extends AbstractAuthenticator
         $parsedBody = $request->getParsedBody();
         $csrfToken = is_array($parsedBody) ? ($parsedBody[$this->options['csrf_parameter']] ?? null) : null;
 
-        if (!is_string($csrfToken) || $csrfToken === '') {
+        if (!is_string($csrfToken) || '' === $csrfToken) {
             throw new InvalidCsrfTokenException('CSRF token is missing');
         }
 

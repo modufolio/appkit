@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Util;
 
@@ -35,7 +35,7 @@ final class ClassNameDetails
      */
     public function getRelativeName(): string
     {
-        return str_replace($this->namespacePrefix . '\\', '', $this->fullClassName);
+        return str_replace($this->namespacePrefix.'\\', '', $this->fullClassName);
     }
 
     public function getRelativeNameWithoutSuffix(): string

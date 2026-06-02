@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Doctrine;
 
@@ -35,6 +35,7 @@ final class OrmConfigurator
     public function connection(array $params): self
     {
         $this->connectionParams = $params;
+
         return $this;
     }
 
@@ -51,24 +52,28 @@ final class OrmConfigurator
     public function entities(string ...$paths): self
     {
         $this->entityPaths = [...$this->entityPaths, ...$paths];
+
         return $this;
     }
 
     public function addFilter(string $name, string $class): self
     {
         $this->ormConfig->addFilter($name, $class);
+
         return $this;
     }
 
     public function middlewares(array $middlewares): self
     {
         $this->dbalConfig->setMiddlewares($middlewares);
+
         return $this;
     }
 
     public function addSubscriber(EventSubscriber $subscriber): self
     {
         $this->subscribers[] = $subscriber;
+
         return $this;
     }
 
@@ -80,6 +85,7 @@ final class OrmConfigurator
         $this->metadataCache = $metadata;
         $this->queryCache = $query;
         $this->resultCache = $result;
+
         return $this;
     }
 

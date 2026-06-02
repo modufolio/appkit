@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Core;
 
@@ -21,7 +21,6 @@ use Symfony\Component\HttpFoundation\Session\Storage\SessionStorageInterface;
  */
 interface ApplicationStateInterface extends ResetInterface
 {
-
     /**
      * Get the current HTTP request.
      */

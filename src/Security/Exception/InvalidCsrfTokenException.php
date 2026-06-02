@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Modufolio\Appkit\Security\Exception;
 
 /**
- * Exception thrown when CSRF token validation fails
+ * Exception thrown when CSRF token validation fails.
  */
 class InvalidCsrfTokenException extends AuthenticationException
 {

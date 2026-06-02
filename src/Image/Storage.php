@@ -6,9 +6,8 @@ namespace Modufolio\Appkit\Image;
 
 /**
  * Default storage implementation for media files
- * Handles path resolution using configurable base paths
+ * Handles path resolution using configurable base paths.
  *
- * @package   Image
  * @author    Maarten Thiebou
  * @copyright Modufolio
  * @license   https://opensource.org/licenses/MIT
@@ -22,7 +21,7 @@ class Storage implements StorageInterface
     public function __construct(
         string $baseMediaRoot = '/media',
         string $baseMediaUrl = '/media',
-        string $uploadsDir = '/uploads'
+        string $uploadsDir = '/uploads',
     ) {
         $this->baseMediaRoot = rtrim($baseMediaRoot, '/');
         $this->baseMediaUrl = rtrim($baseMediaUrl, '/');
@@ -47,12 +46,14 @@ class Storage implements StorageInterface
     public function mediaRoot(FileInterface $file): string
     {
         $hash = md5($file->root());
-        return $this->baseMediaRoot . '/images/' . $file->disk()->name() . '/' . $hash . '/' . $file->filename();
+
+        return $this->baseMediaRoot.'/images/'.$file->disk()->name().'/'.$hash.'/'.$file->filename();
     }
 
     public function mediaUrl(FileInterface $file): string
     {
         $hash = md5($file->root());
-        return $this->baseMediaUrl . '/images/' . $file->disk()->name() . '/' . $hash . '/' . $file->filename();
+
+        return $this->baseMediaUrl.'/images/'.$file->disk()->name().'/'.$hash.'/'.$file->filename();
     }
 }

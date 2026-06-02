@@ -81,7 +81,7 @@ class FileBruteForceProtection implements BruteForceProtectionInterface
     {
         // Quick lock-free check; if not locked, no write needed.
         $data = $this->read($this->generateKey($identifier, $ipAddress));
-        if (!isset($data['locked_until']) || $data['locked_until'] === null) {
+        if (!isset($data['locked_until']) || null === $data['locked_until']) {
             return 0;
         }
 
@@ -92,9 +92,10 @@ class FileBruteForceProtection implements BruteForceProtectionInterface
 
         // Lockout expired — clear under an exclusive lock.
         $this->modify($identifier, $ipAddress, function (array $data, int $now): array {
-            if (isset($data['locked_until']) && $data['locked_until'] !== null && $data['locked_until'] <= $now) {
+            if (isset($data['locked_until']) && null !== $data['locked_until'] && $data['locked_until'] <= $now) {
                 return ['failures' => [], 'locked_until' => null];
             }
+
             return $data;
         });
 
@@ -108,12 +109,12 @@ class FileBruteForceProtection implements BruteForceProtectionInterface
 
     private function generateKey(string $identifier, ?string $ipAddress = null): string
     {
-        return hash('sha256', $identifier . ($ipAddress !== null ? ':' . $ipAddress : ''));
+        return hash('sha256', $identifier.(null !== $ipAddress ? ':'.$ipAddress : ''));
     }
 
     private function getFilePath(string $key): string
     {
-        return $this->storageDir . '/' . $key . '.json';
+        return $this->storageDir.'/'.$key.'.json';
     }
 
     /**
@@ -129,7 +130,7 @@ class FileBruteForceProtection implements BruteForceProtectionInterface
         }
 
         $handle = fopen($filepath, 'r');
-        if ($handle === false) {
+        if (false === $handle) {
             return ['failures' => [], 'locked_until' => null];
         }
 
@@ -156,7 +157,7 @@ class FileBruteForceProtection implements BruteForceProtectionInterface
         $filepath = $this->getFilePath($this->generateKey($identifier, $ipAddress));
 
         $handle = fopen($filepath, 'c+');
-        if ($handle === false) {
+        if (false === $handle) {
             throw new \RuntimeException(sprintf('Failed to open file for writing: %s', $filepath));
         }
 
@@ -186,7 +187,7 @@ class FileBruteForceProtection implements BruteForceProtectionInterface
      */
     private function decode(string|false $content): array
     {
-        if ($content === false || $content === '') {
+        if (false === $content || '' === $content) {
             return ['failures' => [], 'locked_until' => null];
         }
 

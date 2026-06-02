@@ -17,7 +17,7 @@ class TypeHintResolverTest extends TestCase
     public function testResolvesClassTypeHint(): void
     {
         // Arrange
-        $testClass = new class () {
+        $testClass = new class {
             public function method(TestDependency $dependency): void
             {
             }
@@ -38,7 +38,7 @@ class TypeHintResolverTest extends TestCase
     public function testSkipsPrimitiveTypeHint(): void
     {
         // Arrange
-        $testClass = new class () {
+        $testClass = new class {
             public function method(string $value): void
             {
             }
@@ -57,7 +57,7 @@ class TypeHintResolverTest extends TestCase
     public function testSkipsUnionTypeHint(): void
     {
         // Arrange
-        $testClass = new class () {
+        $testClass = new class {
             public function method(TestDependency|string $param): void
             {
             }
@@ -76,7 +76,7 @@ class TypeHintResolverTest extends TestCase
     public function testResolvesSelfTypeHint(): void
     {
         // Arrange
-        $testClass = new class () {
+        $testClass = new class {
             public function method(self $self): void
             {
             }
@@ -97,7 +97,7 @@ class TypeHintResolverTest extends TestCase
     public function testSkipsAlreadyResolvedParameters(): void
     {
         // Arrange
-        $testClass = new class () {
+        $testClass = new class {
             public function method(TestDependency $dependency): void
             {
             }
@@ -116,7 +116,7 @@ class TypeHintResolverTest extends TestCase
     public function testSkipsParameterWithoutTypeHint(): void
     {
         // Arrange
-        $testClass = new class () {
+        $testClass = new class {
             public function method($param): void
             {
             }

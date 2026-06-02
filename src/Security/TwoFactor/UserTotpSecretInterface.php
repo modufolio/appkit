@@ -7,114 +7,114 @@ namespace Modufolio\Appkit\Security\TwoFactor;
 use Modufolio\Appkit\Security\User\UserInterface;
 
 /**
- * Interface for TOTP Secret Entity
+ * Interface for TOTP Secret Entity.
  *
  * Defines contract for managing user TOTP secrets
  */
 interface UserTotpSecretInterface extends TwoFactorSecret
 {
     /**
-     * Get the associated user
+     * Get the associated user.
      */
     public function getUser(): UserInterface;
 
     /**
-     * Set the associated user
+     * Set the associated user.
      */
     public function setUser(UserInterface $user): void;
 
     /**
-     * Get the TOTP secret
+     * Get the TOTP secret.
      */
     public function getSecret(): string;
 
     /**
-     * Set the TOTP secret
+     * Set the TOTP secret.
      */
     public function setSecret(string $secret): void;
 
     /**
-     * Check if 2FA is enabled
+     * Check if 2FA is enabled.
      */
     public function isEnabled(): bool;
 
     /**
-     * Set enabled status
+     * Set enabled status.
      */
     public function setEnabled(bool $enabled): void;
 
     /**
-     * Check if 2FA is confirmed
+     * Check if 2FA is confirmed.
      */
     public function isConfirmed(): bool;
 
     /**
-     * Set confirmed status
+     * Set confirmed status.
      */
     public function setConfirmed(bool $confirmed): void;
 
     /**
-     * Get last used timestamp
+     * Get last used timestamp.
      */
     public function getLastUsedAt(): ?\DateTimeImmutable;
 
     /**
-     * Set last used timestamp
+     * Set last used timestamp.
      */
     public function setLastUsedAt(?\DateTimeImmutable $lastUsedAt): void;
 
     /**
-     * Get failed attempts count
+     * Get failed attempts count.
      */
     public function getFailedAttempts(): int;
 
     /**
-     * Increment failed attempts
+     * Increment failed attempts.
      */
     public function incrementFailedAttempts(): void;
 
     /**
-     * Reset failed attempts
+     * Reset failed attempts.
      */
     public function resetFailedAttempts(): void;
 
     /**
-     * Get the time-step (counter) of the last accepted TOTP code (replay guard)
+     * Get the time-step (counter) of the last accepted TOTP code (replay guard).
      */
     public function getLastUsedCounter(): ?int;
 
     /**
-     * Set the time-step (counter) of the last accepted TOTP code
+     * Set the time-step (counter) of the last accepted TOTP code.
      */
     public function setLastUsedCounter(?int $counter): void;
 
     /**
-     * Get the lockout expiry instant, or null when not locked
+     * Get the lockout expiry instant, or null when not locked.
      */
     public function getLockedUntil(): ?\DateTimeImmutable;
 
     /**
-     * Set (or clear with null) the lockout expiry instant
+     * Set (or clear with null) the lockout expiry instant.
      */
     public function setLockedUntil(?\DateTimeImmutable $lockedUntil): void;
 
     /**
-     * Check if backup code exists
+     * Check if backup code exists.
      */
     public function hasBackupCode(string $code): bool;
 
     /**
-     * Get all backup codes
+     * Get all backup codes.
      */
     public function getBackupCodes(): ?array;
 
     /**
-     * Set backup codes
+     * Set backup codes.
      */
     public function setBackupCodes(?array $backupCodes): void;
 
     /**
-     * Remove a backup code
+     * Remove a backup code.
      */
     public function removeBackupCode(string $code): void;
 }

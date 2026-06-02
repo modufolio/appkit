@@ -1,29 +1,27 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Tests\App\Entity\Traits;
 
-use DateTimeImmutable;
-use DateTimeInterface;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping\Column;
 
 trait SoftDeleteable
 {
     #[Column(name: 'deleted_at', type: Types::DATETIME_IMMUTABLE, nullable: true)]
-    protected ?DateTimeInterface $deletedAt = null;
+    protected ?\DateTimeInterface $deletedAt = null;
 
     /**
-     * Soft delete the entity by setting the deletedAt timestamp
+     * Soft delete the entity by setting the deletedAt timestamp.
      */
     public function softDelete(): void
     {
-        $this->deletedAt = new DateTimeImmutable();
+        $this->deletedAt = new \DateTimeImmutable();
     }
 
     /**
-     * Restore a soft-deleted entity by clearing the deletedAt timestamp
+     * Restore a soft-deleted entity by clearing the deletedAt timestamp.
      */
     public function restore(): void
     {
@@ -31,19 +29,18 @@ trait SoftDeleteable
     }
 
     /**
-     * Check if the entity is soft deleted
+     * Check if the entity is soft deleted.
      */
     public function isDeleted(): bool
     {
-        return $this->deletedAt !== null;
+        return null !== $this->deletedAt;
     }
 
     /**
-     * Get the deletion timestamp
+     * Get the deletion timestamp.
      */
-    public function getDeletedAt(): ?DateTimeInterface
+    public function getDeletedAt(): ?\DateTimeInterface
     {
         return $this->deletedAt;
     }
-
 }

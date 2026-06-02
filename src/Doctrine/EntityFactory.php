@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Doctrine;
 
@@ -19,7 +19,7 @@ final class EntityFactory
         private EntityManagerInterface $entityManager,
         private DenormalizerInterface $serializer,
         private ValidatorInterface $validator,
-        private array $resolverArgs = []
+        private array $resolverArgs = [],
     ) {
         $this->resolverArgs['faker'] = Factory::create();
     }
@@ -27,6 +27,7 @@ final class EntityFactory
     public function loadConfig(array $config): self
     {
         $this->config = $config;
+
         return $this;
     }
 
@@ -67,7 +68,7 @@ final class EntityFactory
 
     public function createMany(string $className, int $count, array|callable $attributes = []): self
     {
-        for ($i = 0; $i < $count; $i++) {
+        for ($i = 0; $i < $count; ++$i) {
             $attrs = is_callable($attributes) ? $attributes($i) : $attributes;
             $this->create($className, $attrs);
         }
@@ -83,6 +84,7 @@ final class EntityFactory
     public function store(): self
     {
         $this->entityManager->flush();
+
         return $this;
     }
 
@@ -90,6 +92,7 @@ final class EntityFactory
     {
         $config = $this->config[$className] ?? [];
         $fields = $config['fields'] ?? [];
+
         return A::apply($fields, ...$this->getResolverArgs());
     }
 
@@ -110,6 +113,7 @@ final class EntityFactory
     public function withResolverArgs(array $args): self
     {
         $this->resolverArgs = array_merge($this->resolverArgs, $args);
+
         return $this;
     }
 }

@@ -1,21 +1,18 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Toolkit;
-
-use ArrayIterator;
-use Countable;
-use IteratorAggregate;
 
 /**
  * Extended version of PHP's iterator
  * class that builds the foundation of our
  * Collection class.
  *
- * @package   Kirby Toolkit
  * @author    Bastian Allgeier <bastian@getkirby.com>
- * @link      https://getkirby.com
+ *
+ * @see      https://getkirby.com
+ *
  * @copyright Bastian Allgeier
  * @license   https://opensource.org/licenses/MIT
  *
@@ -26,9 +23,10 @@ use IteratorAggregate;
  *
  * @template TKey of array-key
  * @template TValue
+ *
  * @implements \IteratorAggregate<TKey, TValue>
  */
-class Iterator implements Countable, IteratorAggregate
+class Iterator implements \Countable, \IteratorAggregate
 {
     /**
      * @var array<TKey, TValue>
@@ -42,15 +40,16 @@ class Iterator implements Countable, IteratorAggregate
 
     /**
      * Get an iterator for the items.
+     *
      * @return \ArrayIterator<TKey, TValue>
      */
-    public function getIterator(): ArrayIterator
+    public function getIterator(): \ArrayIterator
     {
-        return new ArrayIterator($this->data);
+        return new \ArrayIterator($this->data);
     }
 
     /**
-     * Returns the current key
+     * Returns the current key.
      */
     public function key(): int|string|null
     {
@@ -58,7 +57,7 @@ class Iterator implements Countable, IteratorAggregate
     }
 
     /**
-     * Returns an array of all keys
+     * Returns an array of all keys.
      */
     public function keys(): array
     {
@@ -66,7 +65,8 @@ class Iterator implements Countable, IteratorAggregate
     }
 
     /**
-     * Returns the current element
+     * Returns the current element.
+     *
      * @return TValue
      */
     public function current(): mixed
@@ -76,7 +76,8 @@ class Iterator implements Countable, IteratorAggregate
 
     /**
      * Moves the cursor to the previous element
-     * and returns it
+     * and returns it.
+     *
      * @return TValue
      */
     public function prev(): mixed
@@ -86,7 +87,8 @@ class Iterator implements Countable, IteratorAggregate
 
     /**
      * Moves the cursor to the next element
-     * and returns it
+     * and returns it.
+     *
      * @return TValue
      */
     public function next(): mixed
@@ -95,7 +97,7 @@ class Iterator implements Countable, IteratorAggregate
     }
 
     /**
-     * Moves the cursor to the first element
+     * Moves the cursor to the first element.
      */
     public function rewind(): void
     {
@@ -103,15 +105,15 @@ class Iterator implements Countable, IteratorAggregate
     }
 
     /**
-     * Checks if the current element is valid
+     * Checks if the current element is valid.
      */
     public function valid(): bool
     {
-        return $this->current() !== false;
+        return false !== $this->current();
     }
 
     /**
-     * Counts all elements
+     * Counts all elements.
      */
     public function count(): int
     {
@@ -119,9 +121,10 @@ class Iterator implements Countable, IteratorAggregate
     }
 
     /**
-     * Tries to find the index number for the given element
+     * Tries to find the index number for the given element.
      *
      * @param TValue $needle the element to search for
+     *
      * @return int|false the index (int) of the element or false
      */
     public function indexOf(mixed $needle): int|false
@@ -130,9 +133,10 @@ class Iterator implements Countable, IteratorAggregate
     }
 
     /**
-     * Tries to find the key for the given element
+     * Tries to find the key for the given element.
      *
      * @param TValue $needle the element to search for
+     *
      * @return int|string|false the name of the key or false
      */
     public function keyOf(mixed $needle): int|string|false
@@ -141,16 +145,18 @@ class Iterator implements Countable, IteratorAggregate
     }
 
     /**
-     * Checks by key if an element is included
+     * Checks by key if an element is included.
+     *
      * @param TKey $key
      */
     public function has(mixed $key): bool
     {
-        return isset($this->data[$key]) === true;
+        return true === isset($this->data[$key]);
     }
 
     /**
-     * Checks if the current key is set
+     * Checks if the current key is set.
+     *
      * @param TKey $key
      */
     public function __isset(mixed $key): bool
@@ -159,7 +165,8 @@ class Iterator implements Countable, IteratorAggregate
     }
 
     /**
-     * Simplified var_dump output
+     * Simplified var_dump output.
+     *
      * @codeCoverageIgnore
      */
     public function __debugInfo(): array

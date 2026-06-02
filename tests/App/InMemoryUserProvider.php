@@ -21,6 +21,7 @@ class InMemoryUserProvider implements UserProviderInterface
     public function addUser(InMemoryUser $user): self
     {
         $this->users[$user->getUserIdentifier()] = $user;
+
         return $this;
     }
 
@@ -40,6 +41,6 @@ class InMemoryUserProvider implements UserProviderInterface
 
     public function supportsClass(string $class): bool
     {
-        return $class === InMemoryUser::class;
+        return InMemoryUser::class === $class;
     }
 }

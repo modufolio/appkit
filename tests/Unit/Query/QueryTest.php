@@ -1,13 +1,11 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Tests\Unit\Query;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-
 use Modufolio\Appkit\Query\Query;
-use Closure;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(Query::class)]
@@ -28,7 +26,7 @@ class QueryTest extends TestCase
     public function testResolve()
     {
         $query = new Query("user.self.likes(['(', ')']).self.drink");
-        $data  = ['user' => new TestUser()];
+        $data = ['user' => new TestUser()];
         $this->assertSame(['gin', 'tonic', 'cucumber'], $query->resolve($data));
     }
 
@@ -42,7 +40,7 @@ class QueryTest extends TestCase
     public function testResolveWithComparisonExpresion()
     {
         $query = new Query('user.nothing ?? (user.nothing ?? user.isYello(false)) ? user.says("error") : (user.nothing ?? user.says("success"))');
-        $data  = ['user' => new TestUser()];
+        $data = ['user' => new TestUser()];
         $this->assertSame('success', $query->resolve($data));
     }
 
@@ -61,15 +59,15 @@ class QueryTest extends TestCase
     public function testResolveWithClosureArgument()
     {
         $query = new Query('foo.bar(() => foo.homer)');
-        $data  = [
+        $data = [
             'foo' => [
-                'bar'   => fn ($callback) => $callback,
-                'homer' => 'simpson'
-            ]
+                'bar' => fn ($callback) => $callback,
+                'homer' => 'simpson',
+            ],
         ];
 
         $bar = $query->resolve($data);
-        $this->assertInstanceOf(Closure::class, $bar);
+        $this->assertInstanceOf(\Closure::class, $bar);
         $bar = $bar();
         $this->assertSame('simpson', $bar);
     }

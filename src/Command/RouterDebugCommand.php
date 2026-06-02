@@ -15,7 +15,6 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Routing\RouteCollection;
 
-
 #[AsCommand(name: 'debug:router', description: 'Display current routes for an application')]
 class RouterDebugCommand extends Command
 {
@@ -29,7 +28,7 @@ class RouterDebugCommand extends Command
     {
         $this
             ->setDefinition([
-                new InputArgument('name', InputArgument::OPTIONAL, 'A route name')
+                new InputArgument('name', InputArgument::OPTIONAL, 'A route name'),
             ])
             ->setHelp(
                 <<<'EOF'

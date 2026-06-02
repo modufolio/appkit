@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Routing\Loader;
 
@@ -13,7 +13,7 @@ class AttributeClassLoader extends \Symfony\Component\Routing\Loader\AttributeCl
         Route $route,
         \ReflectionClass $class,
         \ReflectionMethod $method,
-        object $attr
+        object $attr,
     ): void {
         $route->setDefault('_controller', [$class->name, $method->name]);
         $attributes = array_merge(
@@ -23,7 +23,7 @@ class AttributeClassLoader extends \Symfony\Component\Routing\Loader\AttributeCl
         $requiredRoles = [];
         foreach ($attributes as $attribute) {
             $isGranted = $attribute->newInstance();
-            $requiredRoles = array_merge($requiredRoles, (array)$isGranted->roles);
+            $requiredRoles = array_merge($requiredRoles, (array) $isGranted->roles);
         }
         if (!empty($requiredRoles)) {
             $route->setDefault('_is_granted_roles', array_unique($requiredRoles));

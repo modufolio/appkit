@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Tests\Unit\Util;
 
@@ -80,7 +80,7 @@ final class TemplateComponentGeneratorTest extends TestCase
         bool $finalClass,
         bool $finalEntity,
         bool $isEntity,
-        string $expectedResult
+        string $expectedResult,
     ): void {
         $generator = new TemplateComponentGenerator($finalClass, $finalEntity, 'App');
 

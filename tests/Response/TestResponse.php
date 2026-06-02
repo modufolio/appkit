@@ -30,6 +30,7 @@ class TestResponse
             $this->response->getStatusCode(),
             "Expected status {$expected}, got {$this->response->getStatusCode()}"
         );
+
         return $this;
     }
 
@@ -41,7 +42,7 @@ class TestResponse
             "Expected redirect status code, got {$status}"
         );
 
-        if ($uri !== null) {
+        if (null !== $uri) {
             $this->assertHeader('Location', $uri);
         }
 
@@ -60,6 +61,7 @@ class TestResponse
             $actual,
             "Expected header '{$name}' to be '{$expected}', got '{$actual}'"
         );
+
         return $this;
     }
 
@@ -71,9 +73,9 @@ class TestResponse
     {
         $body = $this->response->getBody();
         $body->rewind(); // Ensure we're at the beginning of the stream
+
         return $body->getContents();
     }
-
 
     // ----------------------------
     // JSON Response Handling
@@ -95,6 +97,7 @@ class TestResponse
 
         if (empty($body)) {
             $this->jsonData = [];
+
             return;
         }
 
@@ -102,11 +105,9 @@ class TestResponse
             $data = json_decode($body, true, 512, JSON_THROW_ON_ERROR);
             $this->jsonData = is_array($data) ? $data : [];
         } catch (\JsonException $e) {
-            Assert::fail('Invalid JSON response: ' . $e->getMessage() . "\nBody: " . $body);
+            Assert::fail('Invalid JSON response: '.$e->getMessage()."\nBody: ".$body);
         }
     }
-
-
 
     // ----------------------------
     // Inertia.js Specific Assertions
@@ -117,13 +118,13 @@ class TestResponse
         $data = $this->jsonData();
 
         Assert::assertArrayHasKey('component', $data,
-            'Response is not an Inertia response. Expected "component" key in JSON. ' .
-            'Response body: ' . $this->getContent()
+            'Response is not an Inertia response. Expected "component" key in JSON. '.
+            'Response body: '.$this->getContent()
         );
 
         Assert::assertArrayHasKey('props', $data,
-            'Response is not an Inertia response. Expected "props" key in JSON. ' .
-            'Response body: ' . $this->getContent()
+            'Response is not an Inertia response. Expected "props" key in JSON. '.
+            'Response body: '.$this->getContent()
         );
 
         return $this;
@@ -134,6 +135,7 @@ class TestResponse
         $data = $this->jsonData();
         $actual = $data['component'] ?? null;
         Assert::assertSame($expected, $actual, "Expected Inertia component '{$expected}', got '{$actual}'");
+
         return $this;
     }
 
@@ -142,6 +144,7 @@ class TestResponse
         $data = $this->jsonData();
         $props = $data['props'] ?? [];
         Assert::assertArrayHasKey($key, $props, "Inertia prop '{$key}' is missing");
+
         return $this;
     }
 
@@ -151,6 +154,7 @@ class TestResponse
         $props = $data['props'] ?? [];
         $actual = $this->arrayGet($props, $key);
         Assert::assertEquals($expected, $actual, "Inertia prop '{$key}' value mismatch");
+
         return $this;
     }
 
@@ -158,7 +162,6 @@ class TestResponse
     {
         return $this->whereProp($key, $expected);
     }
-
 
     // ----------------------------
     // Utility Methods
@@ -182,9 +185,10 @@ class TestResponse
 
     public function dump(): self
     {
-        echo 'Status: ' . $this->response->getStatusCode() . "\n";
-        echo 'Headers: ' . json_encode($this->response->getHeaders()) . "\n";
-        echo 'Body: ' . $this->getContent() . "\n";
+        echo 'Status: '.$this->response->getStatusCode()."\n";
+        echo 'Headers: '.json_encode($this->response->getHeaders())."\n";
+        echo 'Body: '.$this->getContent()."\n";
+
         return $this;
     }
 

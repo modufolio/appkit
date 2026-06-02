@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Toolkit;
 
@@ -12,18 +12,17 @@ use SimpleXMLElement;
  * from different criteria like
  * extensions etc.
  *
- * @package   Kirby Toolkit
  * @author    Bastian Allgeier <bastian@getkirby.com>
- * @link      https://getkirby.com
+ *
+ * @see      https://getkirby.com
+ *
  * @copyright Bastian Allgeier GmbH
  * @license   https://opensource.org/licenses/MIT
  */
 class Mime
 {
     /**
-     * Extension to MIME type map
-     *
-     * @var array
+     * Extension to MIME type map.
      */
     public static array $types = [
         'ai' => 'application/postscript',
@@ -117,14 +116,9 @@ class Mime
     ];
 
     /**
-     * Fixes an invalid MIME type guess for the given file
-     *
-     * @param string $file
-     * @param string|null $mime
-     * @param string|null $extension
-     * @return string|null
+     * Fixes an invalid MIME type guess for the given file.
      */
-    public static function fix(string $file, string|null $mime = null, string|null $extension = null): ?string
+    public static function fix(string $file, ?string $mime = null, ?string $extension = null): ?string
     {
         // fixing map
         $map = [
@@ -137,19 +131,19 @@ class Mime
                 'svg' => ['Modufolio\Toolkit\Mime', 'fromSvg'],
             ],
             'text/x-asm' => [
-                'css' => 'text/css'
+                'css' => 'text/css',
             ],
             'image/svg' => [
-                'svg' => 'image/svg+xml'
-            ]
+                'svg' => 'image/svg+xml',
+            ],
         ];
 
         if ($mode = ($map[$mime][$extension] ?? null)) {
-            if (is_callable($mode) === true) {
+            if (true === is_callable($mode)) {
                 return $mode($file, $mime, $extension);
             }
 
-            if (is_string($mode) === true) {
+            if (true === is_string($mode)) {
                 return $mode;
             }
         }
@@ -158,29 +152,25 @@ class Mime
     }
 
     /**
-     * Guesses a MIME type by extension
-     *
-     * @param string $extension
-     * @return string|null
+     * Guesses a MIME type by extension.
      */
     public static function fromExtension(string $extension): ?string
     {
         $mime = static::$types[$extension] ?? null;
-        return is_array($mime) === true ? array_shift($mime) : $mime;
+
+        return true === is_array($mime) ? array_shift($mime) : $mime;
     }
 
     /**
-     * Returns the MIME type of file
-     *
-     * @param string $file
-     * @return string|false
+     * Returns the MIME type of file.
      */
     public static function fromFileInfo(string $file): false|string
     {
-        if (function_exists('finfo_file') === true && file_exists($file) === true) {
+        if (true === function_exists('finfo_file') && true === file_exists($file)) {
             $finfo = finfo_open(FILEINFO_MIME_TYPE);
             $mime = finfo_file($finfo, $file);
             finfo_close($finfo);
+
             return $mime;
         }
 
@@ -188,14 +178,11 @@ class Mime
     }
 
     /**
-     * Returns the MIME type of a file
-     *
-     * @param string $file
-     * @return string|false
+     * Returns the MIME type of a file.
      */
     public static function fromMimeContentType(string $file): false|string
     {
-        if (function_exists('mime_content_type') === true && file_exists($file) === true) {
+        if (true === function_exists('mime_content_type') && true === file_exists($file)) {
             return mime_content_type($file);
         }
 
@@ -203,14 +190,11 @@ class Mime
     }
 
     /**
-     * Tries to detect a valid SVG and returns the MIME type accordingly
-     *
-     * @param string $file
-     * @return string|false
+     * Tries to detect a valid SVG and returns the MIME type accordingly.
      */
     public static function fromSvg(string $file): false|string
     {
-        if (is_file($file) === false) {
+        if (false === is_file($file)) {
             return false;
         }
 
@@ -218,7 +202,7 @@ class Mime
         // element; this avoids slurping a huge crafted file into memory (T3).
         $contents = file_get_contents($file, false, null, 0, 1024 * 1024);
 
-        if ($contents === false || $contents === '') {
+        if (false === $contents || '' === $contents) {
             return false;
         }
 
@@ -231,13 +215,13 @@ class Mime
         $previous = libxml_use_internal_errors(true);
 
         try {
-            $svg = simplexml_load_string($contents, SimpleXMLElement::class, LIBXML_NONET);
+            $svg = simplexml_load_string($contents, \SimpleXMLElement::class, LIBXML_NONET);
         } finally {
             libxml_clear_errors();
             libxml_use_internal_errors($previous);
         }
 
-        if ($svg !== false && $svg->getName() === 'svg') {
+        if (false !== $svg && 'svg' === $svg->getName()) {
             return 'image/svg+xml';
         }
 
@@ -246,18 +230,14 @@ class Mime
 
     /**
      * Tests if a given MIME type is matched by an `Accept` header
-     * pattern; returns true if the MIME type is contained at all
-     *
-     * @param string $mime
-     * @param string $pattern
-     * @return bool
+     * pattern; returns true if the MIME type is contained at all.
      */
     public static function isAccepted(string $mime, string $pattern): bool
     {
         $accepted = Str::accepted($pattern);
 
         foreach ($accepted as $m) {
-            if (static::matches($mime, $m['value']) === true) {
+            if (true === static::matches($mime, $m['value'])) {
                 return true;
             }
         }
@@ -267,26 +247,24 @@ class Mime
 
     /**
      * Tests if a MIME wildcard pattern from an `Accept` header
-     * matches a given type
-     * @param string $test
-     * @param string $wildcard
-     * @return bool
+     * matches a given type.
+     *
      * @since 3.3.0
      */
     public static function matches(string $test, string $wildcard): bool
     {
-        return fnmatch($wildcard, $test, FNM_PATHNAME) === true;
+        return true === fnmatch($wildcard, $test, FNM_PATHNAME);
     }
 
     /**
-     * Returns the extension for a given MIME type
+     * Returns the extension for a given MIME type.
      */
-    public static function toExtension(string|null $mime = null): string|false
+    public static function toExtension(?string $mime = null): string|false
     {
         foreach (static::$types as $key => $value) {
             if (
-                is_array($value) === true &&
-                in_array($mime, $value, true) === true
+                true === is_array($value)
+                && true === in_array($mime, $value, true)
             ) {
                 return $key;
             }
@@ -300,11 +278,11 @@ class Mime
     }
 
     /**
-     * Returns all available extensions for a given MIME type
+     * Returns all available extensions for a given MIME type.
      */
     public static function toExtensions(
-        string|null $mime = null,
-        bool $matchWildcards = false
+        ?string $mime = null,
+        bool $matchWildcards = false,
     ): array {
         // get all extensions
         $extensions = array_keys(static::$types);
@@ -316,7 +294,7 @@ class Mime
                 // get corresponding MIME types as array
                 $mimes = A::wrap(static::$types[$extension]);
 
-                if ($matchWildcards === true) {
+                if (true === $matchWildcards) {
                     // check if at least one MIME type with wildcards matches
                     return A::some(
                         $mimes,
@@ -334,19 +312,15 @@ class Mime
     }
 
     /**
-     * Returns the MIME type of a file
-     *
-     * @param string $file
-     * @param string|null $extension
-     * @return false|string|null
+     * Returns the MIME type of a file.
      */
-    public static function type(string $file, string|null $extension = null): false|string|null
+    public static function type(string $file, ?string $extension = null): false|string|null
     {
         // use the standard finfo extension
         $mime = static::fromFileInfo($file);
 
         // use the mime_content_type function
-        if ($mime === false) {
+        if (false === $mime) {
             $mime = static::fromMimeContentType($file);
         }
 
@@ -354,7 +328,7 @@ class Mime
         $extension = $extension ?? F::extension($file);
 
         // try to guess the mime type at least
-        if ($mime === false) {
+        if (false === $mime) {
             $mime = static::fromExtension($extension);
         }
 
@@ -363,9 +337,7 @@ class Mime
     }
 
     /**
-     * Returns all detectable MIME types
-     *
-     * @return array
+     * Returns all detectable MIME types.
      */
     public static function types(): array
     {

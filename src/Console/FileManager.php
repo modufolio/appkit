@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Console;
 
@@ -90,7 +90,7 @@ class FileManager
             $relativePath = substr($relativePath, 2);
         }
 
-        return is_dir($absolutePath) ? rtrim($relativePath, '/') . '/' : $relativePath;
+        return is_dir($absolutePath) ? rtrim($relativePath, '/').'/' : $relativePath;
     }
 
     public function getFileContents(string $path): string
@@ -106,7 +106,7 @@ class FileManager
     {
         return str_starts_with(
             $this->normalizeSlashes($path),
-            $this->normalizeSlashes($this->rootDirectory . '/vendor/')
+            $this->normalizeSlashes($this->rootDirectory.'/vendor/')
         );
     }
 
@@ -155,7 +155,7 @@ class FileManager
             throw new \RuntimeException('Cannot get path for template: is Twig installed?');
         }
 
-        return $this->twigDefaultPath . '/' . $filename;
+        return $this->twigDefaultPath.'/'.$filename;
     }
 
     /**

@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Toolkit;
 
@@ -17,12 +17,8 @@ class Reflection
         if (is_array($callable)) {
             [$class, $method] = $callable;
 
-            if (! method_exists($class, $method)) {
-                throw new \InvalidArgumentException(sprintf(
-                    'Method %s::%s does not exist',
-                    is_object($class) ? get_class($class) : $class,
-                    $method
-                ));
+            if (!method_exists($class, $method)) {
+                throw new \InvalidArgumentException(sprintf('Method %s::%s does not exist', is_object($class) ? get_class($class) : $class, $method));
             }
 
             return new \ReflectionMethod($class, $method);
@@ -38,10 +34,7 @@ class Reflection
             return new \ReflectionFunction($callable);
         }
 
-        throw new \InvalidArgumentException(sprintf(
-            'Callable is not resolvable: %s',
-            gettype($callable)
-        ));
+        throw new \InvalidArgumentException(sprintf('Callable is not resolvable: %s', gettype($callable)));
     }
 
     public static function sortArguments(\ReflectionFunctionAbstract $info, $data): array
@@ -49,12 +42,11 @@ class Reflection
         $args = [];
         foreach ($info->getParameters() as $param) {
             $name = $param->getName();
-            if (isset($data[$name]) === true) {
+            if (true === isset($data[$name])) {
                 $args[$name] = $data[$name];
             }
         }
 
         return $args;
     }
-
 }

@@ -7,7 +7,7 @@ namespace Modufolio\Appkit\Security\OAuth;
 use Modufolio\Appkit\Security\User\UserInterface;
 
 /**
- * Interface for OAuth Access Token Repository
+ * Interface for OAuth Access Token Repository.
  *
  * Provides the contract for accessing and managing OAuth access tokens.
  * Consuming applications must implement this interface on their repository.

@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Resolver;
 
@@ -9,7 +9,7 @@ class AssociativeArrayResolver implements ParameterResolverInterface
     public function getParameters(
         \ReflectionFunctionAbstract $reflection,
         array $providedParameters,
-        array $resolvedParameters
+        array $resolvedParameters,
     ): array {
         $parameters = $reflection->getParameters();
 
@@ -59,10 +59,10 @@ class AssociativeArrayResolver implements ParameterResolverInterface
     private function convertToType(string $type, mixed $value): mixed
     {
         return match ($type) {
-            'int' => is_numeric($value) ? (int)$value : $value,
-            'float' => is_numeric($value) ? (float)$value : $value,
+            'int' => is_numeric($value) ? (int) $value : $value,
+            'float' => is_numeric($value) ? (float) $value : $value,
             'bool' => filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? $value,
-            'string' => is_scalar($value) ? (string)$value : $value,
+            'string' => is_scalar($value) ? (string) $value : $value,
             default => $value,
         };
     }

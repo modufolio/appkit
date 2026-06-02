@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Modufolio\Appkit\Security;
 
 /**
- * Security Configurator
+ * Security Configurator.
  *
  * Fluent API for declaring the three things the Kernel actually consumes:
  * firewalls, access-control rules, and the role hierarchy.
@@ -56,6 +56,7 @@ final class SecurityConfigurator
     public function firewall(string $name, array $config): self
     {
         $this->firewalls[$name] = $config;
+
         return $this;
     }
 
@@ -69,18 +70,19 @@ final class SecurityConfigurator
         foreach ($firewalls as $name => $config) {
             $this->firewall($name, $config);
         }
+
         return $this;
     }
 
     /**
      * Add an access control rule.
      *
-     * @param string $path Plain pattern, NOT regex. Either a path prefix
-     *                     (`/admin`) or a `segment:position` match (`api:0`).
-     *                     See class docblock for syntax details.
-     * @param array<int, string> $roles
+     * @param string                  $path    Plain pattern, NOT regex. Either a path prefix
+     *                                         (`/admin`) or a `segment:position` match (`api:0`).
+     *                                         See class docblock for syntax details.
+     * @param array<int, string>      $roles
      * @param array<int, string>|null $methods
-     * @param array<string, mixed> $options
+     * @param array<string, mixed>    $options
      */
     public function accessControl(
         string $path,
@@ -89,15 +91,16 @@ final class SecurityConfigurator
         array $options = [],
     ): self {
         $rule = array_merge($options, [
-            'path'  => $path,
+            'path' => $path,
             'roles' => $roles,
         ]);
 
-        if ($methods !== null) {
+        if (null !== $methods) {
             $rule['methods'] = $methods;
         }
 
         $this->accessControlRules[] = $rule;
+
         return $this;
     }
 
@@ -111,6 +114,7 @@ final class SecurityConfigurator
         foreach ($rules as $rule) {
             $this->accessControlRules[] = $rule;
         }
+
         return $this;
     }
 
@@ -123,6 +127,7 @@ final class SecurityConfigurator
     {
         $this->roleHierarchyConfig = $hierarchy;
         $this->roleHierarchy = new RoleHierarchy($hierarchy);
+
         return $this;
     }
 

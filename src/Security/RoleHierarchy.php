@@ -20,6 +20,7 @@ class RoleHierarchy
 
     /**
      * @param list<string> $roles
+     *
      * @return list<string>
      */
     public function getReachableRoles(array $roles): array
@@ -41,6 +42,7 @@ class RoleHierarchy
         }
 
         $this->cache[$cacheKey] = $reachableRoles;
+
         return $reachableRoles;
     }
 
@@ -54,6 +56,7 @@ class RoleHierarchy
     {
         $sorted = $roles;
         sort($sorted, SORT_STRING);
+
         return hash('xxh3', json_encode($sorted));
     }
 

@@ -7,14 +7,14 @@ namespace Modufolio\Appkit\Security\TwoFactor;
 use Modufolio\Appkit\Security\Exception\RuntimeException;
 
 /**
- * Exception for Two-Factor Authentication errors
+ * Exception for Two-Factor Authentication errors.
  *
  * Wraps 2FA-specific errors for proper exception handling
  */
 class TwoFactorException extends RuntimeException
 {
     /**
-     * Too many failed 2FA attempts
+     * Too many failed 2FA attempts.
      */
     public static function tooManyFailedAttempts(int $attempts, int $maxAttempts): self
     {
@@ -28,7 +28,7 @@ class TwoFactorException extends RuntimeException
     }
 
     /**
-     * 2FA is already enabled for the user
+     * 2FA is already enabled for the user.
      */
     public static function alreadyEnabled(): self
     {
@@ -36,7 +36,7 @@ class TwoFactorException extends RuntimeException
     }
 
     /**
-     * 2FA is not enabled for the user
+     * 2FA is not enabled for the user.
      */
     public static function notEnabled(): self
     {
@@ -44,7 +44,7 @@ class TwoFactorException extends RuntimeException
     }
 
     /**
-     * Invalid 2FA code
+     * Invalid 2FA code.
      */
     public static function invalidCode(): self
     {
@@ -52,7 +52,7 @@ class TwoFactorException extends RuntimeException
     }
 
     /**
-     * Invalid backup code
+     * Invalid backup code.
      */
     public static function invalidBackupCode(): self
     {
@@ -60,7 +60,7 @@ class TwoFactorException extends RuntimeException
     }
 
     /**
-     * 2FA secret not found
+     * 2FA secret not found.
      */
     public static function secretNotFound(): self
     {
@@ -68,7 +68,7 @@ class TwoFactorException extends RuntimeException
     }
 
     /**
-     * Generic 2FA error
+     * Generic 2FA error.
      */
     public static function error(string $message): self
     {

@@ -1,14 +1,12 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Tests\Unit\Http;
 
-
+use Modufolio\Appkit\Http\UploadedFileErrorHandler;
 use Modufolio\Psr7\Http\Factory\Psr17Factory;
 use Modufolio\Psr7\Http\Stream;
-use Modufolio\Appkit\Http\UploadedFileErrorHandler;
-use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\UploadedFileInterface;
 
@@ -25,9 +23,10 @@ class UploadedFileErrorHandlerTest extends TestCase
         string $content = 'test content',
         string $filename = 'test.txt',
         string $mediaType = 'text/plain',
-        int $error = UPLOAD_ERR_OK
+        int $error = UPLOAD_ERR_OK,
     ): UploadedFileInterface {
         $stream = Stream::create($content);
+
         return $this->factory->createUploadedFile(
             $stream,
             strlen($content),
@@ -218,7 +217,7 @@ class UploadedFileErrorHandlerTest extends TestCase
         $handler = UploadedFileErrorHandler::from($file);
 
         $handler->assert(function ($file) {
-            return $file->getClientFilename() === 'test.txt';
+            return 'test.txt' === $file->getClientFilename();
         }, 'Filename must be test.txt');
 
         $this->assertFalse($handler->hasErrors());
@@ -230,7 +229,7 @@ class UploadedFileErrorHandlerTest extends TestCase
         $handler = UploadedFileErrorHandler::from($file);
 
         $handler->assert(function ($file) {
-            return $file->getClientFilename() === 'other.txt';
+            return 'other.txt' === $file->getClientFilename();
         }, 'Filename must be other.txt');
 
         $this->assertTrue($handler->hasErrors());
@@ -275,7 +274,7 @@ class UploadedFileErrorHandlerTest extends TestCase
 
     public function testSaveToWithValidFile(): void
     {
-        $tmpDir = sys_get_temp_dir() . '/upload_test_' . uniqid();
+        $tmpDir = sys_get_temp_dir().'/upload_test_'.uniqid();
 
         $file = $this->createUploadedFile('test content', 'test.txt');
         $handler = UploadedFileErrorHandler::from($file);
@@ -288,8 +287,8 @@ class UploadedFileErrorHandlerTest extends TestCase
             $this->assertEquals('test content', file_get_contents($savedPath));
         } finally {
             // Cleanup
-            if (file_exists($tmpDir . '/test.txt')) {
-                unlink($tmpDir . '/test.txt');
+            if (file_exists($tmpDir.'/test.txt')) {
+                unlink($tmpDir.'/test.txt');
             }
             if (is_dir($tmpDir)) {
                 rmdir($tmpDir);
@@ -299,7 +298,7 @@ class UploadedFileErrorHandlerTest extends TestCase
 
     public function testSaveToWithCustomFilename(): void
     {
-        $tmpDir = sys_get_temp_dir() . '/upload_test_' . uniqid();
+        $tmpDir = sys_get_temp_dir().'/upload_test_'.uniqid();
 
         $file = $this->createUploadedFile('test content', 'original.txt');
         $handler = UploadedFileErrorHandler::from($file);
@@ -312,8 +311,8 @@ class UploadedFileErrorHandlerTest extends TestCase
             $this->assertFileExists($savedPath);
         } finally {
             // Cleanup
-            if (file_exists($tmpDir . '/custom.txt')) {
-                unlink($tmpDir . '/custom.txt');
+            if (file_exists($tmpDir.'/custom.txt')) {
+                unlink($tmpDir.'/custom.txt');
             }
             if (is_dir($tmpDir)) {
                 rmdir($tmpDir);
@@ -323,10 +322,10 @@ class UploadedFileErrorHandlerTest extends TestCase
 
     public function testSaveToWithValidationErrorsThrowsException(): void
     {
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('Cannot save file due to validation errors');
 
-        $tmpDir = sys_get_temp_dir() . '/upload_test_' . uniqid();
+        $tmpDir = sys_get_temp_dir().'/upload_test_'.uniqid();
 
         $file = $this->createUploadedFile('content', 'test.txt');
         $handler = UploadedFileErrorHandler::from($file);
@@ -358,7 +357,7 @@ class UploadedFileErrorHandlerTest extends TestCase
 
     public function testGetStoredFilePath(): void
     {
-        $tmpDir = sys_get_temp_dir() . '/upload_test_' . uniqid();
+        $tmpDir = sys_get_temp_dir().'/upload_test_'.uniqid();
 
         $file = $this->createUploadedFile('content', 'test.txt');
         $handler = UploadedFileErrorHandler::from($file);
@@ -370,8 +369,8 @@ class UploadedFileErrorHandlerTest extends TestCase
             $this->assertStringContainsString('saved.txt', $path);
         } finally {
             // Cleanup
-            if (file_exists($tmpDir . '/saved.txt')) {
-                unlink($tmpDir . '/saved.txt');
+            if (file_exists($tmpDir.'/saved.txt')) {
+                unlink($tmpDir.'/saved.txt');
             }
             if (is_dir($tmpDir)) {
                 rmdir($tmpDir);

@@ -55,6 +55,7 @@ class TestBruteForceProtection implements BruteForceProtectionInterface
 
         if (time() - $this->lockedAt[$key] >= $this->lockoutSeconds) {
             unset($this->lockedAt[$key], $this->failures[$key]);
+
             return false;
         }
 
@@ -95,6 +96,6 @@ class TestBruteForceProtection implements BruteForceProtectionInterface
 
     private function key(string $identifier, ?string $ipAddress): string
     {
-        return $identifier . ':' . ($ipAddress ?? '');
+        return $identifier.':'.($ipAddress ?? '');
     }
 }

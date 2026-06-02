@@ -2,8 +2,6 @@
 
 namespace Modufolio\Appkit\Tests\Unit\Security\Authenticator;
 
-use Modufolio\Psr7\Http\ServerRequest;
-use Modufolio\Psr7\Http\Uri;
 use Modufolio\Appkit\Security\Authenticator\BasicAuthenticator;
 use Modufolio\Appkit\Security\Exception\AuthenticationException;
 use Modufolio\Appkit\Security\Token\UsernamePasswordToken;
@@ -11,6 +9,8 @@ use Modufolio\Appkit\Security\User\PasswordAuthenticatedUserInterface;
 use Modufolio\Appkit\Security\User\UserInterface;
 use Modufolio\Appkit\Security\User\UserProviderInterface;
 use Modufolio\Appkit\Tests\Case\AppTestCase;
+use Modufolio\Psr7\Http\ServerRequest;
+use Modufolio\Psr7\Http\Uri;
 
 class BasicAuthenticatorTest extends AppTestCase
 {
@@ -44,7 +44,7 @@ class BasicAuthenticatorTest extends AppTestCase
         $request = new ServerRequest(
             method: 'GET',
             uri: new Uri('/api/test'),
-            headers: ['Authorization' => 'Basic ' . $credentials]
+            headers: ['Authorization' => 'Basic '.$credentials]
         );
 
         $this->assertTrue($authenticator->supports($request));
@@ -116,7 +116,7 @@ class BasicAuthenticatorTest extends AppTestCase
         $request = new ServerRequest(
             method: 'GET',
             uri: new Uri('/api/test'),
-            headers: ['Authorization' => 'Basic ' . $credentials]
+            headers: ['Authorization' => 'Basic '.$credentials]
         );
 
         $this->expectException(AuthenticationException::class);
@@ -133,7 +133,7 @@ class BasicAuthenticatorTest extends AppTestCase
         $request = new ServerRequest(
             method: 'GET',
             uri: new Uri('/api/test'),
-            headers: ['Authorization' => 'Basic ' . $credentials]
+            headers: ['Authorization' => 'Basic '.$credentials]
         );
 
         $this->expectException(AuthenticationException::class);
@@ -150,7 +150,7 @@ class BasicAuthenticatorTest extends AppTestCase
         $request = new ServerRequest(
             method: 'GET',
             uri: new Uri('/api/test'),
-            headers: ['Authorization' => 'Basic ' . $credentials]
+            headers: ['Authorization' => 'Basic '.$credentials]
         );
 
         $this->expectException(AuthenticationException::class);
@@ -175,7 +175,7 @@ class BasicAuthenticatorTest extends AppTestCase
         $request = new ServerRequest(
             method: 'GET',
             uri: new Uri('/api/test'),
-            headers: ['Authorization' => 'Basic ' . $credentials]
+            headers: ['Authorization' => 'Basic '.$credentials]
         );
 
         $this->expectException(AuthenticationException::class);
@@ -197,7 +197,7 @@ class BasicAuthenticatorTest extends AppTestCase
         $request = new ServerRequest(
             method: 'GET',
             uri: new Uri('/api/test'),
-            headers: ['Authorization' => 'Basic ' . $credentials]
+            headers: ['Authorization' => 'Basic '.$credentials]
         );
 
         $this->expectException(AuthenticationException::class);
@@ -215,11 +215,11 @@ class BasicAuthenticatorTest extends AppTestCase
             ->with('test@example.com')
             ->willReturn($this->user);
 
-        $credentials = base64_encode('test@example.com:' . $this->validPassword);
+        $credentials = base64_encode('test@example.com:'.$this->validPassword);
         $request = new ServerRequest(
             method: 'GET',
             uri: new Uri('/api/test'),
-            headers: ['Authorization' => 'Basic ' . $credentials]
+            headers: ['Authorization' => 'Basic '.$credentials]
         );
 
         $result = $authenticator->authenticate($request);
@@ -245,11 +245,11 @@ class BasicAuthenticatorTest extends AppTestCase
             ->with('test@example.com')
             ->willReturn($userWithColonPassword);
 
-        $credentials = base64_encode('test@example.com:' . $passwordWithColon);
+        $credentials = base64_encode('test@example.com:'.$passwordWithColon);
         $request = new ServerRequest(
             method: 'GET',
             uri: new Uri('/api/test'),
-            headers: ['Authorization' => 'Basic ' . $credentials]
+            headers: ['Authorization' => 'Basic '.$credentials]
         );
 
         $result = $authenticator->authenticate($request);
@@ -306,11 +306,11 @@ class BasicAuthenticatorTest extends AppTestCase
             ->with('user+test@example.com')
             ->willReturn($specialUser);
 
-        $credentials = base64_encode('user+test@example.com:' . $specialPassword);
+        $credentials = base64_encode('user+test@example.com:'.$specialPassword);
         $request = new ServerRequest(
             method: 'GET',
             uri: new Uri('/api/test'),
-            headers: ['Authorization' => 'Basic ' . $credentials]
+            headers: ['Authorization' => 'Basic '.$credentials]
         );
 
         $result = $authenticator->authenticate($request);

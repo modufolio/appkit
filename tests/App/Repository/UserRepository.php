@@ -4,17 +4,18 @@ declare(strict_types=1);
 
 namespace Modufolio\Appkit\Tests\App\Repository;
 
+use Doctrine\ORM\EntityRepository;
 use Modufolio\Appkit\Security\Exception\UserNotFoundException;
 use Modufolio\Appkit\Security\User\UserInterface;
 use Modufolio\Appkit\Security\User\UserProviderInterface;
 use Modufolio\Appkit\Tests\App\Entity\User;
-use Doctrine\ORM\EntityRepository;
 
 class UserRepository extends EntityRepository implements UserProviderInterface
 {
     public function findUserWithSecurityById(int $id): ?UserInterface
     {
         $user = $this->find($id);
+
         return $user instanceof UserInterface ? $user : null;
     }
 

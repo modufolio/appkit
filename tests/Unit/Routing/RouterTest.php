@@ -72,9 +72,9 @@ class RouterTest extends TestCase
         string $host = 'example.com',
         string $scheme = 'https',
         ?int $port = 443,
-        string $query = ''
+        string $query = '',
     ): ServerRequest {
-        $uri = new Uri($scheme . '://' . $host . ($port ? ':' . $port : '') . $path . ($query ? '?' . $query : ''));
+        $uri = new Uri($scheme.'://'.$host.($port ? ':'.$port : '').$path.($query ? '?'.$query : ''));
 
         return new ServerRequest($method, $uri);
     }
@@ -195,7 +195,7 @@ class RouterTest extends TestCase
         $collection = $router->getRouteCollection();
 
         $this->assertInstanceOf(RouteCollection::class, $collection);
-        $this->assertTrue($collection->get('test_route') !== null);
+        $this->assertTrue(null !== $collection->get('test_route'));
     }
 
     public function testSetContext(): void
@@ -285,7 +285,7 @@ class RouterTest extends TestCase
         $loader = $this->createLoader();
         $router = new Router($loader, 'routes.php', [
             'debug' => true,
-            'cache_dir' => null
+            'cache_dir' => null,
         ]);
 
         $this->assertInstanceOf(Router::class, $router);
@@ -299,7 +299,7 @@ class RouterTest extends TestCase
     {
         $loader = $this->createLoader();
         $router = new Router($loader, 'routes.php', [
-            'strict_requirements' => false
+            'strict_requirements' => false,
         ]);
 
         $generator = $router->getUrlGenerator();

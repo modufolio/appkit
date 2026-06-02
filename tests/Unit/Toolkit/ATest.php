@@ -1,12 +1,11 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Tests\Unit\Toolkit;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-
 use Modufolio\Appkit\Toolkit\A;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(A::class)]
@@ -17,7 +16,7 @@ class ATest extends TestCase
         return [
             'cat' => 'miao',
             'dog' => 'wuff',
-            'bird' => 'tweet'
+            'bird' => 'tweet',
         ];
     }
 
@@ -47,23 +46,23 @@ class ATest extends TestCase
         $array = [
             'level' => [
                 'foo' => 'bar',
-                'homer' => fn () => 'simpson'
+                'homer' => fn () => 'simpson',
             ],
-            'a' => fn ($b) => $b
+            'a' => fn ($b) => $b,
         ];
 
         $expected = [
             'level' => [
                 'foo' => 'bar',
-                'homer' => 'simpson'
+                'homer' => 'simpson',
             ],
-            'a' => 'b'
+            'a' => 'b',
         ];
 
         $this->assertSame($expected, A::apply($array, 'b'));
         $this->assertSame($expected, A::apply($array, 'b', 'c'));
 
-        $array['a'] = fn ($b, $c) => $b . ' or ' . $c;
+        $array['a'] = fn ($b, $c) => $b.' or '.$c;
         $expected['a'] = 'b or c';
         $this->assertSame($expected, A::apply($array, 'b', 'c'));
     }
@@ -76,8 +75,6 @@ class ATest extends TestCase
         $this->assertSame(2, A::count(['cat', 'dog']));
         $this->assertSame(0, A::count([]));
     }
-
-
 
     public function testGetWithDotNotation()
     {
@@ -92,9 +89,9 @@ class ATest extends TestCase
                     ['name' => $cousinA = 'tick'],
                     ['name' => $cousinB = 'trick'],
                     ['name' => $cousinC = 'track'],
-                ]
+                ],
             ],
-            'grand.ma.mother' => $anotherMother = 'another mother'
+            'grand.ma.mother' => $anotherMother = 'another mother',
         ];
 
         $this->assertSame($grandma, A::get($data, 'grand.ma'));
@@ -119,7 +116,7 @@ class ATest extends TestCase
     {
         $data = [
             // 'alexander.the.great' => 'should not be fetched',
-            'alexander' => 'not great yet'
+            'alexander' => 'not great yet',
         ];
 
         $this->assertNull(A::get($data, 'alexander.the.greate'));
@@ -139,13 +136,13 @@ class ATest extends TestCase
     public function testMap()
     {
         $array = [
-            'Peter', 'Bob', 'Mary'
+            'Peter', 'Bob', 'Mary',
         ];
 
         $expected = [
             ['name' => 'Peter'],
             ['name' => 'Bob'],
-            ['name' => 'Mary']
+            ['name' => 'Mary'],
         ];
 
         $this->assertSame(
@@ -161,7 +158,6 @@ class ATest extends TestCase
 
         $this->assertSame($expected, A::map($array, 'trim'));
     }
-
 
     public function testMerge()
     {
@@ -262,7 +258,6 @@ class ATest extends TestCase
         $result = A::merge($a, $b, A::MERGE_OVERWRITE);
         $this->assertSame($expected, $result);
 
-
         // recursive merging
         $a = ['a' => [1 => 'b', 4 => 'c']];
         $b = ['a' => [1 => 'c', 3 => 'd', 5 => 'a']];
@@ -279,7 +274,6 @@ class ATest extends TestCase
         $result = A::merge($a, $b, A::MERGE_OVERWRITE);
         $this->assertSame($expected, $result);
 
-
         // A::MERGE_REPLACE
         $a = ['a' => ['a', 'b', 'c']];
         $b = ['a' => ['d', 'e', 'f']];
@@ -288,20 +282,18 @@ class ATest extends TestCase
         $this->assertSame($expected, $result);
     }
 
-
-
     public function testPluck()
     {
         $array = [
             ['id' => 1, 'username' => 'bastian'],
             ['id' => 2, 'username' => 'sonja'],
-            ['id' => 3, 'username' => 'lukas']
+            ['id' => 3, 'username' => 'lukas'],
         ];
 
         $this->assertSame([
             'bastian',
             'sonja',
-            'lukas'
+            'lukas',
         ], A::pluck($array, 'username'));
     }
 
@@ -319,7 +311,7 @@ class ATest extends TestCase
     {
         $array = $this->_array();
 
-        $reduced = A::reduce($array, fn ($carry, $item) => $carry . $item, '');
+        $reduced = A::reduce($array, fn ($carry, $item) => $carry.$item, '');
         $this->assertSame('miaowufftweet', $reduced);
 
         $reduced = A::reduce(
@@ -343,7 +335,6 @@ class ATest extends TestCase
         $this->assertSame(['dog' => 'wuff'], A::slice($array, -2, 1));
         $this->assertSame($array, A::slice($array, 0));
     }
-
 
     public function testSum()
     {
@@ -395,7 +386,7 @@ class ATest extends TestCase
         $array = [
             'miao',
             'wuff',
-            'tweet'
+            'tweet',
         ];
 
         // placholder
@@ -403,7 +394,7 @@ class ATest extends TestCase
             'miao',
             'wuff',
             'tweet',
-            'placeholder'
+            'placeholder',
         ], A::fill($array, 4));
 
         // custom value
@@ -412,7 +403,7 @@ class ATest extends TestCase
             'wuff',
             'tweet',
             'elephant',
-            'elephant'
+            'elephant',
         ], A::fill($array, 5, 'elephant'));
 
         // Callable
@@ -422,7 +413,7 @@ class ATest extends TestCase
             'tweet',
             'elephant',
             'elephant',
-            'elephant'
+            'elephant',
         ], A::fill($array, 6, fn () => 'elephant'));
 
         // Callable with Closure
@@ -435,7 +426,7 @@ class ATest extends TestCase
             'a',
             'b',
             'c',
-            'd'
+            'd',
         ];
 
         $this->assertSame(['a', 'b', 'c', 'd'], A::move($input, 0, 0));
@@ -462,8 +453,8 @@ class ATest extends TestCase
         $input = [
             'a' => 'a value',
             'b.c' => [
-                'd.e.f' => 'another value'
-            ]
+                'd.e.f' => 'another value',
+            ],
         ];
         $expected = [
             'a' => 'a value',
@@ -471,11 +462,11 @@ class ATest extends TestCase
                 'c' => [
                     'd' => [
                         'e' => [
-                            'f' => 'another value'
-                        ]
-                    ]
-                ]
-            ]
+                            'f' => 'another value',
+                        ],
+                    ],
+                ],
+            ],
         ];
         $this->assertSame($expected, A::nest($input));
 
@@ -484,8 +475,8 @@ class ATest extends TestCase
             'a' => 'a value',
             'b' => 'another value',
             'b.c' => [
-                'd.e.f' => 'a third value'
-            ]
+                'd.e.f' => 'a third value',
+            ],
         ];
         $expected = $input;
         $this->assertSame($expected, A::nest($input, ['b']));
@@ -495,9 +486,9 @@ class ATest extends TestCase
             'a' => 'a value',
             'b' => [
                 'c' => [
-                    'd.e.f' => 'a third value'
-                ]
-            ]
+                    'd.e.f' => 'a third value',
+                ],
+            ],
         ];
         $this->assertSame($expected, A::nest($input, ['b.c']));
 
@@ -512,45 +503,45 @@ class ATest extends TestCase
             'a.b' => [
                 'c' => 'this as well',
                 'd' => 'and this',
-                'e' => 'but this will be preserved'
+                'e' => 'but this will be preserved',
             ],
             'a.b.c' => 'a value',
             'a.b.d.f' => 'another value',
 
             // replace arrays with strings
             'g.h' => [
-                'i' => 'this will be overwritten as well'
+                'i' => 'this will be overwritten as well',
             ],
             'g' => 'and another value',
 
             // replacements within two different trees
             'j.k' => [
                 'l' => 'this will be replaced',
-                'm' => 'but this will not be'
+                'm' => 'but this will not be',
             ],
             'j' => [
                 'k.l' => 'a nice replacement',
-                'n' => 'and this string is nice too'
-            ]
+                'n' => 'and this string is nice too',
+            ],
         ];
         $expected = [
             'a' => [
                 'b' => [
                     'c' => 'a value',
                     'd' => [
-                        'f' => 'another value'
+                        'f' => 'another value',
                     ],
-                    'e' => 'but this will be preserved'
-                ]
+                    'e' => 'but this will be preserved',
+                ],
             ],
             'g' => 'and another value',
             'j' => [
                 'k' => [
                     'l' => 'a nice replacement',
-                    'm' => 'but this will not be'
+                    'm' => 'but this will not be',
                 ],
-                'n' => 'and this string is nice too'
-            ]
+                'n' => 'and this string is nice too',
+            ],
         ];
         $this->assertSame($expected, A::nest($input));
 
@@ -559,16 +550,16 @@ class ATest extends TestCase
             'a' => 'a-1',
             'b' => [
                 'c' => 'b.c-1',
-                'd' => 'b.d-1'
+                'd' => 'b.d-1',
             ],
             'e.f' => [
                 'g.h' => 'e.f.g.h-1',
-                'g.i' => 'e.f.g.i-1'
+                'g.i' => 'e.f.g.i-1',
             ],
             'l' => [
                 'm' => 'l.m-1',
-                'o.p' => 'l.o.p-1'
-            ]
+                'o.p' => 'l.o.p-1',
+            ],
         ];
         $input2 = [
             'a' => 'a-2',
@@ -576,37 +567,37 @@ class ATest extends TestCase
             'e' => [
                 'f.g' => [
                     'h' => 'e.f.g.h-2',
-                    'j' => 'e.f.g.j-2'
+                    'j' => 'e.f.g.j-2',
                 ],
-                'k' => 'e.k-2'
+                'k' => 'e.k-2',
             ],
             'l' => [
                 'm.n' => 'l.m.n-2',
-                'o' => 'l.o-2'
-            ]
+                'o' => 'l.o-2',
+            ],
         ];
         $expected = [
             'a' => 'a-2',
             'b' => [
                 'c' => 'b.c-2',
-                'd' => 'b.d-1'
+                'd' => 'b.d-1',
             ],
             'e' => [
                 'f' => [
                     'g' => [
                         'h' => 'e.f.g.h-2',
                         'i' => 'e.f.g.i-1',
-                        'j' => 'e.f.g.j-2'
-                    ]
+                        'j' => 'e.f.g.j-2',
+                    ],
                 ],
-                'k' => 'e.k-2'
+                'k' => 'e.k-2',
             ],
             'l' => [
                 'm' => 'l.m-1',
                 'o.p' => 'l.o.p-1',
                 'm.n' => 'l.m.n-2',
-                'o' => 'l.o-2'
-            ]
+                'o' => 'l.o-2',
+            ],
         ];
         $this->assertSame($expected, A::nest(array_replace_recursive($input1, $input2), ['l.m', 'l.o']));
         $this->assertSame($expected, A::nest(A::merge($input1, $input2, A::MERGE_REPLACE), ['l.m', 'l.o']));
@@ -614,17 +605,17 @@ class ATest extends TestCase
         // with numeric keys
         $input = [
             'a' => 'a value',
-            'b.2.e.f' => 'another value'
+            'b.2.e.f' => 'another value',
         ];
         $expected = [
             'a' => 'a value',
             'b' => [
                 2 => [
                     'e' => [
-                        'f' => 'another value'
-                    ]
-                ]
-            ]
+                        'f' => 'another value',
+                    ],
+                ],
+            ],
         ];
         $this->assertSame($expected, A::nest($input));
     }
@@ -641,7 +632,7 @@ class ATest extends TestCase
         $array = [
             ['id' => 1, 'username' => 'bastian'],
             ['id' => 2, 'username' => 'sonja'],
-            ['id' => 3, 'username' => 'lukas']
+            ['id' => 3, 'username' => 'lukas'],
         ];
 
         // ASC
@@ -658,12 +649,12 @@ class ATest extends TestCase
         $this->assertSame(0, array_search('sonja', array_column($sorted, 'username')));
         $this->assertSame(1, array_search('lukas', array_column($sorted, 'username')));
 
-        //SORT_NATURAL
+        // SORT_NATURAL
         $array = [
             ['file' => 'img12.png'],
             ['file' => 'img10.png'],
             ['file' => 'img2.png'],
-            ['file' => 'img1.png']
+            ['file' => 'img1.png'],
         ];
 
         $regular = A::sort($array, 'file', 'asc');
@@ -706,7 +697,7 @@ class ATest extends TestCase
         $b = [
             'elephant' => 'toot',
             'snake' => 'zzz',
-            'fox' => 'what does the fox say?'
+            'fox' => 'what does the fox say?',
         ];
 
         $merged = [
@@ -715,7 +706,7 @@ class ATest extends TestCase
             'bird' => 'tweet',
             'elephant' => 'toot',
             'snake' => 'zzz',
-            'fox' => 'what does the fox say?'
+            'fox' => 'what does the fox say?',
         ];
 
         $this->assertSame($merged, A::extend($a, $b));
@@ -723,17 +714,17 @@ class ATest extends TestCase
         // complex
         $a = [
             'verb' => 'care',
-            'prepositions' => ['not for', 'about', 'of']
+            'prepositions' => ['not for', 'about', 'of'],
         ];
         $b = [
             'prepositions' => ['for'],
-            'object' => 'others'
+            'object' => 'others',
         ];
 
         $merged = [
             'verb' => 'care',
             'prepositions' => ['not for', 'about', 'of', 'for'],
-            'object' => 'others'
+            'object' => 'others',
         ];
 
         $this->assertSame($merged, A::extend($a, $b));
@@ -755,32 +746,32 @@ class ATest extends TestCase
         $array = [
             ['id' => 1, 'username' => 'bastian'],
             ['id' => 2, 'username' => 'sonja'],
-            ['id' => 3, 'username' => 'lukas']
+            ['id' => 3, 'username' => 'lukas'],
         ];
 
         $array_by_id = [
             1 => ['id' => 1, 'username' => 'bastian'],
             2 => ['id' => 2, 'username' => 'sonja'],
-            3 => ['id' => 3, 'username' => 'lukas']
+            3 => ['id' => 3, 'username' => 'lukas'],
         ];
 
         $array_by_name = [
             'bastian' => ['id' => 1, 'username' => 'bastian'],
             'sonja' => ['id' => 2, 'username' => 'sonja'],
-            'lukas' => ['id' => 3, 'username' => 'lukas']
+            'lukas' => ['id' => 3, 'username' => 'lukas'],
         ];
 
         $array_by_cb = [
             'bastian-1' => ['id' => 1, 'username' => 'bastian'],
             'sonja-2' => ['id' => 2, 'username' => 'sonja'],
-            'lukas-3' => ['id' => 3, 'username' => 'lukas']
+            'lukas-3' => ['id' => 3, 'username' => 'lukas'],
         ];
 
         $this->assertSame($array_by_id, A::keyBy($array, 'id'));
         $this->assertSame($array_by_name, A::keyBy($array, 'username'));
         $this->assertSame(
             $array_by_cb,
-            A::keyBy($array, fn ($item) => $item['username'] . '-' . $item['id'])
+            A::keyBy($array, fn ($item) => $item['username'].'-'.$item['id'])
         );
 
         // test with associative array
@@ -795,7 +786,7 @@ class ATest extends TestCase
         $array = [
             ['id' => 1, 'username' => 'bastian'],
             ['id' => 2, 'username' => 'sonja'],
-            ['id' => 3, 'username' => 'lukas']
+            ['id' => 3, 'username' => 'lukas'],
         ];
 
         A::keyBy($array, 'nonexistent');
@@ -807,7 +798,7 @@ class ATest extends TestCase
         $updated = [
             'cat' => 'meow',
             'dog' => 'wuff',
-            'bird' => 'tweet'
+            'bird' => 'tweet',
         ];
 
         // value
@@ -832,7 +823,6 @@ class ATest extends TestCase
         $this->assertSame([], $result);
     }
 
-
     public function testFilter()
     {
         $associativeArray = $this->_array();
@@ -852,7 +842,7 @@ class ATest extends TestCase
 
         $result = A::filter(
             $associativeArray,
-            fn ($value, $key) => $key === 'cat' || $value === 'tweet'
+            fn ($value, $key) => 'cat' === $key || 'tweet' === $value
         );
         $this->assertSame(['cat' => 'miao', 'bird' => 'tweet'], $result);
 

@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Tests\Unit\Resolver;
 
@@ -25,7 +25,7 @@ class UserResolverTest extends TestCase
     public function testSupportsReturnsTrueForParameterWithCurrentUserAttribute(): void
     {
         // Arrange
-        $testClass = new class () {
+        $testClass = new class {
             public function method(#[CurrentUser] $user): void
             {
             }
@@ -43,7 +43,7 @@ class UserResolverTest extends TestCase
     public function testSupportsReturnsFalseForParameterWithoutCurrentUserAttribute(): void
     {
         // Arrange
-        $testClass = new class () {
+        $testClass = new class {
             public function method($user): void
             {
             }
@@ -64,7 +64,7 @@ class UserResolverTest extends TestCase
         $user = new TestUser();
         $token = new UsernamePasswordToken($user, 'main', ['ROLE_USER']);
         $this->tokenStorage->setToken($token);
-        $testClass = new class () {
+        $testClass = new class {
             public function method(#[CurrentUser] $user): void
             {
             }
@@ -85,7 +85,7 @@ class UserResolverTest extends TestCase
     {
         // Arrange
         $this->tokenStorage->setToken(null); // No token
-        $testClass = new class () {
+        $testClass = new class {
             public function method(#[CurrentUser] $user): void
             {
             }
@@ -107,7 +107,7 @@ class UserResolverTest extends TestCase
         $user = new TestUser();
         $token = new UsernamePasswordToken($user, 'main', ['ROLE_USER']);
         $this->tokenStorage->setToken($token);
-        $testClass = new class () {
+        $testClass = new class {
             public function method(#[CurrentUser] $user): void
             {
             }
@@ -131,29 +131,36 @@ class TestUser implements UserInterface
     {
         return 1;
     }
+
     public function getEmail(): string
     {
         return 'test@example.com';
     }
+
     public function getRoles(): array
     {
         return ['ROLE_USER'];
     }
+
     public function getPassword(): ?string
     {
         return null;
     }
+
     public function getSalt(): ?string
     {
         return null;
     }
+
     public function eraseCredentials(): void
     {
     }
+
     public function getUserIdentifier(): string
     {
         return 'testuser';
     }
+
     public function isEnabled(): bool
     {
         return true;

@@ -7,9 +7,9 @@ use Modufolio\Appkit\Security\Exception\AuthenticationException;
 use Modufolio\Appkit\Security\Token\RememberMeToken;
 use Modufolio\Appkit\Security\User\PasswordAuthenticatedUserInterface;
 use Modufolio\Appkit\Security\User\UserProviderInterface;
+use Modufolio\Appkit\Tests\Case\AppTestCase;
 use Modufolio\Psr7\Http\ServerRequest;
 use Modufolio\Psr7\Http\Uri;
-use Modufolio\Appkit\Tests\Case\AppTestCase;
 
 class RememberMeAuthenticatorTest extends AppTestCase
 {
@@ -33,7 +33,7 @@ class RememberMeAuthenticatorTest extends AppTestCase
 
     private function fingerprint(?string $password): string
     {
-        return $password === null || $password === '' ? '' : hash('sha256', $password);
+        return null === $password || '' === $password ? '' : hash('sha256', $password);
     }
 
     private function signCookie(string $identifier, int $expires, ?string $password): string
@@ -58,7 +58,7 @@ class RememberMeAuthenticatorTest extends AppTestCase
     public function testConstructorSetsDefaultOptions(): void
     {
         $authenticator = new RememberMeAuthenticator($this->userProvider, [
-            'secret' => $this->secret
+            'secret' => $this->secret,
         ]);
 
         $this->assertInstanceOf(RememberMeAuthenticator::class, $authenticator);
@@ -67,7 +67,7 @@ class RememberMeAuthenticatorTest extends AppTestCase
     public function testSupportsReturnsTrueWhenCookieExists(): void
     {
         $authenticator = new RememberMeAuthenticator($this->userProvider, [
-            'secret' => $this->secret
+            'secret' => $this->secret,
         ]);
 
         $request = (new ServerRequest(
@@ -82,7 +82,7 @@ class RememberMeAuthenticatorTest extends AppTestCase
     public function testSupportsReturnsFalseWhenCookieIsMissing(): void
     {
         $authenticator = new RememberMeAuthenticator($this->userProvider, [
-            'secret' => $this->secret
+            'secret' => $this->secret,
         ]);
 
         $request = new ServerRequest(
@@ -98,7 +98,7 @@ class RememberMeAuthenticatorTest extends AppTestCase
     {
         $authenticator = new RememberMeAuthenticator($this->userProvider, [
             'secret' => $this->secret,
-            'cookie_name' => 'CUSTOM_REMEMBER'
+            'cookie_name' => 'CUSTOM_REMEMBER',
         ]);
 
         $request = (new ServerRequest(
@@ -113,7 +113,7 @@ class RememberMeAuthenticatorTest extends AppTestCase
     public function testAuthenticateThrowsExceptionWhenCookieIsEmpty(): void
     {
         $authenticator = new RememberMeAuthenticator($this->userProvider, [
-            'secret' => $this->secret
+            'secret' => $this->secret,
         ]);
 
         $request = (new ServerRequest(
@@ -131,7 +131,7 @@ class RememberMeAuthenticatorTest extends AppTestCase
     public function testAuthenticateThrowsExceptionWhenCookieIsNotBase64(): void
     {
         $authenticator = new RememberMeAuthenticator($this->userProvider, [
-            'secret' => $this->secret
+            'secret' => $this->secret,
         ]);
 
         $request = (new ServerRequest(
@@ -149,7 +149,7 @@ class RememberMeAuthenticatorTest extends AppTestCase
     public function testAuthenticateThrowsExceptionWhenCookieStructureIsInvalid(): void
     {
         $authenticator = new RememberMeAuthenticator($this->userProvider, [
-            'secret' => $this->secret
+            'secret' => $this->secret,
         ]);
 
         // Only two parts instead of three
@@ -170,7 +170,7 @@ class RememberMeAuthenticatorTest extends AppTestCase
     public function testAuthenticateThrowsExceptionWhenCookieHasExpired(): void
     {
         $authenticator = new RememberMeAuthenticator($this->userProvider, [
-            'secret' => $this->secret
+            'secret' => $this->secret,
         ]);
 
         $identifier = 'test@example.com';
@@ -192,7 +192,7 @@ class RememberMeAuthenticatorTest extends AppTestCase
     public function testAuthenticateThrowsExceptionWhenSignatureIsInvalid(): void
     {
         $authenticator = new RememberMeAuthenticator($this->userProvider, [
-            'secret' => $this->secret
+            'secret' => $this->secret,
         ]);
 
         $identifier = 'test@example.com';
@@ -221,7 +221,7 @@ class RememberMeAuthenticatorTest extends AppTestCase
     public function testAuthenticateThrowsExceptionWhenUserNotFound(): void
     {
         $authenticator = new RememberMeAuthenticator($this->userProvider, [
-            'secret' => $this->secret
+            'secret' => $this->secret,
         ]);
 
         $identifier = 'test@example.com';
@@ -248,7 +248,7 @@ class RememberMeAuthenticatorTest extends AppTestCase
     public function testAuthenticateSuccessfully(): void
     {
         $authenticator = new RememberMeAuthenticator($this->userProvider, [
-            'secret' => $this->secret
+            'secret' => $this->secret,
         ]);
 
         $identifier = 'test@example.com';
@@ -274,7 +274,7 @@ class RememberMeAuthenticatorTest extends AppTestCase
     public function testCreateTokenReturnsRememberMeToken(): void
     {
         $authenticator = new RememberMeAuthenticator($this->userProvider, [
-            'secret' => $this->secret
+            'secret' => $this->secret,
         ]);
 
         $token = $authenticator->createToken($this->user, 'main');
@@ -289,7 +289,7 @@ class RememberMeAuthenticatorTest extends AppTestCase
     public function testUnauthorizedResponseReturns401(): void
     {
         $authenticator = new RememberMeAuthenticator($this->userProvider, [
-            'secret' => $this->secret
+            'secret' => $this->secret,
         ]);
 
         $request = new ServerRequest(
@@ -309,7 +309,7 @@ class RememberMeAuthenticatorTest extends AppTestCase
     public function testGenerateRememberMeCookieCreatesValidCookie(): void
     {
         $authenticator = new RememberMeAuthenticator($this->userProvider, [
-            'secret' => $this->secret
+            'secret' => $this->secret,
         ]);
 
         $cookieValue = $authenticator->generateRememberMeCookie($this->user);
@@ -341,7 +341,7 @@ class RememberMeAuthenticatorTest extends AppTestCase
     public function testCookieIsInvalidatedWhenUserPasswordChanges(): void
     {
         $authenticator = new RememberMeAuthenticator($this->userProvider, [
-            'secret' => $this->secret
+            'secret' => $this->secret,
         ]);
 
         $cookieValue = $authenticator->generateRememberMeCookie($this->user);
@@ -372,7 +372,7 @@ class RememberMeAuthenticatorTest extends AppTestCase
         $lifetime = 86400; // 1 day
         $authenticator = new RememberMeAuthenticator($this->userProvider, [
             'secret' => $this->secret,
-            'cookie_lifetime' => $lifetime
+            'cookie_lifetime' => $lifetime,
         ]);
 
         $before = time() + $lifetime;
@@ -396,7 +396,7 @@ class RememberMeAuthenticatorTest extends AppTestCase
             'cookie_domain' => 'example.com',
             'cookie_secure' => false,
             'cookie_httponly' => false,
-            'cookie_samesite' => 'Strict'
+            'cookie_samesite' => 'Strict',
         ]);
 
         $options = $authenticator->getCookieOptions();
@@ -412,7 +412,7 @@ class RememberMeAuthenticatorTest extends AppTestCase
     public function testGetCookieOptionsWithDefaultValues(): void
     {
         $authenticator = new RememberMeAuthenticator($this->userProvider, [
-            'secret' => $this->secret
+            'secret' => $this->secret,
         ]);
 
         $options = $authenticator->getCookieOptions();
@@ -428,7 +428,7 @@ class RememberMeAuthenticatorTest extends AppTestCase
     public function testGetCookieNameReturnsConfiguredName(): void
     {
         $authenticator = new RememberMeAuthenticator($this->userProvider, [
-            'secret' => $this->secret
+            'secret' => $this->secret,
         ]);
 
         $this->assertEquals('REMEMBERME', $authenticator->getCookieName());
@@ -438,7 +438,7 @@ class RememberMeAuthenticatorTest extends AppTestCase
     {
         $authenticator = new RememberMeAuthenticator($this->userProvider, [
             'secret' => $this->secret,
-            'cookie_name' => 'CUSTOM_COOKIE'
+            'cookie_name' => 'CUSTOM_COOKIE',
         ]);
 
         $this->assertEquals('CUSTOM_COOKIE', $authenticator->getCookieName());
@@ -447,7 +447,7 @@ class RememberMeAuthenticatorTest extends AppTestCase
     public function testGeneratedCookieCanBeAuthenticated(): void
     {
         $authenticator = new RememberMeAuthenticator($this->userProvider, [
-            'secret' => $this->secret
+            'secret' => $this->secret,
         ]);
 
         // Generate cookie for user

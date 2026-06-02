@@ -18,7 +18,7 @@ class PhotoLabTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->testFile = sys_get_temp_dir() . '/test_image_' . uniqid() . '.txt';
+        $this->testFile = sys_get_temp_dir().'/test_image_'.uniqid().'.txt';
         file_put_contents($this->testFile, 'test');
 
         $this->storage = new Storage(

@@ -4,17 +4,14 @@ declare(strict_types=1);
 
 namespace Modufolio\Appkit\Tests\Unit\Database;
 
-
-use Modufolio\Appkit\Tests\Traits\DatabaseTestingCapabilities;
-use Modufolio\Appkit\Doctrine\QueryBuilder;
-
 use Doctrine\DBAL\Schema\Schema;
+use Modufolio\Appkit\Doctrine\QueryBuilder;
+use Modufolio\Appkit\Tests\Traits\DatabaseTestingCapabilities;
 use PHPUnit\Framework\TestCase;
 
 class QueryBuilderTest extends TestCase
 {
     use DatabaseTestingCapabilities;
-
 
     protected function setUp(): void
     {
@@ -28,7 +25,7 @@ class QueryBuilderTest extends TestCase
     }
 
     /**
-     * Define the test schema
+     * Define the test schema.
      */
     public function getTestSchema(): Schema
     {
@@ -256,7 +253,7 @@ class QueryBuilderTest extends TestCase
         // Act
         $results = $qb->from('users')
             ->select()
-            ->whereExpression(fn($expr) => $expr->or(
+            ->whereExpression(fn ($expr) => $expr->or(
                 $expr->eq('name', $expr->literal('John Doe')),
                 $expr->eq('name', $expr->literal('Jane Smith'))
             ))
@@ -478,7 +475,7 @@ class QueryBuilderTest extends TestCase
         $this->assertEquals(1, $affectedRows);
         $this->assertDatabaseHas('users', [
             'email' => 'john@example.com',
-            'status' => 'inactive'
+            'status' => 'inactive',
         ]);
         $this->assertQueryCount(1, 'UPDATE');
     }

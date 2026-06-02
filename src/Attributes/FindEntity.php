@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Attributes;
 
@@ -8,7 +8,7 @@ namespace Modufolio\Appkit\Attributes;
 class FindEntity
 {
     public function __construct(
-        public array $criteria = []
+        public array $criteria = [],
     ) {
     }
 }

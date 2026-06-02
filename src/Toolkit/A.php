@@ -1,11 +1,8 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Toolkit;
-
-use Exception;
-use InvalidArgumentException;
 
 /**
  * The `A` class provides a set of handy methods
@@ -14,7 +11,6 @@ use InvalidArgumentException;
  * fetching elements from arrays, merging and
  * sorting or shuffling arrays.
  *
- * @package   Toolkit
  * @author    Maarten Thiebou
  * @copyright Modufolio
  * @license   https://opensource.org/licenses/MIT
@@ -25,7 +21,7 @@ use InvalidArgumentException;
 class A
 {
     /**
-     * Appends the given array
+     * Appends the given array.
      */
     public static function append(array $array, array $append): array
     {
@@ -35,11 +31,9 @@ class A
     /**
      * Recursively loops through the array and
      * resolves any item defined as `Closure`,
-     * applying the passed parameters
+     * applying the passed parameters.
      *
-     * @param array $array
      * @param mixed ...$args Parameters to pass to the closures
-     * @return array
      */
     public static function apply(array $array, mixed ...$args): array
     {
@@ -53,26 +47,24 @@ class A
     }
 
     /**
-     * Returns the average value of an array
+     * Returns the average value of an array.
      *
-     * @param array $array The source array
-     * @param int $decimals The number of decimals to return
+     * @param array $array    The source array
+     * @param int   $decimals The number of decimals to return
+     *
      * @return float The average value
      */
-    public static function average(array $array, int $decimals = 0): float|null
+    public static function average(array $array, int $decimals = 0): ?float
     {
-        if (empty($array) === true) {
+        if (true === empty($array)) {
             return null;
         }
 
-        return round((array_sum($array) / count($array)), $decimals);
+        return round(array_sum($array) / count($array), $decimals);
     }
 
     /**
-     * Counts the number of elements in an array
-     *
-     * @param array $array
-     * @return int
+     * Counts the number of elements in an array.
      */
     public static function count(array $array): int
     {
@@ -80,15 +72,13 @@ class A
     }
 
     /**
-     * Return array entries that contain the needle
-     * @param string $needle
-     * @param array $haystack
-     * @return array|null
+     * Return array entries that contain the needle.
      */
     public static function contains(string $needle, array $haystack): ?array
     {
         $escapedNeedle = Str::escapeRegex($needle);
         $result = preg_grep("/$escapedNeedle/i", $haystack);
+
         return $result ? array_values($result) : null;
     }
 
@@ -110,14 +100,12 @@ class A
             }
             $results = $append;
         }
+
         return $results;
     }
 
     /**
-     * Find duplicates
-     *
-     * @param array $array
-     * @return array
+     * Find duplicates.
      */
     public static function duplicates(array $array): array
     {
@@ -126,9 +114,6 @@ class A
 
     /**
      * Divide an array into two arrays. One with keys and the other with values.
-     *
-     * @param array $array
-     * @return array
      */
     public static function divide(array $array): array
     {
@@ -143,31 +128,29 @@ class A
         $results = [];
         foreach ($array as $key => $value) {
             if (is_array($value) && !empty($value)) {
-                $results = array_merge($results, static::dot($value, $prepend . $key . '.'));
+                $results = array_merge($results, static::dot($value, $prepend.$key.'.'));
             } else {
-                $results[$prepend . $key] = $value;
+                $results[$prepend.$key] = $value;
             }
         }
+
         return $results;
     }
 
     /**
-     * Return array entries that end with the needle
-     * @param string $needle
-     * @param array $haystack
-     * @return array|null
+     * Return array entries that end with the needle.
      */
     public static function endsWith(string $needle, array $haystack): ?array
     {
         $escapedNeedle = Str::escapeRegex($needle);
+
         return preg_grep("/$escapedNeedle$/i", $haystack);
     }
 
     /**
-     * Merges arrays recursively
+     * Merges arrays recursively.
      *
      * @param array ...$arrays
-     * @return array
      */
     public static function extend(...$arrays): array
     {
@@ -177,16 +160,17 @@ class A
     /**
      * Fills an array up with additional elements to certain amount.
      *
-     * @param array $array The source array
-     * @param int $limit The number of elements the array should
-     *                   contain after filling it up.
-     * @param mixed|string $fill The element, which should be used to
-     *                           fill the array
+     * @param array        $array The source array
+     * @param int          $limit the number of elements the array should
+     *                            contain after filling it up
+     * @param mixed|string $fill  The element, which should be used to
+     *                            fill the array
+     *
      * @return array The filled-up result array
      */
     public static function fill(array $array, int $limit, mixed $fill = 'placeholder'): array
     {
-        for ($x = count($array); $x < $limit; $x++) {
+        for ($x = count($array); $x < $limit; ++$x) {
             $array[] = is_callable($fill) ? $fill($x) : $fill;
         }
 
@@ -195,11 +179,7 @@ class A
 
     /**
      * Filter the array using the given callback
-     * using both value and key
-     *
-     * @param array $array
-     * @param callable $callback
-     * @return array
+     * using both value and key.
      */
     public static function filter(array $array, callable $callback): array
     {
@@ -207,9 +187,10 @@ class A
     }
 
     /**
-     * Returns the first element of an array
+     * Returns the first element of an array.
      *
      * @param array $array The source array
+     *
      * @return mixed The first element
      */
     public static function first(array $array): mixed
@@ -217,52 +198,50 @@ class A
         return array_shift($array);
     }
 
-
-
     /**
-     * Gets an element of an array by key
+     * Gets an element of an array by key.
      *
-     * @param array $array The source array
-     * @param mixed $key The key to look for
+     * @param array      $array   The source array
+     * @param mixed      $key     The key to look for
      * @param mixed|null $default Optional default value, which should be
      *                            returned if no element has been found
-     * @return mixed
      */
     public static function get(array $array, mixed $key, mixed $default = null): mixed
     {
         // return the entire array if the key is null
-        if ($key === null) {
+        if (null === $key) {
             return $array;
         }
 
         // get an array of keys
-        if (is_array($key) === true) {
+        if (true === is_array($key)) {
             $result = [];
             foreach ($key as $k) {
                 $result[$k] = static::get($array, $k, $default);
             }
+
             return $result;
         }
 
-        if (isset($array[$key]) === true) {
+        if (true === isset($array[$key])) {
             return $array[$key];
         }
 
         // extract data from nested array structures using the dot notation
         if (str_contains($key, '.')) {
-            $keys     = explode('.', $key);
+            $keys = explode('.', $key);
             $firstKey = array_shift($keys);
 
             // if the input array also uses dot notation, try to find a subset of the $keys
-            if (isset($array[$firstKey]) === false) {
+            if (false === isset($array[$firstKey])) {
                 $currentKey = $firstKey;
 
                 while ($innerKey = array_shift($keys)) {
-                    $currentKey .= '.' . $innerKey;
+                    $currentKey .= '.'.$innerKey;
 
                     // the element needs to exist and also needs to be an array; otherwise
                     // we cannot find the remaining keys within it (invalid array structure)
-                    if (isset($array[$currentKey]) === true && is_array($array[$currentKey]) === true) {
+                    if (true === isset($array[$currentKey]) && true === is_array($array[$currentKey])) {
                         // $keys only holds the remaining keys that have not been shifted off yet
                         return static::get($array[$currentKey], implode('.', $keys), $default);
                     }
@@ -274,7 +253,7 @@ class A
 
             // if the input array uses a completely nested structure,
             // recursively progress layer by layer
-            if (is_array($array[$firstKey]) === true) {
+            if (true === is_array($array[$firstKey])) {
                 return static::get($array[$firstKey], implode('.', $keys), $default);
             }
 
@@ -290,9 +269,8 @@ class A
      * Function that groups an array of associative arrays by some key.
      * these will contain the original values.
      *
-     * @param string $key The key to group by
-     * @param array $array The array to group
-     * @return array
+     * @param string $key   The key to group by
+     * @param array  $array The array to group
      */
     public static function groupBy(string $key, array $array): array
     {
@@ -302,15 +280,12 @@ class A
                 $output[$a[$key]][] = $a;
             }
         }
+
         return $output;
     }
 
     /**
-     * Checks if array has a value
-     *
-     * @param array $array
-     * @param bool $strict
-     * @return bool
+     * Checks if array has a value.
      */
     public static function has(array $array, mixed $value, bool $strict = false): bool
     {
@@ -321,38 +296,34 @@ class A
      * Determines if an array is a list.
      *
      * An array is a "list" if all array keys are sequential integers starting from 0 with no gaps in between.
-     *
-     * @param array $array
-     * @return bool
      */
     public static function isList(array $array): bool
     {
-        if ($array === []) {
+        if ([] === $array) {
             return true;
         } // Consider empty array as list
+
         return array_keys($array) === range(0, count($array) - 1);
     }
 
     /**
-     * Checks whether an array is associative or not
+     * Checks whether an array is associative or not.
      *
      * @param array $array The array to analyze
+     *
      * @return bool true: The array is associative false: It's not
      */
     public static function isAssociative(array $array): bool
     {
-        return ctype_digit(implode('', array_keys($array))) === false;
+        return false === ctype_digit(implode('', array_keys($array)));
     }
 
-    /**
-     * @param string $separator
-     * @return string
-     */
     public static function join(mixed $value, string $separator = ', '): string
     {
-        if (is_string($value) === true) {
+        if (true === is_string($value)) {
             return $value;
         }
+
         return implode($separator, $value);
     }
 
@@ -367,26 +338,23 @@ class A
      *
      * // Now you can access the array by the id
      * </code>
-     *
-     * @param array $array
-     * @param string|callable $keyBy
-     * @return array
      */
     public static function keyBy(array $array, string|callable $keyBy): array
     {
         $keys = is_callable($keyBy) ? static::map($array, $keyBy) : static::pluck($array, $keyBy);
 
         if (count($keys) !== count($array)) {
-            throw new InvalidArgumentException('The "key by" argument must be a valid key or a callable');
+            throw new \InvalidArgumentException('The "key by" argument must be a valid key or a callable');
         }
 
         return array_combine($keys, $array);
     }
 
     /**
-     * Returns the last element of an array
+     * Returns the last element of an array.
      *
      * @param array $array The source array
+     *
      * @return mixed The last element
      */
     public static function last(array $array): mixed
@@ -396,11 +364,7 @@ class A
 
     /**
      * A simple wrapper around array_map
-     * with a sane argument order
-     *
-     * @param array $array
-     * @param callable $map
-     * @return array
+     * with a sane argument order.
      */
     public static function map(array $array, callable $map): array
     {
@@ -408,11 +372,11 @@ class A
     }
 
     public const MERGE_OVERWRITE = 0;
-    public const MERGE_APPEND    = 1;
-    public const MERGE_REPLACE   = 2;
+    public const MERGE_APPEND = 1;
+    public const MERGE_REPLACE = 2;
 
     /**
-     * Merges arrays recursively
+     * Merges arrays recursively.
      *
      * If last argument is an integer, it defines the
      * behavior for elements with numeric keys;
@@ -431,28 +395,28 @@ class A
         $join = array_shift($arrays);
 
         if (
-            static::isAssociative($merged) === false &&
-            $mode === static::MERGE_REPLACE
+            false === static::isAssociative($merged)
+            && $mode === static::MERGE_REPLACE
         ) {
             $merged = $join;
         } else {
             foreach ($join as $key => $value) {
                 // append to the merged array, don't overwrite numeric keys
                 if (
-                    is_int($key) === true &&
-                    $mode === static::MERGE_APPEND
+                    true === is_int($key)
+                    && $mode === static::MERGE_APPEND
                 ) {
                     $merged[] = $value;
 
-                    // recursively merge the two array values
+                // recursively merge the two array values
                 } elseif (
-                    is_array($value) === true &&
-                    isset($merged[$key]) === true &&
-                    is_array($merged[$key]) === true
+                    true === is_array($value)
+                    && true === isset($merged[$key])
+                    && true === is_array($merged[$key])
                 ) {
                     $merged[$key] = static::merge($merged[$key], $value, $mode);
 
-                    // simply overwrite with the value from the second array
+                // simply overwrite with the value from the second array
                 } else {
                     $merged[$key] = $value;
                 }
@@ -472,6 +436,7 @@ class A
         if (count($arrays) > 0) {
             array_unshift($arrays, $merged);
             $arrays[] = $mode;
+
             return static::merge(...$arrays);
         }
 
@@ -479,13 +444,9 @@ class A
     }
 
     /**
-     * Move an array item to a new index
+     * Move an array item to a new index.
      *
-     * @param array $array
-     * @param int $from
-     * @param int $to
-     * @return array
-     * @throws Exception
+     * @throws \Exception
      */
     public static function move(array $array, int $from, int $to): array
     {
@@ -509,10 +470,11 @@ class A
     }
 
     /**
-     * Checks for missing elements in an array
+     * Checks for missing elements in an array.
      *
-     * @param array $array The source array
+     * @param array $array    The source array
      * @param array $required An array of required keys
+     *
      * @return array An array of missing fields. If this
      *               is empty, nothing is missing.
      */
@@ -523,7 +485,7 @@ class A
 
     /**
      * Normalizes an array into a nested form by converting
-     * dot notation in keys to nested structures
+     * dot notation in keys to nested structures.
      *
      * @param array $ignore List of keys in dot notation that should
      *                      not be converted to a nested structure
@@ -531,7 +493,7 @@ class A
     public static function nest(array $array, array $ignore = []): array
     {
         // convert a simple ignore list to a nested $key => true array
-        if (isset($ignore[0]) === true) {
+        if (true === isset($ignore[0])) {
             $ignore = array_map(static fn () => true, array_flip($ignore));
             $ignore = self::nest($ignore);
         }
@@ -541,7 +503,7 @@ class A
         foreach ($array as $fullKey => $value) {
             // extract the first part of a multi-level key, keep the others
             $subKeys = is_int($fullKey) ? [$fullKey] : explode('.', $fullKey);
-            $key     = array_shift($subKeys);
+            $key = array_shift($subKeys);
 
             // skip the magic for ignored keys
             if (($ignore[$key] ?? null) === true) {
@@ -555,15 +517,15 @@ class A
             }
 
             // now recursively do the same for each array level if needed
-            if (is_array($value) === true) {
+            if (true === is_array($value)) {
                 $value = static::nest($value, $ignore[$key] ?? []);
             }
 
             // merge arrays with previous results if necessary
             // (needed when the same keys are used both with and without dot notation)
             if (
-                is_array($result[$key] ?? null) === true &&
-                is_array($value) === true
+                true === is_array($result[$key] ?? null)
+                && true === is_array($value)
             ) {
                 $value = array_replace_recursive($result[$key], $value);
             }
@@ -576,10 +538,11 @@ class A
 
     /**
      * Recursively creates a nested array from a set of keys
-     * with a key on each level
+     * with a key on each level.
      *
      * @param mixed $value Arbitrary value that will end up at the bottom of the tree
-     * @param array $keys List of keys to use sorted from the topmost level
+     * @param array $keys  List of keys to use sorted from the topmost level
+     *
      * @return array|mixed Nested array or (if `$keys` is empty) the input `$value`
      */
     public static function nestByKeys(mixed $value, array $keys): mixed
@@ -588,41 +551,38 @@ class A
         $firstKey = array_shift($keys);
 
         // stop further recursion if there are no more keys
-        if ($firstKey === null) {
+        if (null === $firstKey) {
             return $value;
         }
 
         // return one level of the output tree, recurse further
         return [
-            $firstKey => static::nestByKeys($value, $keys)
+            $firstKey => static::nestByKeys($value, $keys),
         ];
     }
 
     /**
      * Get a subset of the items from the given array.
-     *
-     * @param array $array
-     * @param array|string $keys
-     * @return array
      */
     public static function only(array $array, array|string $keys): array
     {
-        return array_intersect_key($array, array_flip((array)$keys));
+        return array_intersect_key($array, array_flip((array) $keys));
     }
 
     /**
-     * Plucks a single column from an array
+     * Plucks a single column from an array.
      *
-     * @param array $array The source array
-     * @param string $key The key name of the column to extract
-     * @return array The result array with all values
-     *               from that column.
+     * @param array  $array The source array
+     * @param string $key   The key name of the column to extract
+     *
+     * @return array the result array with all values
+     *               from that column
      */
     public static function pluck(array $array, string $key): array
     {
         $output = [];
         foreach ($array as $a) {
-            if (isset($a[$key]) === true) {
+            if (true === isset($a[$key])) {
                 $output[] = $a[$key];
             }
         }
@@ -631,11 +591,7 @@ class A
     }
 
     /**
-     * Prepends the given array
-     *
-     * @param array $array
-     * @param array $prepend
-     * @return array
+     * Prepends the given array.
      */
     public static function prepend(array $array, array $prepend): array
     {
@@ -652,7 +608,7 @@ class A
 
     /**
      * Returns a number of random elements from an array,
-     * either in original or shuffled order
+     * either in original or shuffled order.
      */
     public static function random(array $array, int $count = 1, bool $shuffle = false): array
     {
@@ -660,8 +616,9 @@ class A
             return array_slice(self::shuffle($array), 0, $count);
         }
 
-        if ($count === 1) {
+        if (1 === $count) {
             $key = array_rand($array);
+
             return [$key => $array[$key]];
         }
 
@@ -669,12 +626,7 @@ class A
     }
 
     /**
-     * Reduce an array to a single value
-     *
-     * @param array $array
-     * @param callable $callback
-     * @param mixed|null $initial
-     * @return mixed
+     * Reduce an array to a single value.
      */
     public static function reduce(array $array, callable $callback, mixed $initial = null): mixed
     {
@@ -682,11 +634,7 @@ class A
     }
 
     /**
-     * Deep search for a value in an array
-     *
-     * @param $key
-     * @param array $array
-     * @return mixed
+     * Deep search for a value in an array.
      */
     public static function search($key, array $array): mixed
     {
@@ -704,25 +652,19 @@ class A
     }
 
     /**
-     * Returns a slice of an array
-     *
-     * @param array $array
-     * @param int $offset
-     * @param int|null $length
-     * @param bool $preserveKeys
-     * @return array
+     * Returns a slice of an array.
      */
     public static function slice(
         array $array,
         int $offset,
         ?int $length = null,
-        bool $preserveKeys = false
+        bool $preserveKeys = false,
     ): array {
         return array_slice($array, $offset, $length, $preserveKeys);
     }
 
     /**
-     * Checks if at least one element in the array passes the test
+     * Checks if at least one element in the array passes the test.
      *
      * <code>
      * $array = [1, 30, 39, 29, 10, 'foo' => 12, 13];
@@ -736,9 +678,7 @@ class A
      * // output: 'true'
      * </code>
      *
-     * @param array $array
      * @param callable(mixed $value, int|string $key, array $array):bool $test
-     * @return bool
      */
     public static function some(array $array, callable $test): bool
     {
@@ -752,21 +692,22 @@ class A
     }
 
     /**
-     * Sorts a multi-dimensional array by a certain column
+     * Sorts a multi-dimensional array by a certain column.
      *
-     * @param array $array The source array
-     * @param string $field The name of the column
+     * @param array  $array     The source array
+     * @param string $field     The name of the column
      * @param string $direction desc (descending) or asc (ascending)
-     * @param int $method A PHP sort method flag or 'natural' for
-     *                    natural sorting, which is not supported in
-     *                    PHP by sort flags
+     * @param int    $method    A PHP sort method flag or 'natural' for
+     *                          natural sorting, which is not supported in
+     *                          PHP by sort flags
+     *
      * @return array The sorted array
      */
     public static function sort(array $array, string $field, string $direction = 'desc', int $method = SORT_REGULAR): array
     {
-        $direction = strtolower($direction) === 'desc' ? SORT_DESC : SORT_ASC;
-        $helper    = [];
-        $result    = [];
+        $direction = 'desc' === strtolower($direction) ? SORT_DESC : SORT_ASC;
+        $helper = [];
+        $result = [];
 
         // build the helper array
         foreach ($array as $key => $row) {
@@ -774,7 +715,7 @@ class A
         }
 
         // natural sorting
-        if ($direction === SORT_DESC) {
+        if (SORT_DESC === $direction) {
             arsort($helper, $method);
         } else {
             asort($helper, $method);
@@ -789,15 +730,16 @@ class A
     }
 
     /**
-     * Shuffles an array and keeps the keys
+     * Shuffles an array and keeps the keys.
      *
      * @param array $array The source array
+     *
      * @return array The shuffled result array
      */
     public static function shuffle(array $array): array
     {
         $keys = array_keys($array);
-        $new  = [];
+        $new = [];
 
         shuffle($keys);
 
@@ -810,10 +752,7 @@ class A
     }
 
     /**
-     * Sums an array
-     *
-     * @param array $array
-     * @return int|float
+     * Sums an array.
      */
     public static function sum(array $array): int|float
     {
@@ -821,32 +760,25 @@ class A
     }
 
     /**
-     * Return array entries that start with the needle
-     * @param string $needle
-     * @param array $haystack
-     * @return array|null
+     * Return array entries that start with the needle.
      */
     public static function startsWith(string $needle, array $haystack): ?array
     {
         $escapedNeedle = Str::escapeRegex($needle);
         $result = preg_grep("/^$escapedNeedle/i", $haystack);
+
         return empty($result) ? null : $result;
     }
-
 
     /**
      * Update an array with a second array
      * The second array can contain callbacks as values,
-     * which will get the original values as argument
-     *
-     * @param array $array
-     * @param array $update
-     * @return array
+     * which will get the original values as argument.
      */
     public static function update(array $array, array $update): array
     {
         foreach ($update as $key => $value) {
-            if ($value instanceof \Closure === true) {
+            if (true === $value instanceof \Closure) {
                 $array[$key] = call_user_func($value, static::get($array, $key));
             } else {
                 $array[$key] = $value;
@@ -861,13 +793,8 @@ class A
         return array_unique($array);
     }
 
-
     /**
-     * Remove key(s) from an array
-     *
-     * @param array $array
-     * @param int|array|string $keys
-     * @return array
+     * Remove key(s) from an array.
      */
     public static function without(array $array, int|array|string $keys): array
     {
@@ -876,22 +803,20 @@ class A
         }
 
         return static::filter($array, static function ($value, $key) use ($keys) {
-            return in_array($key, $keys, true) === false;
+            return false === in_array($key, $keys, true);
         });
     }
 
     /**
      * Wraps the given value in an array
      * if it's not an array yet.
-     *
-     * @param $value
-     * @return array
      */
     public static function wrap($value): array
     {
         if (is_null($value)) {
             return [];
         }
+
         return !is_array($value) ? [$value] : $value;
     }
 }

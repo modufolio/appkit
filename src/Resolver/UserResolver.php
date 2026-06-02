@@ -18,7 +18,6 @@ class UserResolver implements AttributeResolverInterface
         return !empty($parameter->getAttributes(CurrentUser::class));
     }
 
-
     public function resolve(\ReflectionParameter $parameter, array $providedParameters): ?UserInterface
     {
         return $this->tokenStorage->getToken()?->getUser();

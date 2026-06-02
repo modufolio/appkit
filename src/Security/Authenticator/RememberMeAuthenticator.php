@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Modufolio\Appkit\Security\Authenticator;
 
-use Modufolio\Psr7\Http\Response;
 use Modufolio\Appkit\Security\Exception\AuthenticationException;
 use Modufolio\Appkit\Security\Exception\UserNotFoundException;
 use Modufolio\Appkit\Security\Token\RememberMeToken;
@@ -12,6 +11,7 @@ use Modufolio\Appkit\Security\Token\TokenInterface;
 use Modufolio\Appkit\Security\User\PasswordAuthenticatedUserInterface;
 use Modufolio\Appkit\Security\User\UserInterface;
 use Modufolio\Appkit\Security\User\UserProviderInterface;
+use Modufolio\Psr7\Http\Response;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
@@ -21,7 +21,7 @@ class RememberMeAuthenticator extends AbstractAuthenticator
 
     public function __construct(
         private UserProviderInterface $userProvider,
-        array $options = []
+        array $options = [],
     ) {
         $this->options = array_merge([
             'secret' => null,
@@ -42,6 +42,7 @@ class RememberMeAuthenticator extends AbstractAuthenticator
     public function supports(ServerRequestInterface $request): bool
     {
         $cookies = $request->getCookieParams();
+
         return isset($cookies[$this->options['cookie_name']]);
     }
 
@@ -58,12 +59,12 @@ class RememberMeAuthenticator extends AbstractAuthenticator
         }
 
         $cookieData = base64_decode($cookieValue, true);
-        if ($cookieData === false) {
+        if (false === $cookieData) {
             throw new AuthenticationException('Invalid remember me cookie format.');
         }
 
         $parts = explode(':', $cookieData, 3);
-        if (count($parts) !== 3) {
+        if (3 !== count($parts)) {
             throw new AuthenticationException('Invalid remember me cookie structure.');
         }
 
@@ -122,6 +123,7 @@ class RememberMeAuthenticator extends AbstractAuthenticator
         $hash = $this->generateHash($identifier, $expires, $this->userStateFingerprint($user));
 
         $cookieData = sprintf('%s:%d:%s', $identifier, $expires, $hash);
+
         return base64_encode($cookieData);
     }
 
@@ -154,7 +156,7 @@ class RememberMeAuthenticator extends AbstractAuthenticator
     {
         if ($user instanceof PasswordAuthenticatedUserInterface) {
             $password = $user->getPassword();
-            if ($password !== null && $password !== '') {
+            if (null !== $password && '' !== $password) {
                 return hash('sha256', $password);
             }
         }

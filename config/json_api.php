@@ -1,7 +1,7 @@
 <?php
 
 /**
- * JSON:API configuration for tests
+ * JSON:API configuration for tests.
  */
 
 use Modufolio\JsonApi\JsonApiConfigurator;
@@ -17,7 +17,7 @@ return function (JsonApiConfigurator $api) {
             'show' => true,
             'create' => true,
             'update' => true,
-            'delete' => true
+            'delete' => true,
         ]);
 
     // Configure Contact entity
@@ -36,7 +36,7 @@ return function (JsonApiConfigurator $api) {
             'postalCode',
             'createdAt',
             'updatedAt',
-            'deletedAt'
+            'deletedAt',
         ])
         ->relationships(['account', 'organization'])
         ->operations([
@@ -44,7 +44,7 @@ return function (JsonApiConfigurator $api) {
             'show' => true,
             'create' => true,
             'update' => true,
-            'delete' => true
+            'delete' => true,
         ]);
 
     // Configure Organization entity
@@ -56,7 +56,7 @@ return function (JsonApiConfigurator $api) {
             'email',
             'city',
             'createdAt',
-            'updatedAt'
+            'updatedAt',
         ])
         ->relationships(['account', 'contacts'])
         ->operations([
@@ -64,6 +64,6 @@ return function (JsonApiConfigurator $api) {
             'show' => true,
             'create' => true,
             'update' => true,
-            'delete' => true
+            'delete' => true,
         ]);
 };

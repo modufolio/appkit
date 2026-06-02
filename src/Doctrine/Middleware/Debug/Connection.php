@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Doctrine\Middleware\Debug;
 
@@ -28,8 +28,8 @@ final class Connection extends AbstractConnectionMiddleware
 
     public function query(string $sql): Result
     {
-        $start   = Query::start();
-        $result  = parent::query($sql);
+        $start = Query::start();
+        $result = parent::query($sql);
         $elapsed = Query::end($start);
 
         $this->debugStack->append(new Query($sql, [], [], $elapsed));
@@ -39,8 +39,8 @@ final class Connection extends AbstractConnectionMiddleware
 
     public function exec(string $sql): int|string
     {
-        $start   = Query::start();
-        $result  = parent::exec($sql);
+        $start = Query::start();
+        $result = parent::exec($sql);
         $elapsed = Query::end($start);
 
         $this->debugStack->append(new Query($sql, [], [], $elapsed));
@@ -48,30 +48,27 @@ final class Connection extends AbstractConnectionMiddleware
         return $result;
     }
 
-    /** {@inheritDoc} */
     public function beginTransaction(): void
     {
-        $start   = Query::start();
+        $start = Query::start();
         parent::beginTransaction();
         $elapsed = Query::end($start);
 
         $this->debugStack->append(new Query('BEGINNING TRANSACTION', [], [], $elapsed));
     }
 
-    /** {@inheritDoc} */
     public function commit(): void
     {
-        $start   = Query::start();
+        $start = Query::start();
         parent::commit();
         $elapsed = Query::end($start);
 
         $this->debugStack->append(new Query('COMMITTING TRANSACTION', [], [], $elapsed));
     }
 
-    /** {@inheritDoc} */
     public function rollBack(): void
     {
-        $start   = Query::start();
+        $start = Query::start();
         parent::rollBack();
         $elapsed = Query::end($start);
 

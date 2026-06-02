@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Image\Darkroom;
 
@@ -9,11 +9,12 @@ use Modufolio\Appkit\Image\Focus;
 use Modufolio\Appkit\Toolkit\F;
 
 /**
- * ImageMagick
+ * ImageMagick.
  *
- * @package   Kirby Image
  * @author    Bastian Allgeier <bastian@getkirby.com>
- * @link      https://getkirby.com
+ *
+ * @see      https://getkirby.com
+ *
  * @copyright Bastian Allgeier
  * @license   https://opensource.org/licenses/MIT
  */
@@ -21,11 +22,11 @@ class ImageMagick extends Darkroom
 {
     /**
      * Activates imagemagick's auto-orient feature unless
-     * it is deactivated via the options
+     * it is deactivated via the options.
      */
-    protected function autoOrient(string $file, array $options): string|null
+    protected function autoOrient(string $file, array $options): ?string
     {
-        if ($options['autoOrient'] === true) {
+        if (true === $options['autoOrient']) {
             return '-auto-orient';
         }
 
@@ -33,23 +34,23 @@ class ImageMagick extends Darkroom
     }
 
     /**
-     * Applies the blur settings
+     * Applies the blur settings.
      */
-    protected function blur(string $file, array $options): string|null
+    protected function blur(string $file, array $options): ?string
     {
-        if ($options['blur'] !== false) {
-            return '-blur ' . escapeshellarg('0x' . $options['blur']);
+        if (false !== $options['blur']) {
+            return '-blur '.escapeshellarg('0x'.$options['blur']);
         }
 
         return null;
     }
 
     /**
-     * Keep animated gifs
+     * Keep animated gifs.
      */
-    protected function coalesce(string $file, array $options): string|null
+    protected function coalesce(string $file, array $options): ?string
     {
-        if (F::extension($file) === 'gif') {
+        if ('gif' === F::extension($file)) {
             return '-coalesce';
         }
 
@@ -57,37 +58,37 @@ class ImageMagick extends Darkroom
     }
 
     /**
-     * Creates the convert command with the right path to the binary file
+     * Creates the convert command with the right path to the binary file.
      */
     protected function convert(string $file, array $options): string
     {
         $command = escapeshellarg($options['bin']);
 
         // default is limiting to single-threading to keep CPU usage sane
-        $command .= ' -limit thread ' . escapeshellarg((string)$options['threads']);
+        $command .= ' -limit thread '.escapeshellarg((string) $options['threads']);
 
         // append input file
-        return $command . ' ' . escapeshellarg($file);
+        return $command.' '.escapeshellarg($file);
     }
 
     /**
-     * Returns additional default parameters for imagemagick
+     * Returns additional default parameters for imagemagick.
      */
     protected function defaults(): array
     {
         return parent::defaults() + [
-            'bin'       => 'magick',
+            'bin' => 'magick',
             'interlace' => false,
-            'threads'   => 1,
+            'threads' => 1,
         ];
     }
 
     /**
-     * Applies the correct settings for grayscale images
+     * Applies the correct settings for grayscale images.
      */
-    protected function grayscale(string $file, array $options): string|null
+    protected function grayscale(string $file, array $options): ?string
     {
-        if ($options['grayscale'] === true) {
+        if (true === $options['grayscale']) {
             return '-colorspace gray';
         }
 
@@ -97,23 +98,24 @@ class ImageMagick extends Darkroom
     /**
      * Applies sharpening if activated in the options.
      */
-    protected function sharpen(string $file, array $options): string|null
+    protected function sharpen(string $file, array $options): ?string
     {
-        if (is_int($options['sharpen']) === false) {
+        if (false === is_int($options['sharpen'])) {
             return null;
         }
 
         $amount = max(1, min(100, $options['sharpen'])) / 100;
-        return '-sharpen ' . escapeshellarg('0x' . $amount);
+
+        return '-sharpen '.escapeshellarg('0x'.$amount);
     }
 
     /**
      * Applies the correct settings for interlaced JPEGs if
-     * activated via options
+     * activated via options.
      */
-    protected function interlace(string $file, array $options): string|null
+    protected function interlace(string $file, array $options): ?string
     {
-        if ($options['interlace'] === true) {
+        if (true === $options['interlace']) {
             return '-interlace line';
         }
 
@@ -122,7 +124,7 @@ class ImageMagick extends Darkroom
 
     /**
      * Creates and runs the full imagemagick command
-     * to process the image
+     * to process the image.
      *
      * @throws \Exception
      */
@@ -150,34 +152,34 @@ class ImageMagick extends Darkroom
         exec($command, $output, $return);
 
         // log broken commands
-        if ($return !== 0) {
-            throw new \RuntimeException('The imagemagick convert command could not be executed: ' . $command);
+        if (0 !== $return) {
+            throw new \RuntimeException('The imagemagick convert command could not be executed: '.$command);
         }
 
         return $options;
     }
 
     /**
-     * Applies the correct JPEG compression quality settings
+     * Applies the correct JPEG compression quality settings.
      */
     protected function quality(string $file, array $options): string
     {
-        return '-quality ' . escapeshellarg((string)$options['quality']);
+        return '-quality '.escapeshellarg((string) $options['quality']);
     }
 
     /**
      * Creates the correct options to crop or resize the image
-     * and translates the crop positions for imagemagick
+     * and translates the crop positions for imagemagick.
      */
     protected function resize(string $file, array $options): string
     {
         // simple resize
-        if ($options['crop'] === false) {
-            return '-thumbnail ' . escapeshellarg(sprintf('%sx%s!', $options['width'], $options['height']));
+        if (false === $options['crop']) {
+            return '-thumbnail '.escapeshellarg(sprintf('%sx%s!', $options['width'], $options['height']));
         }
 
         // crop based on focus point
-        if ((Focus::isFocalPoint($options['crop']) === true) && $focus = Focus::coords(
+        if ((true === Focus::isFocalPoint($options['crop'])) && $focus = Focus::coords(
             $options['crop'],
             $options['sourceWidth'],
             $options['sourceHeight'],
@@ -197,42 +199,42 @@ class ImageMagick extends Darkroom
 
         // translate the gravity option into something imagemagick understands
         $gravity = match ($options['crop'] ?? null) {
-            'top left'     => 'NorthWest',
-            'top'          => 'North',
-            'top right'    => 'NorthEast',
-            'left'         => 'West',
-            'right'        => 'East',
-            'bottom left'  => 'SouthWest',
-            'bottom'       => 'South',
+            'top left' => 'NorthWest',
+            'top' => 'North',
+            'top right' => 'NorthEast',
+            'left' => 'West',
+            'right' => 'East',
+            'bottom left' => 'SouthWest',
+            'bottom' => 'South',
             'bottom right' => 'SouthEast',
-            default        => 'Center'
+            default => 'Center',
         };
 
-        $command  = '-thumbnail ' . escapeshellarg(sprintf('%sx%s^', $options['width'], $options['height']));
-        $command .= ' -gravity ' . escapeshellarg($gravity);
-        $command .= ' -crop ' . escapeshellarg(sprintf('%sx%s+0+0', $options['width'], $options['height']));
+        $command = '-thumbnail '.escapeshellarg(sprintf('%sx%s^', $options['width'], $options['height']));
+        $command .= ' -gravity '.escapeshellarg($gravity);
+        $command .= ' -crop '.escapeshellarg(sprintf('%sx%s+0+0', $options['width'], $options['height']));
 
         return $command;
     }
 
     /**
-     * Creates the option for the output file
+     * Creates the option for the output file.
      */
     protected function save(string $file, array $options): string
     {
-        if ($options['format'] !== null) {
-            $file = pathinfo($file, PATHINFO_DIRNAME) . '/' . pathinfo($file, PATHINFO_FILENAME) . '.' . $options['format'];
+        if (null !== $options['format']) {
+            $file = pathinfo($file, PATHINFO_DIRNAME).'/'.pathinfo($file, PATHINFO_FILENAME).'.'.$options['format'];
         }
 
         return escapeshellarg($file);
     }
 
     /**
-     * Removes all metadata from the image
+     * Removes all metadata from the image.
      */
     protected function strip(string $file, array $options): string
     {
-        if (F::extension($file) === 'png') {
+        if ('png' === F::extension($file)) {
             // ImageMagick does not support keeping ICC profiles while
             // stripping other privacy- and security-related information,
             // such as GPS data; so discard all color profiles for PNG files

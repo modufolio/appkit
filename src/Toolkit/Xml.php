@@ -1,26 +1,27 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Toolkit;
 
 use SimpleXMLElement;
 
 /**
- * XML parser and creator class
+ * XML parser and creator class.
  *
- * @package   Kirby Toolkit
  * @author    Bastian Allgeier <bastian@getkirby.com>
- * @link      https://getkirby.com
+ *
+ * @see      https://getkirby.com
+ *
  * @copyright Bastian Allgeier GmbH
  * @license   https://opensource.org/licenses/MIT
  */
 class Xml
 {
     /**
-     * HTML to XML conversion table for entities
+     * HTML to XML conversion table for entities.
      */
-    public static array|null $entities = [
+    public static ?array $entities = [
         '&nbsp;' => '&#160;', '&iexcl;' => '&#161;', '&cent;' => '&#162;', '&pound;' => '&#163;', '&curren;' => '&#164;', '&yen;' => '&#165;', '&brvbar;' => '&#166;', '&sect;' => '&#167;',
         '&uml;' => '&#168;', '&copy;' => '&#169;', '&ordf;' => '&#170;', '&laquo;' => '&#171;', '&not;' => '&#172;', '&shy;' => '&#173;', '&reg;' => '&#174;', '&macr;' => '&#175;',
         '&deg;' => '&#176;', '&plusmn;' => '&#177;', '&sup2;' => '&#178;', '&sup3;' => '&#179;', '&acute;' => '&#180;', '&micro;' => '&#181;', '&para;' => '&#182;', '&middot;' => '&#183;',
@@ -52,36 +53,37 @@ class Xml
         '&oelig;' => '&#339;', '&Scaron;' => '&#352;', '&scaron;' => '&#353;', '&Yuml;' => '&#376;', '&circ;' => '&#710;', '&tilde;' => '&#732;', '&ensp;' => '&#8194;', '&emsp;' => '&#8195;',
         '&thinsp;' => '&#8201;', '&zwnj;' => '&#8204;', '&zwj;' => '&#8205;', '&lrm;' => '&#8206;', '&rlm;' => '&#8207;', '&ndash;' => '&#8211;', '&mdash;' => '&#8212;', '&lsquo;' => '&#8216;',
         '&rsquo;' => '&#8217;', '&sbquo;' => '&#8218;', '&ldquo;' => '&#8220;', '&rdquo;' => '&#8221;', '&bdquo;' => '&#8222;', '&dagger;' => '&#8224;', '&Dagger;' => '&#8225;', '&permil;' => '&#8240;',
-        '&lsaquo;' => '&#8249;', '&rsaquo;' => '&#8250;', '&euro;' => '&#8364;'
+        '&lsaquo;' => '&#8249;', '&rsaquo;' => '&#8250;', '&euro;' => '&#8364;',
     ];
 
     /**
-     * Closing string for void tags
+     * Closing string for void tags.
      */
     public static string $void = ' />';
 
     /**
-     * Generates a single attribute or a list of attributes
+     * Generates a single attribute or a list of attributes.
      *
-     * @param string|array $name String: A single attribute with that name will be generated.
-     *                           Key-value array: A list of attributes will be generated. Don't pass a second argument in that case.
-     * @param mixed $value If used with a `$name` string, pass the value of the attribute here.
-     *                     If used with a `$name` array, this can be set to `false` to disable attribute sorting.
+     * @param string|array $name  String: A single attribute with that name will be generated.
+     *                            Key-value array: A list of attributes will be generated. Don't pass a second argument in that case.
+     * @param mixed        $value If used with a `$name` string, pass the value of the attribute here.
+     *                            If used with a `$name` array, this can be set to `false` to disable attribute sorting.
+     *
      * @return string|null The generated XML attributes string
      */
     public static function attr(
         string|array $name,
-        $value = null
-    ): string|null {
-        if (is_array($name) === true) {
-            if ($value !== false) {
+        $value = null,
+    ): ?string {
+        if (true === is_array($name)) {
+            if (false !== $value) {
                 ksort($name);
             }
 
             $attributes = [];
 
             foreach ($name as $key => $val) {
-                if (is_int($key) === true) {
+                if (true === is_int($key)) {
                     $key = $val;
                     $val = true;
                 }
@@ -94,20 +96,20 @@ class Xml
             return implode(' ', $attributes);
         }
 
-        if ($value === null || $value === false || $value === []) {
+        if (null === $value || false === $value || [] === $value) {
             return null;
         }
 
-        if ($value === true) {
-            return $name . '="' . $name . '"';
+        if (true === $value) {
+            return $name.'="'.$name.'"';
         }
 
-        if (is_array($value) === false) {
+        if (false === is_array($value)) {
             $value = static::encode((string) $value);
-        } elseif (isset($value['value'], $value['escape']) === true) {
+        } elseif (true === isset($value['value'], $value['escape'])) {
             $value = match ($value['escape']) {
-                true    => static::encode($value['value']),
-                default => $value['value']
+                true => static::encode($value['value']),
+                default => $value['value'],
             };
         } else {
             // A list of values (e.g. multiple class names). Each element MUST be
@@ -122,22 +124,23 @@ class Xml
             ));
         }
 
-        return $name . '="' . $value . '"';
+        return $name.'="'.$value.'"';
     }
 
     /**
-     * Creates an XML string from an array
+     * Creates an XML string from an array.
      *
      * Supports special array keys `@name` (element name),
      * `@attributes` (XML attribute key-value array),
      * `@namespaces` (array with XML namespaces) and
      * `@value` (element content)
      *
-     * @param array|string $props The source array or tag content (used internally)
-     * @param string $name The name of the root element
-     * @param bool $head Include the XML declaration head or not
-     * @param string $indent Indentation string, defaults to two spaces
-     * @param int $level The indentation level (used internally)
+     * @param array|string $props  The source array or tag content (used internally)
+     * @param string       $name   The name of the root element
+     * @param bool         $head   Include the XML declaration head or not
+     * @param string       $indent Indentation string, defaults to two spaces
+     * @param int          $level  The indentation level (used internally)
+     *
      * @return string The XML string
      */
     public static function create(
@@ -145,20 +148,20 @@ class Xml
         string $name = 'root',
         bool $head = true,
         string $indent = '  ',
-        int $level = 0
+        int $level = 0,
     ): string {
-        if (is_array($props) === true) {
-            if (A::isAssociative($props) === true) {
+        if (true === is_array($props)) {
+            if (true === A::isAssociative($props)) {
                 // a tag with attributes or named children
 
                 // extract metadata from special array keys
-                $name       = $props['@name'] ?? $name;
+                $name = $props['@name'] ?? $name;
                 $attributes = $props['@attributes'] ?? [];
-                $value      = $props['@value'] ?? null;
+                $value = $props['@value'] ?? null;
 
-                if (isset($props['@namespaces']) === true) {
+                if (true === isset($props['@namespaces'])) {
                     foreach ($props['@namespaces'] as $key => $namespace) {
-                        $key = 'xmlns' . (($key) ? ':' . $key : '');
+                        $key = 'xmlns'.(($key) ? ':'.$key : '');
                         $attributes[$key] = $namespace;
                     }
                 }
@@ -171,7 +174,7 @@ class Xml
                     $props['@value']
                 );
 
-                if ($props !== []) {
+                if ([] !== $props) {
                     // there are children, use them instead of the value
 
                     $value = [];
@@ -218,29 +221,30 @@ class Xml
             $result = static::tag($name, $props, [], $indent, $level);
         }
 
-        if ($head === true) {
-            return '<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL . $result;
+        if (true === $head) {
+            return '<?xml version="1.0" encoding="UTF-8"?>'.PHP_EOL.$result;
         }
 
         return $result;
     }
 
     /**
-     * Removes all HTML/XML tags and encoded chars from a string
+     * Removes all HTML/XML tags and encoded chars from a string.
      *
      * ```php
      * echo Xml::decode('some &uuml;ber <em>crazy</em> stuff');
      * // output: some über crazy stuff
      * ```
      */
-    public static function decode(string|null $string): string
+    public static function decode(?string $string): string
     {
         $string = strip_tags($string ?? '');
+
         return html_entity_decode($string, ENT_COMPAT, 'utf-8');
     }
 
     /**
-     * Converts a string to an XML-safe string
+     * Converts a string to an XML-safe string.
      *
      * Converts it to HTML-safe first and then it
      * will replace HTML entities with XML entities
@@ -253,26 +257,26 @@ class Xml
      * @param bool $html True = Convert to HTML-safe first
      */
     public static function encode(
-        string|null $string,
-        bool $html = true
+        ?string $string,
+        bool $html = true,
     ): string {
-        if ($string === null) {
+        if (null === $string) {
             return '';
         }
 
-        if ($html === true) {
+        if (true === $html) {
             $string = Html::encode($string, false);
         }
 
         $entities = self::entities();
         $html = array_keys($entities);
-        $xml  = array_values($entities);
+        $xml = array_values($entities);
 
         return str_replace($html, $xml, $string);
     }
 
     /**
-     * Returns the HTML-to-XML entity translation table
+     * Returns the HTML-to-XML entity translation table.
      */
     public static function entities(): array
     {
@@ -280,18 +284,18 @@ class Xml
     }
 
     /**
-     * Parses an XML string and returns an array
+     * Parses an XML string and returns an array.
      *
      * @return array|null Parsed array or `null` on error
      */
-    public static function parse(string $xml): array|null
+    public static function parse(string $xml): ?array
     {
         // LIBXML_NONET pins the safe behaviour (no network access for external
         // entities/DTDs) regardless of the runtime libxml configuration; we do
         // NOT pass LIBXML_NOENT, so entities are never expanded (audit T7).
-        $xml = @simplexml_load_string($xml, SimpleXMLElement::class, LIBXML_NONET);
+        $xml = @simplexml_load_string($xml, \SimpleXMLElement::class, LIBXML_NONET);
 
-        if (is_object($xml) === false) {
+        if (false === is_object($xml)) {
             return null;
         }
 
@@ -300,13 +304,13 @@ class Xml
 
     /**
      * Breaks a SimpleXMLElement down into a simpler tree
-     * structure of arrays and strings
+     * structure of arrays and strings.
      *
      * @param bool $collectName Whether the element name should be collected (for the root element)
      */
     public static function simplify(
-        SimpleXMLElement $element,
-        bool $collectName = true
+        \SimpleXMLElement $element,
+        bool $collectName = true,
     ): array|string {
         // get all XML namespaces of the whole document to iterate over later;
         // we don't need the global namespace (empty string) in the list
@@ -317,7 +321,7 @@ class Xml
         // now collect element metadata of the parent
         $array = [];
 
-        if ($collectName === true) {
+        if (true === $collectName) {
             $array['@name'] = $element->getName();
         }
 
@@ -326,15 +330,15 @@ class Xml
         $attributeArray = [];
 
         foreach ([0 => null, ...array_keys($usedNamespaces)] as $namespace) {
-            $prefix     = $namespace ? $namespace . ':' : '';
+            $prefix = $namespace ? $namespace.':' : '';
             $attributes = $element->attributes($namespace, true);
 
             foreach ($attributes as $key => $value) {
-                $attributeArray[$prefix . $key] = (string)$value;
+                $attributeArray[$prefix.$key] = (string) $value;
             }
         }
 
-        if ($attributeArray !== []) {
+        if ([] !== $attributeArray) {
             $array['@attributes'] = $attributeArray;
         }
 
@@ -348,7 +352,7 @@ class Xml
         $hasChildren = false;
 
         foreach ([0 => null, ...array_keys($usedNamespaces)] as $namespace) {
-            $prefix   = $namespace ? $namespace . ':' : '';
+            $prefix = $namespace ? $namespace.':' : '';
             $children = $element->children($namespace, true);
 
             if (count($children) > 0) {
@@ -357,12 +361,12 @@ class Xml
 
                 // make a grouped collection of elements per element name
                 foreach ($children as $child) {
-                    $array[$prefix . $child->getName()][] = static::simplify($child, false);
+                    $array[$prefix.$child->getName()][] = static::simplify($child, false);
                 }
             }
         }
 
-        if ($hasChildren === true) {
+        if (true === $hasChildren) {
             // there were children of any namespace
 
             // reduce elements where there is only one item
@@ -370,8 +374,8 @@ class Xml
             // don't do anything with special `@` metadata keys
             foreach ($array as $name => $item) {
                 if (
-                    str_starts_with($name, '@') === false &&
-                    count($item) === 1
+                    false === str_starts_with($name, '@')
+                    && 1 === count($item)
                 ) {
                     $array[$name] = $item[0];
                 }
@@ -381,9 +385,9 @@ class Xml
         }
 
         // we didn't find any XML children above, only use the string value
-        $element = (string)$element;
+        $element = (string) $element;
 
-        if ($array === []) {
+        if ([] === $array) {
             return $element;
         }
 
@@ -393,76 +397,77 @@ class Xml
     }
 
     /**
-     * Builds an XML tag
+     * Builds an XML tag.
      *
-     * @param string $name Tag name
+     * @param string            $name    Tag name
      * @param array|string|null $content Scalar value or array with multiple lines of content or `null` to
      *                                   generate a self-closing tag; pass an empty string to generate empty content
-     * @param array $attr An associative array with additional attributes for the tag
-     * @param string|null $indent Indentation string, defaults to two spaces or `null` for output on one line
-     * @param int $level Indentation level
+     * @param array             $attr    An associative array with additional attributes for the tag
+     * @param string|null       $indent  Indentation string, defaults to two spaces or `null` for output on one line
+     * @param int               $level   Indentation level
+     *
      * @return string The generated XML
      */
     public static function tag(
         string $name,
         array|string|null $content = '',
         array $attr = [],
-        string|null $indent = null,
-        int $level = 0
+        ?string $indent = null,
+        int $level = 0,
     ): string {
-        $attr       = static::attr($attr);
-        $start      = '<' . $name . ($attr ? ' ' . $attr : '') . '>';
-        $startShort = '<' . $name . ($attr ? ' ' . $attr : '') . static::$void;
-        $end        = '</' . $name . '>';
+        $attr = static::attr($attr);
+        $start = '<'.$name.($attr ? ' '.$attr : '').'>';
+        $startShort = '<'.$name.($attr ? ' '.$attr : '').static::$void;
+        $end = '</'.$name.'>';
         $baseIndent = match ($indent) {
-            null    => '',
-            default => str_repeat($indent, $level)
+            null => '',
+            default => str_repeat($indent, $level),
         };
 
-        if (is_array($content) === false) {
+        if (false === is_array($content)) {
             return match ($content) {
-                null    => $baseIndent . $startShort,
-                default => $baseIndent . $start . static::value($content) . $end
+                null => $baseIndent.$startShort,
+                default => $baseIndent.$start.static::value($content).$end,
             };
         }
 
-        if (is_string($indent) === false) {
-            return $start . implode($content) . $end;
+        if (false === is_string($indent)) {
+            return $start.implode($content).$end;
         }
 
-        $xml = $baseIndent . $start . PHP_EOL;
+        $xml = $baseIndent.$start.PHP_EOL;
 
         foreach ($content as $line) {
-            $xml .= $baseIndent . $indent . $line . PHP_EOL;
+            $xml .= $baseIndent.$indent.$line.PHP_EOL;
         }
 
-        $xml .= $baseIndent . $end;
+        $xml .= $baseIndent.$end;
 
         return $xml;
     }
 
     /**
-     * Properly encodes tag contents
+     * Properly encodes tag contents.
      */
-    public static function value($value): string|null
+    public static function value($value): ?string
     {
-        if ($value === true) {
+        if (true === $value) {
             return 'true';
         }
 
-        if ($value === false) {
+        if (false === $value) {
             return 'false';
         }
 
-        if (is_numeric($value) === true) {
-            return (string)$value;
+        if (true === is_numeric($value)) {
+            return (string) $value;
         }
 
-        if ($value === null || $value === '') {
+        if (null === $value || '' === $value) {
             return null;
         }
 
-        if (Str::startsWith($value, '<![CDATA[') === true) {
+        if (true === Str::startsWith($value, '<![CDATA[')) {
             return $value;
         }
 
@@ -475,6 +480,6 @@ class Xml
 
         // wrap everything in a CDATA block
         // and ensure that it is not closed in the input string
-        return '<![CDATA[' . str_replace(']]>', ']]]]><![CDATA[>', $value) . ']]>';
+        return '<![CDATA['.str_replace(']]>', ']]]]><![CDATA[>', $value).']]>';
     }
 }

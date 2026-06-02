@@ -12,7 +12,6 @@ use Symfony\Component\Validator\ConstraintViolationListInterface;
  *
  * This class is readonly and safe for RoadRunner - no mutable state.
  *
- * @package   Appkit Core
  * @author    Maarten Thiebou
  * @copyright Modufolio
  * @license   https://opensource.org/licenses/MIT
@@ -20,8 +19,9 @@ use Symfony\Component\Validator\ConstraintViolationListInterface;
 final readonly class ValidationResult
 {
     private function __construct(
-        private ConstraintViolationListInterface $violations
-    ) {}
+        private ConstraintViolationListInterface $violations,
+    ) {
+    }
 
     public static function fromViolations(ConstraintViolationListInterface $violations): self
     {
@@ -35,7 +35,7 @@ final readonly class ValidationResult
 
     public function isValid(): bool
     {
-        return $this->violations->count() === 0;
+        return 0 === $this->violations->count();
     }
 
     public function hasErrors(): bool
@@ -72,10 +72,8 @@ final readonly class ValidationResult
 
     /**
      * Get the first error message for a field.
-     *
-     * @return string|null
      */
-    public function first(string $field): string|null
+    public function first(string $field): ?string
     {
         $errors = $this->errors();
 

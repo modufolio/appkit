@@ -31,7 +31,4 @@ interface UserProviderInterface
      * @throws UserNotFoundException
      */
     public function loadUserByIdentifier(string $identifier): UserInterface;
-
-
-
 }

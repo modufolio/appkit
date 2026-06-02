@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Core;
 
@@ -25,13 +25,13 @@ final class NativeApplicationState extends AbstractApplicationState
 {
     public function getSession(): FlashBagAwareSessionInterface
     {
-        if ($this->session !== null) {
+        if (null !== $this->session) {
             return $this->session;
         }
 
         // Create session handler
         $handler = new NativeFileSessionHandler(
-            $this->baseDir . '/var/sessions'
+            $this->baseDir.'/var/sessions'
         );
 
         $cookies = $this->request->getCookieParams();
@@ -44,7 +44,7 @@ final class NativeApplicationState extends AbstractApplicationState
         );
 
         $this->sessionStorage = new NativeSessionStorage([
-            'save_path' => $this->baseDir . '/var/sessions',
+            'save_path' => $this->baseDir.'/var/sessions',
             'cookie_httponly' => true,
             'cookie_samesite' => 'Lax',
             'cookie_secure' => $cookieSecure,
@@ -56,7 +56,7 @@ final class NativeApplicationState extends AbstractApplicationState
         // Set session ID from request cookie before starting
         if ($requestSessionId && !$this->session->isStarted()) {
             session_id($requestSessionId);
-        } elseif (!$requestSessionId && session_status() === PHP_SESSION_NONE && session_id() !== '') {
+        } elseif (!$requestSessionId && PHP_SESSION_NONE === session_status() && '' !== session_id()) {
             session_id('');
         }
 
@@ -87,7 +87,7 @@ final class NativeApplicationState extends AbstractApplicationState
      */
     public function getSessionId(): ?string
     {
-        if ($this->session !== null && $this->session->isStarted()) {
+        if (null !== $this->session && $this->session->isStarted()) {
             return session_id() ?: null;
         }
 

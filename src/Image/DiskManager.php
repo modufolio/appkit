@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Modufolio\Appkit\Image;
 
 /**
- * Disk manager for registering and resolving disk configurations
+ * Disk manager for registering and resolving disk configurations.
  *
  * Maintains a registry of named disks and provides methods to
  * create, retrieve, and manage disk configurations.
@@ -26,16 +26,17 @@ class DiskManager
     }
 
     /**
-     * Register a new disk
+     * Register a new disk.
      */
     public function register(DiskInterface $disk): self
     {
         $this->disks[$disk->name()] = $disk;
+
         return $this;
     }
 
     /**
-     * Register multiple disks
+     * Register multiple disks.
      *
      * @param array<string, array{root: string, url?: string}> $disks
      */
@@ -50,11 +51,12 @@ class DiskManager
             );
             $this->register($disk);
         }
+
         return $this;
     }
 
     /**
-     * Get a disk by name
+     * Get a disk by name.
      */
     public function disk(string $name): DiskInterface
     {
@@ -66,7 +68,7 @@ class DiskManager
     }
 
     /**
-     * Get all registered disks
+     * Get all registered disks.
      *
      * @return DiskInterface[]
      */
@@ -76,7 +78,7 @@ class DiskManager
     }
 
     /**
-     * Check if a disk is registered
+     * Check if a disk is registered.
      */
     public function has(string $name): bool
     {
@@ -84,16 +86,17 @@ class DiskManager
     }
 
     /**
-     * Set the default disk
+     * Set the default disk.
      */
     public function setDefault(string $name): self
     {
         $this->defaultDisk = $this->disk($name);
+
         return $this;
     }
 
     /**
-     * Get the default disk
+     * Get the default disk.
      */
     public function getDefault(): DiskInterface
     {
@@ -101,7 +104,7 @@ class DiskManager
     }
 
     /**
-     * Create a disk instance with array configuration
+     * Create a disk instance with array configuration.
      */
     public static function createDisk(string $name, array $config): DiskInterface
     {

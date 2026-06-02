@@ -1,27 +1,23 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Data;
 
-use InvalidArgumentException;
-
 /**
- * Simple Wrapper around json_encode and json_decode
+ * Simple Wrapper around json_encode and json_decode.
  *
- * @package   Kirby Data
  * @author    Bastian Allgeier <bastian@getkirby.com>
- * @link      https://getkirby.com
+ *
+ * @see      https://getkirby.com
+ *
  * @copyright Bastian Allgeier GmbH
  * @license   https://opensource.org/licenses/MIT
  */
 class Json extends Handler
 {
     /**
-     * Converts an array to an encoded JSON string
-     *
-     * @param mixed $data
-     * @return string
+     * Converts an array to an encoded JSON string.
      */
     public static function encode(mixed $data): string
     {
@@ -29,35 +25,32 @@ class Json extends Handler
     }
 
     /**
-     * Parses an encoded JSON string and returns a multidimensional array
-     *
-     * @param mixed $string
-     * @return array
+     * Parses an encoded JSON string and returns a multidimensional array.
      */
     public static function decode(mixed $string): array
     {
-        if ($string === null) {
+        if (null === $string) {
             return [];
         }
 
-        if (is_array($string) === true) {
+        if (true === is_array($string)) {
             return $string;
         }
 
-        if (is_string($string) === false) {
-            throw new InvalidArgumentException('Invalid JSON data; please pass a string');
+        if (false === is_string($string)) {
+            throw new \InvalidArgumentException('Invalid JSON data; please pass a string');
         }
 
-        if ($string === '') {
+        if ('' === $string) {
             return [];
         }
 
         $result = json_decode($string, true);
 
-        if (is_array($result) === true) {
+        if (true === is_array($result)) {
             return $result;
         }
 
-        throw new InvalidArgumentException('JSON string is invalid');
+        throw new \InvalidArgumentException('JSON string is invalid');
     }
 }

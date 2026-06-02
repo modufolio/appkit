@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Query;
 
@@ -8,32 +8,33 @@ use Modufolio\Appkit\Toolkit\A;
 
 /**
  * The Expression class adds support for simple shorthand
- * comparisons (`a ? b : c`, `a ?: c` and `a ?? b`)
+ * comparisons (`a ? b : c`, `a ?: c` and `a ?? b`).
  *
- * @package   Kirby Query
  * @author    Nico Hoffmann <nico@getkirby.com>
- * @link      https://getkirby.com
+ *
+ * @see      https://getkirby.com
+ *
  * @copyright Bastian Allgeier
  * @license   https://opensource.org/licenses/MIT
  */
 final class Expression
 {
     public function __construct(
-        public array $parts
+        public array $parts,
     ) {
     }
 
     /**
-     * Parses an expression string into its parts
+     * Parses an expression string into its parts.
      */
-    public static function factory(string $expression, Query|null $parent = null): static|Segments
+    public static function factory(string $expression, ?Query $parent = null): static|Segments
     {
         // split into different expression parts and operators
         $parts = static::parse($expression);
 
         // shortcut: if expression has only one part, directly
         // continue with the segments chain
-        if (count($parts) === 1) {
+        if (1 === count($parts)) {
             return Segments::factory(query: $parts[0], parent: $parent);
         }
 
@@ -42,8 +43,7 @@ final class Expression
         // into actual types and treats all other parts as their own queries
         $parts = A::map(
             $parts,
-            fn ($part) =>
-                in_array($part, ['?', ':', '?:', '??'])
+            fn ($part) => in_array($part, ['?', ':', '?:', '??'])
                     ? $part
                     : Argument::factory($part)
         );
@@ -53,7 +53,8 @@ final class Expression
 
     /**
      * Splits a comparison string into an array
-     * of expressions and operators
+     * of expressions and operators.
+     *
      * @internal
      */
     public static function parse(string $string): array
@@ -61,7 +62,7 @@ final class Expression
         // split by multiples of `?` and `:`, but not inside skip groups
         // (parantheses, quotes etc.)
         return preg_split(
-            '/\s+([\?\:]+)\s+|' . Arguments::OUTSIDE . '/',
+            '/\s+([\?\:]+)\s+|'.Arguments::OUTSIDE.'/',
             trim($string),
             flags: PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY
         );
@@ -70,7 +71,7 @@ final class Expression
     /**
      * Resolves the expression by evaluating
      * the supported comparisons and consecutively
-     * resolving the resulting query/argument
+     * resolving the resulting query/argument.
      */
     public function resolve(array|object $data = []): mixed
     {
@@ -80,8 +81,8 @@ final class Expression
             // `a ?? b`
             // if the base/previous (e.g. `a`) isn't null,
             // stop the expression chain and return `a`
-            if ($part === '??') {
-                if ($base !== null) {
+            if ('??' === $part) {
+                if (null !== $base) {
                     return $base;
                 }
 
@@ -90,8 +91,8 @@ final class Expression
 
             // `a ?: b`
             // if `a` isn't false, return `a`, otherwise `b`
-            if ($part === '?:') {
-                if ($base != false) {
+            if ('?:' === $part) {
+                if (false != $base) {
                     return $base;
                 }
 
@@ -100,12 +101,12 @@ final class Expression
 
             // `a ? b : c`
             // if `a` isn't false, return `b`, otherwise `c`
-            if ($part === '?') {
+            if ('?' === $part) {
                 if (($this->parts[$index + 2] ?? null) !== ':') {
                     throw new \LogicException('Query: Incomplete ternary operator (missing matching `? :`)');
                 }
 
-                if ($base != false) {
+                if (false != $base) {
                     return $this->parts[$index + 1]->resolve($data);
                 }
 

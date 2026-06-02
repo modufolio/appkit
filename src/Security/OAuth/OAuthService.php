@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Modufolio\Appkit\Security\OAuth;
 
-use Modufolio\Appkit\Security\User\UserInterface;
 use Doctrine\ORM\EntityManagerInterface;
+use Modufolio\Appkit\Security\User\UserInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
 /**
- * OAuth 2.1 Service
+ * OAuth 2.1 Service.
  *
  * Handles OAuth 2.1 token generation, validation, and refresh
  * Implements OAuth 2.1 security best practices including:
@@ -31,7 +31,7 @@ class OAuthService implements OAuthServiceInterface
     }
 
     /**
-     * Create an access token with optional refresh token
+     * Create an access token with optional refresh token.
      */
     public function createAccessToken(
         UserInterface $user,
@@ -52,7 +52,7 @@ class OAuthService implements OAuthServiceInterface
         $token->setToken(hash('sha256', $accessToken));
 
         // Set expiration
-        $expiresAt = new \DateTimeImmutable('+' . self::ACCESS_TOKEN_LIFETIME . ' seconds');
+        $expiresAt = new \DateTimeImmutable('+'.self::ACCESS_TOKEN_LIFETIME.' seconds');
         $token->setExpiresAt($expiresAt);
 
         // Generate refresh token if requested
@@ -60,12 +60,12 @@ class OAuthService implements OAuthServiceInterface
             $refreshToken = $this->generateRandomToken();
             $token->setRefreshToken(hash('sha256', $refreshToken));
 
-            $refreshExpiresAt = new \DateTimeImmutable('+' . self::REFRESH_TOKEN_LIFETIME . ' seconds');
+            $refreshExpiresAt = new \DateTimeImmutable('+'.self::REFRESH_TOKEN_LIFETIME.' seconds');
             $token->setRefreshTokenExpiresAt($refreshExpiresAt);
         }
 
         // Store request metadata
-        if ($request !== null) {
+        if (null !== $request) {
             $serverParams = $request->getServerParams();
             $token->setIpAddress($serverParams['REMOTE_ADDR'] ?? null);
             $token->setUserAgent($request->getHeaderLine('User-Agent'));
@@ -84,14 +84,14 @@ class OAuthService implements OAuthServiceInterface
     }
 
     /**
-     * Validate an access token
+     * Validate an access token.
      */
     public function validateAccessToken(string $accessToken): ?OAuthAccessTokenInterface
     {
         $tokenHash = hash('sha256', $accessToken);
         $token = $this->tokenRepository->findValidToken($tokenHash);
 
-        if ($token === null) {
+        if (null === $token) {
             return null;
         }
 
@@ -104,7 +104,7 @@ class OAuthService implements OAuthServiceInterface
 
     /**
      * Refresh an access token using a refresh token
-     * Implements refresh token rotation (OAuth 2.1 requirement)
+     * Implements refresh token rotation (OAuth 2.1 requirement).
      */
     public function refreshAccessToken(
         string $refreshToken,
@@ -114,7 +114,7 @@ class OAuthService implements OAuthServiceInterface
         $refreshTokenHash = hash('sha256', $refreshToken);
         $oldToken = $this->tokenRepository->findByRefreshToken($refreshTokenHash);
 
-        if ($oldToken === null) {
+        if (null === $oldToken) {
             return null;
         }
 
@@ -149,14 +149,14 @@ class OAuthService implements OAuthServiceInterface
     }
 
     /**
-     * Revoke an access token
+     * Revoke an access token.
      */
     public function revokeAccessToken(string $accessToken): bool
     {
         $tokenHash = hash('sha256', $accessToken);
         $token = $this->tokenRepository->findValidToken($tokenHash);
 
-        if ($token === null) {
+        if (null === $token) {
             return false;
         }
 
@@ -167,7 +167,7 @@ class OAuthService implements OAuthServiceInterface
     }
 
     /**
-     * Revoke all tokens for a user
+     * Revoke all tokens for a user.
      */
     public function revokeAllUserTokens(UserInterface $user): void
     {
@@ -175,7 +175,7 @@ class OAuthService implements OAuthServiceInterface
     }
 
     /**
-     * Generate a cryptographically secure random token
+     * Generate a cryptographically secure random token.
      */
     private function generateRandomToken(int $length = 64): string
     {
@@ -183,7 +183,7 @@ class OAuthService implements OAuthServiceInterface
     }
 
     /**
-     * Format token response for OAuth 2.1
+     * Format token response for OAuth 2.1.
      */
     public function formatTokenResponse(OAuthAccessTokenInterface $token): array
     {
@@ -195,7 +195,7 @@ class OAuthService implements OAuthServiceInterface
         ];
 
         $plainRefreshToken = $token->getPlainRefreshToken();
-        if ($plainRefreshToken !== null) {
+        if (null !== $plainRefreshToken) {
             $response['refresh_token'] = $plainRefreshToken;
         }
 
@@ -203,7 +203,7 @@ class OAuthService implements OAuthServiceInterface
     }
 
     /**
-     * Clean up expired tokens (for maintenance tasks)
+     * Clean up expired tokens (for maintenance tasks).
      */
     public function cleanupExpiredTokens(): int
     {

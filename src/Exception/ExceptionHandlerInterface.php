@@ -8,30 +8,30 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
 /**
- * Interface for Exception Handling
+ * Interface for Exception Handling.
  *
  * Provides contract for handling exceptions and formatting error responses
  */
 interface ExceptionHandlerInterface
 {
     /**
-     * Register an exception handler for a specific exception class
+     * Register an exception handler for a specific exception class.
      *
-     * @param class-string<\Throwable> $exceptionClass
+     * @param class-string<\Throwable>                            $exceptionClass
      * @param callable(\Throwable, ServerRequestInterface): array $handler
-     * @param bool $loggable Whether this exception should be logged
+     * @param bool                                                $loggable       Whether this exception should be logged
      */
     public function registerException(string $exceptionClass, callable $handler, bool $loggable = false): void;
 
     /**
-     * Register a response formatter for a specific MIME type
+     * Register a response formatter for a specific MIME type.
      *
      * @param callable(array): ResponseInterface $formatter
      */
     public function registerFormatter(string $mimeType, callable $formatter): void;
 
     /**
-     * Handle an exception and return a formatted response
+     * Handle an exception and return a formatted response.
      *
      * @throws \Throwable If exception cannot be handled
      */

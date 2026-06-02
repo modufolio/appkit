@@ -29,6 +29,7 @@ abstract class AppTestCase extends BaseTestCase
             // Initialize state for tests that need it before making HTTP requests
             self::$app->initializeTestState();
         }
+
         return self::$app;
     }
 
@@ -109,7 +110,7 @@ abstract class AppTestCase extends BaseTestCase
             $this->app()->entityManager(),
             $this->app()->serializer(),
             $this->app()->validator()
-        ))->loadConfig(require $this->app()->baseDir . '/config/fixture_factories.php');
+        ))->loadConfig(require $this->app()->baseDir.'/config/fixture_factories.php');
 
         $executor = new ORMExecutor($this->app()->entityManager(), new ORMPurger());
         $executor->execute([new AppFixtures($factory)]);
@@ -122,7 +123,7 @@ abstract class AppTestCase extends BaseTestCase
     protected function get(string $uri, array $query = [], array $headers = []): TestResponse
     {
         if ($query) {
-            $uri .= (str_contains($uri, '?') ? '&' : '?') . http_build_query($query);
+            $uri .= (str_contains($uri, '?') ? '&' : '?').http_build_query($query);
         }
 
         return $this->request('GET', $uri, [], null, $headers);
@@ -161,6 +162,7 @@ abstract class AppTestCase extends BaseTestCase
     protected function json(string $method, string $uri, array $data = [], array $headers = []): TestResponse
     {
         $headers['Content-Type'] ??= 'application/json';
+
         return $this->request($method, $uri, $data, null, $headers);
     }
 
@@ -174,7 +176,7 @@ abstract class AppTestCase extends BaseTestCase
         string $uri,
         array $data = [],
         ?string $body = null,
-        array $headers = []
+        array $headers = [],
     ): TestResponse {
         $method = strtoupper($method);
         $hasBody = in_array($method, ['POST', 'PUT', 'PATCH', 'DELETE'], true);
@@ -206,7 +208,7 @@ abstract class AppTestCase extends BaseTestCase
         if ($this->app()->getState() && $this->app()->getState()->hasSession()) {
             $sessionId = $this->app()->session()->getId();
             if ($sessionId) {
-                $headers['Cookie'] = 'PHPSESSID=' . $sessionId;
+                $headers['Cookie'] = 'PHPSESSID='.$sessionId;
             }
         }
 
@@ -217,7 +219,7 @@ abstract class AppTestCase extends BaseTestCase
         $state = $this->app()->getState();
         $isAuthenticated = $state
             && $state->hasSession()
-            && $this->app()->tokenStorage()->getToken() !== null;
+            && null !== $this->app()->tokenStorage()->getToken();
         $alreadyHasCsrf = isset($headers['X-CSRF-Token'])
             || isset($headers['X-XSRF-Token'])
             || array_key_exists('_csrf_token', $data);
@@ -231,7 +233,7 @@ abstract class AppTestCase extends BaseTestCase
 
         // Add headers to server params following CGI convention
         foreach ($headers as $name => $value) {
-            $serverKey = 'HTTP_' . strtoupper(str_replace('-', '_', $name));
+            $serverKey = 'HTTP_'.strtoupper(str_replace('-', '_', $name));
             $serverParams[$serverKey] = $value;
         }
 
@@ -267,7 +269,7 @@ abstract class AppTestCase extends BaseTestCase
             $cookies = explode('; ', $headers['Cookie']);
             foreach ($cookies as $cookie) {
                 [$name, $value] = explode('=', $cookie, 2) + [null, null];
-                if ($name !== null && $value !== null) {
+                if (null !== $name && null !== $value) {
                     $cookieParams[$name] = $value;
                 }
             }
@@ -277,15 +279,14 @@ abstract class AppTestCase extends BaseTestCase
         return new TestResponse($this->app()->handle($request));
     }
 
-
-
     /**
      * Prepare body as PSR-7 compliant stream.
+     *
      * @throws \JsonException
      */
     private function createRequestBody(?string $contentType, array $data, ?string $raw): StreamInterface
     {
-        if ($raw !== null) {
+        if (null !== $raw) {
             return Stream::create($raw);
         }
 
@@ -319,7 +320,7 @@ abstract class AppTestCase extends BaseTestCase
         $this->assertInstanceOf(UserInterface::class, $user, 'Expected a valid User instance after login.');
     }
 
-    protected function  login(): void
+    protected function login(): void
     {
         $this->actingAs('johndoe@example.com', 'secret');
     }

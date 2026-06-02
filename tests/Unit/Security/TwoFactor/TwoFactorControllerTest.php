@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Modufolio\Appkit\Tests\Unit\Security\TwoFactor;
 
+use Doctrine\DBAL\Schema\Schema;
 use Modufolio\Appkit\Security\Authenticator\FormLoginAuthenticator;
-use Modufolio\Appkit\Security\BruteForce\BruteForceProtectionInterface;
 use Modufolio\Appkit\Security\Csrf\CsrfTokenManagerInterface;
 use Modufolio\Appkit\Security\Token\TwoFactorToken;
 use Modufolio\Appkit\Security\Token\UsernamePasswordToken;
@@ -15,7 +15,6 @@ use Modufolio\Appkit\Tests\App\Entity\User;
 use Modufolio\Appkit\Tests\App\Repository\UserRepository;
 use Modufolio\Appkit\Tests\Case\AppTestCase;
 use Modufolio\Appkit\Tests\Traits\DatabaseTestingCapabilities;
-use Doctrine\DBAL\Schema\Schema;
 use OTPHP\TOTP;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;
@@ -514,6 +513,7 @@ class TwoFactorControllerTest extends AppTestCase
     private function generateValidCode(string $base32Secret): string
     {
         $totp = TOTP::createFromSecret($base32Secret);
+
         return $totp->now();
     }
 }

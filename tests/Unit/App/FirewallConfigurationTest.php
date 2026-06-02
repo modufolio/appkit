@@ -17,10 +17,10 @@ class FirewallConfigurationTest extends AppTestCase
                     'entry_point' => '/login',
                     'logout' => [
                         'path' => '/logout',
-                        'target' => '/'
-                    ]
-                ]
-            ]
+                        'target' => '/',
+                    ],
+                ],
+            ],
         ]);
 
         $this->assertSame('main', $this->app()->getFirewallName('/'));
@@ -44,14 +44,14 @@ class FirewallConfigurationTest extends AppTestCase
                 'api' => [
                     'pattern' => '/api',
                     'stateless' => true,
-                    'authenticators' => ['jwt']
+                    'authenticators' => ['jwt'],
                 ],
                 'admin' => [
                     'pattern' => '/admin',
                     'authenticators' => ['form_login'],
-                    'entry_point' => '/admin/login'
-                ]
-            ]
+                    'entry_point' => '/admin/login',
+                ],
+            ],
         ]);
 
         $apiConfig = $this->app()->getFirewallConfig('api');
@@ -72,8 +72,8 @@ class FirewallConfigurationTest extends AppTestCase
                 'public' => [
                     'pattern' => '/public',
                     'security' => false,
-                ]
-            ]
+                ],
+            ],
         ]);
 
         $response = $this->get('/public');
@@ -86,9 +86,9 @@ class FirewallConfigurationTest extends AppTestCase
             'firewalls' => [
                 'main' => [
                     'pattern' => '/',
-                    'logout' => ['target' => '/home']
-                ]
-            ]
+                    'logout' => ['target' => '/home'],
+                ],
+            ],
         ]);
 
         $session = $this->app()->session();
@@ -105,8 +105,8 @@ class FirewallConfigurationTest extends AppTestCase
     {
         $this->app()->configureFirewall([
             'firewalls' => [
-                'main' => ['pattern' => '/']
-            ]
+                'main' => ['pattern' => '/'],
+            ],
         ]);
 
         $response = $this->app()->logout('main');
@@ -120,10 +120,10 @@ class FirewallConfigurationTest extends AppTestCase
         $this->app()->configureFirewall([
             'firewalls' => [
                 'main' => [
-                    'pattern'        => '/',
+                    'pattern' => '/',
                     'authenticators' => ['form_login'],
-                    'entry_point'    => '/login',
-                    'logout'         => ['path' => '/logout', 'target' => '/'],
+                    'entry_point' => '/login',
+                    'logout' => ['path' => '/logout', 'target' => '/'],
                 ],
             ],
         ]);

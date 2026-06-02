@@ -1,18 +1,18 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Tests\App\Entity;
 
+use Doctrine\ORM\Mapping as ORM;
 use Modufolio\Appkit\Security\TwoFactor\UserTotpSecretInterface;
+use Modufolio\Appkit\Security\User\UserInterface;
 use Modufolio\Appkit\Tests\App\Entity\Traits\Timestampable;
 use Modufolio\Appkit\Tests\App\Repository\UserTotpSecretRepository;
-use Modufolio\Appkit\Security\User\UserInterface;
-use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
- * UserTotpSecret entity
+ * UserTotpSecret entity.
  *
  * Stores TOTP (Time-based One-Time Password) secrets for two-factor authentication
  * using Google Authenticator or compatible apps.
@@ -30,7 +30,7 @@ class UserTotpSecret implements UserTotpSecretInterface
     private int $id;
 
     /**
-     * The user this TOTP secret belongs to
+     * The user this TOTP secret belongs to.
      */
     #[ORM\OneToOne(targetEntity: User::class)]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
@@ -38,60 +38,60 @@ class UserTotpSecret implements UserTotpSecretInterface
 
     /**
      * The encrypted TOTP secret (base32 encoded)
-     * This is the secret shared between the server and the authenticator app
+     * This is the secret shared between the server and the authenticator app.
      */
     #[Assert\NotBlank]
     #[ORM\Column(type: 'text')]
     private string $secret;
 
     /**
-     * Whether 2FA is enabled for this user
+     * Whether 2FA is enabled for this user.
      */
     #[ORM\Column(type: 'boolean', options: ['default' => false])]
     private bool $enabled = false;
 
     /**
      * Whether the TOTP secret has been confirmed/verified
-     * User must verify the code at least once before 2FA becomes active
+     * User must verify the code at least once before 2FA becomes active.
      */
     #[ORM\Column(type: 'boolean', options: ['default' => false])]
     private bool $confirmed = false;
 
     /**
-     * Date when 2FA was enabled
+     * Date when 2FA was enabled.
      */
     #[ORM\Column(name: 'enabled_at', type: 'datetime_immutable', nullable: true)]
     private ?\DateTimeImmutable $enabledAt = null;
 
     /**
      * Date when the TOTP secret was last used successfully
-     * For security monitoring and audit
+     * For security monitoring and audit.
      */
     #[ORM\Column(name: 'last_used_at', type: 'datetime_immutable', nullable: true)]
     private ?\DateTimeImmutable $lastUsedAt = null;
 
     /**
      * Number of consecutive failed attempts
-     * For brute force protection
+     * For brute force protection.
      */
     #[ORM\Column(name: 'failed_attempts', type: 'integer', options: ['default' => 0])]
     private int $failedAttempts = 0;
 
     /**
-     * Time-step (counter) of the last accepted TOTP code (replay guard)
+     * Time-step (counter) of the last accepted TOTP code (replay guard).
      */
     #[ORM\Column(name: 'last_used_counter', type: 'integer', nullable: true)]
     private ?int $lastUsedCounter = null;
 
     /**
-     * Lockout expiry instant, or null when not locked
+     * Lockout expiry instant, or null when not locked.
      */
     #[ORM\Column(name: 'locked_until', type: 'datetime_immutable', nullable: true)]
     private ?\DateTimeImmutable $lockedUntil = null;
 
     /**
      * Backup codes for account recovery (JSON array)
-     * Hashed codes that can be used once each if user loses access to authenticator
+     * Hashed codes that can be used once each if user loses access to authenticator.
      */
     #[ORM\Column(name: 'backup_codes', type: 'json', nullable: true)]
     private ?array $backupCodes = null;
@@ -132,7 +132,7 @@ class UserTotpSecret implements UserTotpSecretInterface
     {
         $this->enabled = $enabled;
 
-        if ($enabled && $this->enabledAt === null) {
+        if ($enabled && null === $this->enabledAt) {
             $this->enabledAt = new \DateTimeImmutable();
         }
     }
@@ -169,7 +169,7 @@ class UserTotpSecret implements UserTotpSecretInterface
 
     public function incrementFailedAttempts(): void
     {
-        $this->failedAttempts++;
+        ++$this->failedAttempts;
     }
 
     public function resetFailedAttempts(): void
@@ -208,11 +208,11 @@ class UserTotpSecret implements UserTotpSecretInterface
     }
 
     /**
-     * Check if a backup code exists
+     * Check if a backup code exists.
      */
     public function hasBackupCode(string $code): bool
     {
-        if ($this->backupCodes === null) {
+        if (null === $this->backupCodes) {
             return false;
         }
 
@@ -226,11 +226,11 @@ class UserTotpSecret implements UserTotpSecretInterface
     }
 
     /**
-     * Remove a used backup code
+     * Remove a used backup code.
      */
     public function removeBackupCode(string $code): void
     {
-        if ($this->backupCodes === null) {
+        if (null === $this->backupCodes) {
             return;
         }
 
@@ -238,6 +238,7 @@ class UserTotpSecret implements UserTotpSecretInterface
             if (password_verify($code, $hashedCode)) {
                 unset($this->backupCodes[$index]);
                 $this->backupCodes = array_values($this->backupCodes);
+
                 return;
             }
         }

@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Resolver;
 
@@ -9,7 +9,7 @@ class TypeHintResolver implements ParameterResolverInterface
     public function getParameters(
         \Reflector $reflection,
         array $providedParameters,
-        array $resolvedParameters
+        array $resolvedParameters,
     ): array {
         $parameters = $reflection->getParameters();
 
@@ -20,11 +20,11 @@ class TypeHintResolver implements ParameterResolverInterface
             }
 
             $parameterType = $parameter->getType();
-            if (! $parameterType) {
+            if (!$parameterType) {
                 // No type
                 continue;
             }
-            if (! $parameterType instanceof \ReflectionNamedType) {
+            if (!$parameterType instanceof \ReflectionNamedType) {
                 // Union types are not supported
                 continue;
             }
@@ -34,7 +34,7 @@ class TypeHintResolver implements ParameterResolverInterface
             }
 
             $parameterClass = $parameterType->getName();
-            if ($parameterClass === 'self') {
+            if ('self' === $parameterClass) {
                 $parameterClass = $parameter->getDeclaringClass()->getName();
             }
 

@@ -6,7 +6,7 @@ namespace Modufolio\Appkit\Attributes;
 class MapFilter
 {
     public function __construct(
-        public ?string $name = null
+        public ?string $name = null,
     ) {
     }
 }

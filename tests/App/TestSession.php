@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Modufolio\Appkit\Tests\App;
 
-use Symfony\Component\HttpFoundation\Session\FlashBagAwareSessionInterface;
 use Symfony\Component\HttpFoundation\Session\Flash\FlashBag;
 use Symfony\Component\HttpFoundation\Session\Flash\FlashBagInterface;
+use Symfony\Component\HttpFoundation\Session\FlashBagAwareSessionInterface;
 use Symfony\Component\HttpFoundation\Session\SessionBagInterface;
 use Symfony\Component\HttpFoundation\Session\Storage\MetadataBag;
 
@@ -37,6 +37,7 @@ class TestSession implements FlashBagAwareSessionInterface
     public function start(): bool
     {
         $this->started = true;
+
         return true;
     }
 
@@ -62,6 +63,7 @@ class TestSession implements FlashBagAwareSessionInterface
     public function invalidate(?int $lifetime = null): bool
     {
         $this->attributes = [];
+
         return true;
     }
 
@@ -103,6 +105,7 @@ class TestSession implements FlashBagAwareSessionInterface
     {
         $value = $this->attributes[$name] ?? null;
         unset($this->attributes[$name]);
+
         return $value;
     }
 

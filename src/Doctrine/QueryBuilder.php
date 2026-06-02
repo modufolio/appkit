@@ -8,7 +8,6 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Query\Expression\ExpressionBuilder;
 use Doctrine\DBAL\Query\QueryBuilder as DBALQueryBuilder;
-use InvalidArgumentException;
 
 final class QueryBuilder
 {
@@ -34,6 +33,7 @@ final class QueryBuilder
         $this->table = $table;
         $this->alias = $alias ?? $table;
         $this->queryBuilder->from($table, $this->alias);
+
         return $this;
     }
 
@@ -41,6 +41,7 @@ final class QueryBuilder
     {
         if (empty($columns)) {
             $this->queryBuilder->select('*');
+
             return $this;
         }
 
@@ -63,6 +64,7 @@ final class QueryBuilder
         foreach ($bindings as $value) {
             $this->addBinding($value);
         }
+
         return $this;
     }
 
@@ -73,16 +75,18 @@ final class QueryBuilder
     public function where(string $column, string $operator, mixed $value): self
     {
         $param = $this->newParamName();
-        $this->queryBuilder->andWhere($this->expr->comparison($column, $operator, ':' . $param));
+        $this->queryBuilder->andWhere($this->expr->comparison($column, $operator, ':'.$param));
         $this->queryBuilder->setParameter($param, $value);
+
         return $this;
     }
 
     public function orWhere(string $column, string $operator, mixed $value): self
     {
         $param = $this->newParamName();
-        $this->queryBuilder->orWhere($this->expr->comparison($column, $operator, ':' . $param));
+        $this->queryBuilder->orWhere($this->expr->comparison($column, $operator, ':'.$param));
         $this->queryBuilder->setParameter($param, $value);
+
         return $this;
     }
 
@@ -91,10 +95,11 @@ final class QueryBuilder
         $params = [];
         foreach ($values as $value) {
             $param = $this->newParamName();
-            $params[] = ':' . $param;
+            $params[] = ':'.$param;
             $this->queryBuilder->setParameter($param, $value);
         }
         $this->queryBuilder->andWhere($this->expr->in($column, $params));
+
         return $this;
     }
 
@@ -103,36 +108,41 @@ final class QueryBuilder
         $params = [];
         foreach ($values as $value) {
             $param = $this->newParamName();
-            $params[] = ':' . $param;
+            $params[] = ':'.$param;
             $this->queryBuilder->setParameter($param, $value);
         }
         $this->queryBuilder->andWhere($this->expr->notIn($column, $params));
+
         return $this;
     }
 
     public function whereNull(string $column): self
     {
         $this->queryBuilder->andWhere($this->expr->isNull($column));
+
         return $this;
     }
 
     public function whereNotNull(string $column): self
     {
         $this->queryBuilder->andWhere($this->expr->isNotNull($column));
+
         return $this;
     }
 
     public function whereExpression(callable $callback): self
     {
         $expression = $callback($this->expr);
-        $this->queryBuilder->andWhere('(' . $expression . ')');
+        $this->queryBuilder->andWhere('('.$expression.')');
+
         return $this;
     }
 
     public function orWhereExpression(callable $callback): self
     {
         $expression = $callback($this->expr);
-        $this->queryBuilder->orWhere('(' . $expression . ')');
+        $this->queryBuilder->orWhere('('.$expression.')');
+
         return $this;
     }
 
@@ -142,6 +152,7 @@ final class QueryBuilder
         foreach ($bindings as $value) {
             $this->addBinding($value);
         }
+
         return $this;
     }
 
@@ -153,6 +164,7 @@ final class QueryBuilder
     {
         $alias ??= $table;
         $this->queryBuilder->innerJoin($this->alias, $table, $alias, "$first $operator $second");
+
         return $this;
     }
 
@@ -160,6 +172,7 @@ final class QueryBuilder
     {
         $alias ??= $table;
         $this->queryBuilder->leftJoin($this->alias, $table, $alias, "$first $operator $second");
+
         return $this;
     }
 
@@ -167,6 +180,7 @@ final class QueryBuilder
     {
         $alias ??= $table;
         $this->queryBuilder->rightJoin($this->alias, $table, $alias, "$first $operator $second");
+
         return $this;
     }
 
@@ -178,9 +192,10 @@ final class QueryBuilder
     {
         $direction = strtoupper($direction);
         if (!in_array($direction, ['ASC', 'DESC'], true)) {
-            throw new InvalidArgumentException("Invalid order direction: {$direction}");
+            throw new \InvalidArgumentException("Invalid order direction: {$direction}");
         }
         $this->queryBuilder->addOrderBy($column, $direction);
+
         return $this;
     }
 
@@ -189,18 +204,21 @@ final class QueryBuilder
         foreach ($columns as $column) {
             $this->queryBuilder->addGroupBy($column);
         }
+
         return $this;
     }
 
     public function limit(int $limit): self
     {
         $this->queryBuilder->setMaxResults($limit);
+
         return $this;
     }
 
     public function offset(int $offset): self
     {
         $this->queryBuilder->setFirstResult($offset);
+
         return $this;
     }
 
@@ -214,7 +232,7 @@ final class QueryBuilder
 
         foreach ($values as $column => $value) {
             $param = $column;
-            $this->queryBuilder->setValue($column, ':' . $param);
+            $this->queryBuilder->setValue($column, ':'.$param);
             $this->queryBuilder->setParameter($param, $value);
         }
 
@@ -230,7 +248,7 @@ final class QueryBuilder
 
         foreach ($values as $column => $value) {
             $param = $column;
-            $this->queryBuilder->set($column, ':' . $param);
+            $this->queryBuilder->set($column, ':'.$param);
             $this->queryBuilder->setParameter($param, $value);
         }
 
@@ -243,6 +261,7 @@ final class QueryBuilder
     public function delete(): int
     {
         $this->queryBuilder->delete($this->table);
+
         return $this->queryBuilder->executeStatement();
     }
 
@@ -261,6 +280,7 @@ final class QueryBuilder
     public function first(): ?array
     {
         $result = $this->limit(1)->get();
+
         return $result[0] ?? null;
     }
 
@@ -278,7 +298,7 @@ final class QueryBuilder
         $params = $this->queryBuilder->getParameters();
 
         // Execute as subquery wrapped in COUNT
-        $countSql = 'SELECT COUNT(*) AS cnt FROM (' . $sql . ') AS count_wrapper';
+        $countSql = 'SELECT COUNT(*) AS cnt FROM ('.$sql.') AS count_wrapper';
 
         return (int) $this->connection->executeQuery($countSql, $params)->fetchOne();
     }
@@ -325,6 +345,6 @@ final class QueryBuilder
 
     private function newParamName(): string
     {
-        return 'p' . count($this->queryBuilder->getParameters());
+        return 'p'.count($this->queryBuilder->getParameters());
     }
 }

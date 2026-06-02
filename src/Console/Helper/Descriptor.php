@@ -37,7 +37,6 @@ abstract class Descriptor implements DescriptorInterface
 
     abstract protected function describeRoute(Route $route, array $options = []): void;
 
-
     abstract protected function describeCallable(mixed $callable, array $options = []): void;
 
     protected function formatValue(mixed $value): string
@@ -77,13 +76,12 @@ abstract class Descriptor implements DescriptorInterface
             $jsonString = json_encode($value);
 
             if (preg_match('/^(.{60})./us', $jsonString, $matches)) {
-                return $matches[1] . '...';
+                return $matches[1].'...';
             }
 
             return $jsonString;
         }
 
-        return (string)$value;
+        return (string) $value;
     }
-
 }

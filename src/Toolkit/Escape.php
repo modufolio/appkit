@@ -23,7 +23,7 @@ use Laminas\Escaper\Escaper;
  * The Escaper instance is created once and reused (it is stateless and immutable),
  * which is cheaper than Kirby's per-call instantiation.
  *
- * @link https://docs.laminas.dev/laminas-escaper/
+ * @see https://docs.laminas.dev/laminas-escaper/
  */
 final class Escape
 {

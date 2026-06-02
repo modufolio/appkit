@@ -1,13 +1,12 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Resolver;
 
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\ContainerInterface;
 use Psr\Container\NotFoundExceptionInterface;
-use ReflectionNamedType;
 
 readonly class TypeHintContainerResolver implements ParameterResolverInterface
 {
@@ -22,12 +21,12 @@ readonly class TypeHintContainerResolver implements ParameterResolverInterface
     public function getParameters(
         \ReflectionFunctionAbstract $reflection,
         array $providedParameters,
-        array $resolvedParameters
+        array $resolvedParameters,
     ): array {
         $parameters = $reflection->getParameters();
 
         // Skip parameters already resolved
-        if (! empty($resolvedParameters)) {
+        if (!empty($resolvedParameters)) {
             $parameters = array_diff_key($parameters, $resolvedParameters);
         }
 
@@ -37,11 +36,11 @@ readonly class TypeHintContainerResolver implements ParameterResolverInterface
                 // Skip parameters already resolved
                 continue;
             }
-            if (! $parameterType) {
+            if (!$parameterType) {
                 // No type
                 continue;
             }
-            if (! $parameterType instanceof ReflectionNamedType) {
+            if (!$parameterType instanceof \ReflectionNamedType) {
                 // Union types are not supported
                 continue;
             }
@@ -51,7 +50,7 @@ readonly class TypeHintContainerResolver implements ParameterResolverInterface
             }
 
             $parameterClass = $parameterType->getName();
-            if ($parameterClass === 'self') {
+            if ('self' === $parameterClass) {
                 $parameterClass = $parameter->getDeclaringClass()->getName();
             }
 

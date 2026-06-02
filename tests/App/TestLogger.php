@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Modufolio\Appkit\Tests\App;
 
 use Psr\Log\AbstractLogger;
-use Stringable;
 
 /**
  * Logger that captures all log entries in memory for test assertions.
@@ -15,7 +14,7 @@ class TestLogger extends AbstractLogger
     /** @var list<array{level: string, message: string, context: array}> */
     public array $records = [];
 
-    public function log($level, string|Stringable $message, array $context = []): void
+    public function log($level, string|\Stringable $message, array $context = []): void
     {
         $this->records[] = [
             'level' => (string) $level,
@@ -31,6 +30,7 @@ class TestLogger extends AbstractLogger
                 return true;
             }
         }
+
         return false;
     }
 
@@ -51,7 +51,7 @@ class TestLogger extends AbstractLogger
 
     public function countRecords(string $level): int
     {
-        return count(array_filter($this->records, fn(array $r) => $r['level'] === $level));
+        return count(array_filter($this->records, fn (array $r) => $r['level'] === $level));
     }
 
     public function reset(): void

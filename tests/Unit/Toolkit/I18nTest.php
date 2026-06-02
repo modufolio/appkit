@@ -1,12 +1,11 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Tests\Unit\Toolkit;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-
 use Modufolio\Appkit\Toolkit\I18n;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(I18n::class)]
@@ -14,9 +13,9 @@ class I18nTest extends TestCase
 {
     public function setUp(): void
     {
-        I18n::$locale       = 'en';
-        I18n::$load         = null;
-        I18n::$fallback     = 'en';
+        I18n::$locale = 'en';
+        I18n::$load = null;
+        I18n::$fallback = 'en';
         I18n::$translations = [];
     }
 
@@ -87,8 +86,8 @@ class I18nTest extends TestCase
     {
         I18n::$translations = [
             'en' => [
-                'template' => 'This is a {test}'
-            ]
+                'template' => 'This is a {test}',
+            ],
         ];
         $this->assertSame(
             'This is a test template',
@@ -98,8 +97,8 @@ class I18nTest extends TestCase
         // with fallback
         I18n::$translations = [
             'en' => [
-                'template' => 'This is a {test}'
-            ]
+                'template' => 'This is a {test}',
+            ],
         ];
         $this->assertSame(
             'This is a fallback',
@@ -113,11 +112,11 @@ class I18nTest extends TestCase
         // with locale
         I18n::$translations = [
             'en' => [
-                'template' => 'This is a {test}'
+                'template' => 'This is a {test}',
             ],
             'de' => [
-                'template' => 'Das ist ein {test}'
-            ]
+                'template' => 'Das ist ein {test}',
+            ],
         ];
 
         $this->assertSame(
@@ -129,7 +128,7 @@ class I18nTest extends TestCase
     public function testTranslateI18nKey()
     {
         I18n::$translations = [
-            'en' => ['save' => 'Speichern']
+            'en' => ['save' => 'Speichern'],
         ];
 
         $this->assertSame('Speichern', I18n::translate('save'));
@@ -140,7 +139,7 @@ class I18nTest extends TestCase
     {
         I18n::$translations = [
             'en' => ['go' => 'Let\'s go'],
-            'es' => ['go' => 'Vamos']
+            'es' => ['go' => 'Vamos'],
         ];
 
         I18n::$locale = 'es_ES';
@@ -156,7 +155,7 @@ class I18nTest extends TestCase
     {
         $this->assertSame('My fallback in array', I18n::translate('not.exist', [
             'de' => 'Notfalllösung',
-            'en' => 'My fallback in array'
+            'en' => 'My fallback in array',
         ]));
     }
 
@@ -165,11 +164,11 @@ class I18nTest extends TestCase
         I18n::$translations = [
             'en' => [
                 'save1' => 'Save1',
-                'save2' => 'Save2'
+                'save2' => 'Save2',
             ],
             'de' => [
-                'save1' => 'Speichern1'
-            ]
+                'save1' => 'Speichern1',
+            ],
         ];
 
         I18n::$locale = 'fr';
@@ -199,7 +198,7 @@ class I18nTest extends TestCase
         I18n::$locale = 'de';
 
         I18n::$translations = [
-            'de' => ['save' => 'Speichern']
+            'de' => ['save' => 'Speichern'],
         ];
 
         $this->assertSame('Speichern', I18n::translate(['*' => 'save']));
@@ -299,8 +298,8 @@ class I18nTest extends TestCase
     {
         I18n::$translations = [
             'en' => [
-                'car' => ['No cars', 'One car', 'Two cars', 'Many cars']
-            ]
+                'car' => ['No cars', 'One car', 'Two cars', 'Many cars'],
+            ],
         ];
 
         $this->assertSame('No cars', I18n::translateCount('car', 0));
@@ -314,11 +313,11 @@ class I18nTest extends TestCase
     {
         I18n::$translations = [
             'en' => [
-                'car' => ['No cars', 'One car', '{{ count }} cars']
+                'car' => ['No cars', 'One car', '{{ count }} cars'],
             ],
             'de' => [
-                'car' => ['Keine Autos', 'Ein Auto', '{{ count }} Autos']
-            ]
+                'car' => ['Keine Autos', 'Ein Auto', '{{ count }} Autos'],
+            ],
         ];
 
         $this->assertSame('2 cars', I18n::translateCount('car', 2));
@@ -335,7 +334,7 @@ class I18nTest extends TestCase
     public function testTranslateCountWithMissingTranslation()
     {
         I18n::$translations = [
-            'en' => []
+            'en' => [],
         ];
 
         $this->assertNull(I18n::translateCount('car', 1));
@@ -345,9 +344,9 @@ class I18nTest extends TestCase
     {
         I18n::$translations = [
             'en' => [
-                'car'  => '{{ count }} car(s)',
-                'bike' => '{ count } bike(s)'
-            ]
+                'car' => '{{ count }} car(s)',
+                'bike' => '{ count } bike(s)',
+            ],
         ];
 
         $this->assertSame('1 car(s)', I18n::translateCount('car', 1));
@@ -366,13 +365,13 @@ class I18nTest extends TestCase
                             return 'No car';
                         case 1:
                             return 'One car';
-                        case in_array($count, [2, 3, 4]) === true:
+                        case true === in_array($count, [2, 3, 4]):
                             return 'Few cars';
                         default:
                             return 'Many cars';
                     }
-                }
-            ]
+                },
+            ],
         ];
 
         $this->assertSame('No car', I18n::translateCount('car', 0));
@@ -386,7 +385,7 @@ class I18nTest extends TestCase
         I18n::$translations = [
             'en' => ['test' => 'yay'],
             'de' => ['test' => 'juhu'],
-            'es' => ['test' => 'vamos']
+            'es' => ['test' => 'vamos'],
         ];
 
         I18n::$locale = 'en';
@@ -407,7 +406,7 @@ class I18nTest extends TestCase
     {
         $translations = [
             'en' => ['test' => 'yay'],
-            'de' => ['test' => 'juhu']
+            'de' => ['test' => 'juhu'],
         ];
 
         I18n::$load = fn ($locale) => $translations[$locale] ?? [];
@@ -428,7 +427,7 @@ class I18nTest extends TestCase
         $this->assertSame([], I18n::translations());
 
         I18n::$translations = $translations = [
-            'en' => ['foo' => 'bar']
+            'en' => ['foo' => 'bar'],
         ];
 
         $this->assertSame($translations, I18n::translations());

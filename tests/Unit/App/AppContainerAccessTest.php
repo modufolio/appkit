@@ -2,13 +2,12 @@
 
 namespace Modufolio\Appkit\Tests\Unit\App;
 
-use Modufolio\Appkit\Tests\App\App;
-use Modufolio\Appkit\Exception\NotFoundException;
 use Doctrine\ORM\EntityManagerInterface;
+use Modufolio\Appkit\Exception\NotFoundException;
+use Modufolio\Appkit\Tests\App\App;
 use Modufolio\Appkit\Tests\Case\AppTestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Psr\Container\ContainerExceptionInterface;
-use Psr\Container\ContainerInterface;
 use Psr\Container\NotFoundExceptionInterface;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;

@@ -57,7 +57,7 @@ class JwtAuthenticatorTest extends AppTestCase
         return new ServerRequest(
             method: 'GET',
             uri: new Uri('/api/test'),
-            headers: ['Authorization' => 'Bearer ' . $token],
+            headers: ['Authorization' => 'Bearer '.$token],
             serverParams: ['REMOTE_ADDR' => $ip],
         );
     }

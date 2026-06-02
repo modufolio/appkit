@@ -1,17 +1,16 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Console\Doctrine;
 
+use Doctrine\ORM\Mapping\ClassMetadata;
+use Doctrine\ORM\Mapping\EmbeddedClassMapping;
 use Modufolio\Appkit\Console\FileManager;
 use Modufolio\Appkit\Console\Generator;
 use Modufolio\Appkit\Exception\RuntimeCommandException;
 use Modufolio\Appkit\Util\ClassSource\Model\ClassProperty;
 use Modufolio\Appkit\Util\ClassSourceManipulator;
-use Doctrine\ORM\Mapping\ClassMetadata;
-use Doctrine\ORM\Mapping\EmbeddedClassMapping;
-
 
 final class EntityRegenerator
 {

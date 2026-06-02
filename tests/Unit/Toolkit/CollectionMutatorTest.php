@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Tests\Unit\Toolkit;
 
@@ -16,19 +16,19 @@ class CollectionMutatorTest extends TestCase
         $this->assertSame([], $collection->data());
 
         $collection->data([
-            'three' => 'drei'
+            'three' => 'drei',
         ]);
         $this->assertSame([
-            'three' => 'drei'
+            'three' => 'drei',
         ], $collection->data());
 
         $collection->data([
             'one' => 'eins',
-            'two' => 'zwei'
+            'two' => 'zwei',
         ]);
         $this->assertSame([
             'one' => 'eins',
-            'two' => 'zwei'
+            'two' => 'zwei',
         ], $collection->data());
     }
 
@@ -36,12 +36,12 @@ class CollectionMutatorTest extends TestCase
     {
         $collection = new Collection([
             'one' => 'eins',
-            'two' => 'zwei'
+            'two' => 'zwei',
         ]);
 
         $this->assertSame([
             'one' => 'eins',
-            'two' => 'zwei'
+            'two' => 'zwei',
         ], $collection->data());
 
         $this->assertSame([], $collection->empty()->data());
@@ -60,7 +60,7 @@ class CollectionMutatorTest extends TestCase
         $this->assertSame('zwei', $collection->two);
 
         $collection->set([
-            'three' => 'drei'
+            'three' => 'drei',
         ]);
         $this->assertSame('drei', $collection->three);
     }
@@ -68,7 +68,7 @@ class CollectionMutatorTest extends TestCase
     public function testAppend()
     {
         $collection = new Collection([
-            'one' => 'eins'
+            'one' => 'eins',
         ]);
 
         $this->assertSame('eins', $collection->last());
@@ -80,7 +80,7 @@ class CollectionMutatorTest extends TestCase
     public function testPrepend()
     {
         $collection = new Collection([
-            'one' => 'eins'
+            'one' => 'eins',
         ]);
 
         $this->assertSame('eins', $collection->first());
@@ -92,11 +92,11 @@ class CollectionMutatorTest extends TestCase
     public function testExtend()
     {
         $collection = new Collection([
-            'one' => 'eins'
+            'one' => 'eins',
         ]);
 
         $result = $collection->extend([
-            'two' => 'zwei'
+            'two' => 'zwei',
         ]);
 
         $this->assertSame('eins', $result->one());
@@ -107,7 +107,7 @@ class CollectionMutatorTest extends TestCase
     {
         $collection = new Collection([
             'one' => 'eins',
-            'two' => 'zwei'
+            'two' => 'zwei',
         ]);
 
         $this->assertSame('zwei', $collection->two());
@@ -119,7 +119,7 @@ class CollectionMutatorTest extends TestCase
     {
         $collection = new Collection([
             'one' => 'eins',
-            'two' => 'zwei'
+            'two' => 'zwei',
         ]);
 
         $this->assertSame('zwei', $collection->two());
@@ -131,12 +131,12 @@ class CollectionMutatorTest extends TestCase
     {
         $collection = new Collection([
             'one' => 'eins',
-            'two' => 'zwei'
+            'two' => 'zwei',
         ]);
 
         $this->assertSame('zwei', $collection->two());
         $collection->map(function ($item) {
-            return $item . '-ish';
+            return $item.'-ish';
         });
         $this->assertSame('zwei-ish', $collection->two());
     }
@@ -149,7 +149,7 @@ class CollectionMutatorTest extends TestCase
             ],
             [
                 'username' => 'marge',
-            ]
+            ],
         ]);
 
         $this->assertSame(['homer', 'marge'], $collection->pluck('username'));
@@ -163,11 +163,11 @@ class CollectionMutatorTest extends TestCase
             ],
             [
                 'simpsons' => 'maggie, bart, lisa',
-            ]
+            ],
         ]);
 
         $expected = [
-            'homer', 'marge', 'maggie', 'bart', 'lisa'
+            'homer', 'marge', 'maggie', 'bart', 'lisa',
         ];
 
         $this->assertSame($expected, $collection->pluck('simpsons', ', '));
@@ -184,7 +184,7 @@ class CollectionMutatorTest extends TestCase
             ],
             [
                 'user' => 'marge',
-            ]
+            ],
         ]);
 
         $expected = ['homer', 'marge'];

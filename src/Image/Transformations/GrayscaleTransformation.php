@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Modufolio\Appkit\Image\Transformations;
 
-use Modufolio\Appkit\Image\Transformation;
+use Modufolio\Appkit\Image\CustomFilename;
 use Modufolio\Appkit\Image\FileInterface;
 use Modufolio\Appkit\Image\StorageInterface;
-use Modufolio\Appkit\Image\CustomFilename;
+use Modufolio\Appkit\Image\Transformation;
 
 /**
- * Grayscale (black and white) transformation
+ * Grayscale (black and white) transformation.
  *
  * @license MIT
  */
@@ -28,12 +28,12 @@ class GrayscaleTransformation implements Transformation
         $options = ['grayscale' => true];
 
         $mediaRoot = dirname($file->mediaRoot());
-        $template = $mediaRoot . '/{{ name }}{{ attributes }}.{{ extension }}';
+        $template = $mediaRoot.'/{{ name }}{{ attributes }}.{{ extension }}';
         $thumbRoot = (new CustomFilename($file->root(), $template, $options))->toString();
 
         return [
             'root' => $thumbRoot,
-            'url' => dirname($file->mediaUrl()) . '/' . basename($thumbRoot),
+            'url' => dirname($file->mediaUrl()).'/'.basename($thumbRoot),
         ];
     }
 

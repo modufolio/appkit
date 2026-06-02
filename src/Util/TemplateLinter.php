@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Util;
 
@@ -132,7 +132,7 @@ final class TemplateLinter
 
         // No config provided and no project dist config - use our config
         if (null === $this->phpCsFixerConfigPath) {
-            $this->phpCsFixerConfigPath = \dirname(__DIR__) . '/Resources/config/php-cs-fixer.config.php';
+            $this->phpCsFixerConfigPath = \dirname(__DIR__).'/Resources/config/php-cs-fixer.config.php';
 
             return;
         }

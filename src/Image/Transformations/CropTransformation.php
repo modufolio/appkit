@@ -4,26 +4,26 @@ declare(strict_types=1);
 
 namespace Modufolio\Appkit\Image\Transformations;
 
-use Modufolio\Appkit\Image\Transformation;
+use Modufolio\Appkit\Image\CustomFilename;
 use Modufolio\Appkit\Image\FileInterface;
 use Modufolio\Appkit\Image\StorageInterface;
-use Modufolio\Appkit\Image\CustomFilename;
+use Modufolio\Appkit\Image\Transformation;
 
 /**
- * Crop transformation with configurable crop mode
+ * Crop transformation with configurable crop mode.
  *
  * @license MIT
  */
 class CropTransformation implements Transformation
 {
     private int $width;
-    private int|null $height;
+    private ?int $height;
     private string $mode;
 
     public function __construct(
         int $width,
-        int|null $height = null,
-        string $mode = 'center'
+        ?int $height = null,
+        string $mode = 'center',
     ) {
         $this->width = $width;
         $this->height = $height ?? $width;
@@ -46,12 +46,12 @@ class CropTransformation implements Transformation
         ];
 
         $mediaRoot = dirname($file->mediaRoot());
-        $template = $mediaRoot . '/{{ name }}{{ attributes }}.{{ extension }}';
+        $template = $mediaRoot.'/{{ name }}{{ attributes }}.{{ extension }}';
         $thumbRoot = (new CustomFilename($file->root(), $template, $options))->toString();
 
         return [
             'root' => $thumbRoot,
-            'url' => dirname($file->mediaUrl()) . '/' . basename($thumbRoot),
+            'url' => dirname($file->mediaUrl()).'/'.basename($thumbRoot),
         ];
     }
 

@@ -1,23 +1,23 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Console\Doctrine;
 
-use Modufolio\Appkit\Console\Str;
 use Doctrine\ORM\Mapping\ManyToManyInverseSideMapping;
 use Doctrine\ORM\Mapping\ManyToManyOwningSideMapping;
+use Modufolio\Appkit\Console\Str;
 
 final class RelationManyToMany extends BaseCollectionRelation
 {
     public function getTargetSetterMethodName(): string
     {
-        return 'add' . Str::asCamelCase(Str::pluralCamelCaseToSingular($this->getTargetPropertyName()));
+        return 'add'.Str::asCamelCase(Str::pluralCamelCaseToSingular($this->getTargetPropertyName()));
     }
 
     public function getTargetRemoverMethodName(): string
     {
-        return 'remove' . Str::asCamelCase(Str::pluralCamelCaseToSingular($this->getTargetPropertyName()));
+        return 'remove'.Str::asCamelCase(Str::pluralCamelCaseToSingular($this->getTargetPropertyName()));
     }
 
     public static function createFromObject(ManyToManyInverseSideMapping|ManyToManyOwningSideMapping|array $mapping): self

@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Console;
 
@@ -35,9 +35,9 @@ class Generator
     /**
      * Generate a new file for a class from a template.
      *
-     * @param string $className The fully-qualified class name
+     * @param string $className    The fully-qualified class name
      * @param string $templateName Template name in Resources/skeleton to use
-     * @param array $variables Array of variables to pass to the template
+     * @param array  $variables    Array of variables to pass to the template
      *
      * @return string The path where the file will be created
      *
@@ -70,6 +70,7 @@ class Generator
      * Generate a normal file from a template.
      *
      * @return void
+     *
      * @throws \Exception
      */
     public function generateFile(string $targetPath, string $templateName, array $variables = [])
@@ -126,13 +127,13 @@ class Generator
      *      // Cool\Stuff\BalloonController
      *      $gen->createClassNameDetails('Cool\\Stuff\\Balloon', 'Controller', 'Controller');
      *
-     * @param string $name The short "name" that will be turned into the class name
+     * @param string $name            The short "name" that will be turned into the class name
      * @param string $namespacePrefix Recommended namespace where this class should live, but *without* the "App\\" part
-     * @param string $suffix Optional suffix to guarantee is on the end of the class
+     * @param string $suffix          Optional suffix to guarantee is on the end of the class
      */
     public function createClassNameDetails(string $name, string $namespacePrefix, string $suffix = '', string $validationErrorMessage = ''): ClassNameDetails
     {
-        $fullNamespacePrefix = $this->namespacePrefix . '\\' . $namespacePrefix;
+        $fullNamespacePrefix = $this->namespacePrefix.'\\'.$namespacePrefix;
         if ('\\' === $name[0]) {
             // class is already "absolute" - leave it alone (but strip opening \)
             $className = substr($name, 1);
@@ -141,7 +142,7 @@ class Generator
 
             try {
                 Validator::classDoesNotExist($className);
-                $className = rtrim($fullNamespacePrefix, '\\') . '\\' . $className;
+                $className = rtrim($fullNamespacePrefix, '\\').'\\'.$className;
             } catch (RuntimeCommandException) {
             }
         }
@@ -213,6 +214,7 @@ class Generator
      * Generate a template file.
      *
      * @return void
+     *
      * @throws \Exception
      */
     public function generateTemplate(string $targetPath, string $templateName, array $variables = [])
@@ -232,7 +234,6 @@ class Generator
         return $this->generatedFiles;
     }
 
-
     /**
      * @throws \Exception
      */
@@ -246,7 +247,7 @@ class Generator
 
         $templatePath = $templateName;
         if (!file_exists($templatePath)) {
-            $templatePath = __DIR__ . '/Resources/skeleton/' . $templateName;
+            $templatePath = __DIR__.'/Resources/skeleton/'.$templateName;
 
             if (!file_exists($templatePath)) {
                 throw new \Exception(\sprintf('Cannot find template "%s"', $templateName));

@@ -25,9 +25,8 @@ return [
             'city' => fn ($faker) => $faker->city(),
             'region' => fn ($faker) => $faker->state(),
             'country' => 'US',
-            'postalCode' => fn ($faker) => $faker->postcode()
-        ]
-
+            'postalCode' => fn ($faker) => $faker->postcode(),
+        ],
     ],
 
     Organization::class => [
@@ -43,6 +42,6 @@ return [
             'account' => [
                 'name' => fn ($faker) => $faker->company(),
             ],
-        ]
+        ],
     ],
 ];

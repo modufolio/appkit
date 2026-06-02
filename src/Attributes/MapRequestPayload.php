@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Attributes;
 
@@ -9,7 +9,7 @@ class MapRequestPayload
 {
     public function __construct(
         public ?string $name = null,
-        public bool $throwOnError = true
+        public bool $throwOnError = true,
     ) {
     }
 }

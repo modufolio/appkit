@@ -1,15 +1,15 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Tests\App\Entity;
 
-use Modufolio\Appkit\Tests\App\Entity\Traits\SoftDeleteable;
-use Modufolio\Appkit\Tests\App\Entity\Traits\Timestampable;
-use Modufolio\JsonApi\JsonApiResource;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Modufolio\Appkit\Tests\App\Entity\Traits\SoftDeleteable;
+use Modufolio\Appkit\Tests\App\Entity\Traits\Timestampable;
+use Modufolio\JsonApi\JsonApiResource;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity]
@@ -100,7 +100,7 @@ class Organization implements JsonApiResource
             'postalCode',
             'createdAt',
             'updatedAt',
-            'deletedAt'
+            'deletedAt',
         ];
     }
 
@@ -108,7 +108,7 @@ class Organization implements JsonApiResource
     {
         return [
             'account',
-            'contacts'
+            'contacts',
         ];
     }
 
@@ -119,7 +119,7 @@ class Organization implements JsonApiResource
             'show' => true,
             'create' => true,
             'update' => true,
-            'delete' => true
+            'delete' => true,
         ];
     }
 
@@ -212,7 +212,6 @@ class Organization implements JsonApiResource
     {
         $this->postalCode = $postalCode;
     }
-
 
     /**
      * @return Collection<int, Contact>

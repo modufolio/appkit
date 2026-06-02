@@ -25,7 +25,7 @@ class UseStatementGeneratorTest extends TestCase
             use Symfony\Bundle\MakerBundle\Test\MakerTestCase;
 
             EOT;
-        self::assertSame($expected, (string)$unsorted);
+        self::assertSame($expected, (string) $unsorted);
     }
 
     public function testComplexStatements(): void
@@ -60,7 +60,7 @@ class UseStatementGeneratorTest extends TestCase
             use SymfonyCasts\Bundle\VerifyEmail\Exception\VerifyEmailExceptionInterface;
 
             EOT;
-        self::assertSame($expected, (string)$unsorted);
+        self::assertSame($expected, (string) $unsorted);
     }
 
     public function testUseStatementsWithAliases(): void
@@ -77,7 +77,7 @@ class UseStatementGeneratorTest extends TestCase
             use Symfony\UX\Turbo\Attribute\Broadcast;
 
             EOT;
-        self::assertSame($expected, (string)$unsorted);
+        self::assertSame($expected, (string) $unsorted);
     }
 
     public function testUseStatementsWithDuplicates(): void
@@ -93,6 +93,6 @@ class UseStatementGeneratorTest extends TestCase
             use Symfony\UX\Turbo\Attribute\Broadcast;
 
             EOT;
-        self::assertSame($expected, (string)$unsorted);
+        self::assertSame($expected, (string) $unsorted);
     }
 }

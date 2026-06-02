@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Tests\Unit\Image;
 
@@ -9,37 +9,37 @@ use Modufolio\Appkit\Image\Exif;
 use Modufolio\Appkit\Image\Image;
 use Modufolio\Appkit\Image\Location;
 use PHPUnit\Framework\Attributes\RequiresPhpExtension;
-use ReflectionClass;
 
 #[RequiresPhpExtension('exif')]
 class ExifTest extends TestCase
 {
-    public const FIXTURES = __DIR__ . '/fixtures';
+    public const FIXTURES = __DIR__.'/fixtures';
 
     protected function _exif($filename = 'cat.jpg'): Exif
     {
-        $image = new Image(static::FIXTURES . '/image/' . $filename);
+        $image = new Image(static::FIXTURES.'/image/'.$filename);
+
         return new Exif($image);
     }
 
     public function testData(): void
     {
-        $exif  = $this->_exif();
+        $exif = $this->_exif();
         $data = $exif->data();
         unset($data['COMMENT']);
 
         $this->assertSame([
-            'FileName'      => 'cat.jpg',
-            'FileDateTime'  => exif_read_data(static::FIXTURES . '/image/cat.jpg')['FileDateTime'],
-            'FileSize'      => filesize(static::FIXTURES . '/image/cat.jpg'),
-            'FileType'      => 2,
-            'MimeType'      => 'image/jpeg',
+            'FileName' => 'cat.jpg',
+            'FileDateTime' => exif_read_data(static::FIXTURES.'/image/cat.jpg')['FileDateTime'],
+            'FileSize' => filesize(static::FIXTURES.'/image/cat.jpg'),
+            'FileType' => 2,
+            'MimeType' => 'image/jpeg',
             'SectionsFound' => 'COMMENT',
-            'COMPUTED'      => [
-                'html'      => 'width="800" height="533"',
-                'Height'    => 533,
-                'Width'     => 800,
-                'IsColor'   => 1
+            'COMPUTED' => [
+                'html' => 'width="800" height="533"',
+                'Height' => 533,
+                'Width' => 800,
+                'IsColor' => 1,
             ],
         ], $data);
     }
@@ -64,31 +64,31 @@ class ExifTest extends TestCase
 
     public function testTimestamp(): void
     {
-        $exif  = $this->_exif();
-        $this->assertSame((string)exif_read_data(static::FIXTURES . '/image/cat.jpg')['FileDateTime'], $exif->timestamp());
+        $exif = $this->_exif();
+        $this->assertSame((string) exif_read_data(static::FIXTURES.'/image/cat.jpg')['FileDateTime'], $exif->timestamp());
     }
 
     public function testExposure(): void
     {
-        $exif  = $this->_exif();
+        $exif = $this->_exif();
         $this->assertNull($exif->exposure());
     }
 
     public function testAperture(): void
     {
-        $exif  = $this->_exif();
+        $exif = $this->_exif();
         $this->assertNull($exif->aperture());
     }
 
     public function testIso(): void
     {
-        $exif  = $this->_exif();
+        $exif = $this->_exif();
         $this->assertNull($exif->iso());
     }
 
     public function testFocalLength(): void
     {
-        $exif  = $this->_exif();
+        $exif = $this->_exif();
         $this->assertNull($exif->focalLength());
     }
 
@@ -97,7 +97,7 @@ class ExifTest extends TestCase
         $exif = $this->_exif();
 
         // changing protected property $data via Reflection class
-        $ref = new ReflectionClass($exif);
+        $ref = new \ReflectionClass($exif);
         $data = $ref->getProperty('data');
         $data->setAccessible(true);
         $options = $data->getValue($exif);
@@ -108,12 +108,12 @@ class ExifTest extends TestCase
         $parse = $ref->getMethod('parseTimestamp');
         $parse->setAccessible(true);
 
-        $this->assertSame((string)strtotime('11.12.2016 11:13:14'), $parse->invoke($exif));
+        $this->assertSame((string) strtotime('11.12.2016 11:13:14'), $parse->invoke($exif));
     }
 
     public function testToArray(): void
     {
-        $exif  = $this->_exif();
+        $exif = $this->_exif();
         $this->assertIsArray($exif->toArray());
         $this->assertIsArray($exif->__debugInfo());
     }

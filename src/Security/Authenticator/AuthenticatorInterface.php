@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Security\Authenticator;
 
@@ -13,8 +13,10 @@ use Psr\Http\Message\ServerRequestInterface;
 interface AuthenticatorInterface
 {
     public function supports(ServerRequestInterface $request): bool;
-    public function authenticate(ServerRequestInterface $request): UserInterface;
-    public function createToken(UserInterface $user, string $firewallName): TokenInterface;
-    public function unauthorizedResponse(ServerRequestInterface $request, AuthenticationException $exception): ResponseInterface;
 
+    public function authenticate(ServerRequestInterface $request): UserInterface;
+
+    public function createToken(UserInterface $user, string $firewallName): TokenInterface;
+
+    public function unauthorizedResponse(ServerRequestInterface $request, AuthenticationException $exception): ResponseInterface;
 }

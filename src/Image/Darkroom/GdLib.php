@@ -1,32 +1,33 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Image\Darkroom;
 
+use claviska\SimpleImage;
 use Modufolio\Appkit\Image\Darkroom;
 use Modufolio\Appkit\Image\Focus;
 use Modufolio\Appkit\Toolkit\Mime;
-use claviska\SimpleImage;
 
 /**
- * GdLib
+ * GdLib.
  *
- * @package   Kirby Image
  * @author    Bastian Allgeier <bastian@getkirby.com>
- * @link      https://getkirby.com
+ *
+ * @see      https://getkirby.com
+ *
  * @copyright Bastian Allgeier
  * @license   https://opensource.org/licenses/MIT
  */
 class GdLib extends Darkroom
 {
     /**
-     * Processes the image with the SimpleImage library
+     * Processes the image with the SimpleImage library.
      */
     public function process(string $file, array $options = []): array
     {
         $options = $this->preprocess($file, $options);
-        $mime    = $this->mime($options);
+        $mime = $this->mime($options);
 
         $image = new SimpleImage();
         $image->fromFile($file);
@@ -44,11 +45,11 @@ class GdLib extends Darkroom
 
     /**
      * Activates the autoOrient option in SimpleImage
-     * unless this is deactivated
+     * unless this is deactivated.
      */
     protected function autoOrient(SimpleImage $image, array $options): SimpleImage
     {
-        if ($options['autoOrient'] === false) {
+        if (false === $options['autoOrient']) {
             return $image;
         }
 
@@ -56,17 +57,17 @@ class GdLib extends Darkroom
     }
 
     /**
-     * Wrapper around SimpleImage's resize and crop methods
+     * Wrapper around SimpleImage's resize and crop methods.
      */
     protected function resize(SimpleImage $image, array $options): SimpleImage
     {
         // just resize, no crop
-        if ($options['crop'] === false) {
+        if (false === $options['crop']) {
             return $image->resize($options['width'], $options['height']);
         }
 
         // crop based on focus point
-        if (Focus::isFocalPoint($options['crop']) === true) {
+        if (true === Focus::isFocalPoint($options['crop'])) {
             // get crop coords for focal point:
             // if image needs to be cropped, crop before resizing
             if ($focus = Focus::coords(
@@ -96,15 +97,15 @@ class GdLib extends Darkroom
     }
 
     /**
-     * Applies the correct blur settings for SimpleImage
+     * Applies the correct blur settings for SimpleImage.
      */
     protected function blur(SimpleImage $image, array $options): SimpleImage
     {
-        if ($options['blur'] === false) {
+        if (false === $options['blur']) {
             return $image;
         }
 
-        return $image->blur('gaussian', (int)$options['blur']);
+        return $image->blur('gaussian', (int) $options['blur']);
     }
 
     /**
@@ -112,7 +113,7 @@ class GdLib extends Darkroom
      */
     protected function grayscale(SimpleImage $image, array $options): SimpleImage
     {
-        if ($options['grayscale'] === false) {
+        if (false === $options['grayscale']) {
             return $image;
         }
 
@@ -124,7 +125,7 @@ class GdLib extends Darkroom
      */
     protected function sharpen(SimpleImage $image, array $options): SimpleImage
     {
-        if (is_int($options['sharpen']) === false) {
+        if (false === is_int($options['sharpen'])) {
             return $image;
         }
 
@@ -132,11 +133,11 @@ class GdLib extends Darkroom
     }
 
     /**
-     * Returns mime type based on `format` option
+     * Returns mime type based on `format` option.
      */
-    protected function mime(array $options): string|null
+    protected function mime(array $options): ?string
     {
-        if ($options['format'] === null) {
+        if (null === $options['format']) {
             return null;
         }
 

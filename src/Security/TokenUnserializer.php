@@ -62,11 +62,7 @@ final class TokenUnserializer
                 continue;
             }
             if (self::$frozen) {
-                throw new \LogicException(sprintf(
-                    'TokenUnserializer is frozen; cannot register "%s" after boot. '
-                    . 'Register all classes before calling Kernel::boot().',
-                    $class,
-                ));
+                throw new \LogicException(sprintf('TokenUnserializer is frozen; cannot register "%s" after boot. Register all classes before calling Kernel::boot().', $class));
             }
             self::$registered[] = $class;
         }
@@ -101,16 +97,12 @@ final class TokenUnserializer
             return null;
         }
 
-        if ($token === false || $token === null) {
+        if (false === $token || null === $token) {
             return null;
         }
 
         if (!$token instanceof TokenInterface) {
-            throw new \UnexpectedValueException(sprintf(
-                'Unserialized token must implement %s, got %s',
-                TokenInterface::class,
-                get_debug_type($token),
-            ));
+            throw new \UnexpectedValueException(sprintf('Unserialized token must implement %s, got %s', TokenInterface::class, get_debug_type($token)));
         }
 
         return $token;

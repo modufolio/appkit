@@ -6,11 +6,10 @@ namespace Modufolio\Appkit\Tests\App\FlatFile;
 
 use Modufolio\Appkit\Core\AbstractController;
 use Modufolio\Appkit\Data\Txt;
-use Modufolio\Psr7\Http\Response;
 use Modufolio\Appkit\Template\Template;
+use Modufolio\Psr7\Http\Response;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
-
 
 class FlatFileController extends AbstractController
 {
@@ -32,44 +31,39 @@ class FlatFileController extends AbstractController
         // Merge returned context with base data
         $viewData = array_merge($data, $context, [
             '_request' => $request,
-            '_route' => 'test'
+            '_route' => 'test',
         ]);
 
         // Create self-contained template instance (RoadRunner-safe)
         $template = new Template(
             name: $templateName,
-            templatePaths: [BASE_DIR . '/site/templates'],
-            layoutPaths: [BASE_DIR . '/site/layouts'],
+            templatePaths: [BASE_DIR.'/site/templates'],
+            layoutPaths: [BASE_DIR.'/site/layouts'],
             data: $viewData,
             request: $request
         );
 
         if (!$template->exists()) {
-            throw new \RuntimeException(
-                sprintf('Template "%s" not found at %s', $templateName, $template->file())
-            );
+            throw new \RuntimeException(sprintf('Template "%s" not found at %s', $templateName, $template->file()));
         }
 
         try {
             $html = $template->render();
+
             return Response::html($html);
         } catch (\Throwable $e) {
-            throw new \RuntimeException(
-                sprintf('Error rendering template "%s": %s', $templateName, $e->getMessage()),
-                0,
-                $e
-            );
+            throw new \RuntimeException(sprintf('Error rendering template "%s": %s', $templateName, $e->getMessage()), 0, $e);
         }
     }
 
     /**
      * Get the microcontroller closure for this page
-     * Looks for a PHP file with controllers alongside the content file
+     * Looks for a PHP file with controllers alongside the content file.
      */
     private function getMicrocontroller(string $contentFile, array $data): \Closure
     {
         $dir = dirname($contentFile);
-        $controllerFile = $dir . '/controller.php';
+        $controllerFile = $dir.'/controller.php';
 
         // If a controller file exists, load it
         if (file_exists($controllerFile)) {
@@ -82,7 +76,7 @@ class FlatFileController extends AbstractController
 
         // Check for template-specific controller
         $template = basename($contentFile, '.txt');
-        $templateControllerFile = $dir . '/' . $template . '.controller.php';
+        $templateControllerFile = $dir.'/'.$template.'.controller.php';
 
         if (file_exists($templateControllerFile)) {
             $closure = require $templateControllerFile;
@@ -97,7 +91,7 @@ class FlatFileController extends AbstractController
     }
 
     /**
-     * Default controller that does nothing
+     * Default controller that does nothing.
      */
     private function getDefaultController(): \Closure
     {
@@ -107,11 +101,12 @@ class FlatFileController extends AbstractController
     }
 
     /**
-     * Parse a Kirby-style flat file using the Txt data handler
+     * Parse a Kirby-style flat file using the Txt data handler.
      */
     private function parseContentFile(string $filepath): array
     {
         $content = file_get_contents($filepath);
+
         return Txt::decode($content);
     }
 }

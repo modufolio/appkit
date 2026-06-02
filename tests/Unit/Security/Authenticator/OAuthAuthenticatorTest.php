@@ -41,7 +41,7 @@ class OAuthAuthenticatorTest extends AppTestCase
         return new ServerRequest(
             method: 'GET',
             uri: new Uri('/api/resource'),
-            headers: ['Authorization' => 'Bearer ' . $token],
+            headers: ['Authorization' => 'Bearer '.$token],
             serverParams: ['REMOTE_ADDR' => $ip],
         );
     }
@@ -147,7 +147,7 @@ class OAuthAuthenticatorTest extends AppTestCase
 
         $infoRecord = null;
         foreach ($this->logger->records as $record) {
-            if ($record['level'] === 'info' && str_contains($record['message'], 'Successful OAuth')) {
+            if ('info' === $record['level'] && str_contains($record['message'], 'Successful OAuth')) {
                 $infoRecord = $record;
                 break;
             }

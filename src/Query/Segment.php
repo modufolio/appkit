@@ -1,19 +1,20 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Query;
 
-use Modufolio\Appkit\Toolkit\Str;
 use Closure;
+use Modufolio\Appkit\Toolkit\Str;
 
 /**
  * The Segment class represents a single
- * part of a chained query
+ * part of a chained query.
  *
- * @package   Kirby Query
  * @author    Nico Hoffmann <nico@getkirby.com>
- * @link      https://getkirby.com
+ *
+ * @see      https://getkirby.com
+ *
  * @copyright Bastian Allgeier
  * @license   https://opensource.org/licenses/MIT
  */
@@ -22,43 +23,44 @@ final class Segment
     public function __construct(
         public string $method,
         public int $position,
-        public Arguments|null $arguments = null,
+        public ?Arguments $arguments = null,
     ) {
     }
 
     /**
-     * Throws an exception for an access to an invalid method
+     * Throws an exception for an access to an invalid method.
+     *
      * @internal
      *
-     * @param mixed $data Variable on which the access was tried
-     * @param string $name Name of the method/property that was accessed
+     * @param mixed  $data  Variable on which the access was tried
+     * @param string $name  Name of the method/property that was accessed
      * @param string $label Type of the name (`method`, `property` or `method/property`)
      */
     public static function error(mixed $data, string $name, string $label): never
     {
         $type = strtolower(gettype($data));
 
-        if ($type === 'double') {
+        if ('double' === $type) {
             $type = 'float';
         }
 
         $nonExisting = in_array($type, ['array', 'object']) ? 'non-existing ' : '';
 
-        $error = 'Access to ' . $nonExisting . $label . ' "' . $name . '" on ' . $type;
+        $error = 'Access to '.$nonExisting.$label.' "'.$name.'" on '.$type;
 
         throw new \BadMethodCallException($error);
     }
 
     /**
-     * Parses a segment into the property/method name and its arguments
+     * Parses a segment into the property/method name and its arguments.
      *
      * @param int $position String position of the segment inside the full query
      */
     public static function factory(
         string $segment,
-        int $position = 0
+        int $position = 0,
     ): static {
-        if (Str::endsWith($segment, ')') === false) {
+        if (false === Str::endsWith($segment, ')')) {
             return new static(method: $segment, position: $position);
         }
 
@@ -66,15 +68,15 @@ final class Segment
         $args = Str::substr($segment, Str::position($segment, '(') + 1, -1);
 
         return new static(
-            method:    Str::before($segment, '('),
-            position:  $position,
+            method: Str::before($segment, '('),
+            position: $position,
             arguments: Arguments::factory($args)
         );
     }
 
     /**
      * Automatically resolves the segment depending on the
-     * segment position and the type of the base
+     * segment position and the type of the base.
      *
      * @param mixed $base Current value of the query chain
      */
@@ -84,15 +86,15 @@ final class Segment
         $args = $this->arguments?->resolve($data) ?? [];
 
         // 1st segment, use $data as base
-        if ($this->position === 0) {
+        if (0 === $this->position) {
             $base = $data;
         }
 
-        if (is_array($base) === true) {
+        if (true === is_array($base)) {
             return $this->resolveArray($base, $args);
         }
 
-        if (is_object($base) === true) {
+        if (true === is_object($base)) {
             return $this->resolveObject($base, $args);
         }
 
@@ -101,26 +103,26 @@ final class Segment
     }
 
     /**
-     * Resolves segment by calling the corresponding array key
+     * Resolves segment by calling the corresponding array key.
      */
-    protected function resolveArray(array $array, array $args): mixed
+    private function resolveArray(array $array, array $args): mixed
     {
         // the directly provided array takes precedence
         // to look up a matching entry
-        if (array_key_exists($this->method, $array) === true) {
+        if (true === array_key_exists($this->method, $array)) {
             $value = $array[$this->method];
 
             // if this is a Closure we can directly use it, as
             // Closures from the $array should always have priority
             // over the Query::$entries Closures
-            if ($value instanceof Closure) {
+            if ($value instanceof \Closure) {
                 return $value(...$args);
             }
 
             // if we have no arguments to pass, we also can directly
             // use the value from the $array as it must not be different
             // to the one from Query::$entries with the same name
-            if ($args === []) {
+            if ([] === $args) {
                 return $value;
             }
         }
@@ -128,8 +130,8 @@ final class Segment
         // fallback time: only if we are handling the first segment,
         // we can also try to resolve the segment with an entry from the
         // default Query::$entries
-        if ($this->position === 0) {
-            if (array_key_exists($this->method, Query::$entries) === true) {
+        if (0 === $this->position) {
+            if (true === array_key_exists($this->method, Query::$entries)) {
                 return Query::$entries[$this->method](...$args);
             }
         }
@@ -140,10 +142,10 @@ final class Segment
         // this one is in case the original array contained the key,
         // but was not a Closure while the segment had arguments
         if (
-            array_key_exists($this->method, $array) &&
-            $args !== []
+            array_key_exists($this->method, $array)
+            && [] !== $args
         ) {
-            throw new \InvalidArgumentException('Cannot access array element "' . $this->method . '" with arguments');
+            throw new \InvalidArgumentException('Cannot access array element "'.$this->method.'" with arguments');
         }
 
         // last, the standard error for trying to access something
@@ -153,28 +155,28 @@ final class Segment
 
     /**
      * Resolves segment by calling the method/
-     * accessing the property on the base object
+     * accessing the property on the base object.
      */
-    protected function resolveObject(object $object, array $args): mixed
+    private function resolveObject(object $object, array $args): mixed
     {
         if (
-            method_exists($object, $this->method) === true ||
-            method_exists($object, '__call') === true
+            true === method_exists($object, $this->method)
+            || true === method_exists($object, '__call')
         ) {
             return $object->{$this->method}(...$args);
         }
 
         if (
-            $args === [] &&
-            (
-                property_exists($object, $this->method) === true ||
-                method_exists($object, '__get') === true
+            [] === $args
+            && (
+                true === property_exists($object, $this->method)
+                || true === method_exists($object, '__get')
             )
         ) {
             return $object->{$this->method};
         }
 
-        $label = ($args === []) ? 'method/property' : 'method';
+        $label = ([] === $args) ? 'method/property' : 'method';
         static::error($object, $this->method, $label);
     }
 }

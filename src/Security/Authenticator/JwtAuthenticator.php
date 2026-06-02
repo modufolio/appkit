@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Modufolio\Appkit\Security\Authenticator;
 
+use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
 use Modufolio\Appkit\Security\Exception\AuthenticationException;
 use Modufolio\Appkit\Security\Exception\UserNotFoundException;
 use Modufolio\Appkit\Security\Token\JwtToken;
 use Modufolio\Appkit\Security\Token\TokenInterface;
 use Modufolio\Appkit\Security\User\UserInterface;
 use Modufolio\Appkit\Security\User\UserProviderInterface;
-use Firebase\JWT\JWT;
-use Firebase\JWT\Key;
 use Modufolio\Psr7\Http\Response;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -58,11 +58,7 @@ class JwtAuthenticator extends AbstractAuthenticator
         ], $options);
 
         if (!in_array($this->options['algorithm'], self::SUPPORTED_ALGORITHMS, true)) {
-            throw new \InvalidArgumentException(sprintf(
-                'Unsupported JWT algorithm "%s". Supported: %s.',
-                $this->options['algorithm'],
-                implode(', ', self::SUPPORTED_ALGORITHMS),
-            ));
+            throw new \InvalidArgumentException(sprintf('Unsupported JWT algorithm "%s". Supported: %s.', $this->options['algorithm'], implode(', ', self::SUPPORTED_ALGORITHMS)));
         }
 
         $isHmac = in_array($this->options['algorithm'], self::HMAC_ALGORITHMS, true);
@@ -71,26 +67,22 @@ class JwtAuthenticator extends AbstractAuthenticator
         // asymmetric algorithms — sharing one key as both private and public is wrong.
         if (!empty($this->options['secret_key'])) {
             if (!$isHmac) {
-                throw new \InvalidArgumentException(
-                    'secret_key is only valid with HMAC algorithms (HS256/HS384/HS512). '
-                    . 'Use signing_key (private) and verification_key (public) for asymmetric algorithms.',
-                );
+                throw new \InvalidArgumentException('secret_key is only valid with HMAC algorithms (HS256/HS384/HS512). Use signing_key (private) and verification_key (public) for asymmetric algorithms.');
             }
             $this->options['signing_key'] ??= $this->options['secret_key'];
             $this->options['verification_key'] ??= $this->options['secret_key'];
         }
 
         if (empty($this->options['verification_key'])) {
-            throw new \InvalidArgumentException(
-                'JWT verification_key must be configured (or secret_key for HMAC algorithms).',
-            );
+            throw new \InvalidArgumentException('JWT verification_key must be configured (or secret_key for HMAC algorithms).');
         }
     }
 
     public function supports(ServerRequestInterface $request): bool
     {
         $authHeader = $request->getHeaderLine($this->options['header_name']);
-        return str_starts_with($authHeader, $this->options['token_prefix'] . ' ');
+
+        return str_starts_with($authHeader, $this->options['token_prefix'].' ');
     }
 
     /**
@@ -151,7 +143,7 @@ class JwtAuthenticator extends AbstractAuthenticator
             'error' => 'invalid_token',
             'error_description' => 'Authentication required.',
         ], 401)
-            ->withHeader('WWW-Authenticate', $this->options['token_prefix'] . ' realm="Access to the API", error="invalid_token"');
+            ->withHeader('WWW-Authenticate', $this->options['token_prefix'].' realm="Access to the API", error="invalid_token"');
     }
 
     /**
@@ -160,7 +152,7 @@ class JwtAuthenticator extends AbstractAuthenticator
     private function extractAndValidateToken(ServerRequestInterface $request): array
     {
         $authHeader = $request->getHeaderLine($this->options['header_name']);
-        $prefix = $this->options['token_prefix'] . ' ';
+        $prefix = $this->options['token_prefix'].' ';
         $clientIp = $request->getServerParams()['REMOTE_ADDR'] ?? 'unknown';
 
         if (!str_starts_with($authHeader, $prefix)) {
@@ -172,7 +164,7 @@ class JwtAuthenticator extends AbstractAuthenticator
 
         $token = trim(substr($authHeader, strlen($prefix)));
 
-        if ($token === '') {
+        if ('' === $token) {
             $this->logger->warning('JWT authentication failed: Empty token', [
                 'ip' => $clientIp,
             ]);
@@ -181,6 +173,7 @@ class JwtAuthenticator extends AbstractAuthenticator
 
         try {
             $decoded = JWT::decode($token, new Key($this->options['verification_key'], $this->options['algorithm']));
+
             return (array) $decoded;
         } catch (\Firebase\JWT\ExpiredException $e) {
             $this->logger->warning('JWT authentication failed: Token expired', ['ip' => $clientIp]);
@@ -192,7 +185,7 @@ class JwtAuthenticator extends AbstractAuthenticator
             $this->logger->warning('JWT authentication failed: Token not yet valid', ['ip' => $clientIp]);
             throw new AuthenticationException('JWT token is not yet valid.', 0, $e);
         } catch (\Exception $e) {
-            $this->logger->error('JWT authentication error: ' . $e->getMessage(), [
+            $this->logger->error('JWT authentication error: '.$e->getMessage(), [
                 'ip' => $clientIp,
                 'exception' => get_class($e),
             ]);
@@ -208,7 +201,7 @@ class JwtAuthenticator extends AbstractAuthenticator
      */
     private function validateClaims(array $payload, string $clientIp): void
     {
-        if ($this->options['issuer'] !== null) {
+        if (null !== $this->options['issuer']) {
             $iss = $payload['iss'] ?? null;
             if ($iss !== $this->options['issuer']) {
                 $this->logger->warning('JWT authentication failed: Invalid issuer', [
@@ -220,7 +213,7 @@ class JwtAuthenticator extends AbstractAuthenticator
             }
         }
 
-        if ($this->options['audience'] !== null) {
+        if (null !== $this->options['audience']) {
             $aud = $payload['aud'] ?? null;
             $audClaims = is_array($aud) ? $aud : [$aud];
             if (!in_array($this->options['audience'], $audClaims, true)) {
@@ -241,10 +234,7 @@ class JwtAuthenticator extends AbstractAuthenticator
     public function generateToken(UserInterface $user, array $customClaims = [], ?int $expiresIn = 3600): string
     {
         if (empty($this->options['signing_key'])) {
-            throw new \LogicException(
-                'Cannot generate JWT: signing_key is not configured. '
-                . 'This authenticator was set up for verification only.',
-            );
+            throw new \LogicException('Cannot generate JWT: signing_key is not configured. This authenticator was set up for verification only.');
         }
 
         $now = time();
@@ -252,9 +242,9 @@ class JwtAuthenticator extends AbstractAuthenticator
             'iat' => $now,
             'exp' => $now + $expiresIn,
             'sub' => $user->getUserIdentifier(),
-        ], $this->options['issuer'] !== null ? ['iss' => $this->options['issuer']] : [],
-           $this->options['audience'] !== null ? ['aud' => $this->options['audience']] : [],
-           $customClaims);
+        ], null !== $this->options['issuer'] ? ['iss' => $this->options['issuer']] : [],
+            null !== $this->options['audience'] ? ['aud' => $this->options['audience']] : [],
+            $customClaims);
 
         return JWT::encode($payload, $this->options['signing_key'], $this->options['algorithm']);
     }

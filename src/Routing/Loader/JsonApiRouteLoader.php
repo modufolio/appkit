@@ -1,13 +1,11 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Routing\Loader;
 
-
 use Doctrine\ORM\Mapping\Entity as DoctrineEntity;
 use Modufolio\JsonApi\JsonApiConfigurator;
-use ReflectionClass;
 use Symfony\Component\Config\FileLocatorInterface;
 use Symfony\Component\Config\Loader\Loader;
 use Symfony\Component\Routing\Route;
@@ -19,7 +17,7 @@ class JsonApiRouteLoader extends Loader
         private FileLocatorInterface $fileLocator,
         private readonly string $controllerClass,
         private readonly string $prefix = '/api',
-        private readonly bool $debug = false
+        private readonly bool $debug = false,
     ) {
         parent::__construct();
     }
@@ -107,7 +105,7 @@ class JsonApiRouteLoader extends Loader
 
     public function supports(mixed $resource, ?string $type = null): bool
     {
-        return $type === 'json_api';
+        return 'json_api' === $type;
     }
 
     private function createRoute(
@@ -116,10 +114,10 @@ class JsonApiRouteLoader extends Loader
         string $operation,
         string $entityClass,
         array $requirements = [],
-        array $defaults = []
+        array $defaults = [],
     ): Route {
         return new Route(
-            path: $this->prefix . $path,
+            path: $this->prefix.$path,
             defaults: array_merge([
                 '_controller' => [$this->controllerClass, 'handle'],
                 'entityClass' => $entityClass,
@@ -140,26 +138,20 @@ class JsonApiRouteLoader extends Loader
     private function validateEntityClass(string $entityClass, array $entityConfig): array
     {
         if (!class_exists($entityClass)) {
-            throw new \InvalidArgumentException(sprintf(
-                'Configured entity class "%s" does not exist.',
-                $entityClass
-            ));
+            throw new \InvalidArgumentException(sprintf('Configured entity class "%s" does not exist.', $entityClass));
         }
 
         if (!isset($entityConfig['resource_key'])) {
-            throw new \InvalidArgumentException(sprintf(
-                'Missing "resource_key" for entity "%s".',
-                $entityClass
-            ));
+            throw new \InvalidArgumentException(sprintf('Missing "resource_key" for entity "%s".', $entityClass));
         }
 
         $readOnly = false;
-        $reflection = new ReflectionClass($entityClass);
+        $reflection = new \ReflectionClass($entityClass);
         $attributes = $reflection->getAttributes(DoctrineEntity::class);
 
         if (!empty($attributes)) {
             $doctrineEntity = $attributes[0]->newInstance();
-            $readOnly = (bool)$doctrineEntity->readOnly;
+            $readOnly = (bool) $doctrineEntity->readOnly;
         }
 
         return [$entityConfig['resource_key'], $readOnly];

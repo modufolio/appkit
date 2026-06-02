@@ -1,14 +1,14 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Console\Doctrine;
 
-use Modufolio\Appkit\Util\ClassNameDetails;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\Mapping\ClassMetadata;
+use Modufolio\Appkit\Util\ClassNameDetails;
 use Symfony\Component\Uid\Ulid;
 use Symfony\Component\Uid\Uuid;
 
@@ -16,10 +16,9 @@ final class DoctrineHelper
 {
     public function __construct(
         private string $entityNamespace,
-        private EntityManagerInterface $entityManager
+        private EntityManagerInterface $entityManager,
     ) {
         $this->entityNamespace = trim($entityNamespace, '\\');
-
     }
 
     public function getConnection(): Connection
@@ -36,14 +35,12 @@ final class DoctrineHelper
     {
         $entities = [];
 
-
         $allMetadata = $this->getMetadata();
 
         foreach (array_keys($allMetadata) as $classname) {
             $entityClassDetails = new ClassNameDetails($classname, $this->entityNamespace);
             $entities[] = $entityClassDetails->getRelativeName();
         }
-
 
         sort($entities);
 
@@ -69,12 +66,14 @@ final class DoctrineHelper
     public function getPotentialTableName(string $className): string
     {
         $namingStrategy = $this->entityManager->getConfiguration()->getNamingStrategy();
+
         return $namingStrategy->classToTableName($className);
     }
 
     public function isKeyword(string $name): bool
     {
         $connection = $this->entityManager->getConnection();
+
         return $connection->getDatabasePlatform()->getReservedKeywordsList()->isKeyword($name);
     }
 
@@ -96,9 +95,9 @@ final class DoctrineHelper
         // todo: guessing on enum's could be added
 
         return match ($propertyType) {
-            '\\' . \DateInterval::class => Types::DATEINTERVAL === $columnType,
-            '\\' . \DateTime::class => Types::DATETIME_MUTABLE === $columnType,
-            '\\' . \DateTimeImmutable::class => Types::DATETIME_IMMUTABLE === $columnType,
+            '\\'.\DateInterval::class => Types::DATEINTERVAL === $columnType,
+            '\\'.\DateTime::class => Types::DATETIME_MUTABLE === $columnType,
+            '\\'.\DateTimeImmutable::class => Types::DATETIME_IMMUTABLE === $columnType,
             'array' => Types::JSON === $columnType,
             'bool' => Types::BOOLEAN === $columnType,
             'float' => Types::FLOAT === $columnType,
@@ -116,12 +115,12 @@ final class DoctrineHelper
             Types::BOOLEAN => 'bool',
             Types::INTEGER, Types::SMALLINT => 'int',
             Types::FLOAT => 'float',
-            Types::DATETIME_MUTABLE, Types::DATETIMETZ_MUTABLE, Types::DATE_MUTABLE, Types::TIME_MUTABLE => '\\' . \DateTimeInterface::class,
-            Types::DATETIME_IMMUTABLE, Types::DATETIMETZ_IMMUTABLE, Types::DATE_IMMUTABLE, Types::TIME_IMMUTABLE => '\\' . \DateTimeImmutable::class,
-            Types::DATEINTERVAL => '\\' . \DateInterval::class,
+            Types::DATETIME_MUTABLE, Types::DATETIMETZ_MUTABLE, Types::DATE_MUTABLE, Types::TIME_MUTABLE => '\\'.\DateTimeInterface::class,
+            Types::DATETIME_IMMUTABLE, Types::DATETIMETZ_IMMUTABLE, Types::DATE_IMMUTABLE, Types::TIME_IMMUTABLE => '\\'.\DateTimeImmutable::class,
+            Types::DATEINTERVAL => '\\'.\DateInterval::class,
             'object' => 'object',
-            'uuid' => '\\' . Uuid::class,
-            'ulid' => '\\' . Ulid::class,
+            'uuid' => '\\'.Uuid::class,
+            'ulid' => '\\'.Ulid::class,
             default => null,
         };
 

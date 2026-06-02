@@ -19,7 +19,7 @@ use Symfony\Component\Routing\RequestContext;
 use Symfony\Component\Routing\RouteCollection;
 
 /**
- * Router implementation for matching requests and generating URLs
+ * Router implementation for matching requests and generating URLs.
  *
  * Memory Leak Prevention:
  * - Static route cache is cleared in reset() to prevent unbounded growth
@@ -49,7 +49,7 @@ class Router implements RouterInterface, ResetInterface
     public function __construct(
         private readonly LoaderInterface $routeLoader,
         private readonly mixed $routeResource,
-        private array $options = []
+        private array $options = [],
     ) {
         $this->setDefaultOptions();
     }
@@ -65,17 +65,16 @@ class Router implements RouterInterface, ResetInterface
     }
 
     /**
-     * {@inheritdoc}
      * @throws \Exception
      */
     public function match(ServerRequestInterface $request): array
     {
         $this->ensureContext($request);
+
         return $this->matchPath($request->getUri()->getPath());
     }
 
     /**
-     * {@inheritdoc}
      * @throws \Exception
      */
     public function matchPath(string $pathinfo): array
@@ -84,20 +83,19 @@ class Router implements RouterInterface, ResetInterface
     }
 
     /**
-     * {@inheritdoc}
      * @throws \Exception
      */
     public function generateUrl(
         string $name,
         array $parameters = [],
-        int $referenceType = UrlGeneratorInterface::ABSOLUTE_PATH
+        int $referenceType = UrlGeneratorInterface::ABSOLUTE_PATH,
     ): string {
         $context = $this->getContext();
+
         return $this->getUrlGenerator()->generate($name, $parameters, $referenceType);
     }
 
     /**
-     * {@inheritdoc}
      * @throws \Exception
      */
     public function getUrlGenerator(): UrlGeneratorInterface
@@ -105,7 +103,6 @@ class Router implements RouterInterface, ResetInterface
         if (isset($this->generator)) {
             return $this->generator;
         }
-
 
         if (null === $this->options['cache_dir']) {
             $routes = $this->getRouteCollection();
@@ -118,7 +115,7 @@ class Router implements RouterInterface, ResetInterface
             $this->generator = new CompiledUrlGenerator($routes, $this->getContext());
         } else {
             $cache = $this->getConfigCacheFactory()->cache(
-                $this->options['cache_dir'] . '/url_generating_routes.php',
+                $this->options['cache_dir'].'/url_generating_routes.php',
                 function (ConfigCacheInterface $cache) {
                     $dumper = new CompiledUrlGeneratorDumper($this->getRouteCollection());
                     $cache->write($dumper->dump(), $this->getRouteCollection()->getResources());
@@ -138,9 +135,8 @@ class Router implements RouterInterface, ResetInterface
     }
 
     /**
-     * Get the URL matcher instance
+     * Get the URL matcher instance.
      *
-     * @return UrlMatcherInterface|RequestMatcherInterface
      * @throws \Exception
      */
     private function getMatcher(): UrlMatcherInterface|RequestMatcherInterface
@@ -158,7 +154,7 @@ class Router implements RouterInterface, ResetInterface
         }
 
         $cache = $this->getConfigCacheFactory()->cache(
-            $this->options['cache_dir'] . '/url_matching_routes.php',
+            $this->options['cache_dir'].'/url_matching_routes.php',
             function (ConfigCacheInterface $cache) {
                 $dumper = new CompiledUrlMatcherDumper($this->getRouteCollection());
                 $cache->write($dumper->dump(), $this->getRouteCollection()->getResources());
@@ -173,7 +169,8 @@ class Router implements RouterInterface, ResetInterface
     }
 
     /**
-     * Get the route collection
+     * Get the route collection.
+     *
      * @throws \Exception
      */
     public function getRouteCollection(): RouteCollection
@@ -185,7 +182,7 @@ class Router implements RouterInterface, ResetInterface
     }
 
     /**
-     * Get or create the request context
+     * Get or create the request context.
      */
     private function getContext(): RequestContext
     {
@@ -193,13 +190,13 @@ class Router implements RouterInterface, ResetInterface
     }
 
     /**
-     * Ensure context is initialized from request
+     * Ensure context is initialized from request.
      */
     private function ensureContext(ServerRequestInterface $request): void
     {
         $uri = $request->getUri();
 
-        if ($this->context === null) {
+        if (null === $this->context) {
             $this->setContext(new RequestContext());
         }
 
@@ -214,7 +211,7 @@ class Router implements RouterInterface, ResetInterface
     }
 
     /**
-     * Set the request context
+     * Set the request context.
      */
     public function setContext(RequestContext $context): void
     {
@@ -229,7 +226,7 @@ class Router implements RouterInterface, ResetInterface
     }
 
     /**
-     * Get the config cache factory
+     * Get the config cache factory.
      */
     private function getConfigCacheFactory(): ConfigCacheFactoryInterface
     {
@@ -237,7 +234,7 @@ class Router implements RouterInterface, ResetInterface
     }
 
     /**
-     * Get compiled routes from cache file
+     * Get compiled routes from cache file.
      */
     private static function getCompiledRoutes(string $path): array
     {

@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Modufolio\Appkit\Security\Authenticator;
 
-use Modufolio\Psr7\Http\Response;
 use Modufolio\Appkit\Security\Exception\AuthenticationException;
 use Modufolio\Appkit\Security\Exception\UserNotFoundException;
 use Modufolio\Appkit\Security\Token\ApiKeyToken;
 use Modufolio\Appkit\Security\Token\TokenInterface;
 use Modufolio\Appkit\Security\User\UserInterface;
 use Modufolio\Appkit\Security\User\UserProviderInterface;
+use Modufolio\Psr7\Http\Response;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
@@ -21,7 +21,7 @@ class ApiKeyAuthenticator extends AbstractAuthenticator
 
     public function __construct(
         private UserProviderInterface $userProvider,
-        array $options = []
+        array $options = [],
     ) {
         $this->options = array_merge([
             'header_name' => 'X-API-KEY',
@@ -42,6 +42,7 @@ class ApiKeyAuthenticator extends AbstractAuthenticator
 
         if ($this->options['query_parameter']) {
             $queryParams = $request->getQueryParams();
+
             return isset($queryParams[$this->options['query_parameter']]);
         }
 
@@ -55,12 +56,12 @@ class ApiKeyAuthenticator extends AbstractAuthenticator
     {
         $apiKey = $this->extractApiKey($request);
 
-        if ($apiKey === '') {
+        if ('' === $apiKey) {
             throw new AuthenticationException('API key is empty.');
         }
 
         $identifier = $this->resolveIdentifier($apiKey);
-        if ($identifier === null) {
+        if (null === $identifier) {
             throw new AuthenticationException('Invalid API key.');
         }
 
@@ -121,7 +122,7 @@ class ApiKeyAuthenticator extends AbstractAuthenticator
     {
         if ($request->hasHeader($this->options['header_name'])) {
             $apiKey = trim($request->getHeaderLine($this->options['header_name']));
-            if ($apiKey !== '') {
+            if ('' !== $apiKey) {
                 return $apiKey;
             }
         }
@@ -129,7 +130,7 @@ class ApiKeyAuthenticator extends AbstractAuthenticator
         if ($this->options['query_parameter']) {
             $queryParams = $request->getQueryParams();
             $value = $queryParams[$this->options['query_parameter']] ?? null;
-            if (is_string($value) && trim($value) !== '') {
+            if (is_string($value) && '' !== trim($value)) {
                 return trim($value);
             }
         }

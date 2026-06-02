@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Core;
 
@@ -12,7 +12,6 @@ use Modufolio\Appkit\Security\Exception\UnsupportedUserException;
 use Modufolio\Appkit\Security\Exception\UserNotFoundException;
 use Modufolio\Appkit\Security\Token\TokenInterface;
 use Modufolio\Appkit\Security\Token\TwoFactorToken;
-use Symfony\Component\Routing\Exception\MethodNotAllowedException;
 use Modufolio\Appkit\Security\TokenUnserializer;
 use Modufolio\Appkit\Security\User\UserCheckerInterface;
 use Modufolio\Appkit\Security\User\UserInterface;
@@ -21,6 +20,7 @@ use Modufolio\Psr7\Http\Response;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Symfony\Component\HttpFoundation\IpUtils;
+use Symfony\Component\Routing\Exception\MethodNotAllowedException;
 
 /**
  * Security trait for authentication and authorization functionality.
@@ -56,7 +56,7 @@ trait AppSecurity
         $path = $request->getUri()->getPath();
         $firewallName = $this->getFirewallName($path);
 
-        if ($firewallName === null) {
+        if (null === $firewallName) {
             return $this->controllerResolver($request);
         }
 
@@ -69,12 +69,13 @@ trait AppSecurity
 
         if ($this->isLogoutRequest($request, $config)) {
             $this->assertValidLogoutCsrfToken($request);
+
             return $this->logout($firewallName);
         }
 
         if ($token = $this->tryRestoreSessionToken($firewallName, $stateless)) {
             $token = $this->refreshUser($token);
-            if ($token === null) {
+            if (null === $token) {
                 return $this->logout($firewallName);
             }
             try {
@@ -115,7 +116,7 @@ trait AppSecurity
                 if (!$session->isStarted()) {
                     $session->start();
                 }
-                $session->set('_security_' . $firewallName, serialize($result));
+                $session->set('_security_'.$firewallName, serialize($result));
 
                 // Defend against session fixation: rotate the session ID once
                 // the auth token has been associated with it. Any ID an attacker
@@ -132,6 +133,7 @@ trait AppSecurity
 
                 $session->save();
             }
+
             return $this->controllerResolver($request);
         }
 
@@ -147,7 +149,7 @@ trait AppSecurity
             return null;
         }
 
-        $sessionKey = '_security_' . $firewallName;
+        $sessionKey = '_security_'.$firewallName;
         if (!$this->session()->has($sessionKey)) {
             return null;
         }
@@ -173,8 +175,9 @@ trait AppSecurity
             $refreshedUser = $this->userProvider()->refreshUser($user);
             $newToken = clone $token;
             $newToken->setUser($refreshedUser);
+
             return $newToken;
-        } catch (UserNotFoundException | UnsupportedUserException) {
+        } catch (UserNotFoundException|UnsupportedUserException) {
             return null;
         }
     }
@@ -189,8 +192,9 @@ trait AppSecurity
     private function isLogoutRequest(ServerRequestInterface $request, array $config): bool
     {
         $logoutPath = A::get($config, 'logout.path');
+
         return $logoutPath
-            && $request->getMethod() === 'POST'
+            && 'POST' === $request->getMethod()
             && $request->getUri()->getPath() === $logoutPath;
     }
 
@@ -234,8 +238,9 @@ trait AppSecurity
      * `X-CSRF-Token` / `X-XSRF-Token` request header (for fetch/XHR clients).
      * Templates obtain it with `$csrfTokenManager->getToken('csrf')`.
      *
-     * @return ResponseInterface|null A 403 response when the token is missing or
-     *                                invalid, or null when the request may proceed.
+     * @return ResponseInterface|null a 403 response when the token is missing or
+     *                                invalid, or null when the request may proceed
+     *
      * @throws \JsonException
      */
     private function enforceCsrf(ServerRequestInterface $request, array $config): ?ResponseInterface
@@ -258,7 +263,7 @@ trait AppSecurity
         $manager = $this->get(CsrfTokenManagerInterface::class);
         assert($manager instanceof CsrfTokenManagerInterface);
 
-        $tokenId   = $config['csrf_token_id'] ?? 'csrf';
+        $tokenId = $config['csrf_token_id'] ?? 'csrf';
         $submitted = $this->extractCsrfToken($request);
 
         if (is_string($submitted) && $manager->validateToken($tokenId, $submitted)) {
@@ -266,7 +271,7 @@ trait AppSecurity
         }
 
         return Response::json([
-            'error'             => 'invalid_csrf_token',
+            'error' => 'invalid_csrf_token',
             'error_description' => 'Missing or invalid CSRF token.',
         ], 403);
     }
@@ -280,13 +285,13 @@ trait AppSecurity
         foreach (['X-CSRF-Token', 'X-XSRF-Token'] as $header) {
             if ($request->hasHeader($header)) {
                 $value = trim($request->getHeaderLine($header));
-                if ($value !== '') {
+                if ('' !== $value) {
                     return $value;
                 }
             }
         }
 
-        $body  = $request->getParsedBody();
+        $body = $request->getParsedBody();
         $value = is_array($body) ? ($body['_csrf_token'] ?? null) : null;
 
         return is_string($value) ? $value : null;
@@ -301,22 +306,22 @@ trait AppSecurity
         $method = $request->getMethod();
 
         // Allow entry point (login page)
-        if (isset($config['entry_point']) &&
-            $method === 'GET' &&
-            $path === $config['entry_point']) {
+        if (isset($config['entry_point'])
+            && 'GET' === $method
+            && $path === $config['entry_point']) {
             return true;
         }
 
         // Allow 2FA page (GET and POST) when there's a pending 2FA token
         $twoFactorPath = $config['two_factor_path'] ?? '/2fa';
-        if (($method === 'GET' || $method === 'POST') &&
-            $path === $twoFactorPath &&
-            $this->session()->has('_2fa_token')) {
+        if (('GET' === $method || 'POST' === $method)
+            && $path === $twoFactorPath
+            && $this->session()->has('_2fa_token')) {
             return true;
         }
 
         // Allow 2FA cancel route
-        if ($path === $twoFactorPath . '/cancel' && $this->session()->has('_2fa_token')) {
+        if ($path === $twoFactorPath.'/cancel' && $this->session()->has('_2fa_token')) {
             return true;
         }
 
@@ -325,13 +330,14 @@ trait AppSecurity
 
     /**
      * Try each configured authenticator until one succeeds.
+     *
      * @throws \Exception
      */
     private function tryAuthenticators(
         ServerRequestInterface $request,
         array $config,
         string $firewallName,
-        bool $stateless
+        bool $stateless,
     ): TokenInterface|ResponseInterface|null {
         $authenticators = array_intersect_key($this->authenticators(), array_flip($config['authenticators'] ?? []));
 
@@ -349,6 +355,7 @@ trait AppSecurity
                     $userChecker->checkPostAuth($user);
 
                     $token = $authenticator->createToken($user, $firewallName);
+
                     return $token;
                 } catch (AuthenticationException $e) {
                     if (!$stateless && isset($config['entry_point'])) {
@@ -368,6 +375,7 @@ trait AppSecurity
                         }
 
                         $this->session()->getFlashBag()->add('error', 'Invalid credentials.');
+
                         return null;
                     }
                     throw $e;
@@ -399,12 +407,12 @@ trait AppSecurity
         $target = A::get($config, 'logout.target', $path ?? '/');
 
         // Clear authentication data
-        $sessionKey = '_security_' . $firewallName;
+        $sessionKey = '_security_'.$firewallName;
         $this->session()->remove($sessionKey);
         $this->tokenStorage()->setToken(null);
 
         // Invalidate session if not stateless
-        if (!(($config['stateless'] ?? false))) {
+        if (!($config['stateless'] ?? false)) {
             $this->session()->invalidate();
         }
 
@@ -417,6 +425,7 @@ trait AppSecurity
 
     /**
      * Enforces global access control rules.
+     *
      * @throws AuthenticationException
      */
     private function enforceAccessControl(ServerRequestInterface $request): void
@@ -430,29 +439,29 @@ trait AppSecurity
             }
 
             if (!empty($rule['methods']) && !in_array($method, $rule['methods'], true)) {
-                throw new MethodNotAllowedException($rule['methods'], 'Method not allowed for this path: ' . $path);
+                throw new MethodNotAllowedException($rule['methods'], 'Method not allowed for this path: '.$path);
             }
 
-            if (isset($rule['requires_channel']) && $rule['requires_channel'] === 'https' && $request->getUri()->getScheme() !== 'https') {
-                throw new AuthenticationException('HTTPS required for this path: ' . $path);
+            if (isset($rule['requires_channel']) && 'https' === $rule['requires_channel'] && 'https' !== $request->getUri()->getScheme()) {
+                throw new AuthenticationException('HTTPS required for this path: '.$path);
             }
 
             if (!empty($rule['ips'])) {
                 $clientIp = $request->getServerParams()['REMOTE_ADDR'] ?? '127.0.0.1';
 
                 if (!IpUtils::checkIp($clientIp, $rule['ips'])) {
-                    throw new AuthenticationException('Access denied due to IP restriction for path: ' . $path);
+                    throw new AuthenticationException('Access denied due to IP restriction for path: '.$path);
                 }
             }
 
             if (!empty($rule['roles'])) {
                 $token = $this->tokenStorage()->getToken();
-                if ($token === null) {
-                    throw new AuthenticationException('Authentication required for path: ' . $path);
+                if (null === $token) {
+                    throw new AuthenticationException('Authentication required for path: '.$path);
                 }
                 $user = $token->getUser();
                 if (!$user instanceof UserInterface) {
-                    throw new AuthenticationException('Invalid user for path: ' . $path);
+                    throw new AuthenticationException('Invalid user for path: '.$path);
                 }
                 $userRoles = $this->roleHierarchy?->getReachableRoles($user->getRoles()) ?? $user->getRoles();
                 $hasRole = false;
@@ -463,7 +472,7 @@ trait AppSecurity
                     }
                 }
                 if (!$hasRole) {
-                    throw new AuthenticationException('Insufficient roles for path: ' . $path);
+                    throw new AuthenticationException('Insufficient roles for path: '.$path);
                 }
             }
 
@@ -484,12 +493,13 @@ trait AppSecurity
         if (str_contains($pattern, ':')) {
             [$value, $pos] = explode(':', $pattern, 2);
             $segments = explode('/', trim($path, '/'));
+
             return isset($segments[(int) $pos]) && $segments[(int) $pos] === $value;
         }
 
         // Prefix matching (e.g. "/api")
-        if (!isset($pattern[0]) || $pattern[0] !== '/') {
-            $pattern = '/' . ltrim($pattern, '/');
+        if (!isset($pattern[0]) || '/' !== $pattern[0]) {
+            $pattern = '/'.ltrim($pattern, '/');
         }
 
         // Match on full path segments, not a bare string prefix (audit L4):
@@ -498,11 +508,12 @@ trait AppSecurity
         $normalized = rtrim($pattern, '/');
 
         return $path === $normalized
-            || str_starts_with($path, $normalized . '/');
+            || str_starts_with($path, $normalized.'/');
     }
 
     /**
      * Enforces access control based on #[IsGranted] roles in route defaults.
+     *
      * @throws AuthenticationException
      */
     private function enforceAttributeAccessControl(array $parameters): void
@@ -513,7 +524,7 @@ trait AppSecurity
         }
 
         $token = $this->tokenStorage()->getToken();
-        if ($token === null || !$token->getUser()) {
+        if (null === $token || !$token->getUser()) {
             throw new AuthenticationException('Authentication required for this route');
         }
 
@@ -532,9 +543,7 @@ trait AppSecurity
         }
 
         if (!$hasRole) {
-            throw new AuthenticationException(
-                sprintf('Insufficient roles for route. Required: %s', implode(', ', $requiredRoles))
-            );
+            throw new AuthenticationException(sprintf('Insufficient roles for route. Required: %s', implode(', ', $requiredRoles)));
         }
     }
 }

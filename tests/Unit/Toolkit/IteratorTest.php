@@ -1,12 +1,11 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Tests\Unit\Toolkit;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-
 use Modufolio\Appkit\Toolkit\Iterator;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(Iterator::class)]
@@ -35,15 +34,15 @@ class IteratorTest extends TestCase
     public function testKeys()
     {
         $iterator = new Iterator([
-            'one'   => 'eins',
-            'two'   => 'zwei',
-            'three' => 'drei'
+            'one' => 'eins',
+            'two' => 'zwei',
+            'three' => 'drei',
         ]);
 
         $this->assertSame([
             'one',
             'two',
-            'three'
+            'three',
         ], $iterator->keys());
     }
 
@@ -60,9 +59,9 @@ class IteratorTest extends TestCase
     public function testPrevNext()
     {
         $iterator = new Iterator([
-            'one'   => 'eins',
-            'two'   => 'zwei',
-            'three' => 'drei'
+            'one' => 'eins',
+            'two' => 'zwei',
+            'three' => 'drei',
         ]);
 
         $this->assertSame('eins', $iterator->current());
@@ -83,9 +82,9 @@ class IteratorTest extends TestCase
     public function testRewind()
     {
         $iterator = new Iterator([
-            'one'   => 'eins',
-            'two'   => 'zwei',
-            'three' => 'drei'
+            'one' => 'eins',
+            'two' => 'zwei',
+            'three' => 'drei',
         ]);
 
         $iterator->next();
@@ -108,9 +107,9 @@ class IteratorTest extends TestCase
     public function testCount()
     {
         $iterator = new Iterator([
-            'one'   => 'eins',
-            'two'   => 'zwei',
-            'three' => 'drei'
+            'one' => 'eins',
+            'two' => 'zwei',
+            'three' => 'drei',
         ]);
         $this->assertSame(3, $iterator->count());
 
@@ -124,9 +123,9 @@ class IteratorTest extends TestCase
     public function testIndexOf()
     {
         $iterator = new Iterator([
-            'one'   => 'eins',
-            'two'   => 'zwei',
-            'three' => 'drei'
+            'one' => 'eins',
+            'two' => 'zwei',
+            'three' => 'drei',
         ]);
 
         $this->assertSame(0, $iterator->indexOf('eins'));
@@ -137,9 +136,9 @@ class IteratorTest extends TestCase
     public function testKeyOf()
     {
         $iterator = new Iterator([
-            'one'   => 'eins',
-            'two'   => 'zwei',
-            'three' => 'drei'
+            'one' => 'eins',
+            'two' => 'zwei',
+            'three' => 'drei',
         ]);
 
         $this->assertSame('one', $iterator->keyOf('eins'));
@@ -150,8 +149,8 @@ class IteratorTest extends TestCase
     public function testHas()
     {
         $iterator = new Iterator([
-            'one'   => 'eins',
-            'two'   => 'zwei'
+            'one' => 'eins',
+            'two' => 'zwei',
         ]);
 
         $this->assertTrue($iterator->has('one'));
@@ -162,8 +161,8 @@ class IteratorTest extends TestCase
     public function testIsset()
     {
         $iterator = new Iterator([
-            'one'   => 'eins',
-            'two'   => 'zwei'
+            'one' => 'eins',
+            'two' => 'zwei',
         ]);
 
         $this->assertTrue(isset($iterator->one));
@@ -174,8 +173,8 @@ class IteratorTest extends TestCase
     public function testDebugInfo()
     {
         $array = [
-            'one'   => 'eins',
-            'two'   => 'zwei'
+            'one' => 'eins',
+            'two' => 'zwei',
         ];
 
         $iterator = new Iterator($array);

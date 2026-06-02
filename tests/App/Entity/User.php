@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Modufolio\Appkit\Tests\App\Entity;
 
+use Doctrine\ORM\Mapping as ORM;
 use Modufolio\Appkit\Security\User\PasswordAuthenticatedUserInterface;
 use Modufolio\Appkit\Tests\App\Repository\UserRepository;
-use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\Table(name: 'users')]
@@ -39,6 +39,7 @@ class User implements PasswordAuthenticatedUserInterface
     public function setEmail(string $email): self
     {
         $this->email = $email;
+
         return $this;
     }
 
@@ -50,6 +51,7 @@ class User implements PasswordAuthenticatedUserInterface
     public function setPassword(string $password): self
     {
         $this->password = $password;
+
         return $this;
     }
 
@@ -65,6 +67,7 @@ class User implements PasswordAuthenticatedUserInterface
     public function setRoles(array $roles): self
     {
         $this->roles = $roles;
+
         return $this;
     }
 

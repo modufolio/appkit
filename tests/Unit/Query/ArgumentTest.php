@@ -1,13 +1,11 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Tests\Unit\Query;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-
 use Modufolio\Appkit\Query\Argument;
-use Closure;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(Argument::class)]
@@ -80,7 +78,7 @@ class ArgumentTest extends TestCase
     public function testWithClosure()
     {
         $argument = Argument::factory('() => site.children');
-        $this->assertInstanceOf(Closure::class, $argument->value);
-        $this->assertInstanceOf(Closure::class, $argument->resolve());
+        $this->assertInstanceOf(\Closure::class, $argument->value);
+        $this->assertInstanceOf(\Closure::class, $argument->resolve());
     }
 }

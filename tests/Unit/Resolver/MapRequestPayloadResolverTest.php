@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Modufolio\Appkit\Tests\Unit\Resolver;
 
-use Modufolio\Appkit\Attributes\MapRequestPayload;
-use Modufolio\Appkit\Attributes\MapQueryString;
 use Modufolio\Appkit\Form\ValidationResult;
 use Modufolio\Appkit\Resolver\AssociativeArrayResolver;
 use Modufolio\Appkit\Resolver\AttributeParameterResolver;
@@ -195,7 +193,7 @@ class MapRequestPayloadResolverTest extends TestCase
                     $this->serializer,
                     $request,
                     $this->validator
-                )
+                ),
             ]))
             ->addResolver(new TypeHintContainerResolver($container));
     }

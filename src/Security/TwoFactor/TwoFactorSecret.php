@@ -4,68 +4,59 @@ declare(strict_types=1);
 
 namespace Modufolio\Appkit\Security\TwoFactor;
 
-use DateTimeImmutable;
-
 /**
- * Interface representing a Two-Factor Authentication Secret
+ * Interface representing a Two-Factor Authentication Secret.
  *
  * Implementations should be immutable or use value object patterns
  */
 interface TwoFactorSecret
 {
     /**
-     * Get the user identifier associated with this secret
+     * Get the user identifier associated with this secret.
      */
     public function getUserIdentifier(): string;
 
     /**
-     * Get the secret key
+     * Get the secret key.
      */
     public function getSecret(): string;
 
     /**
-     * Check if 2FA is enabled
+     * Check if 2FA is enabled.
      */
     public function isEnabled(): bool;
 
-
     public function setEnabled(bool $enabled): void;
 
-
-    public function getEnabledAt(): ?DateTimeImmutable;
-
+    public function getEnabledAt(): ?\DateTimeImmutable;
 
     public function setConfirmed(bool $confirmed): void;
-
 
     public function setBackupCodes(?array $backupCodes): void;
 
     public function setPlainBackupCodes(?array $backupCodes): void;
 
     /**
-     * Check if 2FA is confirmed by user
+     * Check if 2FA is confirmed by user.
      */
     public function isConfirmed(): bool;
-
 
     public function setLastUsedAt(?\DateTimeImmutable $lastUsedAt): void;
 
     /**
-     * Get the last time this secret was used
+     * Get the last time this secret was used.
      */
-    public function getLastUsedAt(): ?DateTimeImmutable;
-
+    public function getLastUsedAt(): ?\DateTimeImmutable;
 
     public function incrementFailedAttempts(): void;
 
-
     /**
-     * Increment the failed attempts counter
+     * Increment the failed attempts counter.
      */
     public function resetFailedAttempts(): void;
 
     /**
-     * Get number of failed attempts
+     * Get number of failed attempts.
      */
     public function getFailedAttempts(): int;
 
@@ -87,25 +78,22 @@ interface TwoFactorSecret
      * Get the instant until which further verification attempts are locked out
      * (after too many failures), or null when not locked.
      */
-    public function getLockedUntil(): ?DateTimeImmutable;
+    public function getLockedUntil(): ?\DateTimeImmutable;
 
     /**
      * Set (or clear, with null) the lockout expiry.
      */
-    public function setLockedUntil(?DateTimeImmutable $lockedUntil): void;
+    public function setLockedUntil(?\DateTimeImmutable $lockedUntil): void;
 
     /**
-     * Check if a backup code exists
+     * Check if a backup code exists.
      */
     public function hasBackupCode(string $code): bool;
 
     /**
-     * Get all backup codes (hashed)
-     *
-     * @return array|null
+     * Get all backup codes (hashed).
      */
     public function getBackupCodes(): ?array;
 
     public function removeBackupCode(string $code): void;
-
 }

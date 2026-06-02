@@ -1,11 +1,11 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Resolver;
 
-use Modufolio\Appkit\Attributes\FindEntity;
 use Doctrine\ORM\EntityManagerInterface;
+use Modufolio\Appkit\Attributes\FindEntity;
 
 class FindEntityResolver implements AttributeResolverInterface
 {
@@ -29,13 +29,11 @@ class FindEntityResolver implements AttributeResolverInterface
         $attributes = $parameter->getAttributes(FindEntity::class);
 
         if (empty($attributes)) {
-            throw new \LogicException(sprintf(
-                'Parameter "%s" does not have the required FindEntity attribute.',
-                $parameter->getName()
-            ));
+            throw new \LogicException(sprintf('Parameter "%s" does not have the required FindEntity attribute.', $parameter->getName()));
         }
 
         $attributeInstance = $attributes[0]->newInstance();
+
         return $this->resolveFindEntity($parameter, $attributeInstance, $providedParameters);
     }
 
@@ -47,15 +45,12 @@ class FindEntityResolver implements AttributeResolverInterface
     private function resolveFindEntity(
         \ReflectionParameter $parameter,
         FindEntity $attribute,
-        array $providedParameters
+        array $providedParameters,
     ): ?object {
         $type = $parameter->getType();
 
         if (!$type instanceof \ReflectionNamedType || $type->isBuiltin()) {
-            throw new \LogicException(sprintf(
-                'Parameter "%s" must have a valid class type hint.',
-                $parameter->getName()
-            ));
+            throw new \LogicException(sprintf('Parameter "%s" must have a valid class type hint.', $parameter->getName()));
         }
 
         $entityClass = $type->getName();

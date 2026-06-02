@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Modufolio\Appkit\Tests\App\JsonApi;
 
 use Doctrine\Common\Collections\Collection;
-use InvalidArgumentException;
+use Doctrine\ORM\EntityManagerInterface;
 use Modufolio\JsonApi\Document\ErrorObject;
 use Modufolio\JsonApi\Document\JsonApiDocument;
 use Modufolio\JsonApi\Document\ResourceIdentifierObject;
@@ -13,7 +13,6 @@ use Modufolio\JsonApi\Document\ResourceObject;
 use Modufolio\JsonApi\Filter\FilterRegistry;
 use Modufolio\JsonApi\Filter\JsonApiFilterHandler;
 use Modufolio\JsonApi\Helpers\Str;
-use Doctrine\ORM\EntityManagerInterface;
 use Modufolio\JsonApi\InputNormalizer;
 use Modufolio\JsonApi\JsonApiConfigurator;
 use Modufolio\JsonApi\JsonApiQueryBuilder;
@@ -69,7 +68,7 @@ class JsonApiController
     }
 
     /**
-     * Create a default filter registry with standard JSON:API filter handler
+     * Create a default filter registry with standard JSON:API filter handler.
      */
     private function createDefaultFilterRegistry(): FilterRegistry
     {
@@ -164,7 +163,7 @@ class JsonApiController
             $document->setData($resources);
 
             // Add pagination meta
-            $lastPage = (int)ceil($total / $perPage);
+            $lastPage = (int) ceil($total / $perPage);
             $from = $total > 0 ? (($page - 1) * $perPage) + 1 : 0;
             $to = min($page * $perPage, $total);
 
@@ -179,12 +178,12 @@ class JsonApiController
 
             // Add pagination links
             $uri = $request->getUri();
-            $baseUrl = $uri->getScheme() . '://' . $uri->getHost();
+            $baseUrl = $uri->getScheme().'://'.$uri->getHost();
 
             // Add port if non-standard
             $port = $uri->getPort();
-            if ($port && (($uri->getScheme() === 'http' && $port !== 80) || ($uri->getScheme() === 'https' && $port !== 443))) {
-                $baseUrl .= ':' . $port;
+            if ($port && (('http' === $uri->getScheme() && 80 !== $port) || ('https' === $uri->getScheme() && 443 !== $port))) {
+                $baseUrl .= ':'.$port;
             }
 
             // Add path without query string and trailing slash
@@ -198,7 +197,8 @@ class JsonApiController
             return $this->errorResponse($e->getMessage(), 400);
         } catch (\Exception $e) {
             // In development/testing, show the actual error
-            $message = getenv('APP_ENV') === 'production' ? 'Internal server error' : $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine();
+            $message = 'production' === getenv('APP_ENV') ? 'Internal server error' : $e->getMessage().' in '.$e->getFile().':'.$e->getLine();
+
             return $this->errorResponse($message, 500);
         }
     }
@@ -207,7 +207,7 @@ class JsonApiController
     {
         try {
             $params = $this->parser->parse($request, $entityClass);
-            $params->id = (string)$id;
+            $params->id = (string) $id;
 
             $builder = new JsonApiQueryBuilder(
                 $this->config,
@@ -224,7 +224,8 @@ class JsonApiController
 
             if (empty($result)) {
                 $resourceKey = $this->config[$entityClass]['resource_key'];
-                return $this->errorResponse(ucfirst($resourceKey) . " not found", 404);
+
+                return $this->errorResponse(ucfirst($resourceKey).' not found', 404);
             }
 
             $resourceKey = $this->config[$entityClass]['resource_key'];
@@ -237,7 +238,8 @@ class JsonApiController
             return $this->jsonApiResponse($document);
         } catch (\Exception $e) {
             // In development/testing, show the actual error
-            $message = getenv('APP_ENV') === 'production' ? 'Internal server error' : $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine();
+            $message = 'production' === getenv('APP_ENV') ? 'Internal server error' : $e->getMessage().' in '.$e->getFile().':'.$e->getLine();
+
             return $this->errorResponse($message, 500);
         }
     }
@@ -247,8 +249,8 @@ class JsonApiController
         try {
             $payload = json_decode($request->getBody()->getContents(), true);
 
-            if (json_last_error() !== JSON_ERROR_NONE) {
-                return $this->errorResponse('Invalid JSON: ' . json_last_error_msg(), 400);
+            if (JSON_ERROR_NONE !== json_last_error()) {
+                return $this->errorResponse('Invalid JSON: '.json_last_error_msg(), 400);
             }
 
             $resourceKey = $this->config[$entityClass]['resource_key'];
@@ -275,7 +277,7 @@ class JsonApiController
             $document->setData($this->transformEntityToResourceObject($entity, $resourceKey, $entityClass));
 
             return $this->jsonApiResponse($document, 201);
-        } catch (InvalidArgumentException $e) {
+        } catch (\InvalidArgumentException $e) {
             return $this->errorResponse($e->getMessage(), 400);
         } catch (\Exception $e) {
             return $this->errorResponse($e->getMessage(), 500);
@@ -289,13 +291,14 @@ class JsonApiController
 
             if (!$entity) {
                 $resourceKey = $this->config[$entityClass]['resource_key'];
-                return $this->errorResponse(ucfirst($resourceKey) . " not found", 404);
+
+                return $this->errorResponse(ucfirst($resourceKey).' not found', 404);
             }
 
             $payload = json_decode($request->getBody()->getContents(), true);
 
-            if (json_last_error() !== JSON_ERROR_NONE) {
-                return $this->errorResponse('Invalid JSON: ' . json_last_error_msg(), 400);
+            if (JSON_ERROR_NONE !== json_last_error()) {
+                return $this->errorResponse('Invalid JSON: '.json_last_error_msg(), 400);
             }
 
             $resourceKey = $this->config[$entityClass]['resource_key'];
@@ -319,7 +322,7 @@ class JsonApiController
             $document->setData($this->transformEntityToResourceObject($entity, $resourceKey, $entityClass));
 
             return $this->jsonApiResponse($document);
-        } catch (InvalidArgumentException $e) {
+        } catch (\InvalidArgumentException $e) {
             return $this->errorResponse($e->getMessage(), 400);
         } catch (\Exception $e) {
             return $this->errorResponse($e->getMessage(), 500);
@@ -333,7 +336,8 @@ class JsonApiController
 
             if (!$entity) {
                 $resourceKey = $this->config[$entityClass]['resource_key'];
-                return $this->errorResponse(ucfirst($resourceKey) . " not found", 404);
+
+                return $this->errorResponse(ucfirst($resourceKey).' not found', 404);
             }
 
             // Use soft delete if available
@@ -358,10 +362,11 @@ class JsonApiController
 
             if (!$entity) {
                 $resourceKey = $this->config[$entityClass]['resource_key'];
-                return $this->errorResponse(ucfirst($resourceKey) . " not found", 404);
+
+                return $this->errorResponse(ucfirst($resourceKey).' not found', 404);
             }
 
-            $getterMethod = 'get' . ucfirst($relationship);
+            $getterMethod = 'get'.ucfirst($relationship);
             if (!method_exists($entity, $getterMethod)) {
                 return $this->errorResponse("Relationship '$relationship' not found", 404);
             }
@@ -395,7 +400,7 @@ class JsonApiController
                 $document->setData($resources);
 
                 // Add pagination meta
-                $lastPage = (int)ceil($total / $pagination['size']);
+                $lastPage = (int) ceil($total / $pagination['size']);
                 $from = $total > 0 ? (($pagination['number'] - 1) * $pagination['size']) + 1 : 0;
                 $to = min($pagination['number'] * $pagination['size'], $total);
 
@@ -433,7 +438,7 @@ class JsonApiController
 
     private function createResourceObject(array $item, string $resourceKey): ResourceObject
     {
-        $id = (string)($item['id'] ?? '');
+        $id = (string) ($item['id'] ?? '');
         $resource = new ResourceObject($resourceKey, $id);
 
         // Set attributes
@@ -451,7 +456,7 @@ class JsonApiController
         // Add self link
         if ($id) {
             $resource->setLinks([
-                'self' => "/api/{$resourceKey}/{$id}"
+                'self' => "/api/{$resourceKey}/{$id}",
             ]);
         }
 
@@ -463,7 +468,7 @@ class JsonApiController
         $metadata = $this->em->getClassMetadata($entityClass);
         $config = $this->config[$entityClass] ?? [];
 
-        $id = method_exists($entity, 'getId') ? (string)$entity->getId() : null;
+        $id = method_exists($entity, 'getId') ? (string) $entity->getId() : null;
         $resource = new ResourceObject($resourceKey, $id);
 
         // Build attributes
@@ -471,7 +476,7 @@ class JsonApiController
         $fields = $config['fields'] ?? [];
 
         foreach ($fields as $field) {
-            $getterMethod = 'get' . ucfirst($field);
+            $getterMethod = 'get'.ucfirst($field);
             if (method_exists($entity, $getterMethod)) {
                 $value = $entity->$getterMethod();
 
@@ -489,13 +494,13 @@ class JsonApiController
         // Add self link
         if ($id) {
             $resource->setLinks([
-                'self' => "/api/{$resourceKey}/{$id}"
+                'self' => "/api/{$resourceKey}/{$id}",
             ]);
         }
 
         // Build relationships
         foreach ($config['relationships'] ?? [] as $relationship) {
-            $getterMethod = 'get' . ucfirst($relationship);
+            $getterMethod = 'get'.ucfirst($relationship);
             if (method_exists($entity, $getterMethod)) {
                 $relatedData = $entity->$getterMethod();
 
@@ -503,25 +508,25 @@ class JsonApiController
                 if ($relatedData && !$relatedData instanceof Collection) {
                     $relatedClass = get_class($relatedData);
                     $relatedResourceKey = $this->config[$relatedClass]['resource_key'] ?? Str::snake($this->getClassBasename($relatedClass));
-                    $relatedId = method_exists($relatedData, 'getId') ? (string)$relatedData->getId() : null;
+                    $relatedId = method_exists($relatedData, 'getId') ? (string) $relatedData->getId() : null;
 
                     $identifier = new ResourceIdentifierObject($relatedResourceKey, $relatedId);
                     $links = [
                         'self' => "/api/{$resourceKey}/{$id}/relationships/{$relationship}",
-                        'related' => "/api/{$resourceKey}/{$id}/{$relationship}"
+                        'related' => "/api/{$resourceKey}/{$id}/{$relationship}",
                     ];
                     $resource->setToOneRelationship($relationship, $identifier, $links);
                 } elseif ($relatedData instanceof Collection) {
                     // Handle collection relationships - add links
                     $links = [
                         'self' => "/api/{$resourceKey}/{$id}/relationships/{$relationship}",
-                        'related' => "/api/{$resourceKey}/{$id}/{$relationship}"
+                        'related' => "/api/{$resourceKey}/{$id}/{$relationship}",
                     ];
                     $resource->setToManyRelationship($relationship, [], $links);
                 } else {
                     $links = [
                         'self' => "/api/{$resourceKey}/{$id}/relationships/{$relationship}",
-                        'related' => "/api/{$resourceKey}/{$id}/{$relationship}"
+                        'related' => "/api/{$resourceKey}/{$id}/{$relationship}",
                     ];
                     $resource->setToOneRelationship($relationship, null, $links);
                 }
@@ -544,7 +549,7 @@ class JsonApiController
                 continue;
             }
 
-            $setterMethod = 'set' . ucfirst($property);
+            $setterMethod = 'set'.ucfirst($property);
 
             if (!method_exists($entity, $setterMethod)) {
                 continue;
@@ -555,7 +560,7 @@ class JsonApiController
                 $targetEntity = $metadata->getAssociationTargetClass($property);
                 $isCollection = $metadata->isCollectionValuedAssociation($property);
 
-                if ($value === null) {
+                if (null === $value) {
                     $entity->$setterMethod(null);
                 } elseif ($isCollection && is_array($value)) {
                     // Handle to-many relationship (array of IDs)
@@ -575,14 +580,7 @@ class JsonApiController
                     }
                 } else {
                     // Type mismatch: expecting collection but got single value or vice versa
-                    throw new InvalidArgumentException(
-                        sprintf(
-                            'Relationship "%s" type mismatch: expected %s, got %s',
-                            $property,
-                            $isCollection ? 'array' : 'single value',
-                            is_array($value) ? 'array' : 'single value'
-                        )
-                    );
+                    throw new \InvalidArgumentException(sprintf('Relationship "%s" type mismatch: expected %s, got %s', $property, $isCollection ? 'array' : 'single value', is_array($value) ? 'array' : 'single value'));
                 }
                 continue;
             }
@@ -601,9 +599,9 @@ class JsonApiController
             $error = new ErrorObject();
             $error->setStatus(422);
             $error->setTitle('Validation Error');
-            $error->setDetail((string)$violation->getMessage());
+            $error->setDetail((string) $violation->getMessage());
             $error->setSource([
-                'pointer' => '/data/attributes/' . Str::snake($violation->getPropertyPath())
+                'pointer' => '/data/attributes/'.Str::snake($violation->getPropertyPath()),
             ]);
 
             $errors[] = $error;
@@ -639,12 +637,10 @@ class JsonApiController
     }
 
     /**
-     * Validate Content-Type header using content negotiation
+     * Validate Content-Type header using content negotiation.
      *
      * Supports both JSON:API and plain JSON formats
      *
-     * @param string $contentType
-     * @return bool
      * @throws Exception
      */
     private function isValidContentType(string $contentType): bool
@@ -656,12 +652,12 @@ class JsonApiController
         // Use negotiator to check if content type is supported
         $mediaType = $this->negotiator->getBest($contentType, self::SUPPORTED_CONTENT_TYPES);
 
-        if ($mediaType === null) {
+        if (null === $mediaType) {
             return false;
         }
 
         // For JSON:API, validate that no unsupported media type parameters are present
-        if ($mediaType->getType() === self::JSON_API_MEDIA_TYPE) {
+        if (self::JSON_API_MEDIA_TYPE === $mediaType->getType()) {
             $parameters = $mediaType->getParameters();
 
             // JSON:API spec only allows 'ext' and 'profile' parameters
@@ -677,13 +673,10 @@ class JsonApiController
     }
 
     /**
-     * Validate Accept header using content negotiation
+     * Validate Accept header using content negotiation.
      *
      * According to JSON:API spec, the Accept header must not contain media type parameters
      * except for 'ext' and 'profile' (and 'q' for quality)
-     *
-     * @param string $accept
-     * @return bool
      */
     private function isValidAcceptHeader(string $accept): bool
     {
@@ -700,7 +693,7 @@ class JsonApiController
             // Parse all media types in the Accept header
             $mediaTypes = $this->negotiator->getBest($accept, [self::JSON_API_MEDIA_TYPE]);
 
-            if ($mediaTypes === null) {
+            if (null === $mediaTypes) {
                 // JSON:API not in Accept header or not acceptable
                 return true;
             }
@@ -723,13 +716,14 @@ class JsonApiController
     }
 
     /**
-     * Build pagination links for JSON:API responses
+     * Build pagination links for JSON:API responses.
      *
-     * @param string $baseUrl Base URL for the resource
+     * @param string $baseUrl     Base URL for the resource
      * @param string $queryString Additional query parameters
-     * @param int $currentPage Current page number
-     * @param int $lastPage Last page number
-     * @param int $perPage Items per page
+     * @param int    $currentPage Current page number
+     * @param int    $lastPage    Last page number
+     * @param int    $perPage     Items per page
+     *
      * @return array<string, string|null>
      */
     private function buildPaginationLinks(string $baseUrl, string $queryString, int $currentPage, int $lastPage, int $perPage): array
@@ -746,7 +740,7 @@ class JsonApiController
                 $params[] = $queryString;
             }
 
-            return $baseUrl . '?' . implode('&', $params);
+            return $baseUrl.'?'.implode('&', $params);
         };
 
         return [
@@ -758,12 +752,8 @@ class JsonApiController
         ];
     }
 
-
     /**
-     * Build query string from JSON:API params (excluding pagination)
-     *
-     * @param JsonApiQueryParams $params
-     * @return string
+     * Build query string from JSON:API params (excluding pagination).
      */
     private function buildQueryString(JsonApiQueryParams $params): string
     {
@@ -775,36 +765,36 @@ class JsonApiController
                 if (is_array($value)) {
                     foreach ($value as $operator => $val) {
                         // Handle 'in' operator specially - it's an array of values
-                        if ($operator === 'in' && is_array($val)) {
-                            $queryParts[] = "filter[{$key}][{$operator}]=" . urlencode(implode(',', $val));
-                        } elseif ($operator === 'null' || $operator === 'not_null') {
+                        if ('in' === $operator && is_array($val)) {
+                            $queryParts[] = "filter[{$key}][{$operator}]=".urlencode(implode(',', $val));
+                        } elseif ('null' === $operator || 'not_null' === $operator) {
                             // null and not_null don't have values
                             $queryParts[] = "filter[{$key}][{$operator}]=";
                         } else {
-                            $queryParts[] = "filter[{$key}][{$operator}]=" . urlencode((string)$val);
+                            $queryParts[] = "filter[{$key}][{$operator}]=".urlencode((string) $val);
                         }
                     }
                 } else {
-                    $queryParts[] = "filter[{$key}]=" . urlencode((string)$value);
+                    $queryParts[] = "filter[{$key}]=".urlencode((string) $value);
                 }
             }
         }
 
         // Add sort parameters
         if (!empty($params->sort)) {
-            $queryParts[] = 'sort=' . urlencode(implode(',', $params->sort));
+            $queryParts[] = 'sort='.urlencode(implode(',', $params->sort));
         }
 
         // Add include parameters
         if (!empty($params->include)) {
-            $queryParts[] = 'include=' . urlencode(implode(',', $params->include));
+            $queryParts[] = 'include='.urlencode(implode(',', $params->include));
         }
 
         // Add fields parameters
         if (!empty($params->fields)) {
             foreach ($params->fields as $type => $fields) {
                 if (is_array($fields)) {
-                    $queryParts[] = "fields[{$type}]=" . urlencode(implode(',', $fields));
+                    $queryParts[] = "fields[{$type}]=".urlencode(implode(',', $fields));
                 }
             }
         }
@@ -818,5 +808,4 @@ class JsonApiController
 
         return basename(str_replace('\\', '/', $class));
     }
-
 }

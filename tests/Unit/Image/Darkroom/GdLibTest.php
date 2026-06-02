@@ -1,15 +1,14 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Tests\Unit\Image\Darkroom;
 
+use claviska\SimpleImage;
 use Modufolio\Appkit\Image\Darkroom\GdLib;
 use Modufolio\Appkit\Toolkit\Dir;
-use claviska\SimpleImage;
 use PHPUnit\Framework\Attributes\RequiresPhpExtension;
 use PHPUnit\Framework\TestCase;
-use ReflectionMethod;
 
 class SimpleImageMock extends SimpleImage
 {
@@ -18,6 +17,7 @@ class SimpleImageMock extends SimpleImage
     public function sharpen(int $amount = 50): static
     {
         $this->sharpen = $amount;
+
         return $this;
     }
 }
@@ -25,8 +25,8 @@ class SimpleImageMock extends SimpleImage
 #[RequiresPhpExtension('gd')]
 class GdLibTest extends TestCase
 {
-    public const FIXTURES = __DIR__ . '/../fixtures/image';
-    public const TMP      = __DIR__ . '/Image.Darkroom.GdLib';
+    public const FIXTURES = __DIR__.'/../fixtures/image';
+    public const TMP = __DIR__.'/Image.Darkroom.GdLib';
 
     public function setUp(): void
     {
@@ -42,7 +42,7 @@ class GdLibTest extends TestCase
     {
         $gd = new GdLib();
 
-        copy(static::FIXTURES . '/cat.jpg', $file = static::TMP . '/cat.jpg');
+        copy(static::FIXTURES.'/cat.jpg', $file = static::TMP.'/cat.jpg');
 
         $this->assertSame([
             'autoOrient' => true,
@@ -61,11 +61,10 @@ class GdLibTest extends TestCase
         ], $gd->process($file));
     }
 
-
     public function testProcessWithFormat(): void
     {
         $gd = new GdLib(['format' => 'webp']);
-        copy(static::FIXTURES . '/cat.jpg', $file = static::TMP . '/cat.jpg');
+        copy(static::FIXTURES.'/cat.jpg', $file = static::TMP.'/cat.jpg');
         $this->assertSame('webp', $gd->process($file)['format']);
     }
 
@@ -76,13 +75,13 @@ class GdLibTest extends TestCase
     {
         $gd = new GdLib();
 
-        $method = new ReflectionMethod(get_class($gd), 'sharpen');
+        $method = new \ReflectionMethod(get_class($gd), 'sharpen');
         $method->setAccessible(true);
 
         $simpleImage = new SimpleImageMock();
 
         $result = $method->invoke($gd, $simpleImage, [
-            'sharpen' => 50
+            'sharpen' => 50,
         ]);
 
         $this->assertSame(50, $result->sharpen);
@@ -92,13 +91,13 @@ class GdLibTest extends TestCase
     {
         $gd = new GdLib();
 
-        $method = new ReflectionMethod(get_class($gd), 'sharpen');
+        $method = new \ReflectionMethod(get_class($gd), 'sharpen');
         $method->setAccessible(true);
 
         $simpleImage = new SimpleImageMock();
 
         $result = $method->invoke($gd, $simpleImage, [
-            'sharpen' => null
+            'sharpen' => null,
         ]);
 
         $this->assertSame(50, $result->sharpen);

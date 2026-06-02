@@ -1,6 +1,5 @@
 <?php
 
-use Modufolio\Appkit\Tests\App\Repository\UserRepository;
 use Modufolio\Appkit\Security\Authenticator\ApiKeyAuthenticator;
 use Modufolio\Appkit\Security\Authenticator\BasicAuthenticator;
 use Modufolio\Appkit\Security\Authenticator\FormLoginAuthenticator;
@@ -9,6 +8,7 @@ use Modufolio\Appkit\Security\Authenticator\OAuthAuthenticator;
 use Modufolio\Appkit\Security\Authenticator\RememberMeAuthenticator;
 use Modufolio\Appkit\Security\Csrf\CsrfTokenManagerInterface;
 use Modufolio\Appkit\Security\OAuth\OAuthServiceInterface;
+use Modufolio\Appkit\Tests\App\Repository\UserRepository;
 use Psr\Container\ContainerInterface;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;
 
@@ -35,7 +35,7 @@ return [
     },
     'jwt' => function (ContainerInterface $container) {
         if (empty($_ENV['JWT_SECRET'])) {
-            throw new \RuntimeException('JWT_SECRET environment variable is required for JWT authentication. Please set it in your .env file.');
+            throw new RuntimeException('JWT_SECRET environment variable is required for JWT authentication. Please set it in your .env file.');
         }
 
         return new JwtAuthenticator(
@@ -58,8 +58,9 @@ return [
     },
     'remember_me' => function (ContainerInterface $container) {
         if (empty($_ENV['REMEMBER_ME_SECRET'])) {
-            throw new \RuntimeException('REMEMBER_ME_SECRET environment variable is required for remember-me authentication. Please set it in your .env file.');
+            throw new RuntimeException('REMEMBER_ME_SECRET environment variable is required for remember-me authentication. Please set it in your .env file.');
         }
+
         return new RememberMeAuthenticator(
             userProvider: $container->get(UserRepository::class),
             options: [

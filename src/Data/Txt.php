@@ -1,38 +1,38 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Data;
 
 use Modufolio\Appkit\Toolkit\A;
 use Modufolio\Appkit\Toolkit\Str;
-use InvalidArgumentException;
 
 /**
- * Kirby Txt Data Handler
+ * Kirby Txt Data Handler.
  *
- * @package   Kirby Data
  * @author    Bastian Allgeier <bastian@getkirby.com>
- * @link      https://getkirby.com
+ *
+ * @see      https://getkirby.com
+ *
  * @copyright Bastian Allgeier GmbH
  * @license   https://opensource.org/licenses/MIT
  */
 class Txt extends Handler
 {
     /**
-     * Converts an array to an encoded Kirby txt string
+     * Converts an array to an encoded Kirby txt string.
      */
     public static function encode($data): string
     {
         $result = [];
 
         foreach (A::wrap($data) as $key => $value) {
-            if (empty($key) === true || $value === null) {
+            if (true === empty($key) || null === $value) {
                 continue;
             }
 
-            $key          = Str::ucfirst(Str::slug($key));
-            $value        = static::encodeValue($value);
+            $key = Str::ucfirst(Str::slug($key));
+            $value = static::encodeValue($value);
             $result[$key] = static::encodeResult($key, $value);
         }
 
@@ -40,15 +40,15 @@ class Txt extends Handler
     }
 
     /**
-     * Helper for converting the value
+     * Helper for converting the value.
      */
     protected static function encodeValue(array|string|float $value): string
     {
         // avoid problems with arrays
-        if (is_array($value) === true) {
+        if (true === is_array($value)) {
             $value = Data::encode($value, 'yaml');
-            // avoid problems with localized floats
-        } elseif (is_float($value) === true) {
+        // avoid problems with localized floats
+        } elseif (true === is_float($value)) {
             $value = Str::float($value);
         }
 
@@ -59,16 +59,16 @@ class Txt extends Handler
     }
 
     /**
-     * Helper for converting the key and value to the result string
+     * Helper for converting the key and value to the result string.
      */
     protected static function encodeResult(string $key, string $value): string
     {
         $value = trim($value);
-        $result = $key . ':';
+        $result = $key.':';
 
         // multi-line content
         $result .= match (preg_match('!\R!', $value)) {
-            1       => "\n\n",
+            1 => "\n\n",
             default => ' ',
         };
 
@@ -78,24 +78,24 @@ class Txt extends Handler
     }
 
     /**
-     * Parses a Kirby txt string and returns a multi-dimensional array
+     * Parses a Kirby txt string and returns a multi-dimensional array.
      */
     public static function decode($string): array
     {
-        if ($string === null || $string === '') {
+        if (null === $string || '' === $string) {
             return [];
         }
 
-        if (is_array($string) === true) {
+        if (true === is_array($string)) {
             return $string;
         }
 
-        if (is_string($string) === false) {
-            throw new InvalidArgumentException('Invalid TXT data; please pass a string');
+        if (false === is_string($string)) {
+            throw new \InvalidArgumentException('Invalid TXT data; please pass a string');
         }
 
         // remove Unicode BOM at the beginning of the file
-        if (Str::startsWith($string, "\xEF\xBB\xBF") === true) {
+        if (true === Str::startsWith($string, "\xEF\xBB\xBF")) {
             $string = substr($string, 3);
         }
 
@@ -112,7 +112,7 @@ class Txt extends Handler
                 $key = str_replace(['-', ' '], '_', $key);
 
                 // Don't add fields with empty keys
-                if (empty($key) === true) {
+                if (true === empty($key)) {
                     continue;
                 }
 

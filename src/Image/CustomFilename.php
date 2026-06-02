@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Image;
 
@@ -11,7 +11,6 @@ use Modufolio\Appkit\Toolkit\Str;
  * mapping of file attributes into human-readable filenames,
  * inspired by Kirby's `Filename` class.
  *
- * @package   Image
  * @author    Maarten Thiebou
  * @copyright Modufolio
  * @license   https://opensource.org/licenses/MIT
@@ -56,7 +55,7 @@ class CustomFilename implements \Stringable
 
         return array_filter(
             $array,
-            static fn ($item) => $item !== null && $item !== false && $item !== ''
+            static fn ($item) => null !== $item && false !== $item && '' !== $item
         );
     }
 
@@ -66,14 +65,14 @@ class CustomFilename implements \Stringable
         $result = [];
 
         foreach ($array as $key => $value) {
-            if ($value === true) {
+            if (true === $value) {
                 $value = '';
             }
 
             $result[] = match ($key) {
                 'dimensions' => $value,
-                'crop' => ($value === 'center') ? 'crop' : $key . '-' . $value,
-                default => $key . $value
+                'crop' => ('center' === $value) ? 'crop' : $key.'-'.$value,
+                default => $key.$value,
             };
         }
 
@@ -84,25 +83,25 @@ class CustomFilename implements \Stringable
             return '';
         }
 
-        return $prefix . $attributes;
+        return $prefix.$attributes;
     }
 
     public function blur(): int|false
     {
         $value = $this->attributes['blur'] ?? false;
 
-        if ($value === false) {
+        if (false === $value) {
             return false;
         }
 
-        return (int)$value;
+        return (int) $value;
     }
 
     public function crop(): string|false
     {
         $crop = $this->attributes['crop'] ?? false;
 
-        if ($crop === false) {
+        if (false === $crop) {
             return false;
         }
 
@@ -117,7 +116,7 @@ class CustomFilename implements \Stringable
 
         return [
             'width' => $this->attributes['width'] ?? null,
-            'height' => $this->attributes['height'] ?? null
+            'height' => $this->attributes['height'] ?? null,
         ];
     }
 
@@ -142,16 +141,17 @@ class CustomFilename implements \Stringable
     {
         $value = $this->attributes['quality'] ?? false;
 
-        if ($value === false || $value === true) {
+        if (false === $value || true === $value) {
             return false;
         }
 
-        return (int)$value;
+        return (int) $value;
     }
 
     protected function sanitizeExtension(string $extension): string
     {
         $extension = strtolower($extension);
+
         return str_replace('jpeg', 'jpg', $extension);
     }
 
@@ -166,7 +166,7 @@ class CustomFilename implements \Stringable
     }
 
     /**
-     * Check if a string contains path traversal sequences
+     * Check if a string contains path traversal sequences.
      */
     protected function containsPathTraversal(string $value): bool
     {
@@ -196,7 +196,7 @@ class CustomFilename implements \Stringable
         return Str::template($this->template, [
             'name' => $this->name(),
             'attributes' => $this->attributesToString('-'),
-            'extension' => $this->extension()
+            'extension' => $this->extension(),
         ]);
     }
 }

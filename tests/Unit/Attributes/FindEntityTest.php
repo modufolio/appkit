@@ -54,7 +54,7 @@ class FindEntityTest extends TestCase
         $criteria = [
             'user.id' => 456,
             'status' => ['active', 'pending'],
-            'created' => ['>=', '2024-01-01']
+            'created' => ['>=', '2024-01-01'],
         ];
 
         $attribute = new FindEntity($criteria);

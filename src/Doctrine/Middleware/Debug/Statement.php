@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Doctrine\Middleware\Debug;
 
@@ -18,7 +18,7 @@ final class Statement extends AbstractStatementMiddleware
     public function __construct(
         StatementInterface $statement,
         private readonly DebugStack $debugStack,
-        private readonly string $sql
+        private readonly string $sql,
     ) {
         parent::__construct($statement);
     }
@@ -26,15 +26,15 @@ final class Statement extends AbstractStatementMiddleware
     public function bindValue(int|string $param, mixed $value, ParameterType $type = ParameterType::STRING): void
     {
         $this->params[$param] = $value;
-        $this->types[$param]  = $type;
+        $this->types[$param] = $type;
 
         parent::bindValue($param, $value, $type);
     }
 
     public function execute(): ResultInterface
     {
-        $start   = Query::start();
-        $result  = parent::execute();
+        $start = Query::start();
+        $result = parent::execute();
         $elapsed = Query::end($start);
 
         $this->debugStack->append(new Query(

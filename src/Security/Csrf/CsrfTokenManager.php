@@ -7,7 +7,7 @@ namespace Modufolio\Appkit\Security\Csrf;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;
 
 /**
- * CSRF Token Manager
+ * CSRF Token Manager.
  *
  * Generates, stores, and validates CSRF tokens to prevent Cross-Site Request Forgery attacks.
  * Tokens are stored in session and validated against submitted values using timing-safe comparison.
@@ -30,16 +30,15 @@ class CsrfTokenManager implements CsrfTokenManagerInterface
 
     public function __construct(
         private SessionInterface $session,
-        string $defaultTokenId = 'csrf_token'
+        string $defaultTokenId = 'csrf_token',
     ) {
         $this->defaultTokenId = $defaultTokenId;
     }
 
     /**
-     * Generate a new CSRF token for the given token ID
+     * Generate a new CSRF token for the given token ID.
      *
      * @param string|null $tokenId Unique identifier for this token (e.g., 'login', 'delete_user')
-     * @return CsrfToken
      */
     public function getToken(?string $tokenId = null): CsrfToken
     {
@@ -68,10 +67,7 @@ class CsrfTokenManager implements CsrfTokenManagerInterface
     }
 
     /**
-     * Refresh the token for the given token ID (generate new value)
-     *
-     * @param string|null $tokenId
-     * @return CsrfToken
+     * Refresh the token for the given token ID (generate new value).
      */
     public function refreshToken(?string $tokenId = null): CsrfToken
     {
@@ -85,11 +81,12 @@ class CsrfTokenManager implements CsrfTokenManagerInterface
     }
 
     /**
-     * Validate a CSRF token
+     * Validate a CSRF token.
      *
      * Uses timing-safe comparison to prevent timing attacks.
      *
      * @param CsrfToken $token The token to validate
+     *
      * @return bool True if valid, false otherwise
      */
     public function isTokenValid(CsrfToken $token): bool
@@ -109,25 +106,24 @@ class CsrfTokenManager implements CsrfTokenManagerInterface
     }
 
     /**
-     * Validate a token by ID and value
+     * Validate a token by ID and value.
      *
      * Convenience method for direct validation without creating CsrfToken object.
      *
-     * @param string $tokenId The token identifier
+     * @param string $tokenId    The token identifier
      * @param string $tokenValue The token value to validate
+     *
      * @return bool True if valid, false otherwise
      */
     public function validateToken(string $tokenId, string $tokenValue): bool
     {
         $token = new CsrfToken($tokenId, $tokenValue);
+
         return $this->isTokenValid($token);
     }
 
     /**
-     * Remove a token from storage
-     *
-     * @param string|null $tokenId
-     * @return void
+     * Remove a token from storage.
      */
     public function removeToken(?string $tokenId = null): void
     {
@@ -139,33 +135,30 @@ class CsrfTokenManager implements CsrfTokenManagerInterface
     }
 
     /**
-     * Check if a token exists in storage
-     *
-     * @param string|null $tokenId
-     * @return bool
+     * Check if a token exists in storage.
      */
     public function hasToken(?string $tokenId = null): bool
     {
         $tokenId = $tokenId ?? $this->defaultTokenId;
         $tokens = $this->getSessionTokens();
+
         return isset($tokens[$tokenId]);
     }
 
     /**
-     * Get all stored token IDs
+     * Get all stored token IDs.
      *
      * @return array<string>
      */
     public function getTokenIds(): array
     {
         $tokens = $this->getSessionTokens();
+
         return array_keys($tokens);
     }
 
     /**
-     * Clear all CSRF tokens from storage
-     *
-     * @return void
+     * Clear all CSRF tokens from storage.
      */
     public function clear(): void
     {
@@ -173,7 +166,7 @@ class CsrfTokenManager implements CsrfTokenManagerInterface
     }
 
     /**
-     * Generate a cryptographically secure random token value
+     * Generate a cryptographically secure random token value.
      *
      * @return string Hex-encoded random bytes
      */
@@ -183,7 +176,7 @@ class CsrfTokenManager implements CsrfTokenManagerInterface
     }
 
     /**
-     * Get all tokens from session
+     * Get all tokens from session.
      *
      * @return array<string, string>
      */
@@ -193,10 +186,9 @@ class CsrfTokenManager implements CsrfTokenManagerInterface
     }
 
     /**
-     * Store tokens in session
+     * Store tokens in session.
      *
      * @param array<string, string> $tokens
-     * @return void
      */
     private function setSessionTokens(array $tokens): void
     {

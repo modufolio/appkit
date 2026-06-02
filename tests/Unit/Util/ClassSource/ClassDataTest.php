@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Tests\Unit\Util\ClassSource;
 
@@ -65,7 +65,7 @@ final class ClassDataTest extends TestCase
     {
         $meta = ClassData::create($class);
 
-        if ($rootNamespace !== null) {
+        if (null !== $rootNamespace) {
             $meta->setRootNamespace($rootNamespace);
         }
 

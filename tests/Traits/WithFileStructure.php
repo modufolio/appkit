@@ -13,14 +13,15 @@ trait WithFileStructure
     /**
      * Set up a folder structure for testing.
      *
-     * @param array $structure The folder/file structure definition
+     * @param array       $structure   The folder/file structure definition
      * @param string|null $resourceDir Optional directory containing resource files to copy
+     *
      * @return string The root path where structure was created
      */
     protected function setupFolderStructure(array $structure, ?string $resourceDir = null): string
     {
         // Create a unique test directory
-        $this->testRoot = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'phpunit_test_' . uniqid();
+        $this->testRoot = sys_get_temp_dir().DIRECTORY_SEPARATOR.'phpunit_test_'.uniqid();
 
         $this->folderStructure = new Structurer(
             $this->testRoot,
@@ -50,7 +51,7 @@ trait WithFileStructure
      */
     protected function getTestPath(string $relativePath): string
     {
-        return $this->getTestRoot() . DIRECTORY_SEPARATOR . ltrim($relativePath, DIRECTORY_SEPARATOR);
+        return $this->getTestRoot().DIRECTORY_SEPARATOR.ltrim($relativePath, DIRECTORY_SEPARATOR);
     }
 
     /**
@@ -66,7 +67,7 @@ trait WithFileStructure
 
         $this->assertEmpty(
             $differences,
-            'Folder structure has missing items: ' . implode(', ', $differences)
+            'Folder structure has missing items: '.implode(', ', $differences)
         );
     }
 

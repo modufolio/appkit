@@ -7,7 +7,7 @@ namespace Modufolio\Appkit\Security\OAuth;
 use Modufolio\Appkit\Security\User\UserInterface;
 
 /**
- * Interface for OAuth Access Token Entity
+ * Interface for OAuth Access Token Entity.
  *
  * Defines the contract for OAuth 2.1 access token entities.
  * Consuming applications must implement this interface on their

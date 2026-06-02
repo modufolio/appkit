@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Security;
 
@@ -11,7 +11,6 @@ class SecurityHelper
      */
     public static function generatePassword(int $length = 12): string
     {
-
         // Make sure the length is between 8 and 64 characters
         $length = max(8, min(64, $length));
 
@@ -38,7 +37,7 @@ class SecurityHelper
         }
 
         // Shuffle the result to avoid predictable sequences
-        for ($i = count($password) - 1; $i > 0; $i--) {
+        for ($i = count($password) - 1; $i > 0; --$i) {
             $j = random_int(0, $i);
             [$password[$i], $password[$j]] = [$password[$j], $password[$i]];
         }
@@ -53,5 +52,4 @@ class SecurityHelper
     {
         return $string[random_int(0, strlen($string) - 1)];
     }
-
 }

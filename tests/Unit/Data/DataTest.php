@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Tests\Unit\Data;
 
@@ -11,13 +11,11 @@ use Modufolio\Appkit\Data\Txt;
 use Modufolio\Appkit\Data\Xml;
 use Modufolio\Appkit\Data\Yaml;
 use Modufolio\Appkit\Toolkit\F;
-use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use stdClass;
 
-require_once __DIR__ . '/mocks.php';
+require_once __DIR__.'/mocks.php';
 
 #[CoversClass(Data::class)]
 class DataTest extends TestCase
@@ -61,13 +59,12 @@ class DataTest extends TestCase
         Data::handler('foo');
     }
 
-
     #[DataProvider('handlerProvider')]
     public function testEncodeDecode($handler): void
     {
         $data = [
-            'name'  => 'Homer Simpson',
-            'email' => 'homer@simpson.com'
+            'name' => 'Homer Simpson',
+            'email' => 'homer@simpson.com',
         ];
 
         $encoded = Data::encode($data, $handler);
@@ -79,24 +76,24 @@ class DataTest extends TestCase
     #[DataProvider('handlerProvider')]
     public function testDecodeInvalid1($handler): void
     {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Invalid ' . strtoupper($handler) . ' data; please pass a string');
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Invalid '.strtoupper($handler).' data; please pass a string');
         Data::decode(1, $handler);
     }
 
     #[DataProvider('handlerProvider')]
     public function testDecodeInvalid2($handler): void
     {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Invalid ' . strtoupper($handler) . ' data; please pass a string');
-        Data::decode(new stdClass(), $handler);
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Invalid '.strtoupper($handler).' data; please pass a string');
+        Data::decode(new \stdClass(), $handler);
     }
 
     #[DataProvider('handlerProvider')]
     public function testDecodeInvalid3($handler): void
     {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Invalid ' . strtoupper($handler) . ' data; please pass a string');
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Invalid '.strtoupper($handler).' data; please pass a string');
         Data::decode(true, $handler);
     }
 
@@ -104,7 +101,7 @@ class DataTest extends TestCase
     {
         $handlers = array_filter(
             array_keys(Data::$handlers),
-            static fn ($handler) => $handler !== 'php'
+            static fn ($handler) => 'php' !== $handler
         );
 
         return array_map(static fn ($handler) => [$handler], $handlers);
@@ -113,11 +110,11 @@ class DataTest extends TestCase
     public function testReadWrite(): void
     {
         $data = [
-            'name'  => 'Homer Simpson',
-            'email' => 'homer@simpson.com'
+            'name' => 'Homer Simpson',
+            'email' => 'homer@simpson.com',
         ];
 
-        $file = __DIR__ . '/tmp/data.json';
+        $file = __DIR__.'/tmp/data.json';
 
         @unlink($file);
 
@@ -141,7 +138,7 @@ class DataTest extends TestCase
         $this->expectException(\Exception::class);
         $this->expectExceptionMessage('Missing handler for type: "foo"');
 
-        Data::read(__DIR__ . '/tmp/data.foo');
+        Data::read(__DIR__.'/tmp/data.foo');
     }
 
     public function testWriteInvalid(): void
@@ -150,10 +147,10 @@ class DataTest extends TestCase
         $this->expectExceptionMessage('Missing handler for type: "foo"');
 
         $data = [
-            'name'  => 'Homer Simpson',
-            'email' => 'homer@simpson.com'
+            'name' => 'Homer Simpson',
+            'email' => 'homer@simpson.com',
         ];
 
-        Data::write(__DIR__ . '/tmp/data.foo', $data);
+        Data::write(__DIR__.'/tmp/data.foo', $data);
     }
 }

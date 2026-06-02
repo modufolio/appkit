@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Image;
 
@@ -12,9 +12,10 @@ use Modufolio\Appkit\Toolkit\Str;
  * width and height to recalculate the size,
  * get the ratio or just the width and height.
  *
- * @package   Kirby Image
  * @author    Bastian Allgeier <bastian@getkirby.com>
- * @link      https://getkirby.com
+ *
+ * @see      https://getkirby.com
+ *
  * @copyright Bastian Allgeier
  * @license   https://opensource.org/licenses/MIT
  */
@@ -22,12 +23,13 @@ final class Dimensions implements \Stringable
 {
     public function __construct(
         public int $width,
-        public int $height
+        public int $height,
     ) {
     }
 
     /**
-     * Improved `var_dump` output
+     * Improved `var_dump` output.
+     *
      * @codeCoverageIgnore
      */
     public function __debugInfo(): array
@@ -36,24 +38,24 @@ final class Dimensions implements \Stringable
     }
 
     /**
-     * Echos the dimensions as width × height
+     * Echos the dimensions as width × height.
      */
     public function __toString(): string
     {
-        return $this->width . ' × ' . $this->height;
+        return $this->width.' × '.$this->height;
     }
 
     /**
-     * Crops the dimensions by width and height
+     * Crops the dimensions by width and height.
      *
      * @return $this
      */
-    public function crop(int $width, int|null $height = null): static
+    public function crop(int $width, ?int $height = null): static
     {
-        $this->width  = $width;
+        $this->width = $width;
         $this->height = $width;
 
-        if ($height !== 0 && $height !== null) {
+        if (0 !== $height && null !== $height) {
             $this->height = $height;
         }
 
@@ -61,7 +63,7 @@ final class Dimensions implements \Stringable
     }
 
     /**
-     * Returns the height
+     * Returns the height.
      */
     public function height(): int
     {
@@ -84,16 +86,18 @@ final class Dimensions implements \Stringable
      *
      * </code>
      *
-     * @param int $box the max width and/or height
+     * @param int  $box   the max width and/or height
      * @param bool $force If true, the dimensions will be
      *                    upscaled to fit the box if smaller
+     *
      * @return $this object with recalculated dimensions
      */
     public function fit(int $box, bool $force = false): static
     {
-        if ($this->width === 0 || $this->height === 0) {
-            $this->width  = $box;
+        if (0 === $this->width || 0 === $this->height) {
+            $this->width = $box;
             $this->height = $box;
+
             return $this;
         }
 
@@ -101,19 +105,19 @@ final class Dimensions implements \Stringable
 
         if ($this->width > $this->height) {
             // wider than tall
-            if ($this->width > $box || $force === true) {
+            if ($this->width > $box || true === $force) {
                 $this->width = $box;
             }
-            $this->height = (int)round($this->width / $ratio);
+            $this->height = (int) round($this->width / $ratio);
         } elseif ($this->height > $this->width) {
             // taller than wide
-            if ($this->height > $box || $force === true) {
+            if ($this->height > $box || true === $force) {
                 $this->height = $box;
             }
-            $this->width = (int)round($this->height * $ratio);
+            $this->width = (int) round($this->height * $ratio);
         } elseif ($this->width > $box) {
             // width = height but bigger than box
-            $this->width  = $box;
+            $this->width = $box;
             $this->height = $box;
         }
 
@@ -121,7 +125,7 @@ final class Dimensions implements \Stringable
     }
 
     /**
-     * Recalculates the width and height to fit the given height
+     * Recalculates the width and height to fit the given height.
      *
      * <code>
      *
@@ -136,33 +140,35 @@ final class Dimensions implements \Stringable
      *
      * </code>
      *
-     * @param int|null $fit the max height
-     * @param bool $force If true, the dimensions will be
-     *                    upscaled to fit the box if smaller
+     * @param int|null $fit   the max height
+     * @param bool     $force If true, the dimensions will be
+     *                        upscaled to fit the box if smaller
+     *
      * @return $this object with recalculated dimensions
      */
     public function fitHeight(
-        int|null $fit = null,
-        bool $force = false
+        ?int $fit = null,
+        bool $force = false,
     ): static {
         return $this->fitSize('height', $fit, $force);
     }
 
     /**
-     * Helper for fitWidth and fitHeight methods
+     * Helper for fitWidth and fitHeight methods.
      *
-     * @param string $ref reference (width or height)
-     * @param int|null $fit the max width
-     * @param bool $force If true, the dimensions will be
-     *                    upscaled to fit the box if smaller
+     * @param string   $ref   reference (width or height)
+     * @param int|null $fit   the max width
+     * @param bool     $force If true, the dimensions will be
+     *                        upscaled to fit the box if smaller
+     *
      * @return $this object with recalculated dimensions
      */
-    protected function fitSize(
+    private function fitSize(
         string $ref,
-        int|null $fit = null,
-        bool $force = false
+        ?int $fit = null,
+        bool $force = false,
     ): static {
-        if ($fit === 0 || $fit === null) {
+        if (0 === $fit || null === $fit) {
             return $this;
         }
 
@@ -170,16 +176,16 @@ final class Dimensions implements \Stringable
             return $this;
         }
 
-        $ratio        = $this->ratio();
-        $mode         = $ref === 'width';
-        $this->width  =  $mode ? $fit : (int)round($fit * $ratio);
-        $this->height = !$mode ? $fit : (int)round($fit / $ratio);
+        $ratio = $this->ratio();
+        $mode = 'width' === $ref;
+        $this->width = $mode ? $fit : (int) round($fit * $ratio);
+        $this->height = !$mode ? $fit : (int) round($fit / $ratio);
 
         return $this;
     }
 
     /**
-     * Recalculates the width and height to fit the given width
+     * Recalculates the width and height to fit the given width.
      *
      * <code>
      *
@@ -194,29 +200,31 @@ final class Dimensions implements \Stringable
      *
      * </code>
      *
-     * @param int|null $fit the max width
-     * @param bool $force If true, the dimensions will be
-     *                    upscaled to fit the box if smaller
+     * @param int|null $fit   the max width
+     * @param bool     $force If true, the dimensions will be
+     *                        upscaled to fit the box if smaller
+     *
      * @return $this object with recalculated dimensions
      */
     public function fitWidth(
-        int|null $fit = null,
-        bool $force = false
+        ?int $fit = null,
+        bool $force = false,
     ): static {
         return $this->fitSize('width', $fit, $force);
     }
 
     /**
-     * Recalculates the dimensions by the width and height
+     * Recalculates the dimensions by the width and height.
      *
-     * @param int|null $width the max height
+     * @param int|null $width  the max height
      * @param int|null $height the max width
+     *
      * @return $this
      */
     public function fitWidthAndHeight(
-        int|null $width = null,
-        int|null $height = null,
-        bool $force = false
+        ?int $width = null,
+        ?int $height = null,
+        bool $force = false,
     ): static {
         if ($this->width > $this->height) {
             $this->fitWidth($width, $force);
@@ -238,20 +246,21 @@ final class Dimensions implements \Stringable
     }
 
     /**
-     * Detect the dimensions for an image file
+     * Detect the dimensions for an image file.
      */
     public static function forImage(string $root): static
     {
-        if (file_exists($root) === false) {
+        if (false === file_exists($root)) {
             return new static(0, 0);
         }
 
         $size = getimagesize($root);
+
         return new static($size[0] ?? 0, $size[1] ?? 1);
     }
 
     /**
-     * Detect the dimensions for a svg file
+     * Detect the dimensions for a svg file.
      */
     public static function forSvg(string $root): static
     {
@@ -259,32 +268,32 @@ final class Dimensions implements \Stringable
         libxml_use_internal_errors(true);
 
         $content = file_get_contents($root);
-        $height  = 0;
-        $width   = 0;
-        $xml     = simplexml_load_string($content);
+        $height = 0;
+        $width = 0;
+        $xml = simplexml_load_string($content);
 
-        if ($xml !== false) {
-            $attr      = $xml->attributes();
-            $rawWidth  = (string)$attr->width;
-            $width     = (int)$rawWidth;
-            $rawHeight = (string)$attr->height;
-            $height    = (int)$rawHeight;
+        if (false !== $xml) {
+            $attr = $xml->attributes();
+            $rawWidth = (string) $attr->width;
+            $width = (int) $rawWidth;
+            $rawHeight = (string) $attr->height;
+            $height = (int) $rawHeight;
 
             // use viewbox values if direct attributes are 0
             // or based on percentages
-            if (empty($attr->viewBox) === false) {
-                $box = explode(' ', (string)$attr->viewBox);
+            if (false === empty($attr->viewBox)) {
+                $box = explode(' ', (string) $attr->viewBox);
 
                 // when using viewbox values, make sure to subtract
                 // first two box values from last two box values
                 // to retrieve the absolute dimensions
 
-                if (Str::endsWith($rawWidth, '%') === true || $width === 0) {
-                    $width = (int)($box[2] ?? 0) - (int)($box[0] ?? 0);
+                if (true === Str::endsWith($rawWidth, '%') || 0 === $width) {
+                    $width = (int) ($box[2] ?? 0) - (int) ($box[0] ?? 0);
                 }
 
-                if (Str::endsWith($rawHeight, '%') === true || $height === 0) {
-                    $height = (int)($box[3] ?? 0) - (int)($box[1] ?? 0);
+                if (true === Str::endsWith($rawHeight, '%') || 0 === $height) {
+                    $height = (int) ($box[3] ?? 0) - (int) ($box[1] ?? 0);
                 }
             }
         }
@@ -293,7 +302,7 @@ final class Dimensions implements \Stringable
     }
 
     /**
-     * Checks if the dimensions are landscape
+     * Checks if the dimensions are landscape.
      */
     public function landscape(): bool
     {
@@ -301,7 +310,7 @@ final class Dimensions implements \Stringable
     }
 
     /**
-     * Returns a string representation of the orientation
+     * Returns a string representation of the orientation.
      */
     public function orientation(): string|false
     {
@@ -309,11 +318,11 @@ final class Dimensions implements \Stringable
             return false;
         }
 
-        if ($this->portrait() === true) {
+        if (true === $this->portrait()) {
             return 'portrait';
         }
 
-        if ($this->landscape() === true) {
+        if (true === $this->landscape()) {
             return 'landscape';
         }
 
@@ -321,7 +330,7 @@ final class Dimensions implements \Stringable
     }
 
     /**
-     * Checks if the dimensions are portrait
+     * Checks if the dimensions are portrait.
      */
     public function portrait(): bool
     {
@@ -329,7 +338,7 @@ final class Dimensions implements \Stringable
     }
 
     /**
-     * Calculates and returns the ratio
+     * Calculates and returns the ratio.
      *
      * <code>
      *
@@ -341,7 +350,7 @@ final class Dimensions implements \Stringable
      */
     public function ratio(): float
     {
-        if ($this->width !== 0 && $this->height !== 0) {
+        if (0 !== $this->width && 0 !== $this->height) {
             return $this->width / $this->height;
         }
 
@@ -349,19 +358,20 @@ final class Dimensions implements \Stringable
     }
 
     /**
-     * Resizes image
+     * Resizes image.
+     *
      * @return $this
      */
     public function resize(
-        int|null $width = null,
-        int|null $height = null,
-        bool $force = false
+        ?int $width = null,
+        ?int $height = null,
+        bool $force = false,
     ): static {
         return $this->fitWidthAndHeight($width, $height, $force);
     }
 
     /**
-     * Checks if the dimensions are square
+     * Checks if the dimensions are square.
      */
     public function square(): bool
     {
@@ -369,18 +379,18 @@ final class Dimensions implements \Stringable
     }
 
     /**
-     * Resize and crop
+     * Resize and crop.
      *
      * @return $this
      */
     public function thumb(array $options = []): static
     {
-        $width  = $options['width']  ?? null;
+        $width = $options['width'] ?? null;
         $height = $options['height'] ?? null;
-        $crop   = $options['crop']   ?? false;
-        $method = $crop !== false ? 'crop' : 'resize';
+        $crop = $options['crop'] ?? false;
+        $method = false !== $crop ? 'crop' : 'resize';
 
-        if ($width === null && $height === null) {
+        if (null === $width && null === $height) {
             return $this;
         }
 
@@ -389,20 +399,20 @@ final class Dimensions implements \Stringable
 
     /**
      * Converts the dimensions object
-     * to a plain PHP array
+     * to a plain PHP array.
      */
     public function toArray(): array
     {
         return [
-            'width'       => $this->width(),
-            'height'      => $this->height(),
-            'ratio'       => $this->ratio(),
+            'width' => $this->width(),
+            'height' => $this->height(),
+            'ratio' => $this->ratio(),
             'orientation' => $this->orientation(),
         ];
     }
 
     /**
-     * Returns the width
+     * Returns the width.
      */
     public function width(): int
     {

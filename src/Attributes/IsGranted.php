@@ -7,6 +7,6 @@ class IsGranted
 {
     public function __construct(public string|array $roles)
     {
-        $this->roles = (array)$roles;
+        $this->roles = (array) $roles;
     }
 }

@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Util\ClassSource\Model;
 
@@ -106,6 +106,6 @@ final class ClassData
 
     public function getUseStatements(): string
     {
-        return (string)$this->useStatementGenerator;
+        return (string) $this->useStatementGenerator;
     }
 }

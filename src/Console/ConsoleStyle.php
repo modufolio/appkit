@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Console;
 
@@ -23,7 +23,7 @@ final class ConsoleStyle extends SymfonyStyle
 
     public function success($message): void
     {
-        $this->writeln('<fg=green;options=bold,underscore>OK</> ' . $message);
+        $this->writeln('<fg=green;options=bold,underscore>OK</> '.$message);
     }
 
     public function comment($message): void

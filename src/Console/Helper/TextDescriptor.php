@@ -175,7 +175,7 @@ class TextDescriptor extends Descriptor
                 return \sprintf('%s::%s()', $class->name, $r->name);
             }
 
-            return $r->name . '()';
+            return $r->name.'()';
         }
 
         if (method_exists($callable, '__invoke')) {

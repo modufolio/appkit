@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Tests\Unit\Toolkit;
 
@@ -12,10 +12,10 @@ class CollectionNavigatorTest extends TestCase
     public function testFirstLast()
     {
         $collection = new Collection([
-            'one'   => 'eins',
-            'two'   => 'zwei',
+            'one' => 'eins',
+            'two' => 'zwei',
             'three' => 'drei',
-            'four'  => 'vier'
+            'four' => 'vier',
         ]);
 
         $this->assertSame('eins', $collection->first());
@@ -25,10 +25,10 @@ class CollectionNavigatorTest extends TestCase
     public function testNth()
     {
         $collection = new Collection([
-            'one'   => 'eins',
-            'two'   => 'zwei',
+            'one' => 'eins',
+            'two' => 'zwei',
             'three' => 'drei',
-            'four'  => 'vier'
+            'four' => 'vier',
         ]);
 
         $this->assertSame('eins', $collection->nth(0));

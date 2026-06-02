@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Console\Doctrine;
 
@@ -12,11 +12,11 @@ abstract class BaseCollectionRelation extends BaseRelation
 
     public function getAdderMethodName(): string
     {
-        return 'add' . Str::asCamelCase(Str::pluralCamelCaseToSingular($this->getPropertyName()));
+        return 'add'.Str::asCamelCase(Str::pluralCamelCaseToSingular($this->getPropertyName()));
     }
 
     public function getRemoverMethodName(): string
     {
-        return 'remove' . Str::asCamelCase(Str::pluralCamelCaseToSingular($this->getPropertyName()));
+        return 'remove'.Str::asCamelCase(Str::pluralCamelCaseToSingular($this->getPropertyName()));
     }
 }

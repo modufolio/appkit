@@ -46,14 +46,13 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
  * }
  * ```
  *
- * @package   Appkit Core
  * @author    Maarten Thiebou
  * @copyright Modufolio
  * @license   https://opensource.org/licenses/MIT
  */
 abstract class Form
 {
-    private ValidatorInterface|null $validator = null;
+    private ?ValidatorInterface $validator = null;
 
     /**
      * Define validation rules.
@@ -66,6 +65,7 @@ abstract class Form
      * Validate the given data against the form rules.
      *
      * @param array<string, mixed> $data The data to validate
+     *
      * @return ValidationResult The validation result
      */
     public function validate(array $data): ValidationResult
@@ -83,7 +83,7 @@ abstract class Form
      */
     protected function getValidator(): ValidatorInterface
     {
-        if ($this->validator === null) {
+        if (null === $this->validator) {
             $this->validator = Validation::createValidator();
         }
 

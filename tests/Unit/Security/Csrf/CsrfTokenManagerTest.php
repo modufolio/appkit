@@ -55,7 +55,7 @@ class CsrfTokenManagerTest extends TestCase
     public function testGetTokenReturnsExistingToken(): void
     {
         $session = $this->createMockSession([
-            '_csrf_tokens' => ['login' => 'existing_token_value']
+            '_csrf_tokens' => ['login' => 'existing_token_value'],
         ]);
         $manager = new CsrfTokenManager($session);
 
@@ -67,7 +67,7 @@ class CsrfTokenManagerTest extends TestCase
     public function testRefreshTokenGeneratesNewValue(): void
     {
         $session = $this->createMockSession([
-            '_csrf_tokens' => ['login' => 'old_value']
+            '_csrf_tokens' => ['login' => 'old_value'],
         ]);
         $manager = new CsrfTokenManager($session);
 
@@ -80,7 +80,7 @@ class CsrfTokenManagerTest extends TestCase
     {
         $tokenValue = bin2hex(random_bytes(32));
         $session = $this->createMockSession([
-            '_csrf_tokens' => ['login' => $tokenValue]
+            '_csrf_tokens' => ['login' => $tokenValue],
         ]);
         $manager = new CsrfTokenManager($session);
 
@@ -93,7 +93,7 @@ class CsrfTokenManagerTest extends TestCase
     public function testIsTokenValidWithInvalidToken(): void
     {
         $session = $this->createMockSession([
-            '_csrf_tokens' => ['login' => 'correct_value']
+            '_csrf_tokens' => ['login' => 'correct_value'],
         ]);
         $manager = new CsrfTokenManager($session);
 
@@ -118,7 +118,7 @@ class CsrfTokenManagerTest extends TestCase
     {
         $tokenValue = bin2hex(random_bytes(32));
         $session = $this->createMockSession([
-            '_csrf_tokens' => ['login' => $tokenValue]
+            '_csrf_tokens' => ['login' => $tokenValue],
         ]);
         $manager = new CsrfTokenManager($session);
 
@@ -130,7 +130,7 @@ class CsrfTokenManagerTest extends TestCase
     public function testRemoveToken(): void
     {
         $session = $this->createMockSession([
-            '_csrf_tokens' => ['login' => 'value', 'logout' => 'value2']
+            '_csrf_tokens' => ['login' => 'value', 'logout' => 'value2'],
         ]);
         $manager = new CsrfTokenManager($session);
 
@@ -145,7 +145,7 @@ class CsrfTokenManagerTest extends TestCase
     public function testHasToken(): void
     {
         $session = $this->createMockSession([
-            '_csrf_tokens' => ['login' => 'value']
+            '_csrf_tokens' => ['login' => 'value'],
         ]);
         $manager = new CsrfTokenManager($session);
 
@@ -159,8 +159,8 @@ class CsrfTokenManagerTest extends TestCase
             '_csrf_tokens' => [
                 'login' => 'value1',
                 'logout' => 'value2',
-                'delete' => 'value3'
-            ]
+                'delete' => 'value3',
+            ],
         ]);
         $manager = new CsrfTokenManager($session);
 
@@ -177,8 +177,8 @@ class CsrfTokenManagerTest extends TestCase
         $session = $this->createMockSession([
             '_csrf_tokens' => [
                 'login' => 'value1',
-                'logout' => 'value2'
-            ]
+                'logout' => 'value2',
+            ],
         ]);
         $manager = new CsrfTokenManager($session);
 
@@ -215,12 +215,12 @@ class CsrfTokenManagerTest extends TestCase
     {
         $correctValue = bin2hex(random_bytes(32));
         $session = $this->createMockSession([
-            '_csrf_tokens' => ['test' => $correctValue]
+            '_csrf_tokens' => ['test' => $correctValue],
         ]);
         $manager = new CsrfTokenManager($session);
 
         // Create a token with similar but wrong value
-        $wrongValue = substr($correctValue, 0, -1) . 'x';
+        $wrongValue = substr($correctValue, 0, -1).'x';
         $token = new CsrfToken('test', $wrongValue);
 
         $this->assertFalse($manager->isTokenValid($token));

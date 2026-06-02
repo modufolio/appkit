@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Modufolio\Appkit\Security\BruteForce;
 
 /**
- * Redis-based brute force protection
+ * Redis-based brute force protection.
  *
  * This implementation uses Redis for storing failure attempts.
  * Redis provides atomic operations and automatic expiration.
@@ -22,18 +22,18 @@ class RedisBruteForceProtection implements BruteForceProtectionInterface
     private int $windowDuration; // seconds - time window for counting failures
 
     /**
-     * @param \Redis $redis Redis instance (already connected)
-     * @param string $keyPrefix Key prefix for Redis keys (default: 'bruteforce:')
-     * @param int $maxAttempts Maximum failed attempts before lockout (default: 5)
-     * @param int $lockoutDuration Lockout duration in seconds (default: 900 = 15 minutes)
-     * @param int $windowDuration Time window for counting failures in seconds (default: 300 = 5 minutes)
+     * @param \Redis $redis           Redis instance (already connected)
+     * @param string $keyPrefix       Key prefix for Redis keys (default: 'bruteforce:')
+     * @param int    $maxAttempts     Maximum failed attempts before lockout (default: 5)
+     * @param int    $lockoutDuration Lockout duration in seconds (default: 900 = 15 minutes)
+     * @param int    $windowDuration  Time window for counting failures in seconds (default: 300 = 5 minutes)
      */
     public function __construct(
         \Redis $redis,
         string $keyPrefix = 'bruteforce:',
         int $maxAttempts = 5,
         int $lockoutDuration = 900,
-        int $windowDuration = 300
+        int $windowDuration = 300,
     ) {
         $this->redis = $redis;
         $this->keyPrefix = $keyPrefix;
@@ -45,7 +45,7 @@ class RedisBruteForceProtection implements BruteForceProtectionInterface
         try {
             $this->redis->ping();
         } catch (\RedisException $e) {
-            throw new \RuntimeException('Redis connection failed: ' . $e->getMessage(), 0, $e);
+            throw new \RuntimeException('Redis connection failed: '.$e->getMessage(), 0, $e);
         }
     }
 
@@ -59,21 +59,21 @@ class RedisBruteForceProtection implements BruteForceProtectionInterface
 
         // Add failure timestamp to sorted set (score = timestamp)
         // This allows us to query by time range
-        $this->redis->zAdd($failuresKey, $now, (string)$now);
+        $this->redis->zAdd($failuresKey, $now, (string) $now);
 
         // Remove old failures outside the window
         $cutoff = $now - $this->windowDuration;
-        $this->redis->zRemRangeByScore($failuresKey, '-inf', (string)$cutoff);
+        $this->redis->zRemRangeByScore($failuresKey, '-inf', (string) $cutoff);
 
         // Set expiration on failures key to auto-cleanup
         $this->redis->expire($failuresKey, $this->windowDuration);
 
         // Count failures in the current window
-        $failureCount = (int) $this->redis->zCount($failuresKey, (string)$cutoff, '+inf');
+        $failureCount = (int) $this->redis->zCount($failuresKey, (string) $cutoff, '+inf');
 
         // If we've exceeded max attempts, set lockout
         if ($failureCount >= $this->maxAttempts) {
-            $this->redis->setex($lockKey, $this->lockoutDuration, (string)($now + $this->lockoutDuration));
+            $this->redis->setex($lockKey, $this->lockoutDuration, (string) ($now + $this->lockoutDuration));
         }
     }
 
@@ -101,9 +101,9 @@ class RedisBruteForceProtection implements BruteForceProtectionInterface
         $cutoff = $now - $this->windowDuration;
 
         // Count failures within the window using sorted set score range
-        $count = $this->redis->zCount($failuresKey, (string)$cutoff, '+inf');
+        $count = $this->redis->zCount($failuresKey, (string) $cutoff, '+inf');
 
-        return (int)$count;
+        return (int) $count;
     }
 
     public function getRemainingLockoutTime(string $identifier, ?string $ipAddress = null): int
@@ -113,11 +113,11 @@ class RedisBruteForceProtection implements BruteForceProtectionInterface
 
         $lockedUntil = $this->redis->get($lockKey);
 
-        if ($lockedUntil === false) {
+        if (false === $lockedUntil) {
             return 0;
         }
 
-        $remaining = (int)$lockedUntil - time();
+        $remaining = (int) $lockedUntil - time();
 
         return max(0, $remaining);
     }
@@ -133,47 +133,47 @@ class RedisBruteForceProtection implements BruteForceProtectionInterface
     }
 
     /**
-     * Generate a safe key from identifier and IP
+     * Generate a safe key from identifier and IP.
      */
     private function generateKey(string $identifier, ?string $ipAddress = null): string
     {
         $combined = $identifier;
-        if ($ipAddress !== null) {
-            $combined .= ':' . $ipAddress;
+        if (null !== $ipAddress) {
+            $combined .= ':'.$ipAddress;
         }
 
         return hash('sha256', $combined);
     }
 
     /**
-     * Get the Redis key for lockout status
+     * Get the Redis key for lockout status.
      */
     private function getLockKey(string $key): string
     {
-        return $this->keyPrefix . 'lock:' . $key;
+        return $this->keyPrefix.'lock:'.$key;
     }
 
     /**
-     * Get the Redis key for failures sorted set
+     * Get the Redis key for failures sorted set.
      */
     private function getFailuresKey(string $key): string
     {
-        return $this->keyPrefix . 'failures:' . $key;
+        return $this->keyPrefix.'failures:'.$key;
     }
 
     /**
-     * Factory method to create from DSN string
+     * Factory method to create from DSN string.
      *
      * Example: redis://localhost:6379/0
      * Example: redis://password@localhost:6379/1
      * Example: redis:///var/run/redis.sock
      *
-     * @param string $dsn Redis connection DSN
-     * @param string $keyPrefix Key prefix for Redis keys
-     * @param int $maxAttempts Maximum failed attempts
-     * @param int $lockoutDuration Lockout duration in seconds
-     * @param int $windowDuration Window duration in seconds
-     * @return self
+     * @param string $dsn             Redis connection DSN
+     * @param string $keyPrefix       Key prefix for Redis keys
+     * @param int    $maxAttempts     Maximum failed attempts
+     * @param int    $lockoutDuration Lockout duration in seconds
+     * @param int    $windowDuration  Window duration in seconds
+     *
      * @throws \RuntimeException If Redis extension is not available or connection fails
      */
     public static function fromDsn(
@@ -181,7 +181,7 @@ class RedisBruteForceProtection implements BruteForceProtectionInterface
         string $keyPrefix = 'bruteforce:',
         int $maxAttempts = 5,
         int $lockoutDuration = 900,
-        int $windowDuration = 300
+        int $windowDuration = 300,
     ): self {
         if (!extension_loaded('redis')) {
             throw new \RuntimeException('Redis extension (phpredis) is not installed. Install it or use FileBruteForceProtection instead.');
@@ -191,12 +191,12 @@ class RedisBruteForceProtection implements BruteForceProtectionInterface
 
         // Parse DSN
         $parsed = parse_url($dsn);
-        if ($parsed === false) {
+        if (false === $parsed) {
             throw new \RuntimeException('Invalid Redis DSN format');
         }
 
         $scheme = $parsed['scheme'] ?? 'redis';
-        if ($scheme !== 'redis') {
+        if ('redis' !== $scheme) {
             throw new \RuntimeException('Only redis:// scheme is supported');
         }
 
@@ -204,7 +204,7 @@ class RedisBruteForceProtection implements BruteForceProtectionInterface
         if (isset($parsed['path']) && !isset($parsed['host'])) {
             $socket = $parsed['path'];
             if (!$redis->connect($socket)) {
-                throw new \RuntimeException('Failed to connect to Redis via socket: ' . $socket);
+                throw new \RuntimeException('Failed to connect to Redis via socket: '.$socket);
             }
         } else {
             // TCP connection
@@ -220,16 +220,16 @@ class RedisBruteForceProtection implements BruteForceProtectionInterface
         // Authenticate if password provided
         if (isset($parsed['pass']) || isset($parsed['user'])) {
             $password = $parsed['pass'] ?? null;
-            if ($password !== null && !$redis->auth($password)) {
+            if (null !== $password && !$redis->auth($password)) {
                 throw new \RuntimeException('Redis authentication failed');
             }
         }
 
         // Select database if specified in path
         if (isset($parsed['path']) && isset($parsed['host'])) {
-            $db = (int)ltrim($parsed['path'], '/');
+            $db = (int) ltrim($parsed['path'], '/');
             if (!$redis->select($db)) {
-                throw new \RuntimeException('Failed to select Redis database: ' . $db);
+                throw new \RuntimeException('Failed to select Redis database: '.$db);
             }
         }
 

@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Routing\Loader;
 
@@ -21,7 +21,7 @@ class FlatFileRouteLoader extends Loader
         '.svn',
         '.htaccess',
         'Thumb.db',
-        '@eaDir'
+        '@eaDir',
     ];
 
     public function __construct(
@@ -53,28 +53,28 @@ class FlatFileRouteLoader extends Loader
         natsort($items);
 
         foreach ($items as $item) {
-            $root = $dir . '/' . $item;
+            $root = $dir.'/'.$item;
             if (!is_dir($root)) {
                 continue;
             }
 
             // Strip numeric prefix for slug
-            $slug = preg_replace('/^\d+' . preg_quote('_', '/') . '/', '', $item);
-            $urlPath = $parentPath ? $parentPath . '/' . $slug : $slug;
+            $slug = preg_replace('/^\d+'.preg_quote('_', '/').'/', '', $item);
+            $urlPath = $parentPath ? $parentPath.'/'.$slug : $slug;
             $urlPath = $urlPath === $this->homeFolder ? '' : $urlPath;
 
             // Find any .txt content file in the folder
-            $contentFiles = glob($root . '/*.' . $this->fileExtension);
+            $contentFiles = glob($root.'/*.'.$this->fileExtension);
             foreach ($contentFiles as $contentFilePath) {
-                $contentFileName = basename($contentFilePath, '.' . $this->fileExtension);
+                $contentFileName = basename($contentFilePath, '.'.$this->fileExtension);
 
-                $routePath = '/' . $urlPath;
+                $routePath = '/'.$urlPath;
                 $routeName = str_replace('/', '_', $urlPath) ?: 'home';
                 $defaults = [
                     '_controller' => [$this->controllerClass, 'handle'],
                     'contentFile' => $contentFilePath,
                     'templateName' => $contentFileName,
-                    'parent' => $parentPath !== '' ? $parentPath : null
+                    'parent' => '' !== $parentPath ? $parentPath : null,
                 ];
                 $collection->add(
                     $routeName,
@@ -94,6 +94,6 @@ class FlatFileRouteLoader extends Loader
 
     public function supports($resource, ?string $type = null): bool
     {
-        return $type === 'flat_file';
+        return 'flat_file' === $type;
     }
 }
