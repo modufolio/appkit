@@ -1,6 +1,6 @@
 {
     "name": "modufolio/appkit",
-    "description": "",
+    "description": "A lean PHP framework built on Symfony components and Doctrine ORM, with hand-wired DI, attribute routing, and first-class Inertia.js support",
     "type": "library",
     "license": "MIT",
     "authors": [
