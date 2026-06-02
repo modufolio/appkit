@@ -50,7 +50,7 @@
         "endroid/qr-code": "6.0.9",
         "symfony/var-exporter": "^7.4",
         "modufolio/http": "dev-main",
-        "symfony/clock": "^8.1"
+        "symfony/clock": "^7.4"
     },
     "require-dev": {
         "phpunit/phpunit": "^10.5 || ^11",
