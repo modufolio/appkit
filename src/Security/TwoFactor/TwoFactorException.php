@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Modufolio\Appkit\Security\TwoFactor;
 
-use Modufolio\Appkit\Exception\AppkitException;
+use Modufolio\Appkit\Security\Exception\RuntimeException;
 
 /**
  * Exception for Two-Factor Authentication errors
  *
  * Wraps 2FA-specific errors for proper exception handling
  */
-class TwoFactorException extends AppkitException
+class TwoFactorException extends RuntimeException
 {
     /**
      * Too many failed 2FA attempts

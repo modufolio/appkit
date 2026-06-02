@@ -17,10 +17,12 @@ use Modufolio\Appkit\Tests\Case\AppTestCase;
 use Modufolio\Appkit\Tests\Traits\DatabaseTestingCapabilities;
 use Doctrine\DBAL\Schema\Schema;
 use OTPHP\TOTP;
+use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;
 
 class TwoFactorControllerTest extends AppTestCase
 {
+    use ClockSensitiveTrait;
     use DatabaseTestingCapabilities {
         loadFixtures as loadDatabaseFixtures;
     }
@@ -305,13 +307,16 @@ class TwoFactorControllerTest extends AppTestCase
 
     public function testTwoFactorPostWithValidCodeCompletesAuthentication(): void
     {
+        // Freeze time so the replay guard's step accounting is deterministic.
+        $clock = self::mockTime('2024-01-01 00:00:00');
+
         $user = $this->loadUserFromFixture();
 
         // Enable 2FA for the user directly via the service
         $totpService = $this->app()->totpService();
         $secret = $totpService->generateSecret($user);
-        $code = $this->generateValidCode($secret->getSecret());
-        $totpService->enableTwoFactor($secret, $code);
+        $totp = TOTP::createFromSecret($secret->getSecret());
+        $totpService->enableTwoFactor($secret, $totp->at($clock->now()->getTimestamp()));
 
         // Seed a fresh 2FA token in session
         $this->seedTwoFactorToken($user);
@@ -320,12 +325,14 @@ class TwoFactorControllerTest extends AppTestCase
         $getResponse = $this->get('/2fa');
         $csrfToken = $getResponse->jsonData()['csrf_token'];
 
-        // Generate a fresh valid TOTP code
-        $freshCode = $this->generateValidCode($secret->getSecret());
+        // The enable step was consumed by the replay guard, so advance the clock
+        // one TOTP period: the login code now lands on a later, unconsumed step.
+        $clock->sleep($totp->getPeriod());
+        $loginCode = $totp->at($clock->now()->getTimestamp());
 
         $response = $this->request('POST', '/2fa', [
             '_csrf_token' => $csrfToken,
-            'totp_code' => $freshCode,
+            'totp_code' => $loginCode,
         ], null, ['Content-Type' => 'application/x-www-form-urlencoded']);
 
         $response->assertRedirect('/');

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modufolio\Appkit\Template;
 
+use Modufolio\Appkit\Toolkit\Str;
 use Psr\Http\Message\ServerRequestInterface;
 
 /**
@@ -136,17 +137,77 @@ class Template implements \Stringable
      */
     protected function resolveFile(string $name, array $paths): string
     {
-        foreach ($paths as $path) {
-            $file = "{$path}/{$name}.php";
-            if (file_exists($file)) {
-                return $file;
-            }
+        $file = $this->secureResolve($name, $paths);
+
+        if ($file !== null) {
+            return $file;
         }
 
         $searchedPaths = implode(', ', $paths);
         throw new \RuntimeException(
             "Template '{$name}.php' not found in: {$searchedPaths}"
         );
+    }
+
+    /**
+     * Securely resolve a template/snippet/layout name to a file inside one of
+     * the configured roots.
+     *
+     * @return string|null Absolute path on success, null if not found or unsafe
+     */
+    protected function secureResolve(string $name, array $paths): ?string
+    {
+        if ($this->isUnsafeName($name)) {
+            return null;
+        }
+
+        foreach ($paths as $path) {
+            $root = realpath($path);
+            if ($root === false) {
+                continue;
+            }
+
+            $real = realpath($path . '/' . $name . '.php');
+            if (
+                $real !== false &&
+                is_file($real) &&
+                str_starts_with($real, rtrim($root, '/\\') . DIRECTORY_SEPARATOR)
+            ) {
+                return $real;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Whether a template/snippet name is unsafe to resolve. Subdirectories are
+     * allowed (e.g. "errors/default"), but traversal, absolute paths, backslashes
+     * and null bytes are rejected outright.
+     */
+    protected function isUnsafeName(string $name): bool
+    {
+        return $name === ''
+            || str_contains($name, "\0")
+            || str_contains($name, '\\')
+            || str_contains($name, '..')
+            || str_starts_with($name, '/');
+    }
+
+    /**
+     * Context-aware output escaping helper for templates (XSS protection).
+     *
+     * Usage inside a template:
+     *   <?= $this->esc($user->name) ?>            // HTML text (default)
+     *   <input value="<?= $this->esc($q, 'attr') ?>">
+     *   <script>var t = "<?= $this->esc($t, 'js') ?>";</script>
+     *
+     * @param string|null $string  The untrusted value (null becomes '')
+     * @param string      $context One of: html, attr, js, css, url
+     */
+    public function esc(?string $string, string $context = 'html'): string
+    {
+        return Str::esc((string) $string, $context);
     }
 
     /**
@@ -288,10 +349,12 @@ class Template implements \Stringable
      */
     public function snippet(string $name, array $data = []): ?string
     {
-        // Use snippet paths from constructor, fallback to BASE_DIR/site/snippets
+        // Use snippet paths from constructor, fallback to BASE_DIR/site/snippets.
+        // Guard the BASE_DIR constant so a misconfigured app fails as a clean
+        // "snippet not found" rather than a fatal undefined-constant error (TPL4).
         $snippetPaths = !empty($this->templatePaths)
             ? array_map(fn($p) => str_replace('/templates', '/snippets', $p), $this->templatePaths)
-            : [BASE_DIR . '/site/snippets'];
+            : (defined('BASE_DIR') ? [BASE_DIR . '/site/snippets'] : []);
 
         // Clone this template instance to prevent state pollution
         $snippetContext = clone $this;
@@ -307,20 +370,20 @@ class Template implements \Stringable
      */
     protected function renderSnippet(string $name, array $snippetPaths): ?string
     {
-        foreach ($snippetPaths as $path) {
-            $file = "{$path}/{$name}.php";
-            if (file_exists($file)) {
-                ob_start();
+        // Resolve with the same traversal/containment guards as templates (TPL1).
+        $file = $this->secureResolve($name, $snippetPaths);
 
-                // Extract user data, but skip if it would overwrite existing variables
-                // Protects internal variables from being overwritten by snippet data
-                extract($this->data, EXTR_SKIP);
+        if ($file !== null) {
+            ob_start();
 
-                // Include in this context so $this is available in the snippet
-                include $file;
+            // Extract user data, but skip if it would overwrite existing variables
+            // Protects internal variables from being overwritten by snippet data
+            extract($this->data, EXTR_SKIP);
 
-                return ob_get_clean();
-            }
+            // Include in this context so $this is available in the snippet
+            include $file;
+
+            return ob_get_clean();
         }
 
         throw new \RuntimeException(

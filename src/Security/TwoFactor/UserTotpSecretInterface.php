@@ -79,6 +79,26 @@ interface UserTotpSecretInterface extends TwoFactorSecret
     public function resetFailedAttempts(): void;
 
     /**
+     * Get the time-step (counter) of the last accepted TOTP code (replay guard)
+     */
+    public function getLastUsedCounter(): ?int;
+
+    /**
+     * Set the time-step (counter) of the last accepted TOTP code
+     */
+    public function setLastUsedCounter(?int $counter): void;
+
+    /**
+     * Get the lockout expiry instant, or null when not locked
+     */
+    public function getLockedUntil(): ?\DateTimeImmutable;
+
+    /**
+     * Set (or clear with null) the lockout expiry instant
+     */
+    public function setLockedUntil(?\DateTimeImmutable $lockedUntil): void;
+
+    /**
      * Check if backup code exists
      */
     public function hasBackupCode(string $code): bool;

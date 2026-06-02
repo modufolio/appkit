@@ -208,7 +208,25 @@ abstract class AppTestCase extends BaseTestCase
             if ($sessionId) {
                 $headers['Cookie'] = 'PHPSESSID=' . $sessionId;
             }
-        } else {
+        }
+
+        // Mirror a real browser/XHR client: attach a CSRF token on authenticated,
+        // state-changing requests so the firewall's CSRF guard (enforced on the
+        // restored-session path) is satisfied. Tests that supply their own token,
+        // or exercise the unauthenticated/login flow, are left untouched.
+        $state = $this->app()->getState();
+        $isAuthenticated = $state
+            && $state->hasSession()
+            && $this->app()->tokenStorage()->getToken() !== null;
+        $alreadyHasCsrf = isset($headers['X-CSRF-Token'])
+            || isset($headers['X-XSRF-Token'])
+            || array_key_exists('_csrf_token', $data);
+
+        if ($hasBody && $isAuthenticated && !$alreadyHasCsrf) {
+            $headers['X-CSRF-Token'] = $this->app()
+                ->csrfTokenManager()
+                ->getToken('csrf')
+                ->getValue();
         }
 
         // Add headers to server params following CGI convention

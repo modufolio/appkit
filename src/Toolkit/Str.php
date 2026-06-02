@@ -447,6 +447,35 @@ class Str
     }
 
     /**
+     * Context-aware output escaping (XSS protection).
+     *
+     * Delegates to {@see Escape}, which wraps laminas/laminas-escaper. Pick the
+     * context that matches where the value is printed in the output:
+     *
+     *   Str::esc($value)            // HTML element text (default)
+     *   Str::esc($value, 'attr')    // quoted HTML attribute value
+     *   Str::esc($value, 'js')      // JavaScript string literal
+     *   Str::esc($value, 'css')     // CSS value
+     *   Str::esc($value, 'url')     // URL query component
+     *
+     * An unknown context returns the string unchanged, so always pass a valid one.
+     *
+     * @param string $string  The untrusted value
+     * @param string $context One of: html, attr, js, css, url
+     */
+    public static function esc(string $string, string $context = 'html'): string
+    {
+        return match ($context) {
+            'html'         => Escape::html($string),
+            'attr', 'html_attr', 'htmlAttr' => Escape::attr($string),
+            'js'           => Escape::js($string),
+            'css'          => Escape::css($string),
+            'url'          => Escape::url($string),
+            default        => $string,
+        };
+    }
+
+    /**
      * Checks if a string ends with the passed needle
      *
      * @param string $string

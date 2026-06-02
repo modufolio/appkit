@@ -70,6 +70,31 @@ interface TwoFactorSecret
     public function getFailedAttempts(): int;
 
     /**
+     * Get the TOTP time-step (counter) of the last code that was successfully
+     * accepted, or null if none has been accepted yet.
+     *
+     * Persisting this enables replay protection: a code is accepted at most once
+     * because any later code whose step is <= this value is rejected.
+     */
+    public function getLastUsedCounter(): ?int;
+
+    /**
+     * Store the time-step (counter) of the last accepted code.
+     */
+    public function setLastUsedCounter(?int $counter): void;
+
+    /**
+     * Get the instant until which further verification attempts are locked out
+     * (after too many failures), or null when not locked.
+     */
+    public function getLockedUntil(): ?DateTimeImmutable;
+
+    /**
+     * Set (or clear, with null) the lockout expiry.
+     */
+    public function setLockedUntil(?DateTimeImmutable $lockedUntil): void;
+
+    /**
      * Check if a backup code exists
      */
     public function hasBackupCode(string $code): bool;

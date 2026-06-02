@@ -68,9 +68,17 @@ class Controller
             return null;
         }
 
-        // Restrict file paths to the provided root to prevent path traversal
-        if ($in !== null && !str_starts_with(realpath($file), realpath($in))) {
-            return null;
+        if ($in !== null) {
+            $root = realpath($in);
+            $real = realpath($file);
+
+            if (
+                $root === false ||
+                $real === false ||
+                !str_starts_with($real, rtrim($root, '/\\') . DIRECTORY_SEPARATOR)
+            ) {
+                return null;
+            }
         }
 
         $function = require $file;

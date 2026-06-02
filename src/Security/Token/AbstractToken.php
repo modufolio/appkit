@@ -7,7 +7,7 @@ namespace Modufolio\Appkit\Security\Token;
 use Modufolio\Appkit\Security\User\InMemoryUser;
 use Modufolio\Appkit\Security\User\UserInterface;
 
-abstract class AbstractToken implements TokenInterface, \Serializable
+abstract class AbstractToken implements TokenInterface
 {
     private ?UserInterface $user = null;
     private array $roleNames = [];
@@ -113,15 +113,5 @@ abstract class AbstractToken implements TokenInterface, \Serializable
         }
 
         return sprintf('%s(user="%s", roles="%s")', $class, $this->getUserIdentifier(), implode(', ', $roles));
-    }
-
-    final public function serialize(): string
-    {
-        throw new \BadMethodCallException('Cannot serialize ' . __CLASS__);
-    }
-
-    final public function unserialize(string $serialized): void
-    {
-        $this->__unserialize(unserialize($serialized));
     }
 }

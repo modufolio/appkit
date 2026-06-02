@@ -376,10 +376,8 @@ class F
      */
     protected static function loadIsolated(string $file, array $data = [])
     {
-        // extract the $data variables in this scope to be accessed by the included file;
-        // protect $file against being overwritten by a $data variable
         $___file___ = $file;
-        extract($data);
+        extract($data, EXTR_SKIP);
 
         return include $___file___;
     }
@@ -606,7 +604,10 @@ class F
                 throw new Exception(sprintf('The parent directory does not exist: "%s"', $in));
             }
 
-            if (!str_starts_with($realpath, $parent)) {
+            // Compare against the parent WITH a trailing separator so a sibling
+            // directory that merely shares a name prefix (e.g. "/srv/templates"
+            // vs "/srv/templates-private") cannot pass containment checks
+            if (!str_starts_with($realpath, rtrim($parent, '/\\') . DIRECTORY_SEPARATOR)) {
                 throw new Exception('The file is not within the parent directory');
             }
         }

@@ -4,7 +4,6 @@ declare(strict_types = 1);
 
 namespace Modufolio\Appkit\Toolkit;
 
-use Exception;
 use SimpleXMLElement;
 
 /**
@@ -208,18 +207,38 @@ class Mime
      *
      * @param string $file
      * @return string|false
-     * @throws Exception
      */
     public static function fromSvg(string $file): false|string
     {
-        if (file_exists($file) === true) {
-            libxml_use_internal_errors(true);
+        if (is_file($file) === false) {
+            return false;
+        }
 
-            $svg = new SimpleXMLElement(file_get_contents($file));
+        // Cap how much we read — SVGs are text and we only need the root
+        // element; this avoids slurping a huge crafted file into memory (T3).
+        $contents = file_get_contents($file, false, null, 0, 1024 * 1024);
 
-            if ($svg !== false && $svg->getName() === 'svg') {
-                return 'image/svg+xml';
-            }
+        if ($contents === false || $contents === '') {
+            return false;
+        }
+
+        // Suppress libxml warnings and parse without network access.
+        // simplexml_load_string() returns false on malformed input instead of
+        // throwing — unlike the SimpleXMLElement constructor, which raised an
+        // uncaught exception on attacker-supplied broken XML (audit T3).
+        // LIBXML_NONET blocks external entity/DTD fetches; LIBXML_NOENT is NOT
+        // set, so entities are never expanded (audit T7).
+        $previous = libxml_use_internal_errors(true);
+
+        try {
+            $svg = simplexml_load_string($contents, SimpleXMLElement::class, LIBXML_NONET);
+        } finally {
+            libxml_clear_errors();
+            libxml_use_internal_errors($previous);
+        }
+
+        if ($svg !== false && $svg->getName() === 'svg') {
+            return 'image/svg+xml';
         }
 
         return false;

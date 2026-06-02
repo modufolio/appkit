@@ -5,6 +5,7 @@ declare(strict_types = 1);
 namespace Modufolio\Appkit\Core;
 
 use Modufolio\Appkit\Exception\NotFoundException;
+use Modufolio\Appkit\Security\Csrf\CsrfTokenManagerInterface;
 use Modufolio\Appkit\Security\Exception\AuthenticationException;
 use Modufolio\Appkit\Security\Exception\TwoFactorRequiredException;
 use Modufolio\Appkit\Security\Exception\UnsupportedUserException;
@@ -84,6 +85,14 @@ trait AppSecurity
                 return $this->logout($firewallName);
             }
             $this->tokenStorage()->setToken($token);
+
+            // CSRF protection for cookie/session-authenticated state changes.
+            // Reached only on the restored-session path, so stateless firewalls
+            // (REST APIs, GraphQL with bearer/API-key auth) are never checked.
+            if ($csrfFailure = $this->enforceCsrf($request, $config)) {
+                return $csrfFailure;
+            }
+
             return $this->controllerResolver($request);
         }
 
@@ -119,7 +128,7 @@ trait AppSecurity
                 // data, so any pre-auth CSRF tokens that may have leaked
                 // (referrer logs, shared-machine browser history) would otherwise
                 // remain valid after authentication.
-                $this->get(\Modufolio\Appkit\Security\Csrf\CsrfTokenManagerInterface::class)->clear();
+                $this->get(CsrfTokenManagerInterface::class)->clear();
 
                 $session->save();
             }
@@ -198,12 +207,89 @@ trait AppSecurity
         $body = $request->getParsedBody();
         $submitted = is_array($body) ? ($body['_csrf_token'] ?? null) : null;
 
-        $manager = $this->get(\Modufolio\Appkit\Security\Csrf\CsrfTokenManagerInterface::class);
-        assert($manager instanceof \Modufolio\Appkit\Security\Csrf\CsrfTokenManagerInterface);
+        $manager = $this->get(CsrfTokenManagerInterface::class);
+        assert($manager instanceof CsrfTokenManagerInterface);
 
         if (!is_string($submitted) || !$manager->validateToken('logout', $submitted)) {
             throw new AuthenticationException('Invalid CSRF token for logout.');
         }
+    }
+
+    /**
+     * CSRF protection for session-authenticated, state-changing requests.
+     *
+     * Why this is safe for APIs: it runs only on the restored-session path of
+     * handleAuthentication(), which stateless firewalls never reach. REST and
+     * GraphQL endpoints configured as `stateless` authenticate with a bearer
+     * token or API key — credentials the browser does NOT attach automatically —
+     * so they cannot be driven cross-site and require no CSRF token.
+     *
+     * Safe HTTP methods (GET/HEAD/OPTIONS/TRACE) are never checked.
+     *
+     * Per-firewall configuration:
+     *   'csrf'          => false   // disable CSRF entirely for this firewall
+     *   'csrf_token_id' => 'csrf'  // session token id to validate against
+     *
+     * The token may be supplied as the `_csrf_token` body field or via an
+     * `X-CSRF-Token` / `X-XSRF-Token` request header (for fetch/XHR clients).
+     * Templates obtain it with `$csrfTokenManager->getToken('csrf')`.
+     *
+     * @return ResponseInterface|null A 403 response when the token is missing or
+     *                                invalid, or null when the request may proceed.
+     * @throws \JsonException
+     */
+    private function enforceCsrf(ServerRequestInterface $request, array $config): ?ResponseInterface
+    {
+        if (($config['csrf'] ?? true) === false) {
+            return null;
+        }
+
+        $method = strtoupper($request->getMethod());
+        if (in_array($method, ['GET', 'HEAD', 'OPTIONS', 'TRACE'], true)) {
+            return null;
+        }
+
+        // The login entry point validates its own CSRF token (a different id)
+        // inside the authenticator, so don't double-check it here.
+        if (isset($config['entry_point']) && $request->getUri()->getPath() === $config['entry_point']) {
+            return null;
+        }
+
+        $manager = $this->get(CsrfTokenManagerInterface::class);
+        assert($manager instanceof CsrfTokenManagerInterface);
+
+        $tokenId   = $config['csrf_token_id'] ?? 'csrf';
+        $submitted = $this->extractCsrfToken($request);
+
+        if (is_string($submitted) && $manager->validateToken($tokenId, $submitted)) {
+            return null;
+        }
+
+        return Response::json([
+            'error'             => 'invalid_csrf_token',
+            'error_description' => 'Missing or invalid CSRF token.',
+        ], 403);
+    }
+
+    /**
+     * Read the submitted CSRF token from the request, preferring headers
+     * (fetch/XHR) and falling back to the `_csrf_token` body field (forms).
+     */
+    private function extractCsrfToken(ServerRequestInterface $request): ?string
+    {
+        foreach (['X-CSRF-Token', 'X-XSRF-Token'] as $header) {
+            if ($request->hasHeader($header)) {
+                $value = trim($request->getHeaderLine($header));
+                if ($value !== '') {
+                    return $value;
+                }
+            }
+        }
+
+        $body  = $request->getParsedBody();
+        $value = is_array($body) ? ($body['_csrf_token'] ?? null) : null;
+
+        return is_string($value) ? $value : null;
     }
 
     /**
@@ -405,7 +491,14 @@ trait AppSecurity
         if (!isset($pattern[0]) || $pattern[0] !== '/') {
             $pattern = '/' . ltrim($pattern, '/');
         }
-        return str_starts_with($path, $pattern);
+
+        // Match on full path segments, not a bare string prefix (audit L4):
+        // a rule for "/admin" must NOT match "/administrator". The path either
+        // equals the pattern exactly, or continues with a "/" after it.
+        $normalized = rtrim($pattern, '/');
+
+        return $path === $normalized
+            || str_starts_with($path, $normalized . '/');
     }
 
     /**

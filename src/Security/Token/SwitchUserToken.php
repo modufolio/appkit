@@ -73,7 +73,6 @@ class SwitchUserToken extends AbstractToken
     public function __unserialize(array $data): void
     {
         [$this->firewallName, $this->originalToken, $parentData] = $data;
-        $parentData = \is_array($parentData) ? $parentData : unserialize($parentData);
         parent::__unserialize($parentData);
     }
 }

@@ -37,11 +37,18 @@ final class NativeApplicationState extends AbstractApplicationState
         $cookies = $this->request->getCookieParams();
         $requestSessionId = $cookies[$this->sessionCookieName] ?? null;
 
-        // Create native storage with automatic cookie handling
+        // Create native storage with automatic cookie handling.
+        $cookieSecure = filter_var(
+            $_ENV['COOKIE_SECURE'] ?? $_SERVER['COOKIE_SECURE'] ?? getenv('COOKIE_SECURE') ?: false,
+            FILTER_VALIDATE_BOOL
+        );
+
         $this->sessionStorage = new NativeSessionStorage([
             'save_path' => $this->baseDir . '/var/sessions',
             'cookie_httponly' => true,
             'cookie_samesite' => 'Lax',
+            'cookie_secure' => $cookieSecure,
+            'use_strict_mode' => 1,
         ], $handler);
 
         $this->session = new Session($this->sessionStorage);

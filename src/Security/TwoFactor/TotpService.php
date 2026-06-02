@@ -12,6 +12,7 @@ use Endroid\QrCode\RoundBlockSizeMode;
 use Endroid\QrCode\Writer\PngWriter;
 use Modufolio\Appkit\Security\User\UserInterface;
 use OTPHP\TOTP;
+use Psr\Clock\ClockInterface;
 
 /**
  * TOTP Service for Two-Factor Authentication
@@ -24,10 +25,20 @@ class TotpService implements TwoFactorServiceInterface
     private const BACKUP_CODES_COUNT = 10;
     private const BACKUP_CODE_LENGTH = 8;
 
+    /** Failed attempts before a temporary lockout kicks in. */
+    private const MAX_FAILED_ATTEMPTS = 5;
+
+    /** How long the lockout lasts once the threshold is hit (seconds). */
+    private const LOCKOUT_SECONDS = 900; // 15 minutes
+
+    /** Clock-drift tolerance, in TOTP time-steps, accepted either side of "now". */
+    private const LEEWAY_PERIODS = 1;
+
     public function __construct(
         private EntityManagerInterface $entityManager,
         private UserTotpSecretRepositoryInterface $totpSecretRepository,
         private string $twoFactorEntityClass,
+        private ClockInterface $clock,
         private string $issuer = 'Appkit',
     ) {
     }
@@ -105,31 +116,110 @@ class TotpService implements TwoFactorServiceInterface
 
 
     /**
-     * Verify a TOTP code
+     * Verify a TOTP code.
+     *
+     * @throws TwoFactorException When currently locked out
      */
     public function verifyCode(TwoFactorSecret $totpSecret, string $code): bool
     {
-        // Check for too many failed attempts
-        if ($totpSecret->getFailedAttempts() >= 5) {
-            throw new \RuntimeException('Too many failed attempts. Please wait 15 minutes before trying again.');
-        }
+        $now = $this->clock->now()->getTimestamp();
 
+        // Reject (or clear an expired) lockout before doing any work.
+        $this->guardLockout($totpSecret, $now);
+
+        $code = trim($code);
         $totp = TOTP::createFromSecret($totpSecret->getSecret());
 
-        // Allow 1 period (30 seconds) of leeway for time drift
-        if ($totp->verify($code, null, 1)) {
+        $matchedStep = $this->matchStep($totp, $code, $now);
+
+        if ($matchedStep !== null) {
+            $lastStep = $totpSecret->getLastUsedCounter();
+
+            // Replay: the code is cryptographically valid but its step was already
+            // consumed. Reject without counting it as a brute-force failure so a
+            // benign double-submit doesn't push the user toward a lockout.
+            if ($lastStep !== null && $matchedStep <= $lastStep) {
+                return false;
+            }
+
+            $totpSecret->setLastUsedCounter($matchedStep);
             $totpSecret->resetFailedAttempts();
-            $totpSecret->setLastUsedAt(new \DateTimeImmutable());
+            $totpSecret->setLockedUntil(null);
+            $totpSecret->setLastUsedAt(new \DateTimeImmutable('@' . $now));
             $this->entityManager->flush();
 
             return true;
         }
 
-        // Increment failed attempts
-        $totpSecret->incrementFailedAttempts();
+        // Invalid code — record the failure (and lock out at the threshold).
+        $this->registerFailure($totpSecret, $now);
         $this->entityManager->flush();
 
         return false;
+    }
+
+    /**
+     * Clear an expired lockout, or throw if the secret is still locked.
+     *
+     * @throws TwoFactorException
+     */
+    private function guardLockout(TwoFactorSecret $totpSecret, int $now): void
+    {
+        $lockedUntil = $totpSecret->getLockedUntil();
+
+        if ($lockedUntil === null) {
+            return;
+        }
+
+        if ($lockedUntil->getTimestamp() > $now) {
+            throw new TwoFactorException(sprintf(
+                'Too many failed attempts. Please try again in %d seconds.',
+                $lockedUntil->getTimestamp() - $now,
+            ));
+        }
+
+        // Lockout window has elapsed — reset so the user can try again.
+        $totpSecret->setLockedUntil(null);
+        $totpSecret->resetFailedAttempts();
+    }
+
+    /**
+     * Count a failed attempt and start a lockout once the threshold is reached.
+     */
+    private function registerFailure(TwoFactorSecret $totpSecret, int $now): void
+    {
+        $totpSecret->incrementFailedAttempts();
+
+        if ($totpSecret->getFailedAttempts() >= self::MAX_FAILED_ATTEMPTS) {
+            $totpSecret->setLockedUntil(new \DateTimeImmutable('@' . ($now + self::LOCKOUT_SECONDS)));
+        }
+    }
+
+    /**
+     * Return the TOTP time-step the submitted code matches within the configured
+     * drift tolerance, or null if it matches none. Comparison is constant-time.
+     */
+    private function matchStep(TOTP $totp, string $code, int $now): ?int
+    {
+        if ($code === '') {
+            return null;
+        }
+
+        $period      = $totp->getPeriod();
+        $currentStep = intdiv($now, $period);
+
+        for ($offset = -self::LEEWAY_PERIODS; $offset <= self::LEEWAY_PERIODS; $offset++) {
+            $step = $currentStep + $offset;
+            if ($step < 0) {
+                continue;
+            }
+
+            if (hash_equals($totp->at($step * $period), $code)) {
+                return $step;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -177,18 +267,31 @@ class TotpService implements TwoFactorServiceInterface
     }
 
     /**
-     * Verify a backup code
+     * Verify a backup code.
+     *
+     * Subject to the same lockout as {@see verifyCode()} (audit L1): otherwise an
+     * attacker could sidestep the TOTP lockout by brute-forcing backup codes. A
+     * wrong code now counts as a failed attempt.
+     *
+     * @throws TwoFactorException When currently locked out
      */
     public function verifyBackupCode(TwoFactorSecret $totpSecret, string $code): bool
     {
+        $now = $this->clock->now()->getTimestamp();
+        $this->guardLockout($totpSecret, $now);
+
         if (!$totpSecret->hasBackupCode($code)) {
+            $this->registerFailure($totpSecret, $now);
+            $this->entityManager->flush();
+
             return false;
         }
 
         // Remove the used backup code
         $totpSecret->removeBackupCode($code);
-        $totpSecret->setLastUsedAt(new \DateTimeImmutable());
+        $totpSecret->setLastUsedAt(new \DateTimeImmutable('@' . $now));
         $totpSecret->resetFailedAttempts();
+        $totpSecret->setLockedUntil(null);
 
         $this->entityManager->flush();
 

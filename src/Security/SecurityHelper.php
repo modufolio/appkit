@@ -22,25 +22,28 @@ class SecurityHelper
             'special' => '!@#$%^&*()_-=+{}[]',
         ];
 
+        // Full pool — characters may repeat, which maximizes entropy.
         $chars = implode('', $pools);
 
-        $password = '';
+        $password = [];
 
-        // Make sure we have at least one character from each pool
+        // Guarantee at least one character from each pool, drawn with a CSPRNG.
         foreach ($pools as $pool) {
-            $char = self::randomChar($pool);
-            $chars = str_replace($char, '', $chars);
-            $password .= $char;
+            $password[] = self::randomChar($pool);
         }
 
-        // Fill the rest of the password with random characters from all pools
-        while (strlen($password) < $length) {
-            $char = self::randomChar($chars);
-            $chars = str_replace($char, '', $chars);
-            $password .= $char;
+        // Fill the rest from the full pool (repeats allowed).
+        while (count($password) < $length) {
+            $password[] = self::randomChar($chars);
         }
 
-        return str_shuffle($password);
+        // Shuffle the result to avoid predictable sequences
+        for ($i = count($password) - 1; $i > 0; $i--) {
+            $j = random_int(0, $i);
+            [$password[$i], $password[$j]] = [$password[$j], $password[$i]];
+        }
+
+        return implode('', $password);
     }
 
     /**

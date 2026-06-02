@@ -103,16 +103,22 @@ class Xml
         }
 
         if (is_array($value) === false) {
-            $value = static::encode($value);
+            $value = static::encode((string) $value);
         } elseif (isset($value['value'], $value['escape']) === true) {
             $value = match ($value['escape']) {
                 true    => static::encode($value['value']),
                 default => $value['value']
             };
         } else {
-            $value = implode(' ', array_filter(
-                $value,
-                fn ($value) => !empty($value) || is_numeric($value)
+            // A list of values (e.g. multiple class names). Each element MUST be
+            // encoded individually — otherwise a value containing a quote breaks
+            // out of the attribute and enables XSS (audit T1).
+            $value = implode(' ', array_map(
+                static fn ($item) => static::encode((string) $item),
+                array_filter(
+                    $value,
+                    fn ($value) => !empty($value) || is_numeric($value)
+                )
             ));
         }
 
@@ -280,7 +286,10 @@ class Xml
      */
     public static function parse(string $xml): array|null
     {
-        $xml = @simplexml_load_string($xml);
+        // LIBXML_NONET pins the safe behaviour (no network access for external
+        // entities/DTDs) regardless of the runtime libxml configuration; we do
+        // NOT pass LIBXML_NOENT, so entities are never expanded (audit T7).
+        $xml = @simplexml_load_string($xml, SimpleXMLElement::class, LIBXML_NONET);
 
         if (is_object($xml) === false) {
             return null;

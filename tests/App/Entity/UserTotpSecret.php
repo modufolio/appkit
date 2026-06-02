@@ -78,6 +78,18 @@ class UserTotpSecret implements UserTotpSecretInterface
     private int $failedAttempts = 0;
 
     /**
+     * Time-step (counter) of the last accepted TOTP code (replay guard)
+     */
+    #[ORM\Column(name: 'last_used_counter', type: 'integer', nullable: true)]
+    private ?int $lastUsedCounter = null;
+
+    /**
+     * Lockout expiry instant, or null when not locked
+     */
+    #[ORM\Column(name: 'locked_until', type: 'datetime_immutable', nullable: true)]
+    private ?\DateTimeImmutable $lockedUntil = null;
+
+    /**
      * Backup codes for account recovery (JSON array)
      * Hashed codes that can be used once each if user loses access to authenticator
      */
@@ -163,6 +175,26 @@ class UserTotpSecret implements UserTotpSecretInterface
     public function resetFailedAttempts(): void
     {
         $this->failedAttempts = 0;
+    }
+
+    public function getLastUsedCounter(): ?int
+    {
+        return $this->lastUsedCounter;
+    }
+
+    public function setLastUsedCounter(?int $counter): void
+    {
+        $this->lastUsedCounter = $counter;
+    }
+
+    public function getLockedUntil(): ?\DateTimeImmutable
+    {
+        return $this->lockedUntil;
+    }
+
+    public function setLockedUntil(?\DateTimeImmutable $lockedUntil): void
+    {
+        $this->lockedUntil = $lockedUntil;
     }
 
     public function getBackupCodes(): ?array

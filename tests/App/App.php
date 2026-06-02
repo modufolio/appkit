@@ -21,6 +21,7 @@ use Modufolio\Appkit\Security\BruteForce\BruteForceProtectionInterface;
 use Modufolio\Appkit\Security\Csrf\CsrfTokenManager;
 use Modufolio\Appkit\Security\Csrf\CsrfTokenManagerInterface;
 use Modufolio\Appkit\Security\TwoFactor\TotpService;
+use Symfony\Component\Clock\Clock;
 use Modufolio\Appkit\Security\User\UserProviderInterface;
 use Modufolio\Appkit\Tests\App\Entity\UserTotpSecret;
 use Modufolio\Appkit\Tests\App\Repository\UserTotpSecretRepository;
@@ -170,6 +171,7 @@ class App extends Kernel
             $this->entityManager(),
             $this->getRepository(UserTotpSecretRepository::class),
             UserTotpSecret::class,
+            new Clock(),
             'Appkit Test',
         );
     }
