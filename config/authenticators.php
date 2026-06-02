@@ -7,7 +7,6 @@ use Modufolio\Appkit\Security\Authenticator\FormLoginAuthenticator;
 use Modufolio\Appkit\Security\Authenticator\JwtAuthenticator;
 use Modufolio\Appkit\Security\Authenticator\OAuthAuthenticator;
 use Modufolio\Appkit\Security\Authenticator\RememberMeAuthenticator;
-use Modufolio\Appkit\Security\BruteForce\BruteForceProtectionInterface;
 use Modufolio\Appkit\Security\Csrf\CsrfTokenManagerInterface;
 use Modufolio\Appkit\Security\OAuth\OAuthServiceInterface;
 use Psr\Container\ContainerInterface;
@@ -35,12 +34,12 @@ return [
         );
     },
     'jwt' => function (ContainerInterface $container) {
-        if (!isset($_ENV['JWT_SECRET']) || empty($_ENV['JWT_SECRET'])) {
+        if (empty($_ENV['JWT_SECRET'])) {
             throw new \RuntimeException('JWT_SECRET environment variable is required for JWT authentication. Please set it in your .env file.');
         }
+
         return new JwtAuthenticator(
             userProvider: $container->get(UserRepository::class),
-            bruteForceProtection: $container->get(BruteForceProtectionInterface::class),
             options: [
                 'secret_key' => $_ENV['JWT_SECRET'],
                 'algorithm' => 'HS256',
@@ -58,7 +57,7 @@ return [
         );
     },
     'remember_me' => function (ContainerInterface $container) {
-        if (!isset($_ENV['REMEMBER_ME_SECRET']) || empty($_ENV['REMEMBER_ME_SECRET'])) {
+        if (empty($_ENV['REMEMBER_ME_SECRET'])) {
             throw new \RuntimeException('REMEMBER_ME_SECRET environment variable is required for remember-me authentication. Please set it in your .env file.');
         }
         return new RememberMeAuthenticator(
