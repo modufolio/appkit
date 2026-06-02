@@ -1,7 +1,7 @@
 # Appkit
 
-A small, hand-wired PHP application kernel built on Symfony 7 components,
-Doctrine ORM 3, Firebase JWT, and a strict-typed PSR-7 fork. Designed for
+A small, hand-wired PHP application kernel built on Symfony components,
+Doctrine ORM, Firebase JWT, and a strict-typed PSR-7 fork. Designed for
 security-conscious SaaS applications that want Symfony-grade components
 without Symfony's full kernel, bundle system, and compile step.
 
