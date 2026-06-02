@@ -20,6 +20,33 @@ class StrTest extends TestCase
         Str::$language = [];
     }
 
+    public function testEscDefaultsToHtmlContext(): void
+    {
+        $this->assertSame('&lt;b&gt;', Str::esc('<b>'));
+    }
+
+    public function testEscRoutesEachContextToTheEscaper(): void
+    {
+        $this->assertSame('&lt;b&gt;', Str::esc('<b>', 'html'));
+        $this->assertSame('a&quot;b', Str::esc('a"b', 'attr'));
+        $this->assertSame('a\\x22b', Str::esc('a"b', 'js'));
+        $this->assertSame('a\\20 b', Str::esc('a b', 'css'));
+        $this->assertSame('a%20b%26c', Str::esc('a b&c', 'url'));
+    }
+
+    public function testEscAcceptsAttributeContextAliases(): void
+    {
+        $this->assertSame('a&quot;b', Str::esc('a"b', 'html_attr'));
+        $this->assertSame('a&quot;b', Str::esc('a"b', 'htmlAttr'));
+    }
+
+    public function testEscReturnsValueUnchangedForUnknownContext(): void
+    {
+        // Documented behaviour: an unrecognised context is a passthrough. This
+        // is a sharp edge (it can leave an XSS hole), so it is pinned by a test.
+        $this->assertSame('<b>', Str::esc('<b>', 'bogus'));
+    }
+
 
     public function testAscii(): void
     {

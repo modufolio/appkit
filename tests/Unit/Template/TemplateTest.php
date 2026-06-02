@@ -46,6 +46,17 @@ class TemplateTest extends TestCase
         $this->assertEquals('default', $this->template->name());
     }
 
+    public function testEscEscapesByContextAndDefaultsToHtml(): void
+    {
+        $this->assertSame('&lt;b&gt;', $this->template->esc('<b>'));
+        $this->assertSame('a&quot;b', $this->template->esc('a"b', 'attr'));
+    }
+
+    public function testEscTreatsNullAsEmptyString(): void
+    {
+        $this->assertSame('', $this->template->esc(null));
+    }
+
     public function testRenderWithLayout(): void
     {
         $output = $this->template->render(['key' => 'value']);
