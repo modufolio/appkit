@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Modufolio\Appkit\Core;
 
 use Modufolio\Appkit\Exception\NotFoundException;
+use Modufolio\Appkit\Security\Authenticator\RememberMeAuthenticator;
 use Modufolio\Appkit\Security\Csrf\CsrfTokenManagerInterface;
+use Modufolio\Appkit\Security\Token\RememberMeToken;
 use Modufolio\Appkit\Security\Exception\AuthenticationException;
 use Modufolio\Appkit\Security\Exception\TwoFactorRequiredException;
 use Modufolio\Appkit\Security\Exception\UnsupportedUserException;
@@ -82,6 +84,7 @@ trait AppSecurity
                 $userChecker = $this->get(UserCheckerInterface::class);
                 assert($userChecker instanceof UserCheckerInterface);
                 $userChecker->checkPreAuth($token->getUser());
+                $userChecker->checkPostAuth($token->getUser());
             } catch (AuthenticationException) {
                 return $this->logout($firewallName);
             }
@@ -110,6 +113,18 @@ trait AppSecurity
 
         // Handle TokenInterface (successful authentication)
         if ($result instanceof TokenInterface) {
+            // A token minted from an ambient cookie credential (remember-me) is
+            // forgeable cross-site the same way a restored session is, so a
+            // state-changing first request must still carry a valid CSRF token.
+            // Bearer/API-key tokens are not ambient (the browser does not attach
+            // them automatically) and are intentionally exempt.
+            if ($result instanceof RememberMeToken) {
+                $csrfFailure = $this->enforceCsrf($request, $config);
+                if (null !== $csrfFailure) {
+                    return $csrfFailure;
+                }
+            }
+
             $this->tokenStorage()->setToken($result);
             if (!$stateless) {
                 $session = $this->session();
@@ -339,10 +354,16 @@ trait AppSecurity
         string $firewallName,
         bool $stateless,
     ): TokenInterface|ResponseInterface|null {
-        $authenticators = array_intersect_key($this->authenticators(), array_flip($config['authenticators'] ?? []));
+        // Iterate in the order the firewall declares its authenticators, not the
+        // order of the global registry. array_intersect_key() would key off the
+        // registry, silently ignoring the firewall's intended precedence.
+        $registry = $this->authenticators();
 
-        foreach ($authenticators as $name => $authenticatorFactory) {
-            $authenticator = $authenticatorFactory($this);
+        foreach ($config['authenticators'] ?? [] as $name) {
+            if (!isset($registry[$name])) {
+                continue;
+            }
+            $authenticator = $registry[$name]($this);
             $supports = $authenticator->supports($request);
 
             if ($supports) {
@@ -416,7 +437,36 @@ trait AppSecurity
             $this->session()->invalidate();
         }
 
-        return Response::redirect($target);
+        $response = Response::redirect($target);
+
+        // Expire any remember-me cookies issued for this firewall. The session
+        // is gone, but a surviving cookie would re-authenticate the user on the
+        // next request — so clearing it is what makes logout actually log out.
+        foreach ($this->rememberMeAuthenticators($config) as $rememberMe) {
+            $response = $response->withAddedHeader('Set-Cookie', $rememberMe->buildClearCookieHeader());
+        }
+
+        return $response;
+    }
+
+    /**
+     * Instantiate the firewall's configured remember-me authenticators.
+     *
+     * @return list<RememberMeAuthenticator>
+     */
+    private function rememberMeAuthenticators(array $config): array
+    {
+        $factories = array_intersect_key($this->authenticators(), array_flip($config['authenticators'] ?? []));
+
+        $result = [];
+        foreach ($factories as $factory) {
+            $authenticator = $factory($this);
+            if ($authenticator instanceof RememberMeAuthenticator) {
+                $result[] = $authenticator;
+            }
+        }
+
+        return $result;
     }
 
     // ============================================================================

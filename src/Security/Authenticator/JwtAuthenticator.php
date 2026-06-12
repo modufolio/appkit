@@ -38,6 +38,7 @@ class JwtAuthenticator extends AbstractAuthenticator
      *   - header_name         Authorization header name (default 'Authorization')
      *   - token_prefix        scheme prefix (default 'Bearer')
      *   - user_identifier_claim   claim used to look up the user (default 'sub')
+     *   - require_exp         reject tokens without an 'exp' claim (default true)
      */
     public function __construct(
         private UserProviderInterface $userProvider,
@@ -55,6 +56,7 @@ class JwtAuthenticator extends AbstractAuthenticator
             'header_name' => 'Authorization',
             'token_prefix' => 'Bearer',
             'user_identifier_claim' => 'sub',
+            'require_exp' => true,
         ], $options);
 
         if (!in_array($this->options['algorithm'], self::SUPPORTED_ALGORITHMS, true)) {
@@ -201,6 +203,15 @@ class JwtAuthenticator extends AbstractAuthenticator
      */
     private function validateClaims(array $payload, string $clientIp): void
     {
+        // firebase/php-jwt only enforces expiry when the claim is present, so a
+        // token minted without `exp` would otherwise be valid forever. Reject it.
+        if ($this->options['require_exp'] && !isset($payload['exp'])) {
+            $this->logger->warning('JWT authentication failed: Missing exp claim', [
+                'ip' => $clientIp,
+            ]);
+            throw new AuthenticationException('JWT is missing the "exp" claim.');
+        }
+
         if (null !== $this->options['issuer']) {
             $iss = $payload['iss'] ?? null;
             if ($iss !== $this->options['issuer']) {

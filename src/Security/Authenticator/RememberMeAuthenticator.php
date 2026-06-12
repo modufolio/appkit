@@ -145,6 +145,40 @@ class RememberMeAuthenticator extends AbstractAuthenticator
     }
 
     /**
+     * Build a Set-Cookie header value that immediately expires the remember-me
+     * cookie. Emitted on logout — without it the cookie survives the session
+     * invalidation and silently re-authenticates the user on the next request
+     * (incomplete logout).
+     *
+     * Flags mirror getCookieOptions() so the browser matches and overwrites the
+     * original cookie rather than setting a second one.
+     */
+    public function buildClearCookieHeader(): string
+    {
+        $parts = [
+            $this->options['cookie_name'].'=deleted',
+            'Path='.$this->options['cookie_path'],
+            'Expires=Thu, 01 Jan 1970 00:00:00 GMT',
+            'Max-Age=0',
+        ];
+
+        if (!empty($this->options['cookie_domain'])) {
+            $parts[] = 'Domain='.$this->options['cookie_domain'];
+        }
+        if ($this->options['cookie_secure']) {
+            $parts[] = 'Secure';
+        }
+        if ($this->options['cookie_httponly']) {
+            $parts[] = 'HttpOnly';
+        }
+        if (!empty($this->options['cookie_samesite'])) {
+            $parts[] = 'SameSite='.ucfirst((string) $this->options['cookie_samesite']);
+        }
+
+        return implode('; ', $parts);
+    }
+
+    /**
      * Derive a per-user fingerprint that changes when the user's password is
      * rotated. Mixing this into the cookie HMAC invalidates outstanding
      * remember-me cookies after a password change without needing a separate

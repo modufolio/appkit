@@ -225,7 +225,12 @@ abstract class AbstractApplicationState implements ApplicationStateInterface
     }
 
     /**
-     * Matches if the path starts with the given pattern.
+     * Matches if the path starts with the given pattern, on whole path segments.
+     *
+     * A pattern of "/admin" matches "/admin" and "/admin/users" but NOT
+     * "/administrator" — the same segment-boundary rule the access-control
+     * matcher uses, so firewall and access-control coverage stay consistent.
+     * The "/" pattern still matches every path (catch-all firewall).
      */
     protected function matchesStartsWith(string $pattern, string $path): bool
     {
@@ -234,7 +239,11 @@ abstract class AbstractApplicationState implements ApplicationStateInterface
             $pattern = '/'.ltrim($pattern, '/');
         }
 
-        return str_starts_with($path, $pattern);
+        $normalized = rtrim($pattern, '/');
+
+        return '' === $normalized
+            || $path === $normalized
+            || str_starts_with($path, $normalized.'/');
     }
 
     public function setFirewallConfig(array $config): self
