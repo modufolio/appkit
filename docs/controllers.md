@@ -198,6 +198,23 @@ Same as `#[MapRequestPayload]` but reads from the URL query string.
 public function search(#[MapQueryString] SearchQuery $query): ResponseInterface
 ```
 
+### `#[MapQueryParameter]`
+
+Binds a single query parameter to a primitive argument (`int`, `float`, `bool`, `string`, `array`, a `BackedEnum`, or a `Uuid`/`Ulid`), coercing the value with `filter_var()`. The argument name is used as the parameter name unless you pass `name`.
+
+```php
+#[Route(path: '/posts', name: 'posts.index', methods: ['GET'])]
+public function index(
+    #[MapQueryParameter] int $page = 1,
+    #[MapQueryParameter(name: 'q')] ?string $search,
+    #[MapQueryParameter] SortDirection $sort = SortDirection::Desc,
+): ResponseInterface
+```
+
+A missing parameter falls back to the argument default, or `null` if the argument is nullable; otherwise a `400` is thrown. An invalid value throws a `400` unless `FILTER_NULL_ON_FAILURE` is set in `flags`. Use `filter`, `flags`, and `options` for finer control (e.g. `#[MapQueryParameter(options: ['min_range' => 1])]`).
+
+Use this for individual scalars; reach for `#[MapQueryString]` or `#[MapFilter]` when you want the whole query string mapped to an object.
+
 ### `#[MapFilter]`
 
 Builds a filter object from query parameters. Your filter class needs a `fromArray()` static method.
