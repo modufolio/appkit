@@ -21,6 +21,7 @@ class FindEntityResolver implements AttributeResolverInterface
 
     /**
      * Resolves the entity for the given parameter using the FindEntity attribute.
+     * Returns null if no entity is found.
      *
      * @throws \LogicException if the attribute or parameter is invalid
      */

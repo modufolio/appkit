@@ -141,7 +141,7 @@ public function dashboard(#[CurrentUser] UserInterface $user): ResponseInterface
 
 ### `#[FindEntity]`
 
-Loads a Doctrine entity from the database using route parameters as criteria. Throws a 404 if nothing is found.
+Loads a Doctrine entity from the database using route parameters as criteria. Returns `null` if nothing is found.
 
 ```php
 use Modufolio\Appkit\Attributes\FindEntity;
