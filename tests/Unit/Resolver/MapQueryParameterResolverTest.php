@@ -6,8 +6,9 @@ namespace Modufolio\Appkit\Tests\Unit\Resolver;
 
 use Modufolio\Appkit\Attributes\MapQueryParameter;
 use Modufolio\Appkit\Resolver\MapQueryParameterResolver;
+use Modufolio\Psr7\Http\ServerRequest;
+use Modufolio\Psr7\Http\Uri;
 use PHPUnit\Framework\TestCase;
-use Psr\Http\Message\ServerRequestInterface;
 use Symfony\Component\Uid\Uuid;
 
 enum SortDirection: string
@@ -59,8 +60,8 @@ class MapQueryParameterResolverTest extends TestCase
 {
     private function resolveArgument(string $method, array $query): mixed
     {
-        $request = $this->createMock(ServerRequestInterface::class);
-        $request->method('getQueryParams')->willReturn($query);
+        $request = (new ServerRequest(method: 'GET', uri: new Uri('/?'.http_build_query($query))))
+            ->withQueryParams($query);
 
         $resolver = new MapQueryParameterResolver($request);
         $parameter = (new \ReflectionMethod(MapQueryParameterController::class, $method))->getParameters()[0];

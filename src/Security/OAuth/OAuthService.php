@@ -23,6 +23,12 @@ class OAuthService implements OAuthServiceInterface
     private const ACCESS_TOKEN_LIFETIME = 3600; // 1 hour
     private const REFRESH_TOKEN_LIFETIME = 2592000; // 30 days
 
+    /**
+     * Minimum age before the "last used" timestamp is rewritten, to avoid a
+     * database write on every single authenticated API request.
+     */
+    private const LAST_USED_THROTTLE_SECONDS = 60;
+
     public function __construct(
         private EntityManagerInterface $entityManager,
         private OAuthAccessTokenRepositoryInterface $tokenRepository,
@@ -95,9 +101,15 @@ class OAuthService implements OAuthServiceInterface
             return null;
         }
 
-        // Update last used timestamp
-        $token->setLastUsedAt(new \DateTimeImmutable());
-        $this->entityManager->flush();
+        // Update the "last used" timestamp, but throttle the write so a busy
+        // API client does not trigger a database flush on every request.
+        $now = new \DateTimeImmutable();
+        $lastUsed = $token->getLastUsedAt();
+
+        if (null === $lastUsed || ($now->getTimestamp() - $lastUsed->getTimestamp()) >= self::LAST_USED_THROTTLE_SECONDS) {
+            $token->setLastUsedAt($now);
+            $this->entityManager->flush();
+        }
 
         return $token;
     }

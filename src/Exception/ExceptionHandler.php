@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modufolio\Appkit\Exception;
 
 use Modufolio\Appkit\Core\Environment;
+use Modufolio\Appkit\Security\Exception\AccessDeniedException;
 use Modufolio\Appkit\Security\Exception\AuthenticationException;
 use Modufolio\Psr7\Http\Response;
 use Negotiation\BaseAccept;
@@ -351,6 +352,15 @@ final class ExceptionHandler implements ExceptionHandlerInterface
                 'status' => 401,
                 'title' => 'Authentication failed',
                 'detail' => 'Authentication required.',
+            ];
+        });
+
+        // Authenticated but not allowed — distinct from 401 (not authenticated).
+        $this->registerException(AccessDeniedException::class, function (AccessDeniedException $e) {
+            return [
+                'status' => 403,
+                'title' => 'Access denied',
+                'detail' => 'You do not have permission to access this resource.',
             ];
         });
 

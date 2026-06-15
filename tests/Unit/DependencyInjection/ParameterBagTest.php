@@ -20,6 +20,25 @@ class ParameterBagTest extends TestCase
         $this->assertSame('5432', $bag->get('db_port'));
     }
 
+    public function testResolvedPlaceholderIsCachedNotReturnedRaw(): void
+    {
+        $bag = new ParameterBag(['base' => '/srv', 'path' => '%base%']);
+
+        // First and subsequent reads must both return the resolved value,
+        // never the literal "%base%".
+        $this->assertSame('/srv', $bag->get('path'));
+        $this->assertSame('/srv', $bag->get('path'));
+    }
+
+    public function testCircularReferenceThrows(): void
+    {
+        $bag = new ParameterBag(['a' => '%b%', 'b' => '%a%']);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessageMatches('/Circular reference/');
+        $bag->get('a');
+    }
+
     public function testAddParameters(): void
     {
         $bag = new ParameterBag();

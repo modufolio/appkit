@@ -18,9 +18,13 @@ use Symfony\Component\Validator\ConstraintViolationListInterface;
  */
 final readonly class ValidationResult
 {
+    /** @var array<string, array<string>> field names mapped to error messages */
+    private array $errors;
+
     private function __construct(
         private ConstraintViolationListInterface $violations,
     ) {
+        $this->errors = $this->buildErrors($violations);
     }
 
     public static function fromViolations(ConstraintViolationListInterface $violations): self
@@ -50,19 +54,22 @@ final readonly class ValidationResult
      */
     public function errors(): array
     {
+        return $this->errors;
+    }
+
+    /**
+     * @return array<string, array<string>>
+     */
+    private function buildErrors(ConstraintViolationListInterface $violations): array
+    {
         $errors = [];
 
-        foreach ($this->violations as $violation) {
-            $field = $violation->getPropertyPath();
+        foreach ($violations as $violation) {
             $message = $violation->getMessage();
 
             // Remove the surrounding brackets from property path
             // e.g., "[email]" becomes "email"
-            $field = trim($field, '[]');
-
-            if (!isset($errors[$field])) {
-                $errors[$field] = [];
-            }
+            $field = trim($violation->getPropertyPath(), '[]');
 
             $errors[$field][] = $message;
         }

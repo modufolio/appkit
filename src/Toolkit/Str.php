@@ -19,11 +19,6 @@ use Modufolio\Appkit\Query\Query;
 class Str
 {
     /**
-     * The cache of snake-cased words.
-     */
-    protected static array $snakeCache = [];
-
-    /**
      * The cache of camel-cased words.
      */
     protected static array $camelCache = [];
@@ -409,20 +404,24 @@ class Str
      *   Str::esc($value, 'css')     // CSS value
      *   Str::esc($value, 'url')     // URL query component
      *
-     * An unknown context returns the string unchanged, so always pass a valid one.
+     * An unknown context throws, so a typo can never silently bypass escaping.
      *
-     * @param string $string  The untrusted value
-     * @param string $context One of: html, attr, js, css, url
+     * @param string|int|float|\Stringable|null $string  The untrusted value
+     * @param string                            $context One of: html, attr, js, css, url
+     *
+     * @throws \InvalidArgumentException on an unknown context
      */
-    public static function esc(string $string, string $context = 'html'): string
+    public static function esc(string|int|float|\Stringable|null $string, string $context = 'html'): string
     {
+        $string = (string) $string;
+
         return match ($context) {
             'html' => Escape::html($string),
             'attr', 'html_attr', 'htmlAttr' => Escape::attr($string),
             'js' => Escape::js($string),
             'css' => Escape::css($string),
             'url' => Escape::url($string),
-            default => $string,
+            default => throw new \InvalidArgumentException(sprintf('Unknown escaping context "%s"; use one of: html, attr, js, css, url.', $context)),
         };
     }
 

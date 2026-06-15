@@ -3,6 +3,7 @@
 namespace Modufolio\Appkit\Tests\Unit\Security\Token;
 
 use Modufolio\Appkit\Security\Token\OAuthToken;
+use Modufolio\Appkit\Security\User\InMemoryUser;
 use Modufolio\Appkit\Security\User\UserInterface;
 use PHPUnit\Framework\TestCase;
 
@@ -14,9 +15,7 @@ class OAuthTokenTest extends TestCase
     {
         parent::setUp();
 
-        $this->user = $this->createMock(UserInterface::class);
-        $this->user->method('getUserIdentifier')->willReturn('test@example.com');
-        $this->user->method('getRoles')->willReturn(['ROLE_USER', 'ROLE_ADMIN']);
+        $this->user = new InMemoryUser('test@example.com', 'password', ['ROLE_USER', 'ROLE_ADMIN']);
     }
 
     public function testConstructorCreatesTokenWithCorrectProperties(): void

@@ -39,11 +39,12 @@ class StrTest extends TestCase
         $this->assertSame('a&quot;b', Str::esc('a"b', 'htmlAttr'));
     }
 
-    public function testEscReturnsValueUnchangedForUnknownContext(): void
+    public function testEscThrowsForUnknownContext(): void
     {
-        // Documented behaviour: an unrecognised context is a passthrough. This
-        // is a sharp edge (it can leave an XSS hole), so it is pinned by a test.
-        $this->assertSame('<b>', Str::esc('<b>', 'bogus'));
+        // Fail closed: an unrecognised context must never silently pass the
+        // value through unescaped (that would be an XSS hole).
+        $this->expectException(\InvalidArgumentException::class);
+        Str::esc('<b>', 'bogus');
     }
 
     public function testAscii(): void

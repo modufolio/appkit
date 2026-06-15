@@ -5,30 +5,26 @@ namespace Modufolio\Appkit\Tests\Unit\Security\Authenticator;
 use Modufolio\Appkit\Security\Authenticator\RememberMeAuthenticator;
 use Modufolio\Appkit\Security\Exception\AuthenticationException;
 use Modufolio\Appkit\Security\Token\RememberMeToken;
-use Modufolio\Appkit\Security\User\PasswordAuthenticatedUserInterface;
-use Modufolio\Appkit\Security\User\UserProviderInterface;
+use Modufolio\Appkit\Security\User\InMemoryUser;
+use Modufolio\Appkit\Tests\App\InMemoryUserProvider;
 use Modufolio\Appkit\Tests\Case\AppTestCase;
 use Modufolio\Psr7\Http\ServerRequest;
 use Modufolio\Psr7\Http\Uri;
 
 class RememberMeAuthenticatorTest extends AppTestCase
 {
-    private UserProviderInterface $userProvider;
-    private PasswordAuthenticatedUserInterface $user;
+    private InMemoryUserProvider $userProvider;
+    private InMemoryUser $user;
     private string $secret = 'test-secret-key-12345';
+    private string $passwordHash = '$2y$10$abcdefghijklmnopqrstuv';
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        // Create mock user
-        $this->user = $this->createMock(PasswordAuthenticatedUserInterface::class);
-        $this->user->method('getUserIdentifier')->willReturn('test@example.com');
-        $this->user->method('getRoles')->willReturn(['ROLE_USER']);
-        $this->user->method('getPassword')->willReturn('$2y$10$abcdefghijklmnopqrstuv');
-
-        // Create mock user provider
-        $this->userProvider = $this->createMock(UserProviderInterface::class);
+        // Real in-memory user + provider (password hash stored as the password).
+        $this->user = new InMemoryUser('test@example.com', $this->passwordHash, ['ROLE_USER']);
+        $this->userProvider = (new InMemoryUserProvider())->addUser($this->user);
     }
 
     private function fingerprint(?string $password): string
@@ -202,10 +198,6 @@ class RememberMeAuthenticatorTest extends AppTestCase
         $cookieData = sprintf('%s:%d:%s', $identifier, $expires, $invalidHash);
         $cookieValue = base64_encode($cookieData);
 
-        $this->userProvider->method('loadUserByIdentifier')
-            ->with($identifier)
-            ->willReturn($this->user);
-
         $request = (new ServerRequest(
             method: 'GET',
             uri: new Uri('/'),
@@ -220,18 +212,14 @@ class RememberMeAuthenticatorTest extends AppTestCase
 
     public function testAuthenticateThrowsExceptionWhenUserNotFound(): void
     {
-        $authenticator = new RememberMeAuthenticator($this->userProvider, [
+        // Empty provider: the cookie identifier resolves to no user.
+        $authenticator = new RememberMeAuthenticator(new InMemoryUserProvider(), [
             'secret' => $this->secret,
         ]);
 
         $identifier = 'test@example.com';
         $expires = time() + 3600;
-        $cookieValue = $this->signCookie($identifier, $expires, '$2y$10$abcdefghijklmnopqrstuv');
-
-        $this->userProvider->expects($this->once())
-            ->method('loadUserByIdentifier')
-            ->with($identifier)
-            ->willThrowException(new \Modufolio\Appkit\Security\Exception\UserNotFoundException('User not found'));
+        $cookieValue = $this->signCookie($identifier, $expires, $this->passwordHash);
 
         $request = (new ServerRequest(
             method: 'GET',
@@ -253,12 +241,7 @@ class RememberMeAuthenticatorTest extends AppTestCase
 
         $identifier = 'test@example.com';
         $expires = time() + 3600;
-        $cookieValue = $this->signCookie($identifier, $expires, '$2y$10$abcdefghijklmnopqrstuv');
-
-        $this->userProvider->expects($this->once())
-            ->method('loadUserByIdentifier')
-            ->with($identifier)
-            ->willReturn($this->user);
+        $cookieValue = $this->signCookie($identifier, $expires, $this->passwordHash);
 
         $request = (new ServerRequest(
             method: 'GET',
@@ -346,14 +329,11 @@ class RememberMeAuthenticatorTest extends AppTestCase
 
         $cookieValue = $authenticator->generateRememberMeCookie($this->user);
 
-        $rotatedUser = $this->createMock(PasswordAuthenticatedUserInterface::class);
-        $rotatedUser->method('getUserIdentifier')->willReturn('test@example.com');
-        $rotatedUser->method('getPassword')->willReturn('$2y$10$DIFFERENT_HASH_AFTER_ROTATION');
-
-        $this->userProvider->expects($this->once())
-            ->method('loadUserByIdentifier')
-            ->with('test@example.com')
-            ->willReturn($rotatedUser);
+        // The provider now returns a user whose password hash has changed, so the
+        // cookie's fingerprint no longer matches.
+        $rotatedUser = new InMemoryUser('test@example.com', '$2y$10$DIFFERENT_HASH_AFTER_ROTATION', ['ROLE_USER']);
+        $rotatedProvider = (new InMemoryUserProvider())->addUser($rotatedUser);
+        $authenticator = new RememberMeAuthenticator($rotatedProvider, ['secret' => $this->secret]);
 
         $request = (new ServerRequest(
             method: 'GET',
@@ -452,12 +432,6 @@ class RememberMeAuthenticatorTest extends AppTestCase
 
         // Generate cookie for user
         $cookieValue = $authenticator->generateRememberMeCookie($this->user);
-
-        // Mock user provider to return the user
-        $this->userProvider->expects($this->once())
-            ->method('loadUserByIdentifier')
-            ->with('test@example.com')
-            ->willReturn($this->user);
 
         // Create request with the generated cookie
         $request = (new ServerRequest(

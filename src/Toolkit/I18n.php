@@ -46,19 +46,24 @@ class I18n
      */
     public static function fallbacks(): array
     {
-        if (true === is_callable(static::$fallback)) {
-            static::$fallback = (static::$fallback)();
+        // Resolve into a local: never overwrite the static, or a per-request
+        // Closure would be replaced by the first request's value and leak
+        // across requests in a long-running worker.
+        $fallback = static::$fallback;
+
+        if (true === is_callable($fallback)) {
+            $fallback = $fallback();
         }
 
-        if (true === is_array(static::$fallback)) {
-            return static::$fallback;
+        if (true === is_array($fallback)) {
+            return $fallback;
         }
 
-        if (true === is_string(static::$fallback)) {
-            return A::wrap(static::$fallback);
+        if (true === is_string($fallback)) {
+            return A::wrap($fallback);
         }
 
-        return static::$fallback = ['en'];
+        return ['en'];
     }
 
     /**
@@ -97,15 +102,20 @@ class I18n
      */
     public static function locale(): string
     {
-        if (true === is_callable(static::$locale)) {
-            static::$locale = (static::$locale)();
+        // Resolve into a local: never overwrite the static, or a per-request
+        // Closure would be replaced by the first request's value and leak
+        // across requests in a long-running worker.
+        $locale = static::$locale;
+
+        if (true === is_callable($locale)) {
+            $locale = $locale();
         }
 
-        if (true === is_string(static::$locale)) {
-            return static::$locale;
+        if (true === is_string($locale)) {
+            return $locale;
         }
 
-        return static::$locale = 'en';
+        return 'en';
     }
 
     /**

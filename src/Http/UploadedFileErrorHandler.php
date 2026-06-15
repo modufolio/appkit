@@ -19,7 +19,11 @@ class UploadedFileErrorHandler
 
     private bool $hasErrors = false;
 
-    private array $allowedMimeTypes = [];
+    /**
+     * Bytes read from an in-memory stream to sniff the MIME type. libmagic only
+     * inspects leading bytes, so this caps memory use for streamed uploads.
+     */
+    private const MIME_SNIFF_BYTES = 65536;
 
     /** @var int|null */
     private $maxSize;
@@ -79,26 +83,8 @@ class UploadedFileErrorHandler
     public function hasMimeType($mimeType, ?string $message = null): self
     {
         $mimeTypes = is_array($mimeType) ? $mimeType : [$mimeType];
-        $this->allowedMimeTypes = array_merge($this->allowedMimeTypes, $mimeTypes);
 
-        // Store the file temporarily to check its mime type
-        $tmpFile = $this->file->getStream()->getMetadata('uri');
-
-        if (!$tmpFile) {
-            // If we can't get the URI, we'll need to save it temporarily
-            $tmpFile = tempnam(sys_get_temp_dir(), 'upload_check_');
-            file_put_contents($tmpFile, $this->file->getStream()->getContents());
-
-            // Reset stream position
-            $this->file->getStream()->rewind();
-        }
-
-        $actualMimeType = mime_content_type($tmpFile);
-
-        // Clean up if we created a temporary file
-        if (str_contains($tmpFile, 'upload_check_')) {
-            @unlink($tmpFile);
-        }
+        $actualMimeType = $this->detectMimeType();
 
         if (!in_array($actualMimeType, $mimeTypes)) {
             $this->addError($message ?? sprintf(
@@ -112,7 +98,11 @@ class UploadedFileErrorHandler
     }
 
     /**
-     * Assert the file is an image.
+     * Assert the file is a raster image.
+     *
+     * SVG is intentionally excluded: it can carry embedded scripts and is a
+     * stored-XSS risk when served inline. Allow it explicitly with
+     * hasMimeType('image/svg+xml') only after sanitising the markup.
      *
      * @param string|null $message Custom error message
      */
@@ -123,7 +113,6 @@ class UploadedFileErrorHandler
             'image/png',
             'image/gif',
             'image/webp',
-            'image/svg+xml',
         ], $message ?? 'File must be an image.');
     }
 
@@ -254,6 +243,28 @@ class UploadedFileErrorHandler
     public function getErrors(): array
     {
         return $this->errors;
+    }
+
+    /**
+     * Detect the file's MIME type without loading the whole upload into memory.
+     *
+     * Uses the on-disk temp file when available (libmagic reads bounded bytes);
+     * otherwise sniffs a capped buffer of leading bytes from the stream.
+     */
+    private function detectMimeType(): ?string
+    {
+        $stream = $this->file->getStream();
+        $uri = $stream->getMetadata('uri');
+
+        if (is_string($uri) && !str_starts_with($uri, 'php://') && is_readable($uri)) {
+            return mime_content_type($uri) ?: null;
+        }
+
+        $stream->rewind();
+        $head = $stream->read(self::MIME_SNIFF_BYTES);
+        $stream->rewind();
+
+        return (new \finfo(FILEINFO_MIME_TYPE))->buffer($head) ?: null;
     }
 
     /**

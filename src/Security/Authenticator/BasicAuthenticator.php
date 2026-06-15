@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Modufolio\Appkit\Security\Authenticator;
 
+use Modufolio\Appkit\Security\BruteForce\BruteForceProtectionInterface;
 use Modufolio\Appkit\Security\Exception\AuthenticationException;
 use Modufolio\Appkit\Security\Exception\UserNotFoundException;
 use Modufolio\Appkit\Security\Token\TokenInterface;
 use Modufolio\Appkit\Security\Token\UsernamePasswordToken;
 use Modufolio\Appkit\Security\User\PasswordAuthenticatedUserInterface;
+use Modufolio\Appkit\Security\User\PasswordUpgraderInterface;
 use Modufolio\Appkit\Security\User\UserInterface;
 use Modufolio\Appkit\Security\User\UserPasswordHasherInterface;
 use Modufolio\Appkit\Security\User\UserProviderInterface;
@@ -28,6 +30,7 @@ class BasicAuthenticator extends AbstractAuthenticator
     public function __construct(
         private UserProviderInterface $userProvider,
         private ?UserPasswordHasherInterface $passwordHasher = null,
+        private ?BruteForceProtectionInterface $bruteForce = null,
     ) {
     }
 
@@ -44,6 +47,11 @@ class BasicAuthenticator extends AbstractAuthenticator
     public function authenticate(ServerRequestInterface $request): UserInterface
     {
         [$identifier, $password] = $this->extractCredentials($request);
+        $ipAddress = $request->getServerParams()['REMOTE_ADDR'] ?? null;
+
+        if ($this->bruteForce?->isLocked($identifier, $ipAddress)) {
+            throw new AuthenticationException('Too many failed login attempts. Try again later.');
+        }
 
         try {
             $user = $this->userProvider->loadUserByIdentifier($identifier);
@@ -51,11 +59,14 @@ class BasicAuthenticator extends AbstractAuthenticator
             // Equalize timing so attackers cannot distinguish unknown users
             // from wrong passwords.
             $this->verifyDummyPassword($password);
+            $this->bruteForce?->recordFailure($identifier, $ipAddress);
             throw new AuthenticationException('Invalid credentials');
         }
 
         if (!$user instanceof PasswordAuthenticatedUserInterface) {
-            throw new AuthenticationException('User does not support password authentication.');
+            $this->verifyDummyPassword($password);
+            $this->bruteForce?->recordFailure($identifier, $ipAddress);
+            throw new AuthenticationException('Invalid credentials');
         }
 
         $valid = null !== $this->passwordHasher
@@ -63,10 +74,29 @@ class BasicAuthenticator extends AbstractAuthenticator
             : password_verify($password, (string) $user->getPassword());
 
         if (!$valid) {
+            $this->bruteForce?->recordFailure($identifier, $ipAddress);
             throw new AuthenticationException('Invalid credentials');
         }
 
+        $this->upgradePasswordIfNeeded($user, $password);
+        $this->bruteForce?->recordSuccess($identifier, $ipAddress);
+
         return $user;
+    }
+
+    /**
+     * Transparently rehash the stored password after a successful login when
+     * the hash is outdated and the provider supports upgrades.
+     */
+    private function upgradePasswordIfNeeded(PasswordAuthenticatedUserInterface $user, #[\SensitiveParameter] string $password): void
+    {
+        if (null === $this->passwordHasher
+            || !$this->userProvider instanceof PasswordUpgraderInterface
+            || !$this->passwordHasher->needsRehash($user)) {
+            return;
+        }
+
+        $this->userProvider->upgradePassword($user, $this->passwordHasher->hashPassword($user, $password));
     }
 
     public function unauthorizedResponse(ServerRequestInterface $request, AuthenticationException $exception): ResponseInterface

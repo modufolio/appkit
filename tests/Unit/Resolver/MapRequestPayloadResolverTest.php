@@ -11,8 +11,11 @@ use Modufolio\Appkit\Resolver\MapRequestPayloadResolver;
 use Modufolio\Appkit\Resolver\ResolverPipeline;
 use Modufolio\Appkit\Resolver\TypeHintContainerResolver;
 use Modufolio\Appkit\Resolver\TypeHintResolver;
+use Modufolio\Psr7\Http\ServerRequest;
+use Modufolio\Psr7\Http\Uri;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
+use Psr\Container\NotFoundExceptionInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Symfony\Component\Serializer\Encoder\JsonEncoder;
 use Symfony\Component\Serializer\Normalizer\ArrayDenormalizer;
@@ -128,9 +131,8 @@ class MapRequestPayloadResolverTest extends TestCase
 
     public function testQueryStringThrowOnErrorFalseInjectsValidationResult(): void
     {
-        $request = $this->createMock(ServerRequestInterface::class);
-        $request->method('getQueryParams')->willReturn(['name' => '', 'email' => 'bad']);
-        $request->method('getParsedBody')->willReturn([]);
+        $request = (new ServerRequest(method: 'GET', uri: new Uri('/')))
+            ->withQueryParams(['name' => '', 'email' => 'bad']);
 
         $pipeline = $this->createPipeline($request);
 
@@ -173,17 +175,24 @@ class MapRequestPayloadResolverTest extends TestCase
 
     private function createRequest(array $parsedBody): ServerRequestInterface
     {
-        $request = $this->createMock(ServerRequestInterface::class);
-        $request->method('getParsedBody')->willReturn($parsedBody);
-        $request->method('getQueryParams')->willReturn([]);
-
-        return $request;
+        return (new ServerRequest(method: 'POST', uri: new Uri('/')))
+            ->withParsedBody($parsedBody);
     }
 
     private function createPipeline(ServerRequestInterface $request): ResolverPipeline
     {
-        $container = $this->createMock(ContainerInterface::class);
-        $container->method('has')->willReturn(false);
+        // Empty real container: the terminal type-hint resolver finds nothing.
+        $container = new class implements ContainerInterface {
+            public function has(string $id): bool
+            {
+                return false;
+            }
+
+            public function get(string $id): mixed
+            {
+                throw new class('Not found') extends \RuntimeException implements NotFoundExceptionInterface {};
+            }
+        };
 
         return (new ResolverPipeline())
             ->addResolver(new AssociativeArrayResolver())

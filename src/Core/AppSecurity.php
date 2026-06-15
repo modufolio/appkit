@@ -8,6 +8,7 @@ use Modufolio\Appkit\Exception\NotFoundException;
 use Modufolio\Appkit\Security\Authenticator\RememberMeAuthenticator;
 use Modufolio\Appkit\Security\Csrf\CsrfTokenManagerInterface;
 use Modufolio\Appkit\Security\Token\RememberMeToken;
+use Modufolio\Appkit\Security\Exception\AccessDeniedException;
 use Modufolio\Appkit\Security\Exception\AuthenticationException;
 use Modufolio\Appkit\Security\Exception\TwoFactorRequiredException;
 use Modufolio\Appkit\Security\Exception\UnsupportedUserException;
@@ -15,6 +16,8 @@ use Modufolio\Appkit\Security\Exception\UserNotFoundException;
 use Modufolio\Appkit\Security\Token\TokenInterface;
 use Modufolio\Appkit\Security\Token\TwoFactorToken;
 use Modufolio\Appkit\Security\TokenUnserializer;
+use Modufolio\Appkit\Security\User\EquatableInterface;
+use Modufolio\Appkit\Security\User\PasswordAuthenticatedUserInterface;
 use Modufolio\Appkit\Security\User\UserCheckerInterface;
 use Modufolio\Appkit\Security\User\UserInterface;
 use Modufolio\Appkit\Toolkit\A;
@@ -188,6 +191,13 @@ trait AppSecurity
         }
         try {
             $refreshedUser = $this->userProvider()->refreshUser($user);
+
+            // If security-relevant state changed (roles, password, identity),
+            // the session is no longer trustworthy: force re-authentication.
+            if ($this->hasUserChanged($user, $refreshedUser)) {
+                return null;
+            }
+
             $newToken = clone $token;
             $newToken->setUser($refreshedUser);
 
@@ -195,6 +205,33 @@ trait AppSecurity
         } catch (UserNotFoundException|UnsupportedUserException) {
             return null;
         }
+    }
+
+    /**
+     * Whether the refreshed user differs from the session user in a way that
+     * should invalidate the existing session (revoked roles, changed password).
+     */
+    private function hasUserChanged(UserInterface $original, UserInterface $refreshed): bool
+    {
+        if ($original instanceof EquatableInterface) {
+            return !$original->isEqualTo($refreshed);
+        }
+
+        if ($refreshed instanceof EquatableInterface) {
+            return !$refreshed->isEqualTo($original);
+        }
+
+        if ($original->getRoles() !== $refreshed->getRoles()) {
+            return true;
+        }
+
+        if ($original instanceof PasswordAuthenticatedUserInterface
+            && $refreshed instanceof PasswordAuthenticatedUserInterface
+            && $original->getPassword() !== $refreshed->getPassword()) {
+            return true;
+        }
+
+        return $original->getUserIdentifier() !== $refreshed->getUserIdentifier();
     }
 
     /**
@@ -500,7 +537,7 @@ trait AppSecurity
                 $clientIp = $request->getServerParams()['REMOTE_ADDR'] ?? '127.0.0.1';
 
                 if (!IpUtils::checkIp($clientIp, $rule['ips'])) {
-                    throw new AuthenticationException('Access denied due to IP restriction for path: '.$path);
+                    throw new AccessDeniedException('Access denied due to IP restriction for path: '.$path);
                 }
             }
 
@@ -522,7 +559,7 @@ trait AppSecurity
                     }
                 }
                 if (!$hasRole) {
-                    throw new AuthenticationException('Insufficient roles for path: '.$path);
+                    throw new AccessDeniedException('Insufficient roles for path: '.$path);
                 }
             }
 
@@ -568,8 +605,8 @@ trait AppSecurity
      */
     private function enforceAttributeAccessControl(array $parameters): void
     {
-        $requiredRoles = $parameters['_is_granted_roles'] ?? [];
-        if (empty($requiredRoles)) {
+        $requiredRoleGroups = $parameters['_is_granted_roles'] ?? [];
+        if (empty($requiredRoleGroups)) {
             return;
         }
 
@@ -584,16 +621,24 @@ trait AppSecurity
         }
 
         $userRoles = $this->roleHierarchy?->getReachableRoles($user->getRoles()) ?? $user->getRoles();
-        $hasRole = false;
-        foreach ($requiredRoles as $requiredRole) {
-            if (in_array($requiredRole, $userRoles, true)) {
-                $hasRole = true;
-                break;
-            }
-        }
 
-        if (!$hasRole) {
-            throw new AuthenticationException(sprintf('Insufficient roles for route. Required: %s', implode(', ', $requiredRoles)));
+        // Every group (one per #[IsGranted]) must be satisfied (AND); within a
+        // group, holding any one of the listed roles is enough (OR). The (array)
+        // cast tolerates a legacy flat list from a stale compiled-route cache.
+        foreach ($requiredRoleGroups as $group) {
+            $group = (array) $group;
+            $satisfied = false;
+
+            foreach ($group as $role) {
+                if (in_array($role, $userRoles, true)) {
+                    $satisfied = true;
+                    break;
+                }
+            }
+
+            if (!$satisfied) {
+                throw new AccessDeniedException(sprintf('Insufficient roles for route. Required one of: %s', implode(', ', $group)));
+            }
         }
     }
 }

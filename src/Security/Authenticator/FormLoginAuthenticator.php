@@ -14,6 +14,7 @@ use Modufolio\Appkit\Security\Token\TokenInterface;
 use Modufolio\Appkit\Security\Token\UsernamePasswordToken;
 use Modufolio\Appkit\Security\TwoFactor\TwoFactorServiceInterface;
 use Modufolio\Appkit\Security\User\PasswordAuthenticatedUserInterface;
+use Modufolio\Appkit\Security\User\PasswordUpgraderInterface;
 use Modufolio\Appkit\Security\User\UserInterface;
 use Modufolio\Appkit\Security\User\UserPasswordHasherInterface;
 use Modufolio\Appkit\Security\User\UserProviderInterface;
@@ -101,6 +102,8 @@ class FormLoginAuthenticator extends AbstractAuthenticator
             throw new AuthenticationException('Invalid credentials');
         }
 
+        $this->upgradePasswordIfNeeded($user, $password);
+
         if (null !== $this->totpService) {
             $totpSecret = $this->totpService->getTwoFactorSecret($user);
 
@@ -124,6 +127,21 @@ class FormLoginAuthenticator extends AbstractAuthenticator
             return;
         }
         password_verify($password, self::DUMMY_HASH);
+    }
+
+    /**
+     * Transparently rehash the stored password after a successful login when
+     * the hash is outdated and the provider supports upgrades.
+     */
+    private function upgradePasswordIfNeeded(PasswordAuthenticatedUserInterface $user, #[\SensitiveParameter] string $password): void
+    {
+        if (null === $this->passwordHasher
+            || !$this->userProvider instanceof PasswordUpgraderInterface
+            || !$this->passwordHasher->needsRehash($user)) {
+            return;
+        }
+
+        $this->userProvider->upgradePassword($user, $this->passwordHasher->hashPassword($user, $password));
     }
 
     /**

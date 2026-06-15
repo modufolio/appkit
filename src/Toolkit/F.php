@@ -480,7 +480,10 @@ class F
 
         // atomically moving the file will only work if
         // source and target are on the same filesystem
-        if (stat($oldRoot)['dev'] === stat($directory)['dev']) {
+        $oldStat = @stat($oldRoot);
+        $targetStat = @stat($directory);
+
+        if (false !== $oldStat && false !== $targetStat && $oldStat['dev'] === $targetStat['dev']) {
             // same filesystem, we can move the file
             return true === rename($oldRoot, $newRoot);
         }

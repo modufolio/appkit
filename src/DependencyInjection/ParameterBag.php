@@ -9,6 +9,9 @@ class ParameterBag
     private array $parameters = [];
     private array $resolved = [];
 
+    /** @var array<string, true> parameter keys currently being resolved, for cycle detection */
+    private array $resolving = [];
+
     public function __construct(array $parameters = [])
     {
         $this->add($parameters);
@@ -38,11 +41,27 @@ class ParameterBag
         if (!$this->has($key)) {
             throw new \InvalidArgumentException(sprintf('Parameter "%s" not found.', $name));
         }
-        if (isset($this->resolved[$key]) || !$this->isPlaceholder($this->parameters[$key])) {
+
+        // Return a previously resolved value (the raw value must not be returned
+        // here, or a resolved placeholder would surface as its literal "%name%").
+        if (array_key_exists($key, $this->resolved)) {
+            return $this->resolved[$key];
+        }
+
+        if (!is_string($this->parameters[$key]) || !$this->isPlaceholder($this->parameters[$key])) {
             return $this->parameters[$key];
         }
 
-        return $this->resolved[$key] = $this->resolveValue($this->parameters[$key]);
+        if (isset($this->resolving[$key])) {
+            throw new \RuntimeException(sprintf('Circular reference detected while resolving parameter "%s" (path: %s).', $name, implode(' > ', array_keys($this->resolving))));
+        }
+
+        $this->resolving[$key] = true;
+        try {
+            return $this->resolved[$key] = $this->resolveValue($this->parameters[$key]);
+        } finally {
+            unset($this->resolving[$key]);
+        }
     }
 
     public function set(string $name, mixed $value): void

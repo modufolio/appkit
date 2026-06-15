@@ -200,12 +200,12 @@ class Template implements \Stringable
      *   <input value="<?= $this->esc($q, 'attr') ?>">
      *   <script>var t = "<?= $this->esc($t, 'js') ?>";</script>
      *
-     * @param string|null $string  The untrusted value (null becomes '')
-     * @param string      $context One of: html, attr, js, css, url
+     * @param string|int|float|\Stringable|null $string  The untrusted value (null becomes '')
+     * @param string                            $context One of: html, attr, js, css, url
      */
-    public function esc(?string $string, string $context = 'html'): string
+    public function esc(string|int|float|\Stringable|null $string, string $context = 'html'): string
     {
-        return Str::esc((string) $string, $context);
+        return Str::esc($string, $context);
     }
 
     /**
@@ -437,10 +437,19 @@ class Template implements \Stringable
             throw $exception;
         }
 
+        // Snapshot per-render state, then clear it on this instance so a reused
+        // template (e.g. pooled in a long-running worker) does not leak sections
+        // or a layout into the next render. The snapshot is still handed to the
+        // layout below, preserving normal layout behaviour.
+        $sections = $this->sections;
+        $layout = $this->layout;
+        $this->sections = [];
+        $this->layout = null;
+
         // Render the layout if one is defined
-        if (null !== $this->layout) {
+        if (null !== $layout) {
             $layoutTemplate = new self(
-                $this->layout,
+                $layout,
                 $this->layoutPaths,
                 [],
                 array_merge($this->data, [
@@ -451,7 +460,7 @@ class Template implements \Stringable
             );
 
             // Copy sections to layout template
-            $layoutTemplate->sections = $this->sections;
+            $layoutTemplate->sections = $sections;
 
             return $layoutTemplate->render();
         }
