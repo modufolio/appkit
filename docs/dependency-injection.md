@@ -36,6 +36,7 @@ AppKit resolves each interface via `config/interfaces.php` and passes the result
 
 | Interface | Resolved from |
 |-----------|---------------|
+| `BruteForceProtectionInterface` | `new FileBruteForceProtection(...)` — security default, customise as needed |
 | `CsrfTokenManagerInterface` | `$this->csrfTokenManager()` |
 | `EntityManagerInterface` | `$this->entityManager()` |
 | `Environment` | `$this->environment()` |
@@ -44,6 +45,7 @@ AppKit resolves each interface via `config/interfaces.php` and passes the result
 | `ParameterResolverInterface` | `$this->parameterResolver()` |
 | `ResponseFactoryInterface` | `new Psr17Factory()` |
 | `ResponseInterface` | `new Response()` |
+| `RememberMeAuthenticator` | `new RememberMeAuthenticator(...)` — security default, customise as needed |
 | `RouterInterface` | `$this->router()` |
 | `SerializerInterface` | `$this->serializer()` |
 | `ServerRequestInterface` | `$this->request()` |

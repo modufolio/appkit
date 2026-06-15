@@ -19,12 +19,14 @@ public function upload(ServerRequestInterface $request): ResponseInterface
 
     $upload
         ->isImage()
-        ->maxSize(2 * 1024 * 1024)  // 2 MB
-        ->saveTo(__DIR__ . '/../../storage/avatars');
+        ->maxSize(2 * 1024 * 1024);  // 2 MB
 
+    // Check validation before saving — saveTo() throws if there are errors.
     if ($upload->hasErrors()) {
         return Response::json(['errors' => $upload->getErrors()], 422);
     }
+
+    $upload->saveTo(__DIR__ . '/../../storage/avatars');
 
     $path = $upload->getStoredFilePath();
     // store $path in your entity, return a response, etc.
@@ -39,7 +41,7 @@ All validation methods return `$this`, so they chain.
 |--------|-------------|
 | `hasExtension(string\|array $ext, ?string $message)` | Require a specific file extension or list of extensions. |
 | `hasMimeType(string\|array $mime, ?string $message)` | Require a specific MIME type or list. |
-| `isImage(?string $message)` | Shorthand for common image MIME types (jpeg, png, gif, webp). |
+| `isImage(?string $message)` | Shorthand for common raster image MIME types (jpeg, png, gif, webp). SVG is excluded — it can carry scripts; allow it with `hasMimeType('image/svg+xml')` only after sanitising. |
 | `maxSize(int $bytes, ?string $message)` | Reject files larger than `$bytes`. |
 | `minSize(int $bytes, ?string $message)` | Reject files smaller than `$bytes`. |
 | `matchesFilenamePattern(string $pattern, ?string $message)` | Validate the original filename against a regex. |
@@ -70,7 +72,7 @@ $upload->saveTo('/absolute/path/to/directory');
 $upload->saveTo('/absolute/path/to/directory', 'profile-123');
 ```
 
-If validation fails, `saveTo()` still runs but the stored path will not be usable. Always check `hasErrors()` before using `getStoredFilePath()`.
+If validation fails, `saveTo()` throws `\InvalidArgumentException`. Always check `hasErrors()` *before* calling `saveTo()` (or wrap it in a try/catch).
 
 ## Reading errors and the stored path
 
@@ -91,12 +93,14 @@ $files = $request->getUploadedFiles();
 foreach ($files['gallery'] as $uploaded) {
     $handler = UploadedFileErrorHandler::from($uploaded)
         ->isImage()
-        ->maxSize(10 * 1024 * 1024)
-        ->saveTo('/storage/gallery');
+        ->maxSize(10 * 1024 * 1024);
 
     if ($handler->hasErrors()) {
         // collect errors per file
+        continue;
     }
+
+    $handler->saveTo('/storage/gallery');
 }
 ```
 
@@ -110,13 +114,14 @@ public function updateAvatar(
 ): ResponseInterface {
     $upload = UploadedFileErrorHandler::from($request->getUploadedFiles()['avatar'])
         ->isImage()
-        ->maxSize(2 * 1024 * 1024)
-        ->saveTo($this->baseDir . '/storage/avatars', 'user-' . $user->getId());
+        ->maxSize(2 * 1024 * 1024);
 
     if ($upload->hasErrors()) {
         $this->flashBag->add('error', implode(', ', $upload->getErrors()));
         return Response::redirect($this->urlGenerator->generate('profile'));
     }
+
+    $upload->saveTo($this->baseDir . '/storage/avatars', 'user-' . $user->getId());
 
     $user->setAvatarPath($upload->getStoredFilePath());
     $this->entityManager->flush();

@@ -62,7 +62,7 @@ Once Symfony Dotenv is loaded, `env()` still works — it reads from `$_ENV` fir
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `APP_ENV` | `prod` | Application environment. One of `dev`, `test`, or `prod`. |
-| `APP_URL` | — | Base URL of the application. No trailing slash. Used by `$this->url()` in templates and URL generation. |
+| `APP_URL` | — | Base URL of the application, for your own use (e.g. absolute links in CLI or email contexts). No trailing slash. Note: `$this->url()` and URL generation derive their base from the incoming request, not this value. |
 | `COOKIE_SECURE` | `false` | Set to `true` in production behind HTTPS. Adds the `Secure` flag to session cookies. |
 
 > `APP_ENV` defaults to `prod` when the variable is missing. This means an unconfigured production deploy is safe — it will not accidentally run in debug mode.
@@ -109,7 +109,7 @@ See [Dependency injection](dependency-injection.md).
 
 Maps interface and class names to closures that produce the service. The closures bind to the kernel instance at load time — `$this` refers to the `App` kernel.
 
-All 18 framework services are pre-wired. Add your own at the bottom of the file.
+All core framework services are pre-wired. Add your own at the bottom of the file.
 
 ```php
 return [

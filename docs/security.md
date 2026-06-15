@@ -111,10 +111,12 @@ $security->accessControl('/checkout', [], null, [
 
 Register multiple rules at once:
 
+Unlike `accessControl()`, the bulk method stores each rule verbatim, so the rules must use associative keys (`path`, `roles`, optional `methods`) — positional arrays will silently match nothing and leave the paths unprotected:
+
 ```php
 $security->accessControlRules([
-    ['/admin', ['ROLE_ADMIN']],
-    ['/api',   ['ROLE_USER'], ['GET', 'POST']],
+    ['path' => '/admin', 'roles' => ['ROLE_ADMIN']],
+    ['path' => '/api',   'roles' => ['ROLE_USER'], 'methods' => ['GET', 'POST']],
 ]);
 ```
 
@@ -157,7 +159,14 @@ $token = $this->csrfTokenManager->getToken('my-form')->getValue();
 $valid = $this->csrfTokenManager->validateToken('my-form', $request->getParsedBody()['_csrf_token'] ?? '');
 ```
 
-The `FormLoginAuthenticator` validates the CSRF token on `POST /login` automatically. You do not need to add it manually for form login.
+The `FormLoginAuthenticator` validates the CSRF token on `POST /login` automatically — but your login form must still render the token. Generate it with the token id `authenticate` and submit it in the `_csrf_token` field (both are configurable via the authenticator's `csrf_token_id` / `csrf_parameter` options):
+
+```php
+$token = $this->csrfTokenManager->getToken('authenticate')->getValue();
+```
+```html
+<input type="hidden" name="_csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
+```
 
 Token details:
 - 32 random bytes (64 hex characters)
@@ -173,6 +182,7 @@ AppKit applies these session protections by default:
 - `SameSite=Lax` — mitigates most CSRF scenarios in modern browsers
 - Session migration on login — the session ID is rotated after authentication to prevent session fixation (OWASP A07:2021)
 - CSRF tokens are cleared at login so any pre-authentication tokens become invalid
+- Session invalidation on user change — on each request the session user is reloaded via the user provider, and the session is dropped if security-relevant state changed (revoked roles or a changed password). Implement `EquatableInterface` on your `User` to control exactly which attributes trigger this; otherwise roles, password, and identifier are compared.
 
 Add the `Secure` flag in production by setting `COOKIE_SECURE=true` in your environment.
 

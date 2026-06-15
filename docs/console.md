@@ -43,7 +43,7 @@ $console->run();
 
 | Command | Description |
 |---------|-------------|
-| `router:debug [name]` | List all registered routes, optionally filtered by name |
+| `debug:router [name]` | List all registered routes, optionally filtered by name |
 
 ### ORM / schema commands
 
@@ -223,13 +223,14 @@ If you need to add command groups (like the ORM or migration commands), call `ad
 
 ## Running in a specific environment
 
-Pass `--env` to override `APP_ENV`:
+The console environment is selected by the `--env` option (or the `--test` shortcut), *not* by the `APP_ENV` environment variable — setting `APP_ENV=test` in your shell does not change which config the console loads.
 
 ```bash
 php bin/console migrations:migrate --env=test
+php bin/console migrations:migrate --test          # shortcut for --env=test
 ```
 
-When `APP_ENV=test`, the console can load a separate Doctrine config from `config/test/doctrine.php` if it exists — useful for running migrations against a test database without touching production data.
+When run with `--env=test`, the console loads a separate Doctrine config from `config/test/doctrine.php` if it exists — useful for running migrations against a test database without touching production data.
 
 ## Doctrine migrations config
 

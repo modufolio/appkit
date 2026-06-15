@@ -111,8 +111,8 @@ The Kernel exposes lazy-loaded services as methods. Use these inside `App` or co
 ## URL helpers
 
 ```php
-$this->url('/login');     // https://example.com/login  (uses APP_URL)
-$this->baseUrl();         // https://example.com
+$this->url('/login');     // https://example.com/login  (base derived from the current request)
+$this->baseUrl();         // https://example.com  (scheme://host[:port] of the request)
 $this->generateUrl('home');                                    // /
 $this->generateUrl('post.show', ['slug' => 'hello']);          // /posts/hello
 ```

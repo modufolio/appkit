@@ -281,7 +281,7 @@ use Modufolio\Appkit\Doctrine\DoctrineOrmPagination;
 $query = $this->entityManager
     ->createQuery('SELECT p FROM App\Entity\Post p ORDER BY p.createdAt DESC');
 
-$pagination = DoctrineOrmPagination::paginate(query: $query, page: $page, limit: 20);
+$pagination = (new DoctrineOrmPagination())->paginate($query, page: $page, limit: 20);
 
 $items   = $pagination->getResults();
 $total   = $pagination->total();
@@ -295,7 +295,7 @@ $range   = $pagination->range(5); // array of page numbers around current page
 
 | Method | Returns | Description |
 |--------|---------|-------------|
-| `paginate(Query, int $page, int $limit)` | `self` | Static factory |
+| `paginate(Query, int $page = 1, int $limit = 10)` | `self` | Instance method; populates and returns `$this` |
 | `getResults()` | `array` | Current page items |
 | `total()` | `int` | Total item count |
 | `limit()` | `int` | Items per page |

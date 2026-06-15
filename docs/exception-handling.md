@@ -39,11 +39,12 @@ Registered by `registerDefaultExceptions()`. The list follows registration order
 | `MethodNotAllowedException` | 405 | Method not allowed | The Symfony message already lists the allowed methods. |
 | `ValidationFailedException` | 422 | — | Produces a JSON:API `errors` array, one entry per violation with a `source.pointer`. |
 | `AuthenticationException` | 401 | Authentication failed | Detail is **always** the literal `Authentication required.` — never `$e->getMessage()`. See below. |
+| `AccessDeniedException` | 403 | Access denied | The user **is** authenticated but lacks the required roles or fails an access rule (`#[IsGranted]`, `accessControl()`, IP restriction). |
 | `\RuntimeException` | 500 | Runtime error | Detail hidden in prod. Loggable. |
 
 ### Why 401 is generic
 
-`AuthenticationException` deliberately suppresses `$e->getMessage()`. The message is useful in the logger — `"JWT signature invalid"`, `"Account is locked"`, `"Insufficient roles for path /admin"` — but those are reconnaissance signals for an attacker probing the boundary between *no account*, *wrong password*, *locked account*, and *expired token*. The client receives a flat `401 Authentication required.` and the detail goes to the log only. This is the same reasoning behind the timing-safe, enumeration-resistant login failures described in [Authenticators](authenticators.md).
+`AuthenticationException` deliberately suppresses `$e->getMessage()`. The message is useful in the logger — `"JWT signature invalid"`, `"Account is locked"`, `"Token expired"` — but those are reconnaissance signals for an attacker probing the boundary between *no account*, *wrong password*, *locked account*, and *expired token*. The client receives a flat `401 Authentication required.` and the detail goes to the log only. This is the same reasoning behind the timing-safe, enumeration-resistant login failures described in [Authenticators](authenticators.md).
 
 Authenticators that need a richer response — for example a `WWW-Authenticate: Bearer realm=…` challenge — should return one from their own `unauthorizedResponse()` before the exception reaches the handler.
 

@@ -108,7 +108,7 @@ AppKit looks for `resources/views/cards/post.php`. The array passed as the secon
 | `$template->section(string $name, string $default = '')` | Output a named section in the layout. |
 | `$template->snippet(string $name, array $data = [])` | Render a partial template. |
 | `$this->esc(?string $value, string $context = 'html')` | Context-aware output escaping (`html`, `attr`, `js`, `css`, `url`). |
-| `$this->url(string $path = '')` | Prepend `APP_URL` to a path. |
+| `$this->url(string $path = '')` | Prepend the request's base URL (scheme + host + port) to a path. |
 | `$this->css(string\|array $url)` | Queue a stylesheet for `renderCss()`. |
 | `$this->js(string\|array $url)` | Queue a script for `renderJs()`. |
 | `$this->renderCss()` | Emit all queued `<link>` tags. |
@@ -150,7 +150,7 @@ AppKit does not escape output automatically. Use the context-aware `$this->esc()
 | `css` | A value inside a `<style>` block or CSS context |
 | `url` | A value used as a URL query-string component |
 
-`esc()` accepts `null` (it becomes an empty string). **An unrecognised context returns the value unescaped**, so always pass one of the five names above. The helper wraps [laminas/laminas-escaper](https://docs.laminas.dev/laminas-escaper/) — the same battle-tested escaper Kirby uses; `Str::esc($value, $context)` exposes the identical function outside templates.
+`esc()` accepts `null` (it becomes an empty string) as well as numbers and `Stringable` values. **An unrecognised context throws an `InvalidArgumentException`** rather than returning the value unescaped, so a typo in the context name can never silently open an XSS hole. The helper wraps [laminas/laminas-escaper](https://docs.laminas.dev/laminas-escaper/) — the same battle-tested escaper Kirby uses; `Str::esc($value, $context)` exposes the identical function outside templates.
 
 For blocks of HTML you generate and trust yourself, output directly with `<?=`.
 

@@ -96,9 +96,10 @@ use Modufolio\Psr7\Http\Response;
 return Response::redirect($this->urlGenerator->generate('home'));
 return Response::redirect('/login', 302);
 
-// JSON — accepts array or JSON string, optional status and headers
+// JSON — json(string|array $body, ?int $code = null, ?bool $pretty = null, array $headers = [])
 return Response::json(['status' => 'ok', 'id' => $entity->getId()]);
 return Response::json($errors, 422);
+return Response::json($data, 200, true, ['X-Total' => '42']); // pretty-print + headers
 
 // HTML
 return Response::html('<h1>Hello</h1>');
@@ -205,8 +206,8 @@ Binds a single query parameter to a primitive argument (`int`, `float`, `bool`, 
 ```php
 #[Route(path: '/posts', name: 'posts.index', methods: ['GET'])]
 public function index(
+    #[MapQueryParameter(name: 'q')] ?string $search = null,
     #[MapQueryParameter] int $page = 1,
-    #[MapQueryParameter(name: 'q')] ?string $search,
     #[MapQueryParameter] SortDirection $sort = SortDirection::Desc,
 ): ResponseInterface
 ```

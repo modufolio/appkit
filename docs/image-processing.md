@@ -163,12 +163,13 @@ public function updateAvatar(ServerRequestInterface $request, #[CurrentUser] Use
 {
     $upload = UploadedFileErrorHandler::from($request->getUploadedFiles()['avatar'])
         ->isImage()
-        ->maxSize(5 * 1024 * 1024)
-        ->saveTo($this->storageDir . '/tmp', 'original-' . $user->getId());
+        ->maxSize(5 * 1024 * 1024);
 
     if ($upload->hasErrors()) {
         return Response::json(['errors' => $upload->getErrors()], 422);
     }
+
+    $upload->saveTo($this->storageDir . '/tmp', 'original-' . $user->getId());
 
     // Resize to a 256×256 thumbnail
     $darkroom = new GdLib();

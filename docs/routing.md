@@ -76,7 +76,7 @@ class DashboardController extends AbstractController
 }
 ```
 
-`#[IsGranted]` is repeatable — add multiple instances to require all listed roles:
+`#[IsGranted]` is repeatable, and follows the same logic as Symfony: each attribute is an independent requirement that must pass (**AND** between attributes), while multiple roles listed inside one attribute are alternatives (**OR**). The example below requires the user to hold **both** roles:
 
 ```php
 #[IsGranted('ROLE_EDITOR')]
@@ -84,7 +84,16 @@ class DashboardController extends AbstractController
 public function publish(): ResponseInterface
 ```
 
-The attribute is read by `AttributeClassLoader` at route load time — once on boot, not on every request. Class-level and method-level `#[IsGranted]` attributes are merged, deduplicated, and stored as `_is_granted_roles` in the route's defaults. In production, Symfony serializes the entire route collection to `var/cache/router`, so the required roles are compiled into that cache. At request time, enforcing access control is a single `$route->getDefault('_is_granted_roles')` lookup with no reflection involved.
+For an either/or check, list the roles in a single attribute:
+
+```php
+#[IsGranted(['ROLE_EDITOR', 'ROLE_ADMIN'])] // editor OR admin
+public function edit(): ResponseInterface
+```
+
+Because attributes are AND'd, a method-level `#[IsGranted]` *tightens* a class-level one — it cannot widen access. A user must satisfy the class requirement **and** the method requirement.
+
+The attributes are read by `AttributeClassLoader` at route load time — once on boot, not on every request. Each `#[IsGranted]` (class- and method-level) becomes one role group stored as `_is_granted_roles` (a list of groups) in the route's defaults. In production, Symfony serializes the entire route collection to `var/cache/router`, so the groups are compiled into that cache — clear it on deploy after changing access rules. At request time, enforcement is a single `$route->getDefault('_is_granted_roles')` lookup with no reflection involved.
 
 The Kernel enforces the check during controller resolution, before any controller code executes.
 
@@ -92,7 +101,7 @@ For path-based rules that apply globally (outside individual routes), use `acces
 
 ## Generating URLs
 
-Inside a template, use `$this->url()` to prepend `APP_URL` to a path:
+Inside a template, use `$this->url()` to prepend the request's base URL (scheme + host + port) to a path:
 
 ```php
 <a href="<?= $this->url('/about') ?>">About</a>
@@ -123,13 +132,13 @@ class MyController extends AbstractController
 List all registered routes with their names, paths, and allowed methods:
 
 ```bash
-php bin/console router:debug
+php bin/console debug:router
 ```
 
 Filter by name or path:
 
 ```bash
-php bin/console router:debug login
+php bin/console debug:router login
 ```
 
 ## Adding routes manually

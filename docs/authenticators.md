@@ -79,6 +79,8 @@ new FormLoginAuthenticator(
 
 `RedisBruteForceProtection::fromDsn()` accepts `redis://`, `rediss://`, and Unix socket DSNs. It requires the phpredis extension.
 
+`BasicAuthenticator` accepts the same optional `BruteForceProtectionInterface` as its third constructor argument, so password-based HTTP Basic endpoints can be throttled the same way.
+
 ## Brute-force protection interface
 
 Both implementations satisfy `BruteForceProtectionInterface`:
@@ -112,12 +114,15 @@ $security->firewall('api', [
 'jwt' => function ($container) {
     return new JwtAuthenticator(
         userProvider: $container->get(UserProviderInterface::class),
-        secret:       getenv('JWT_SECRET'),
+        options: [
+            'algorithm'  => 'HS256',
+            'secret_key' => getenv('JWT_SECRET'), // HMAC: fills both signing and verification keys
+        ],
     );
 },
 ```
 
-The authenticator extracts the token from `Authorization: Bearer <token>` and validates the signature.
+The authenticator extracts the token from `Authorization: Bearer <token>` and validates the signature. `secret_key` is only valid for HMAC algorithms (HS256/HS384/HS512); for asymmetric algorithms (RS*/ES*) pass `signing_key` and `verification_key` separately.
 
 ## API key authenticator
 
@@ -269,6 +274,7 @@ $totpService = new TotpService(
     entityManager:          $this->entityManager(),
     totpSecretRepository:   $this->get(UserTotpSecretRepositoryInterface::class),
     twoFactorEntityClass:   TotpSecret::class,
+    clock:                  $this->get(Psr\Clock\ClockInterface::class),
     issuer:                 'My App',
 );
 
@@ -318,11 +324,29 @@ Your `TotpSecret` entity must implement `UserTotpSecretInterface` (which extends
 All authenticators require your `User` class to implement `Modufolio\Appkit\Security\User\UserInterface`:
 
 ```php
+getId(): mixed               // primary key, used to reload the user
+getEmail(): string           // email address
 getUserIdentifier(): string  // unique identifier, typically email
 getRoles(): array            // e.g. ['ROLE_USER']
 isEnabled(): bool            // return false to block login
 eraseCredentials(): void     // clear any transient sensitive data
 ```
+
+### Loading users
+
+Authenticators look users up through a `UserProviderInterface`. You can implement it on your Doctrine repository, or use the built-in `EntityUserProvider` as a drop-in instead of hand-rolling `loadUserByIdentifier`/`refreshUser`/`supportsClass`:
+
+```php
+use Modufolio\Appkit\Security\User\EntityUserProvider;
+
+'user_provider' => fn ($container) => new EntityUserProvider(
+    entityManager:      $container->get(EntityManagerInterface::class),
+    entityClass:        App\Entity\User::class,
+    identifierProperty: 'email',
+);
+```
+
+It reloads the user from the database on refresh (so revoked roles / changed passwords are picked up) and implements `PasswordUpgraderInterface`, so transparent rehashing works out of the box when the entity has a `setPassword()` method.
 
 Optional interfaces unlock additional checks in `UserChecker`:
 
@@ -348,3 +372,24 @@ $needs = $hasher->needsRehash($user); // true when algorithm changed
 ```
 
 The `hashPassword()` and `isPasswordValid()` methods use PHP 8.4's `#[\SensitiveParameter]` on the plaintext argument, so it is excluded from stack traces and error logs.
+
+### Transparent password rehashing
+
+When you raise the hashing cost or change the algorithm, existing users still have the old hash stored. `FormLoginAuthenticator` and `BasicAuthenticator` upgrade it automatically after a successful login — but only when the user provider can persist the new hash. Implement `PasswordUpgraderInterface` on your provider to opt in:
+
+```php
+use Modufolio\Appkit\Security\User\PasswordAuthenticatedUserInterface;
+use Modufolio\Appkit\Security\User\PasswordUpgraderInterface;
+use Modufolio\Appkit\Security\User\UserProviderInterface;
+
+class UserRepository extends ServiceEntityRepository implements UserProviderInterface, PasswordUpgraderInterface
+{
+    public function upgradePassword(PasswordAuthenticatedUserInterface $user, string $newHashedPassword): void
+    {
+        $user->setPassword($newHashedPassword);
+        $this->getEntityManager()->flush();
+    }
+}
+```
+
+After each successful login the authenticator calls `needsRehash()`; if the hash is outdated and the provider implements `PasswordUpgraderInterface`, it rehashes the supplied password and calls `upgradePassword()`. Providers that do not implement the interface are left untouched.
