@@ -11,6 +11,7 @@ use Modufolio\Appkit\Core\ResetInterface;
 use Modufolio\Appkit\Resolver\AssociativeArrayResolver;
 use Modufolio\Appkit\Resolver\AttributeParameterResolver;
 use Modufolio\Appkit\Resolver\DataGridResolver;
+use Modufolio\Appkit\Resolver\DefaultValueResolver;
 use Modufolio\Appkit\Resolver\MapEntityResolver;
 use Modufolio\Appkit\Resolver\MapQueryParameterResolver;
 use Modufolio\Appkit\Resolver\MapRequestPayloadResolver;
@@ -245,7 +246,8 @@ class App extends Kernel
                     $this->validator()
                 ),
             ]))
-            ->addResolver(new TypeHintContainerResolver($this));
+            ->addResolver(new TypeHintContainerResolver($this))
+            ->addResolver(new DefaultValueResolver());
     }
 
     public function validator(): ValidatorInterface
