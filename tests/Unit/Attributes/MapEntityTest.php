@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Modufolio\Appkit\Tests\Unit\Attributes;
 
-use Modufolio\Appkit\Attributes\FindEntity;
+use Modufolio\Appkit\Attributes\MapEntity;
 use PHPUnit\Framework\TestCase;
 
-class FindEntityTest extends TestCase
+class MapEntityTest extends TestCase
 {
     public function testConstructorWithDefaultCriteria(): void
     {
-        $attribute = new FindEntity();
+        $attribute = new MapEntity();
 
         $this->assertSame([], $attribute->criteria);
     }
@@ -19,14 +19,14 @@ class FindEntityTest extends TestCase
     public function testConstructorWithCriteria(): void
     {
         $criteria = ['id' => 123, 'status' => 'active'];
-        $attribute = new FindEntity($criteria);
+        $attribute = new MapEntity($criteria);
 
         $this->assertSame($criteria, $attribute->criteria);
     }
 
     public function testCriteriaIsPublic(): void
     {
-        $attribute = new FindEntity(['email' => 'test@example.com']);
+        $attribute = new MapEntity(['email' => 'test@example.com']);
 
         $this->assertArrayHasKey('email', $attribute->criteria);
         $this->assertSame('test@example.com', $attribute->criteria['email']);
@@ -34,7 +34,7 @@ class FindEntityTest extends TestCase
 
     public function testIsAttributeClass(): void
     {
-        $reflection = new \ReflectionClass(FindEntity::class);
+        $reflection = new \ReflectionClass(MapEntity::class);
         $attributes = $reflection->getAttributes(\Attribute::class);
 
         $this->assertNotEmpty($attributes);
@@ -42,7 +42,7 @@ class FindEntityTest extends TestCase
 
     public function testTargetsParameter(): void
     {
-        $reflection = new \ReflectionClass(FindEntity::class);
+        $reflection = new \ReflectionClass(MapEntity::class);
         $attributes = $reflection->getAttributes();
 
         $this->assertCount(1, $attributes);
@@ -57,14 +57,14 @@ class FindEntityTest extends TestCase
             'created' => ['>=', '2024-01-01'],
         ];
 
-        $attribute = new FindEntity($criteria);
+        $attribute = new MapEntity($criteria);
 
         $this->assertSame($criteria, $attribute->criteria);
     }
 
     public function testEmptyCriteria(): void
     {
-        $attribute = new FindEntity([]);
+        $attribute = new MapEntity([]);
 
         $this->assertEmpty($attribute->criteria);
         $this->assertIsArray($attribute->criteria);

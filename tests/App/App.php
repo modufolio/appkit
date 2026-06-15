@@ -11,7 +11,7 @@ use Modufolio\Appkit\Core\ResetInterface;
 use Modufolio\Appkit\Resolver\AssociativeArrayResolver;
 use Modufolio\Appkit\Resolver\AttributeParameterResolver;
 use Modufolio\Appkit\Resolver\DataGridResolver;
-use Modufolio\Appkit\Resolver\FindEntityResolver;
+use Modufolio\Appkit\Resolver\MapEntityResolver;
 use Modufolio\Appkit\Resolver\MapRequestPayloadResolver;
 use Modufolio\Appkit\Resolver\ParameterResolverInterface;
 use Modufolio\Appkit\Resolver\ResolverPipeline;
@@ -235,7 +235,7 @@ class App extends Kernel
             ->addResolver(new TypeHintResolver())
             ->addResolver(new AttributeParameterResolver([
                 new UserResolver($this->tokenStorage()),
-                new FindEntityResolver($this->entityManager()),
+                new MapEntityResolver($this->entityManager()),
                 new DataGridResolver($this->entityManager(), $this->request()),
                 new MapRequestPayloadResolver(
                     $serializer,

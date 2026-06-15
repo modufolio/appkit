@@ -330,7 +330,7 @@ use Modufolio\Appkit\Security\Token\SwitchUserToken;
 #[IsGranted('ROLE_ADMIN')]
 #[Route(path: '/users/{id}/switch', name: 'users_switch', methods: ['POST'])]
 public function switchUser(
-    #[FindEntity] User $targetUser,
+    #[MapEntity] User $targetUser,
     string $firewall,
 ): ResponseInterface {
     // $this->tokenStorage->getToken() is guaranteed non-null here:

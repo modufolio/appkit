@@ -139,22 +139,22 @@ use Modufolio\Appkit\Attributes\CurrentUser;
 public function dashboard(#[CurrentUser] UserInterface $user): ResponseInterface
 ```
 
-### `#[FindEntity]`
+### `#[MapEntity]`
 
-Loads a Doctrine entity from the database using route parameters as criteria. Returns `null` if nothing is found.
+Loads a Doctrine entity from the database using route parameters as criteria. Throws a 404 if the entity is not found and the parameter is non-nullable. Returns `null` if the parameter is nullable (`?Post`).
 
 ```php
-use Modufolio\Appkit\Attributes\FindEntity;
+use Modufolio\Appkit\Attributes\MapEntity;
 
 #[Route(path: '/posts/{id}', name: 'post.show', methods: ['GET'])]
-public function show(#[FindEntity] Post $post): ResponseInterface
+public function show(#[MapEntity] Post $post): ResponseInterface
 ```
 
 Specify custom criteria:
 
 ```php
 #[Route(path: '/posts/{slug}', name: 'post.show', methods: ['GET'])]
-public function show(#[FindEntity(['slug' => 'slug'])] Post $post): ResponseInterface
+public function show(#[MapEntity(['slug' => 'slug'])] Post $post): ResponseInterface
 ```
 
 ### `#[MapRequestPayload]`
