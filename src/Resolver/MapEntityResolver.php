@@ -41,7 +41,7 @@ class MapEntityResolver implements AttributeResolverInterface
     }
 
     /**
-     * @throws \LogicException if the parameter type is not a valid class or entity
+     * @throws \LogicException if the parameter type is not a valid class or no criteria can be built
      * @throws ResourceNotFoundException if the entity is not found and the parameter is not nullable
      */
     private function resolveMapEntity(
@@ -49,25 +49,55 @@ class MapEntityResolver implements AttributeResolverInterface
         MapEntity $attribute,
         array $providedParameters,
     ): ?object {
-        $type = $parameter->getType();
+        $entityClass = $attribute->class ?? $this->entityClassFromType($parameter);
 
-        if (!$type instanceof \ReflectionNamedType || $type->isBuiltin()) {
-            throw new \LogicException(sprintf('Parameter "%s" must have a valid class type hint.', $parameter->getName()));
-        }
-
-        $entityClass = $type->getName();
         $criteria = $attribute->criteria;
 
-        $id = $criteria['id'] ?? $providedParameters['id'] ?? null;
+        // Translate route parameters into entity field criteria.
+        foreach ($attribute->mapping ?? [] as $routeParam => $field) {
+            if (array_key_exists($routeParam, $providedParameters)) {
+                $criteria[$field] = $providedParameters[$routeParam];
+            }
+        }
 
-        $criteria = array_merge($criteria, ['id' => $id]);
+        // Use the route's id as a primary-key criterion when one is available.
+        $id = $criteria['id'] ?? $providedParameters['id'] ?? null;
+        if ($id !== null) {
+            $criteria['id'] = $id;
+        }
+
+        foreach ($attribute->exclude ?? [] as $field) {
+            unset($criteria[$field]);
+        }
+
+        if ($attribute->stripNull) {
+            $criteria = array_filter($criteria, static fn ($value) => $value !== null);
+        }
+
+        if ($criteria === []) {
+            throw new \LogicException(sprintf('Cannot resolve entity "%s" for parameter "%s": no id or criteria available.', $entityClass, $parameter->getName()));
+        }
 
         $object = $this->entityManager->getRepository($entityClass)->findOneBy($criteria);
 
         if ($object === null && !$parameter->allowsNull()) {
-            throw new ResourceNotFoundException(sprintf('"%s" object not found by "%s".', $entityClass, self::class));
+            throw new ResourceNotFoundException($attribute->message ?? sprintf('"%s" object not found by "%s".', $entityClass, self::class));
         }
 
         return $object;
+    }
+
+    /**
+     * @throws \LogicException if the parameter does not have a valid class type hint
+     */
+    private function entityClassFromType(\ReflectionParameter $parameter): string
+    {
+        $type = $parameter->getType();
+
+        if (!$type instanceof \ReflectionNamedType || $type->isBuiltin()) {
+            throw new \LogicException(sprintf('Parameter "%s" must have a valid class type hint or an explicit MapEntity class.', $parameter->getName()));
+        }
+
+        return $type->getName();
     }
 }

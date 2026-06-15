@@ -285,7 +285,7 @@ class UploadedFileErrorHandler
         return round($bytes, $precision).' '.$units[$pow];
     }
 
-    public function getStoredFilePath(): string
+    public function getStoredFilePath(): ?string
     {
         return $this->storedFilePath;
     }

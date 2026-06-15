@@ -150,11 +150,17 @@ use Modufolio\Appkit\Attributes\MapEntity;
 public function show(#[MapEntity] Post $post): ResponseInterface
 ```
 
-Specify custom criteria:
+Map a route parameter to an entity field with `mapping` (route param name => field name):
 
 ```php
 #[Route(path: '/posts/{slug}', name: 'post.show', methods: ['GET'])]
-public function show(#[MapEntity(['slug' => 'slug'])] Post $post): ResponseInterface
+public function show(#[MapEntity(mapping: ['slug' => 'slug'])] Post $post): ResponseInterface
+```
+
+Add fixed criteria, exclude keys, or strip nulls:
+
+```php
+#[MapEntity(criteria: ['status' => 'published'], stripNull: true)] Post $post
 ```
 
 ### `#[MapRequestPayload]`
