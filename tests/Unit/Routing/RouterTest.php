@@ -110,7 +110,6 @@ class RouterTest extends TestCase
 
         $result = $router->match($request);
 
-        $this->assertIsArray($result);
         $this->assertArrayHasKey('_controller', $result);
         $this->assertSame('TestController', $result['_controller']);
     }
@@ -122,7 +121,6 @@ class RouterTest extends TestCase
 
         $result = $router->matchPath('/test');
 
-        $this->assertIsArray($result);
         $this->assertArrayHasKey('_controller', $result);
         $this->assertSame('TestController', $result['_controller']);
     }
@@ -229,7 +227,6 @@ class RouterTest extends TestCase
 
         // Router should still work after reset
         $result = $router->matchPath('/test');
-        $this->assertIsArray($result);
         $this->assertArrayHasKey('_controller', $result);
     }
 
@@ -276,7 +273,6 @@ class RouterTest extends TestCase
 
         $result = $router->matchPath('/test');
 
-        $this->assertIsArray($result);
         $this->assertArrayHasKey('_controller', $result);
     }
 
@@ -292,7 +288,7 @@ class RouterTest extends TestCase
 
         // Router should work in debug mode
         $result = $router->matchPath('/test');
-        $this->assertIsArray($result);
+        $this->assertArrayHasKey('_controller', $result);
     }
 
     public function testStrictRequirementsFalse(): void

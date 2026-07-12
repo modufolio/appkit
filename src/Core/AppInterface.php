@@ -79,4 +79,6 @@ interface AppInterface extends ContainerInterface, RequestHandlerInterface, Rese
         array $parameters = [],
         int $referenceType = UrlGeneratorInterface::ABSOLUTE_PATH,
     ): string;
+
+    public function urlGenerator(): UrlGeneratorInterface;
 }

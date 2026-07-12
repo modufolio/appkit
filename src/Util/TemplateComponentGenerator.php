@@ -48,7 +48,7 @@ final class TemplateComponentGenerator
         return $attribute;
     }
 
-    public function getPropertyType(ClassNameDetails $classNameDetails): ?string
+    public function getPropertyType(ClassNameDetails $classNameDetails): string
     {
         return \sprintf('%s ', $classNameDetails->getShortName());
     }

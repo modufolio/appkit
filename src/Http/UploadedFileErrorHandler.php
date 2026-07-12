@@ -25,12 +25,6 @@ class UploadedFileErrorHandler
      */
     private const MIME_SNIFF_BYTES = 65536;
 
-    /** @var int|null */
-    private $maxSize;
-
-    /** @var int|null */
-    private $minSize;
-
     /**
      * Create a new file wrapper.
      */
@@ -124,8 +118,6 @@ class UploadedFileErrorHandler
      */
     public function maxSize(int $size, ?string $message = null): self
     {
-        $this->maxSize = $size;
-
         if ($this->file->getSize() > $size) {
             $this->addError($message ?? sprintf(
                 'File size must not exceed %s. Got: %s.',
@@ -145,8 +137,6 @@ class UploadedFileErrorHandler
      */
     public function minSize(int $size, ?string $message = null): self
     {
-        $this->minSize = $size;
-
         if ($this->file->getSize() < $size) {
             $this->addError($message ?? sprintf(
                 'File size must be at least %s. Got: %s.',

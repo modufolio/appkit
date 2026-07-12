@@ -77,6 +77,7 @@ class EntityUserProviderTest extends AppTestCase
         $this->app()->entityManager()->clear();
         $reloaded = $this->provider->loadUserByIdentifier('johndoe@example.com');
 
+        self::assertInstanceOf(User::class, $reloaded);
         $this->assertSame($newHash, $reloaded->getPassword());
     }
 }

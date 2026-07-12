@@ -792,7 +792,7 @@ class Str
 
                 $replacements[] = ['search' => $s, 'replace' => $r, 'limit' => $l];
             }
-        } elseif (true === is_array($search) && true === is_string($replace)) {
+        } elseif (true === is_array($search)) {
             foreach ($search as $i => $s) {
                 if (true === is_array($limit)) {
                     // don't apply a limit if no limit was defined for this index
@@ -803,7 +803,7 @@ class Str
 
                 $replacements[] = ['search' => $s, 'replace' => $replace, 'limit' => $l];
             }
-        } elseif (true === is_string($search) && true === is_string($replace) && true === is_int($limit)) {
+        } elseif (true === is_string($replace) && true === is_int($limit)) {
             $replacements[] = compact('search', 'replace', 'limit');
         } else {
             throw new \RuntimeException('Invalid combination of $search, $replace and $limit params.');

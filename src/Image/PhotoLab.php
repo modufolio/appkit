@@ -26,7 +26,7 @@ use Modufolio\Appkit\Image\Transformations\SharpenTransformation;
  */
 class PhotoLab
 {
-    private ?FileInterface $file;
+    private FileInterface $file;
     private StorageInterface $storage;
     private JobStorageInterface $jobStorage;
 
@@ -50,10 +50,6 @@ class PhotoLab
      */
     public function build(): ImageProcessor
     {
-        if (null === $this->file) {
-            throw new \InvalidArgumentException('File does not exist');
-        }
-
         return new ImageProcessor(
             $this->file,
             $this->storage,
@@ -151,10 +147,6 @@ class PhotoLab
     public function srcset(array|string|null $sizes = null): ?string
     {
         if (!is_array($sizes) || empty($sizes)) {
-            return null;
-        }
-
-        if (null === $this->file) {
             return null;
         }
 

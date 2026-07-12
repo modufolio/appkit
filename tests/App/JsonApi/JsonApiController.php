@@ -17,11 +17,10 @@ use Modufolio\JsonApi\InputNormalizer;
 use Modufolio\JsonApi\JsonApiConfigurator;
 use Modufolio\JsonApi\JsonApiQueryBuilder;
 use Modufolio\JsonApi\JsonApiQueryParams;
-use Modufolio\JsonApi\JsonApiRequestDeserializer;
 use Modufolio\JsonApi\JsonApiSerializer;
 use Modufolio\JsonApi\JsonApiUrlParser;
 use Modufolio\Psr7\Http\Response;
-use Negotiation\Exception\Exception;
+use Negotiation\Accept;
 use Negotiation\Negotiator;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -32,7 +31,6 @@ class JsonApiController
     private readonly array $config;
     private readonly JsonApiUrlParser $parser;
     private readonly FilterRegistry $filterRegistry;
-    private readonly JsonApiRequestDeserializer $deserializer;
     private readonly InputNormalizer $inputNormalizer;
     private readonly Negotiator $negotiator;
 
@@ -46,7 +44,6 @@ class JsonApiController
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly ValidatorInterface $validator,
-        private readonly ResponseInterface $responseFactory,
         private readonly string $configPath,
         ?FilterRegistry $filterRegistry = null,
     ) {
@@ -62,7 +59,6 @@ class JsonApiController
         // Initialize parser with full config
         $this->parser = new JsonApiUrlParser($this->config);
         $this->filterRegistry = $filterRegistry ?? $this->createDefaultFilterRegistry();
-        $this->deserializer = new JsonApiRequestDeserializer();
         $this->inputNormalizer = new InputNormalizer();
         $this->negotiator = new Negotiator();
     }
@@ -349,7 +345,7 @@ class JsonApiController
 
             $this->em->flush();
 
-            return $this->responseFactory->empty(204);
+            return Response::empty();
         } catch (\Exception $e) {
             return $this->errorResponse($e->getMessage(), 400);
         }
@@ -641,7 +637,8 @@ class JsonApiController
      *
      * Supports both JSON:API and plain JSON formats
      *
-     * @throws Exception
+     * @throws \Negotiation\Exception\InvalidArgument
+     * @throws \Negotiation\Exception\InvalidHeader
      */
     private function isValidContentType(string $contentType): bool
     {
@@ -652,7 +649,7 @@ class JsonApiController
         // Use negotiator to check if content type is supported
         $mediaType = $this->negotiator->getBest($contentType, self::SUPPORTED_CONTENT_TYPES);
 
-        if (null === $mediaType) {
+        if (!$mediaType instanceof Accept) {
             return false;
         }
 
@@ -693,7 +690,7 @@ class JsonApiController
             // Parse all media types in the Accept header
             $mediaTypes = $this->negotiator->getBest($accept, [self::JSON_API_MEDIA_TYPE]);
 
-            if (null === $mediaTypes) {
+            if (!$mediaTypes instanceof Accept) {
                 // JSON:API not in Accept header or not acceptable
                 return true;
             }

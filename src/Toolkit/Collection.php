@@ -453,7 +453,7 @@ class Collection extends Iterator implements \Stringable
 
                 if (false === isset($groups[$value])) {
                     // create a new entry for the group if it does not exist yet
-                    $groups[$value] = new static([$key => $item]);
+                    $groups[$value] = new self([$key => $item]);
                 } else {
                     // add the element to an existing group
                     $groups[$value]->set($key, $item);

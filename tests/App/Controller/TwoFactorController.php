@@ -13,7 +13,7 @@ use Modufolio\Appkit\Security\User\UserInterface;
 use Modufolio\Psr7\Http\Response;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
-use Symfony\Component\HttpFoundation\Session\SessionInterface;
+use Symfony\Component\HttpFoundation\Session\FlashBagAwareSessionInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
@@ -28,7 +28,7 @@ class TwoFactorController
     public function __construct(
         private TotpService $totpService,
         private TokenStorageInterface $tokenStorage,
-        private SessionInterface $session,
+        private FlashBagAwareSessionInterface $session,
         private CsrfTokenManagerInterface $csrfTokenManager,
         private UrlGeneratorInterface $urlGenerator,
     ) {

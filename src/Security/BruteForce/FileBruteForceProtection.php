@@ -81,7 +81,7 @@ class FileBruteForceProtection implements BruteForceProtectionInterface
     {
         // Quick lock-free check; if not locked, no write needed.
         $data = $this->read($this->generateKey($identifier, $ipAddress));
-        if (!isset($data['locked_until']) || null === $data['locked_until']) {
+        if (!isset($data['locked_until'])) {
             return 0;
         }
 
@@ -92,7 +92,7 @@ class FileBruteForceProtection implements BruteForceProtectionInterface
 
         // Lockout expired — clear under an exclusive lock.
         $this->modify($identifier, $ipAddress, function (array $data, int $now): array {
-            if (isset($data['locked_until']) && null !== $data['locked_until'] && $data['locked_until'] <= $now) {
+            if (isset($data['locked_until']) && $data['locked_until'] <= $now) {
                 return ['failures' => [], 'locked_until' => null];
             }
 

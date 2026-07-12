@@ -19,7 +19,6 @@ class RouterDebugCommandTest extends AppTestCase
         $this->assertSame(0, $tester->getStatusCode());
         $output = $tester->getDisplay();
         // Should display routes from the application
-        $this->assertIsString($output);
         $this->assertNotEmpty($output);
     }
 
@@ -49,7 +48,6 @@ class RouterDebugCommandTest extends AppTestCase
     {
         $command = new RouterDebugCommand($this->app()->router());
 
-        $this->assertNotNull($command->getDefinition());
         $this->assertSame('debug:router', $command->getName());
         $description = $command->getDescription();
         $this->assertStringContainsString('routes', strtolower($description));

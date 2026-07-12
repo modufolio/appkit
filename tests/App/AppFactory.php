@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Modufolio\Appkit\Tests\App;
 
-use Modufolio\Appkit\Core\AppInterface;
 use Modufolio\Appkit\Routing\Loader\ArrayRouteLoader;
 use Modufolio\Appkit\Routing\Loader\AttributeClassLoader;
 use Modufolio\Appkit\Routing\Loader\JsonApiRouteLoader;
@@ -23,7 +22,7 @@ use Symfony\Component\Routing\Loader\PhpFileLoader;
 
 class AppFactory
 {
-    public static function create(string $baseDir, ?string $env = null): AppInterface
+    public static function create(string $baseDir, ?string $env = null): App
     {
         // Allow the test User class to be unserialized from session-stored tokens.
         TokenUnserializer::register(User::class);

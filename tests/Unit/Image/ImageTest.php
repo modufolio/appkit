@@ -67,7 +67,6 @@ class ImageTest extends TestCase
     public function testImagesize(): void
     {
         $file = $this->_image();
-        $this->assertIsArray($file->imagesize());
         $this->assertSame(800, $file->imagesize()[0]);
     }
 

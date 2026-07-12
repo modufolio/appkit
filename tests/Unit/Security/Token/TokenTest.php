@@ -82,7 +82,6 @@ class TokenTest extends TestCase
 
         // Serialize
         $serialized = serialize($token);
-        $this->assertIsString($serialized);
 
         // Unserialize
         $unserializedToken = unserialize($serialized);

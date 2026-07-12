@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Modufolio\Appkit\Tests\Unit\Image;
 
-use Modufolio\Appkit\Image\DiskManager;
+use Modufolio\Appkit\Image\ImageProcessor;
 use Modufolio\Appkit\Image\JsonJobStorage;
 use Modufolio\Appkit\Image\PhotoLab;
 use Modufolio\Appkit\Image\Storage;
@@ -14,7 +14,6 @@ class PhotoLabTest extends TestCase
 {
     private string $testFile;
     private Storage $storage;
-    private DiskManager $diskManager;
 
     protected function setUp(): void
     {
@@ -26,8 +25,6 @@ class PhotoLabTest extends TestCase
             baseMediaUrl: '/media',
             uploadsDir: '/uploads'
         );
-
-        $this->diskManager = new DiskManager();
     }
 
     protected function tearDown(): void
@@ -60,7 +57,7 @@ class PhotoLabTest extends TestCase
 
         $processor = $photoLab->build();
 
-        $this->assertNotNull($processor);
+        $this->assertInstanceOf(ImageProcessor::class, $processor);
     }
 
     public function testPhotoLabWithNonexistentFile(): void

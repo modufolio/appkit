@@ -616,9 +616,6 @@ trait AppSecurity
         }
 
         $user = $token->getUser();
-        if (!$user instanceof UserInterface) {
-            throw new AuthenticationException('Invalid user for this route');
-        }
 
         $userRoles = $this->roleHierarchy?->getReachableRoles($user->getRoles()) ?? $user->getRoles();
 

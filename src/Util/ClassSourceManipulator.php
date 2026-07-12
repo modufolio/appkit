@@ -1018,9 +1018,9 @@ final class ClassSourceManipulator
         return $visitor->getFoundNodes();
     }
 
-    private function createBlankLineNode(string $context): Node\Stmt\Use_|Node|Node\Stmt\Property|Node\Expr\Variable
+    private function createBlankLineNode(string $context): Node\Stmt\Use_|Node\Stmt\Property|Node\Expr\Variable
     {
-        return match ($context) {
+        $node = match ($context) {
             self::CONTEXT_OUTSIDE_CLASS => (new Builder\Use_(
                 '__EXTRA__LINE',
                 Node\Stmt\Use_::TYPE_NORMAL
@@ -1033,6 +1033,13 @@ final class ClassSourceManipulator
                 '__EXTRA__LINE'
             ),
             default => throw new \Exception('Unknown context: '.$context),
+        };
+
+        return match (true) {
+            $node instanceof Node\Stmt\Use_,
+            $node instanceof Node\Stmt\Property => $node,
+            // only Node\Expr\Variable can reach here, per the match above
+            default => $node,
         };
     }
 
@@ -1142,7 +1149,7 @@ final class ClassSourceManipulator
      *
      * Useful for adding properties, or adding a constructor.
      */
-    private function addNodeAfterProperties(Node $newNode): void
+    private function addNodeAfterProperties(Node\Stmt $newNode): void
     {
         $classNode = $this->getClassNode();
 

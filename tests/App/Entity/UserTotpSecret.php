@@ -246,7 +246,7 @@ class UserTotpSecret implements UserTotpSecretInterface
 
     public function getUserIdentifier(): string
     {
-        // TODO: Implement getUserIdentifier() method.
+        return $this->user->getUserIdentifier();
     }
 
     public function setPlainBackupCodes(?array $backupCodes): void

@@ -69,7 +69,7 @@ abstract class Kernel implements AppInterface
     protected array $factories = [];
     protected array $fileMap = [];
     protected array $instances = [];
-    protected array $repositories = [];
+    protected ?array $repositories = null;
 
     // Lazily instantiated dependencies
     protected ?EmitterInterface $emitter = null;
@@ -97,7 +97,7 @@ abstract class Kernel implements AppInterface
     protected array $routerOptions = [];
     protected mixed $routeResource = null;
 
-    public function boot(): self
+    public function boot(): static
     {
         $this->parameterBag = new ParameterBag();
         $this->debugStack = new DebugStack();

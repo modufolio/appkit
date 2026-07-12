@@ -55,7 +55,7 @@ class CustomFilename implements \Stringable
 
         return array_filter(
             $array,
-            static fn ($item) => null !== $item && false !== $item && '' !== $item
+            static fn ($item) => false !== $item && '' !== $item
         );
     }
 

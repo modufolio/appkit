@@ -8,7 +8,7 @@ use Symfony\Component\Console\Formatter\OutputFormatterStyle;
 
 final class MakerFileLinkFormatter
 {
-    private ?string $fileLinkFormat;
+    private string $fileLinkFormat;
 
     private const IDE_LINK_FORMATS = [
         'textmate' => 'txmt://open?url=file://%f&line=%l',

@@ -12,6 +12,7 @@ use Modufolio\Appkit\Security\Token\UsernamePasswordToken;
 use Modufolio\Appkit\Security\TwoFactor\TwoFactorSecret;
 use Modufolio\Appkit\Security\User\UserInterface;
 use Modufolio\Appkit\Tests\App\Entity\User;
+use Modufolio\Appkit\Tests\App\Entity\UserTotpSecret;
 use Modufolio\Appkit\Tests\App\Repository\UserRepository;
 use Modufolio\Appkit\Tests\Case\AppTestCase;
 use Modufolio\Appkit\Tests\Traits\DatabaseTestingCapabilities;
@@ -373,6 +374,8 @@ class TwoFactorControllerTest extends AppTestCase
         $secret = $totpService->generateSecret($user);
         $code = $this->generateValidCode($secret->getSecret());
         $totpService->enableTwoFactor($secret, $code);
+
+        self::assertInstanceOf(UserTotpSecret::class, $secret);
 
         // Get a backup code from the plain backup codes stored after enable
         $backupCode = $secret->plainBackupCodes[0];

@@ -50,10 +50,6 @@ class ImageProcessor
      */
     public function process(): ImageVariant|FileInterface|null
     {
-        if (null === $this->file) {
-            return null;
-        }
-
         // Validate source file is processable
         if (!$this->file->isResizable()) {
             return $this->file;

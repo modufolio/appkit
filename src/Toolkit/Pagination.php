@@ -12,7 +12,7 @@ namespace Modufolio\Appkit\Toolkit;
  * @copyright Bastian Allgeier
  * @license   https://opensource.org/licenses/MIT
  */
-class Pagination
+final class Pagination
 {
     /**
      * The current page.
@@ -46,10 +46,6 @@ class Pagination
         $this->setLimit($props['limit'] ?? 20);
         $this->setPage($props['page'] ?? null);
         $this->setTotal($props['total'] ?? 0);
-
-        // ensure that page is set to something, otherwise
-        // generate "default page" based on other params
-        $this->page ??= $this->firstPage();
 
         // allow a page value of 1 even if there are no pages;
         // otherwise the exception will get thrown for this pretty common case

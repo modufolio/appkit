@@ -548,7 +548,6 @@ class QueryBuilderTest extends TestCase
         $results = $qb->from('users')->select()->get();
 
         // Assert
-        $this->assertIsArray($results);
         $this->assertCount(3, $results);
     }
 
@@ -626,7 +625,6 @@ class QueryBuilderTest extends TestCase
             ->fetchColumn('email');
 
         // Assert
-        $this->assertIsArray($emails);
         $this->assertCount(3, $emails);
         $this->assertContains('john@example.com', $emails);
     }
@@ -671,7 +669,10 @@ class QueryBuilderTest extends TestCase
             ->get();
 
         // Assert
-        $this->assertIsArray($results);
+        $this->assertSame([
+            ['name' => 'John Doe', 'title' => 'First Post', 'views' => 100],
+            ['name' => 'Jane Smith', 'title' => 'Second Post', 'views' => 50],
+        ], $results);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════════
@@ -690,7 +691,6 @@ class QueryBuilderTest extends TestCase
             ->toSql();
 
         // Assert
-        $this->assertIsString($sql);
         $this->assertStringContainsString('SELECT', $sql);
         $this->assertStringContainsString('FROM users', $sql);
         $this->assertStringContainsString('WHERE', $sql);
@@ -785,8 +785,8 @@ class QueryBuilderTest extends TestCase
             ->whereIn('name', [])
             ->get();
 
-        // Assert - should return no results or all results depending on DB behavior
-        $this->assertIsArray($results);
+        // Assert - an empty IN() list matches nothing
+        $this->assertCount(0, $results);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════════

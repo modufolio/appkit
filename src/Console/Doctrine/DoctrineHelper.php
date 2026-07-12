@@ -55,7 +55,9 @@ final class DoctrineHelper
         foreach ($cmf->getAllMetadata() as $m) {
             if (null === $classOrNamespace) {
                 $metadata[$m->getName()] = $m;
-            } elseif ($m->getName() === $classOrNamespace || str_starts_with($m->getName(), $classOrNamespace)) {
+            } elseif ($m->getName() === $classOrNamespace) {
+                return $m;
+            } elseif (str_starts_with($m->getName(), $classOrNamespace)) {
                 $metadata[$m->getName()] = $m;
             }
         }

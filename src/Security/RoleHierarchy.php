@@ -14,6 +14,9 @@ class RoleHierarchy
     /** @var array<string, list<string>> */
     private array $cache = [];
 
+    /**
+     * @param array<string, list<string>> $hierarchy
+     */
     public function __construct(private array $hierarchy)
     {
     }
@@ -61,7 +64,8 @@ class RoleHierarchy
     }
 
     /**
-     * @param list<string> $visited
+     * @param array<string> $visited
+     * @param-out array<string> $visited
      */
     private function collectRoles(string $role, array &$visited): void
     {

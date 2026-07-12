@@ -149,7 +149,6 @@ class FormTest extends TestCase
 
         $messages = $result->messages();
         $this->assertNotEmpty($messages);
-        $this->assertIsArray($messages);
     }
 
     public function testValidationResultViolations(): void
@@ -164,7 +163,7 @@ class FormTest extends TestCase
         $result = $form->validate($data);
 
         $violations = $result->violations();
-        $this->assertNotNull($violations);
+        $this->assertGreaterThan(0, $violations->count());
     }
 
     public function testDifferentFormValidation(): void
@@ -211,6 +210,8 @@ class FormTest extends TestCase
 
     public function testNoExceptionOnThrowIfFailedWhenValid(): void
     {
+        $this->expectNotToPerformAssertions();
+
         $form = new TestContactForm();
         $data = [
             'email' => 'valid@example.com',
@@ -222,6 +223,5 @@ class FormTest extends TestCase
 
         // Should not throw
         $result->throwIfFailed();
-        $this->assertTrue(true);
     }
 }

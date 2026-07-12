@@ -194,12 +194,12 @@ class ClassSourceManipulatorTest extends TestCase
     }
 
     #[DataProvider('getAttributeClassTests')]
-    public function testAddAttributeToClass(string $sourceFilename, string $expectedSourceFilename, string $attributeClass, array $attributeOptions, ?string $attributePrefix = null): void
+    public function testAddAttributeToClass(string $sourceFilename, string $expectedSourceFilename, string $attributeClass, array $attributeOptions): void
     {
         $source = file_get_contents(__DIR__.'/fixtures/source/'.$sourceFilename);
         $expectedSource = file_get_contents(__DIR__.'/fixtures/add_class_attribute/'.$expectedSourceFilename);
         $manipulator = new ClassSourceManipulator($source);
-        $manipulator->addAttributeToClass($attributeClass, $attributeOptions, $attributePrefix);
+        $manipulator->addAttributeToClass($attributeClass, $attributeOptions);
 
         self::assertSame($expectedSource, $manipulator->getSourceCode());
     }

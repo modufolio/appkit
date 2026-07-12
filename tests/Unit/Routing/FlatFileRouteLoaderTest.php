@@ -15,13 +15,10 @@ use Symfony\Component\Routing\RouteCollection;
 class FlatFileRouteLoaderTest extends TestCase
 {
     private FlatFileRouteLoader $loader;
-    private string $fixturesDir;
 
     protected function setUp(): void
     {
         parent::setUp();
-
-        $this->fixturesDir = __DIR__.'/../../App/FlatFile/fixtures';
 
         $fileLocator = new FileLocator(__DIR__.'/../../App/FlatFile');
         $this->loader = new FlatFileRouteLoader(
@@ -297,7 +294,6 @@ class FlatFileRouteLoaderTest extends TestCase
             $contentFile = $route->getDefault('contentFile');
             $data = $this->parseContentFile($contentFile);
 
-            $this->assertIsArray($data, "Content of route '$name' must parse to an array");
             $this->assertNotEmpty($data, "Content of route '$name' must not be empty");
             $this->assertArrayHasKey('title', $data, "Route '$name' content must have a 'title' field");
         }

@@ -9,7 +9,7 @@ namespace Modufolio\Appkit\Toolkit;
  *
  * Inspired by Kirby CMS Controller
  */
-class Controller
+final class Controller
 {
     public function __construct(
         protected \Closure $function,

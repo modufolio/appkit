@@ -289,7 +289,7 @@ final class Dimensions implements \Stringable
                 // to retrieve the absolute dimensions
 
                 if (true === Str::endsWith($rawWidth, '%') || 0 === $width) {
-                    $width = (int) ($box[2] ?? 0) - (int) ($box[0] ?? 0);
+                    $width = (int) ($box[2] ?? 0) - (int) $box[0];
                 }
 
                 if (true === Str::endsWith($rawHeight, '%') || 0 === $height) {

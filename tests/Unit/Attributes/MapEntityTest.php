@@ -67,6 +67,5 @@ class MapEntityTest extends TestCase
         $attribute = new MapEntity([]);
 
         $this->assertEmpty($attribute->criteria);
-        $this->assertIsArray($attribute->criteria);
     }
 }

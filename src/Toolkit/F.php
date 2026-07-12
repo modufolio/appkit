@@ -540,7 +540,8 @@ class F
         }
 
         // the math magic
-        $size = round($size / 1024 ** ($unit = floor(log($size, 1024))), 2);
+        $unit = (int) floor(log($size, 1024));
+        $size = round($size / 1024 ** $unit, 2);
 
         // format the number if requested
         if (false !== $locale) {
@@ -630,7 +631,7 @@ class F
      * Returns the relative path of the file
      * starting after $in.
      *
-     * @SuppressWarnings(PHPMD.CountInLoopExpression)
+     * @SuppressWarnings("PHPMD.CountInLoopExpression")
      */
     public static function relativepath(string $file, ?string $in = null): string
     {

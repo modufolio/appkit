@@ -17,7 +17,7 @@ use Modufolio\Appkit\Image\Transformation;
 class CropTransformation implements Transformation
 {
     private int $width;
-    private ?int $height;
+    private int $height;
     private string $mode;
 
     public function __construct(

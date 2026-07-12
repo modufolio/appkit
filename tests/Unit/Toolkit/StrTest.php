@@ -454,7 +454,7 @@ class StrTest extends TestCase
     {
         $this->expectException('TypeError');
 
-        Str::replace('some string', ['some', 'string'], 'other string', [1, 'string']);
+        Str::replace('some string', ['some', 'string'], 'other string');
     }
 
     public function testReplacements(): void

@@ -14,14 +14,14 @@ trait RequiresCommandTrait
         $reflection = new \ReflectionClass($this);
 
         // Check class-level attribute
-        foreach ($reflection->getAttributes(\Modufolio\Appkit\Tests\App\Tests\Attribute\RequiresCommand::class) as $attr) {
+        foreach ($reflection->getAttributes(\Modufolio\Appkit\Tests\Attribute\RequiresCommand::class) as $attr) {
             $this->checkCommands($attr->newInstance()->commands, $attr->newInstance()->message);
         }
 
         // Check method-level attribute if current test is set
         if (property_exists($this, 'testName') && $this->testName) {
             $method = new \ReflectionMethod($this, $this->testName);
-            foreach ($method->getAttributes(\Modufolio\Appkit\Tests\App\Tests\Attribute\RequiresCommand::class) as $attr) {
+            foreach ($method->getAttributes(\Modufolio\Appkit\Tests\Attribute\RequiresCommand::class) as $attr) {
                 $this->checkCommands($attr->newInstance()->commands, $attr->newInstance()->message);
             }
         }

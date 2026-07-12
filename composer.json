@@ -49,15 +49,17 @@
         "spomky-labs/otphp": "^11.3",
         "endroid/qr-code": "6.0.9",
         "symfony/var-exporter": "^7.4",
-        "modufolio/http": "^0.1",
         "symfony/clock": "^7.4",
-        "laminas/laminas-escaper": "^2.18"
+        "laminas/laminas-escaper": "^2.18",
+        "symfony/process": "^7.4"
     },
     "require-dev": {
         "phpunit/phpunit": "^10.5 || ^11",
         "fakerphp/faker": "^1.24",
         "doctrine/data-fixtures": "^2.2",
-        "modufolio/json-api": "^0.1"
+        "modufolio/json-api": "^0.2.0",
+        "phpstan/phpstan": "^2.2",
+        "modufolio/http": "^0.1.0"
     },
     "autoload": {
         "psr-4": {

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Modufolio\Appkit\Tests\Unit\Image\Transformations;
 
-use Modufolio\Appkit\Image\Storage;
 use Modufolio\Appkit\Image\Transformation;
 use Modufolio\Appkit\Image\Transformations\ResizeTransformation;
 use PHPUnit\Framework\TestCase;
@@ -12,17 +11,11 @@ use PHPUnit\Framework\TestCase;
 class ResizeTransformationTest extends TestCase
 {
     private string $testFile;
-    private Storage $storage;
 
     protected function setUp(): void
     {
         $this->testFile = sys_get_temp_dir().'/test_image_'.uniqid().'.txt';
         file_put_contents($this->testFile, 'test');
-
-        $this->storage = new Storage(
-            baseMediaRoot: '/media',
-            baseMediaUrl: '/media'
-        );
     }
 
     protected function tearDown(): void

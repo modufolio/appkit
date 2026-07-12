@@ -4,7 +4,7 @@ namespace Modufolio\Appkit\Tests\Case;
 
 use Doctrine\Common\DataFixtures\Executor\ORMExecutor;
 use Doctrine\Common\DataFixtures\Purger\ORMPurger;
-use Doctrine\DBAL\Platforms\SqlitePlatform;
+use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Doctrine\ORM\Tools\SchemaTool;
 use Modufolio\Appkit\Doctrine\EntityFactory;
 use Modufolio\Appkit\Security\User\UserInterface;
@@ -66,7 +66,7 @@ abstract class AppTestCase extends BaseTestCase
         // For SQLite, manually drop all tables with foreign key constraints disabled
         $platform = $connection->getDatabasePlatform();
 
-        if ($platform instanceof SqlitePlatform) {
+        if ($platform instanceof SQLitePlatform) {
             // Disable foreign keys for SQLite
             $connection->executeStatement('PRAGMA foreign_keys = OFF');
 

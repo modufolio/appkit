@@ -88,8 +88,6 @@ class App extends Kernel
     {
         $this->state?->reset();
 
-        unset($this->state);
-
         // Create fresh application state for this request
         $this->state = new NativeApplicationState($request, $this->baseDir, $this->firewallConfig);
 

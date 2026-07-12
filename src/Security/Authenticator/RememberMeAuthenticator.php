@@ -78,10 +78,6 @@ class RememberMeAuthenticator extends AbstractAuthenticator
             $user = $this->userProvider->loadUserByIdentifier($identifier);
         } catch (UserNotFoundException $e) {
             throw new AuthenticationException('User not found for remember me cookie.', 0, $e);
-        } catch (\Exception $e) {
-            // Tests use a generic Exception via mock; preserve that contract
-            // while keeping the client-facing message stable.
-            throw new AuthenticationException('User not found for remember me cookie.', 0, $e);
         }
 
         $expectedHash = $this->generateHash($identifier, (int) $expires, $this->userStateFingerprint($user));
