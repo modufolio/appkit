@@ -8,6 +8,7 @@ use Modufolio\Appkit\Security\Exception\UnsupportedUserException;
 use Modufolio\Appkit\Security\Exception\UserNotFoundException;
 use Modufolio\Appkit\Security\User\EntityUserProvider;
 use Modufolio\Appkit\Security\User\InMemoryUser;
+use Modufolio\Appkit\Security\User\PasswordAuthenticatedUserInterface;
 use Modufolio\Appkit\Tests\App\Entity\User;
 use Modufolio\Appkit\Tests\Case\AppTestCase;
 
@@ -69,6 +70,7 @@ class EntityUserProviderTest extends AppTestCase
     public function testUpgradePasswordPersistsNewHash(): void
     {
         $user = $this->provider->loadUserByIdentifier('johndoe@example.com');
+        self::assertInstanceOf(PasswordAuthenticatedUserInterface::class, $user);
         $newHash = password_hash('rotated-secret', PASSWORD_BCRYPT);
 
         $this->provider->upgradePassword($user, $newHash);

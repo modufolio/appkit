@@ -10,13 +10,14 @@ use Modufolio\Appkit\Security\User\UserInterface;
 use Modufolio\Appkit\Security\User\UserProviderInterface;
 use Modufolio\Appkit\Tests\App\Entity\User;
 
+/**
+ * @extends EntityRepository<User>
+ */
 class UserRepository extends EntityRepository implements UserProviderInterface
 {
     public function findUserWithSecurityById(int $id): ?UserInterface
     {
-        $user = $this->find($id);
-
-        return $user instanceof UserInterface ? $user : null;
+        return $this->find($id);
     }
 
     public function refreshUser(UserInterface $user): UserInterface
@@ -42,10 +43,6 @@ class UserRepository extends EntityRepository implements UserProviderInterface
 
         if (!$user) {
             throw new UserNotFoundException(sprintf('User with identifier "%s" not found.', $identifier));
-        }
-
-        if (!$user instanceof UserInterface) {
-            throw new UserNotFoundException(sprintf('User with identifier "%s" is not a valid UserInterface.', $identifier));
         }
 
         return $user;

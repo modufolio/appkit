@@ -303,8 +303,7 @@ abstract class Kernel implements AppInterface
                 $closure = require $this->fileMap['doctrine'];
                 $closure($configurator);
             },
-            debugStack: $this->debugStack,
-            logger: $this->logger,
+            debugStack: $this->debugStack
         );
     }
 

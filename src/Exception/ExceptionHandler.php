@@ -43,6 +43,12 @@ final class ExceptionHandler implements ExceptionHandlerInterface
         $this->registerDefaultExceptions();
     }
 
+    /**
+     * @template T of \Throwable
+     *
+     * @param class-string<T>                            $exceptionClass
+     * @param callable(T, ServerRequestInterface): array $handler
+     */
     public function registerException(string $exceptionClass, callable $handler, bool $loggable = false): void
     {
         $this->handlers[$exceptionClass] = $handler;

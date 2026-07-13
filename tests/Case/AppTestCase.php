@@ -17,6 +17,7 @@ use Modufolio\Psr7\Http\Stream;
 use Modufolio\Psr7\Http\Uri;
 use PHPUnit\Framework\TestCase as BaseTestCase;
 use Psr\Http\Message\StreamInterface;
+use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
 
 abstract class AppTestCase extends BaseTestCase
 {
@@ -106,9 +107,12 @@ abstract class AppTestCase extends BaseTestCase
 
     protected function loadFixtures(): void
     {
+        $serializer = $this->app()->serializer();
+        self::assertInstanceOf(DenormalizerInterface::class, $serializer);
+
         $factory = (new EntityFactory(
             $this->app()->entityManager(),
-            $this->app()->serializer(),
+            $serializer,
             $this->app()->validator()
         ))->loadConfig(require $this->app()->baseDir.'/config/fixture_factories.php');
 

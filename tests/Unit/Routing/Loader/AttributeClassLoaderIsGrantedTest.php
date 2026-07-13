@@ -7,6 +7,7 @@ namespace Modufolio\Appkit\Tests\Unit\Routing\Loader;
 use Modufolio\Appkit\Attributes\IsGranted;
 use Modufolio\Appkit\Routing\Loader\AttributeClassLoader;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Routing\Attribute\Route as RouteAttribute;
 use Symfony\Component\Routing\Route;
 
 #[IsGranted('ROLE_ADMIN')]
@@ -38,7 +39,7 @@ class ExposedAttributeClassLoader extends AttributeClassLoader
     {
         $route = new Route('/');
         $reflectionClass = new \ReflectionClass(IsGrantedFixtureController::class);
-        $this->configureRoute($route, $reflectionClass, $reflectionClass->getMethod($method), new \stdClass());
+        $this->configureRoute($route, $reflectionClass, $reflectionClass->getMethod($method), new RouteAttribute('/'));
 
         return $route;
     }

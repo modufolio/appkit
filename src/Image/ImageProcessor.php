@@ -20,16 +20,13 @@ class ImageProcessor
     /** @var Transformation[] */
     private array $transformations = [];
     private FileInterface $file;
-    private StorageInterface $storage;
     private JobStorageInterface $jobStorage;
 
     public function __construct(
         FileInterface $file,
-        StorageInterface $storage,
         JobStorageInterface $jobStorage,
     ) {
         $this->file = $file;
-        $this->storage = $storage;
         $this->jobStorage = $jobStorage;
     }
 

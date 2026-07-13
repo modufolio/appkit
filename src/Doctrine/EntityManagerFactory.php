@@ -27,7 +27,6 @@ final class EntityManagerFactory implements ResetInterface
         private readonly Environment $environment,
         private readonly \Closure $configuratorFactory,
         private readonly ?DebugStack $debugStack = null,
-        private readonly ?LoggerInterface $logger = null,
     ) {
     }
 

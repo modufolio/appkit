@@ -10,7 +10,6 @@ use Modufolio\Appkit\Core\NativeApplicationState;
 use Modufolio\Appkit\Core\ResetInterface;
 use Modufolio\Appkit\Resolver\AssociativeArrayResolver;
 use Modufolio\Appkit\Resolver\AttributeParameterResolver;
-use Modufolio\Appkit\Resolver\DataGridResolver;
 use Modufolio\Appkit\Resolver\DefaultValueResolver;
 use Modufolio\Appkit\Resolver\MapEntityResolver;
 use Modufolio\Appkit\Resolver\MapQueryParameterResolver;
@@ -237,7 +236,6 @@ class App extends Kernel
                 new UserResolver($this->tokenStorage()),
                 new MapQueryParameterResolver($this->request()),
                 new MapEntityResolver($this->entityManager()),
-                new DataGridResolver($this->entityManager(), $this->request()),
                 new MapRequestPayloadResolver(
                     $serializer,
                     $this->request(),

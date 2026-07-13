@@ -1,8 +1,21 @@
 <?php
 
+use Modufolio\Appkit\PHPStan\Doctrine\ObjectMetadataResolver;
+
 return [
+    'includes' => [
+        __DIR__.'/extension.php',
+    ],
+    'services' => [
+        'appkitDoctrine.objectMetadataResolver' => [
+            'class' => ObjectMetadataResolver::class,
+            'arguments' => [
+                'objectManagerLoader' => __DIR__.'/tests/phpstan-object-manager.php',
+            ],
+        ],
+    ],
     'parameters' => [
-        'level' => 4,
+        'level' => 5,
         'paths' => ['src', 'tests'],
         'excludePaths' => [
             'analyseAndScan' => [
@@ -37,6 +50,10 @@ return [
             // Doctrine ORM writes $id via reflection — not visible to static analysis
             ['message' => '#Property .+::\$id is never written, only read\.#', 'reportUnmatched' => false],
             ['message' => '#Property .+::\$id \(int\|null\) is never assigned int so it can be removed from the property type\.#', 'reportUnmatched' => false],
+            // PHPStan extension code necessarily depends on non-BC-covered
+            // reflection internals (DummyParameter) — same trade-off phpstan-doctrine
+            // itself makes for the equivalent magic-method reflection extension.
+            ['identifier' => 'phpstanApi.constructor', 'path' => 'src/PHPStan/*', 'reportUnmatched' => false],
         ],
     ],
 ];

@@ -46,7 +46,7 @@ class TotpService implements TwoFactorServiceInterface
     /**
      * Generate a new TOTP secret for a user.
      */
-    public function generateSecret(UserInterface $user): TwoFactorSecret
+    public function generateSecret(UserInterface $user): UserTotpSecretInterface
     {
         // Check if user already has a TOTP secret
         $existingSecret = $this->totpSecretRepository->findByUser($user);

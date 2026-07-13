@@ -45,7 +45,7 @@ class ImageProcessorTest extends TestCase
     public function testProcessorCanAddTransformation(): void
     {
         $file = new File($this->testFile, 'default', $this->storage, $this->diskManager);
-        $processor = new ImageProcessor($file, $this->storage, $this->jobStorage);
+        $processor = new ImageProcessor($file, $this->jobStorage);
 
         $processor->add(new CropTransformation(300, 200));
 
@@ -55,7 +55,7 @@ class ImageProcessorTest extends TestCase
     public function testProcessorCanAddMultipleTransformations(): void
     {
         $file = new File($this->testFile, 'default', $this->storage, $this->diskManager);
-        $processor = new ImageProcessor($file, $this->storage, $this->jobStorage);
+        $processor = new ImageProcessor($file, $this->jobStorage);
 
         $processor->add(new CropTransformation(300, 200))
                   ->add(new BlurTransformation(10))
@@ -67,7 +67,7 @@ class ImageProcessorTest extends TestCase
     public function testProcessorReturnsTransformationNames(): void
     {
         $file = new File($this->testFile, 'default', $this->storage, $this->diskManager);
-        $processor = new ImageProcessor($file, $this->storage, $this->jobStorage);
+        $processor = new ImageProcessor($file, $this->jobStorage);
 
         $processor->add(new CropTransformation(300, 200))
                   ->add(new BlurTransformation(10));
@@ -81,7 +81,7 @@ class ImageProcessorTest extends TestCase
     public function testProcessorReturnsConfigurations(): void
     {
         $file = new File($this->testFile, 'default', $this->storage, $this->diskManager);
-        $processor = new ImageProcessor($file, $this->storage, $this->jobStorage);
+        $processor = new ImageProcessor($file, $this->jobStorage);
 
         $processor->add(new CropTransformation(300, 200))
                   ->add(new QualityTransformation(90));
@@ -96,7 +96,7 @@ class ImageProcessorTest extends TestCase
     public function testProcessorCanClear(): void
     {
         $file = new File($this->testFile, 'default', $this->storage, $this->diskManager);
-        $processor = new ImageProcessor($file, $this->storage, $this->jobStorage);
+        $processor = new ImageProcessor($file, $this->jobStorage);
 
         $processor->add(new CropTransformation(300, 200))
                   ->add(new BlurTransformation(10));
@@ -111,7 +111,7 @@ class ImageProcessorTest extends TestCase
     public function testProcessorIsFluentInterface(): void
     {
         $file = new File($this->testFile, 'default', $this->storage, $this->diskManager);
-        $processor = new ImageProcessor($file, $this->storage, $this->jobStorage);
+        $processor = new ImageProcessor($file, $this->jobStorage);
 
         $result = $processor->add(new CropTransformation(300, 200));
 

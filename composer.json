@@ -76,7 +76,8 @@
     },
     "scripts": {
         "test": "vendor/bin/phpunit --no-coverage",
-        "test:coverage": "php -d xdebug.mode=coverage ./vendor/bin/phpunit --stderr --coverage-html=tests/coverage"
+        "test:coverage": "php -d xdebug.mode=coverage ./vendor/bin/phpunit --stderr --coverage-html=tests/coverage",
+        "stan": "@php -d memory_limit=1G vendor/bin/phpstan analyse --configuration phpstan.php"
     },
     "minimum-stability": "stable",
     "prefer-stable": true

@@ -65,8 +65,6 @@ class FirewallConfigurationTest extends AppTestCase
 
     public function testHandleAuthenticationReturnsControllerResolverMethodWhenSecurityFalse(): void
     {
-        $this->markTestSkipped('Requires exception handler to be enabled to convert ResourceNotFoundException to 404');
-
         $this->app()->configureFirewall([
             'firewalls' => [
                 'public' => [
@@ -76,6 +74,9 @@ class FirewallConfigurationTest extends AppTestCase
             ],
         ]);
 
+        // No route is registered for /public, so a security=false firewall must
+        // reach routing (and 404 via ResourceNotFoundException) instead of being
+        // intercepted by the authentication entry point (which would redirect/401).
         $response = $this->get('/public');
         $response->assertStatus(404);
     }

@@ -27,7 +27,6 @@ use Modufolio\Appkit\Image\Transformations\SharpenTransformation;
 class PhotoLab
 {
     private FileInterface $file;
-    private StorageInterface $storage;
     private JobStorageInterface $jobStorage;
 
     public function __construct(
@@ -41,7 +40,6 @@ class PhotoLab
             throw new \InvalidArgumentException("File does not exist: $absolutePath");
         }
         $this->file = new File($absolutePath, $disk, $storage, $diskManager);
-        $this->storage = $storage;
         $this->jobStorage = $jobStorage;
     }
 
@@ -52,7 +50,6 @@ class PhotoLab
     {
         return new ImageProcessor(
             $this->file,
-            $this->storage,
             $this->jobStorage
         );
     }
