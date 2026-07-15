@@ -20,6 +20,9 @@ return [
         'excludePaths' => [
             'analyseAndScan' => [
                 'vendor/*',
+                // Toolkit: utility classes ported from Kirby CMS; excluded from
+                // static analysis.
+                'src/Toolkit/*',
                 // Code-generation templates: variables are populated via extract()
                 // at render time, so they're intentionally undefined here.
                 'src/Console/Resources/skeleton/*',

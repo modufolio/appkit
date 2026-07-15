@@ -49,6 +49,9 @@ node_modules/
 /phpunit*.xml
 /.phpunit.*.cache
 
+# PHP CS Fixer
+.php-cs-fixer.cache
+
 package-lock.json
 clover.xml
 public/.DS_Store
