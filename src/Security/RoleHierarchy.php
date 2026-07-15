@@ -65,6 +65,7 @@ class RoleHierarchy
 
     /**
      * @param array<string> $visited
+     *
      * @param-out array<string> $visited
      */
     private function collectRoles(string $role, array &$visited): void

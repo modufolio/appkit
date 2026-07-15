@@ -24,7 +24,7 @@ class MapEntityResolver implements AttributeResolverInterface
      * Resolves the entity for the given parameter using the MapEntity attribute.
      * Throws a 404 if the entity is not found and the parameter is not nullable.
      *
-     * @throws \LogicException if the attribute or parameter is invalid
+     * @throws \LogicException           if the attribute or parameter is invalid
      * @throws ResourceNotFoundException if the entity is not found and the parameter is not nullable
      */
     public function resolve(\ReflectionParameter $parameter, array $providedParameters): ?object
@@ -41,7 +41,7 @@ class MapEntityResolver implements AttributeResolverInterface
     }
 
     /**
-     * @throws \LogicException if the parameter type is not a valid class or no criteria can be built
+     * @throws \LogicException           if the parameter type is not a valid class or no criteria can be built
      * @throws ResourceNotFoundException if the entity is not found and the parameter is not nullable
      */
     private function resolveMapEntity(
@@ -62,7 +62,7 @@ class MapEntityResolver implements AttributeResolverInterface
 
         // Use the route's id as a primary-key criterion when one is available.
         $id = $criteria['id'] ?? $providedParameters['id'] ?? null;
-        if ($id !== null) {
+        if (null !== $id) {
             $criteria['id'] = $id;
         }
 
@@ -71,16 +71,16 @@ class MapEntityResolver implements AttributeResolverInterface
         }
 
         if ($attribute->stripNull) {
-            $criteria = array_filter($criteria, static fn ($value) => $value !== null);
+            $criteria = array_filter($criteria, static fn ($value) => null !== $value);
         }
 
-        if ($criteria === []) {
+        if ([] === $criteria) {
             throw new \LogicException(sprintf('Cannot resolve entity "%s" for parameter "%s": no id or criteria available.', $entityClass, $parameter->getName()));
         }
 
         $object = $this->entityManager->getRepository($entityClass)->findOneBy($criteria);
 
-        if ($object === null && !$parameter->allowsNull()) {
+        if (null === $object && !$parameter->allowsNull()) {
             throw new ResourceNotFoundException($attribute->message ?? sprintf('"%s" object not found by "%s".', $entityClass, self::class));
         }
 

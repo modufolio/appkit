@@ -29,10 +29,10 @@ class AttributeClassLoader extends \Symfony\Component\Routing\Loader\AttributeCl
         foreach ($attributes as $attribute) {
             $roles = array_values(array_filter(
                 array_unique((array) $attribute->newInstance()->roles),
-                static fn (string $role): bool => $role !== '',
+                static fn (string $role): bool => '' !== $role,
             ));
 
-            if ($roles !== []) {
+            if ([] !== $roles) {
                 $requiredRoleGroups[] = $roles;
             }
         }

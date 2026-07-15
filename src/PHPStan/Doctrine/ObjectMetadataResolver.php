@@ -63,12 +63,7 @@ final class ObjectMetadataResolver
         $objectManager = (static fn (string $file) => require $file)($this->objectManagerLoader);
 
         if (!$objectManager instanceof ObjectManager) {
-            throw new \RuntimeException(sprintf(
-                'Object manager loader "%s" must return an instance of %s, %s given.',
-                $this->objectManagerLoader,
-                ObjectManager::class,
-                get_debug_type($objectManager),
-            ));
+            throw new \RuntimeException(sprintf('Object manager loader "%s" must return an instance of %s, %s given.', $this->objectManagerLoader, ObjectManager::class, get_debug_type($objectManager)));
         }
 
         return $this->objectManager = $objectManager;

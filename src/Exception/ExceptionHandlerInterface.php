@@ -19,9 +19,9 @@ interface ExceptionHandlerInterface
      *
      * @template T of \Throwable
      *
-     * @param class-string<T>                    $exceptionClass
+     * @param class-string<T>                            $exceptionClass
      * @param callable(T, ServerRequestInterface): array $handler
-     * @param bool                                $loggable       Whether this exception should be logged
+     * @param bool                                       $loggable       Whether this exception should be logged
      */
     public function registerException(string $exceptionClass, callable $handler, bool $loggable = false): void;
 

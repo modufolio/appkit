@@ -22,5 +22,6 @@ return (new PhpCsFixer\Config())
         '@PSR12' => true,
         '@Symfony' => true,
         'echo_tag_syntax' => ['format' => 'short'],
+        'no_alternative_syntax' => false,
     ])
     ->setFinder($finder);

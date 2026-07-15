@@ -60,7 +60,7 @@ readonly class MapQueryParameterResolver implements AttributeResolverInterface
         $type = $this->typeName($parameter);
 
         // Plain array with no explicit filter: keep the raw array.
-        if ($attribute->filter === null && $type === 'array') {
+        if (null === $attribute->filter && 'array' === $type) {
             return (array) $value;
         }
 
@@ -69,7 +69,7 @@ readonly class MapQueryParameterResolver implements AttributeResolverInterface
             'options' => $attribute->options,
         ];
 
-        if ($type === 'array') {
+        if ('array' === $type) {
             $value = (array) $value;
             $options['flags'] |= \FILTER_REQUIRE_ARRAY;
         } else {
@@ -77,7 +77,7 @@ readonly class MapQueryParameterResolver implements AttributeResolverInterface
         }
 
         $uidType = null;
-        if ($type !== null && is_subclass_of($type, AbstractUid::class)) {
+        if (null !== $type && is_subclass_of($type, AbstractUid::class)) {
             $uidType = $type;
             $type = 'uid';
         }
@@ -95,11 +95,11 @@ readonly class MapQueryParameterResolver implements AttributeResolverInterface
 
         $value = filter_var($value, $attribute->filter ?? $filter, $options);
 
-        if ($enumClass !== null && $value !== null) {
+        if (null !== $enumClass && null !== $value) {
             $value = $enumClass::tryFrom($value);
         }
 
-        if ($uidType !== null && $value !== null) {
+        if (null !== $uidType && null !== $value) {
             try {
                 $value = $uidType::fromString($value);
             } catch (\InvalidArgumentException) {
@@ -107,7 +107,7 @@ readonly class MapQueryParameterResolver implements AttributeResolverInterface
             }
         }
 
-        if ($value === null && !($attribute->flags & \FILTER_NULL_ON_FAILURE)) {
+        if (null === $value && !($attribute->flags & \FILTER_NULL_ON_FAILURE)) {
             throw new \InvalidArgumentException(sprintf('Invalid query parameter "%s".', $name));
         }
 
@@ -120,10 +120,10 @@ readonly class MapQueryParameterResolver implements AttributeResolverInterface
      */
     private function enumFilter(\ReflectionParameter $parameter, ?string $type, string $name, ?string &$enumClass): int
     {
-        if ($type !== null && is_subclass_of($type, \BackedEnum::class)) {
+        if (null !== $type && is_subclass_of($type, \BackedEnum::class)) {
             $enumClass = $type;
 
-            return (new \ReflectionEnum($type))->getBackingType()?->getName() === 'int'
+            return 'int' === (new \ReflectionEnum($type))->getBackingType()?->getName()
                 ? \FILTER_VALIDATE_INT
                 : \FILTER_DEFAULT;
         }

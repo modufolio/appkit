@@ -12,7 +12,7 @@ namespace Modufolio\Appkit\Toolkit;
  * @copyright Bastian Allgeier
  * @license   https://opensource.org/licenses/MIT
  */
-final class Pagination
+class Pagination
 {
     /**
      * The current page.
@@ -164,9 +164,7 @@ final class Pagination
      */
     public function end(): int
     {
-        $value = min($this->total(), ($this->start() - 1) + $this->limit());
-
-        return $value;
+        return min($this->total(), ($this->start() - 1) + $this->limit());
     }
 
     /**

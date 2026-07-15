@@ -13,7 +13,6 @@ use Modufolio\Appkit\Core\Environment;
 use Modufolio\Appkit\Core\ResetInterface;
 use Modufolio\Appkit\Doctrine\Middleware\Debug\DebugMiddleware;
 use Modufolio\Appkit\Doctrine\Middleware\Debug\DebugStack;
-use Psr\Log\LoggerInterface;
 use Symfony\Component\Cache\Adapter\ArrayAdapter;
 use Symfony\Component\Cache\Adapter\FilesystemAdapter;
 
@@ -41,7 +40,21 @@ final class EntityManagerFactory implements ResetInterface
 
     public function reset(): void
     {
-        $this->entityManager?->close();
+        // Outcome of profiling and benchmarking with RoadRunner:
+        // In a long-lived worker the EntityManager and its
+        // DB connection are expensive to rebuild — opening a fresh SQLite
+        // connection costs ~100x a query, and rebuilding the EM/metadata churns
+        // ~1.8KB per request. So between requests we only detach entities
+        // (clear the identity map) and keep the open connection alive.
+        // TODO: profile and benchmark with MySQL/PostgreSQL to see if the same holds true.
+        if (null !== $this->entityManager && $this->entityManager->isOpen()) {
+            $this->entityManager->clear();
+
+            return;
+        }
+
+        // The EM was closed (e.g. after a DBAL error). Tear it down fully so the
+        // next get() rebuilds a clean instance.
         $this->connection?->close();
         $this->entityManager = null;
         $this->connection = null;
