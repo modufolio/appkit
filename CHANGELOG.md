@@ -5,6 +5,27 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-07-19
+
+### Added
+
+- **New command: `debug:controllers`.** Checks every controller used by
+  your routes and reports whether it can actually be built by the
+  container, so a broken constructor gets caught by a CLI check instead of
+  by a user hitting the page. Sits alongside `debug:router`. Wire it up
+  like any other command: `new ControllersDebugCommand($app, $app->router())`.
+
+- **Commands and tests can now prime the app without a real HTTP request.**
+  `initializeConsoleState()` sets up everything a controller needs (the
+  same request-scoped state a normal request would create) using a
+  harmless fake request — useful for CLI commands like the one above, and
+  for test suites that need the container ready before making requests.
+
+- **`getController()` is now part of `AppInterface`.** It already worked,
+  it just wasn't declared on the interface, so code that only had an
+  `AppInterface` (rather than the concrete app class) couldn't call it
+  without an extra type check first.
+
 ## [0.3.1] - 2026-07-13
 
 Internal cleanup pass driven by PHPStan, no public behaviour changes.
