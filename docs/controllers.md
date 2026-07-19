@@ -224,16 +224,6 @@ Builds a filter object from query parameters. Your filter class needs a `fromArr
 public function list(#[MapFilter] PostFilter $filter): ResponseInterface
 ```
 
-### `#[DataGrid]`
-
-Injects a pre-built, paginated, sortable, filterable data grid.
-
-```php
-use Modufolio\Appkit\Attributes\DataGrid;
-
-public function index(#[DataGrid(schema: PostGrid::class, source: Post::class)] $grid): ResponseInterface
-```
-
 ## Constructor dependencies
 
 If your controller needs services beyond what `AbstractController` provides, declare them as constructor arguments and wire them in `config/controllers.php`.
