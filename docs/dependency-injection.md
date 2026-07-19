@@ -161,7 +161,7 @@ If a controller class is not listed in `config/controllers.php`, AppKit falls ba
 
 ## Circular dependency detection
 
-AppKit detects circular dependencies during resolution and throws a `LogicException`. You cannot inject the kernel itself into a service — this is blocked explicitly to prevent infinite resolution loops.
+AppKit detects circular dependencies during resolution and throws a `RuntimeException`. Separately, you cannot inject the kernel itself into a service — that is blocked explicitly and throws a `LogicException`.
 
 ## The App class as a precompiled container
 
@@ -229,15 +229,30 @@ Under RoadRunner or FrankenPHP, a single worker process handles many requests in
 
 Only add a service to `reset()` when it holds state that must not bleed into the next request — an accumulated log, a unit-of-work that tracked changes, an object constructed with the current user. Configuration, validators, serializers, and anything built purely from env vars or config files stay out of `reset()` and live for the entire worker lifetime.
 
+`Kernel::reset()` is **abstract** — there is no framework implementation to inherit.
+Your concrete `App` writes the whole method:
+
 ```php
+// src/App.php — extends Kernel
 public function reset(): void
 {
-    parent::reset();
+    $this->state?->reset();
+    $this->state = null;
 
-    // Only if this service accumulates per-request state:
+    $this->entityManagerFactory?->reset();
+    $this->instances = [];
+
+    // Only services that accumulate per-request state:
     $this->mailer = null;
 }
 ```
+
+Subclasses of your `App` (a `RoadRunnerApp`, say) *can* call `parent::reset()`,
+because at that point the parent is concrete. Calling it directly from a class that
+extends `Kernel` is a fatal error.
+
+See [Deployment](deployment.md#the-reset-contract) for what
+`AbstractApplicationState::reset()` covers and what it leaves to you.
 
 If you run only PHP-FPM, you never need to touch `reset()`.
 

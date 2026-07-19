@@ -64,7 +64,9 @@ $this->environment()->isProd(); // inside App or a class with access to the kern
 
 `NativeApplicationState` is created once per request and holds request-scoped data: the current `ServerRequestInterface`, the session, the token storage, firewall cache, and controller instances. The concept is inspired by [Axum's `State` extractor](https://docs.rs/axum/latest/axum/extract/struct.State.html) from Rust.
 
-After the response is sent, `reset()` clears this state. This makes AppKit compatible with RoadRunner, where the same process handles many requests. No static state means no memory leaks between requests.
+After the response is sent, `reset()` clears this state. This makes AppKit compatible with RoadRunner, where the same process handles many requests.
+
+Note that `AbstractApplicationState::reset()` covers only session, session storage, token storage, request instances and the firewall cache. `Kernel::reset()` is abstract — your `App` is responsible for the rest, including the router (which holds a **static** compiled-route cache) and the entity manager. See [Deployment](deployment.md#the-reset-contract).
 
 Session cookies are set with `HttpOnly` and `SameSite=Lax` by default. Set `COOKIE_SECURE=true` in your environment to add the `Secure` flag.
 

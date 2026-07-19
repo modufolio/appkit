@@ -169,7 +169,10 @@ public function updateAvatar(ServerRequestInterface $request, #[CurrentUser] Use
         return Response::json(['errors' => $upload->getErrors()], 422);
     }
 
-    $upload->saveTo($this->storageDir . '/tmp', 'original-' . $user->getId());
+    // Keep the extension — saveTo() uses the filename verbatim, and GdLib
+    // needs it to detect the image type.
+    $ext = pathinfo($upload->getFile()->getClientFilename(), PATHINFO_EXTENSION);
+    $upload->saveTo($this->storageDir . '/tmp', 'original-' . $user->getId() . '.' . $ext);
 
     // Resize to a 256×256 thumbnail
     $darkroom = new GdLib();

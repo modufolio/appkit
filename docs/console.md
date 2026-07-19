@@ -44,6 +44,7 @@ $console->run();
 | Command | Description |
 |---------|-------------|
 | `debug:router [name]` | List all registered routes, optionally filtered by name |
+| `debug:controllers` | List controllers with their resolved dependencies |
 
 ### ORM / schema commands
 

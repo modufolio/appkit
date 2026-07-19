@@ -107,23 +107,25 @@ Inside a template, use `$this->url()` to prepend the request's base URL (scheme 
 <a href="<?= $this->url('/about') ?>">About</a>
 ```
 
-Inside a controller, inject `UrlGeneratorInterface` and use `generate()`:
+Inside a controller extending `AbstractController`, `$this->urlGenerator` is already
+available — it is populated by `setSubscribedServices()`. Do not inject it:
 
 ```php
-use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
-
 class MyController extends AbstractController
 {
-    public function __construct(
-        private readonly UrlGeneratorInterface $urlGenerator,
-    ) {}
-
     public function redirect(): ResponseInterface
     {
         return Response::redirect($this->urlGenerator->generate('home'));
     }
 }
 ```
+
+> Redeclaring it as a promoted constructor property is a **fatal error**:
+> `AbstractController` declares `protected UrlGeneratorInterface $urlGenerator`, and
+> PHP does not allow a subclass to narrow an inherited property to `private`.
+
+In a class that does *not* extend `AbstractController`, inject
+`UrlGeneratorInterface` through `config/controllers.php` as normal.
 
 `generate()` returns an absolute path by default. Pass `UrlGeneratorInterface::ABSOLUTE_URL` as the third argument for a full URL including scheme and host.
 

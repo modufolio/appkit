@@ -13,8 +13,7 @@ vendor/bin/phpunit
 Run a single test suite:
 
 ```bash
-vendor/bin/phpunit --testsuite Unit
-vendor/bin/phpunit --testsuite Feature
+vendor/bin/phpunit --testsuite Classes
 ```
 
 Run a single test file:
@@ -25,14 +24,14 @@ vendor/bin/phpunit tests/Unit/Entity/UserTest.php
 
 ## Test suites
 
-`phpunit.xml.dist` defines two suites:
+`phpunit.xml.dist` defines a single suite, `Classes`, covering `./tests`.
 
-| Suite | Directory |
-|-------|-----------|
-| `Unit` | `tests/Unit/` |
-| `Feature` | `tests/Feature/` |
-
-Unit tests cover isolated classes with no database or HTTP stack. Feature tests can boot the full application kernel.
+> **The test helpers below are `autoload-dev` only.** `Modufolio\Appkit\Tests\`
+> maps to `tests/`, which Composer does not install for consumers of this package.
+> `TestResponse` and `DatabaseTestingCapabilities` are therefore available when
+> working *on* AppKit, but not to applications that depend on it. A downstream
+> project needs its own equivalents — copy them, or add the package as a path
+> repository during development.
 
 ## Writing a unit test
 
@@ -134,12 +133,12 @@ $factory->create(User::class, ['email' => 'admin@example.com'])
 
 ## `TestResponse`
 
-`Modufolio\Appkit\Testing\TestResponse` wraps a PSR-7 `ResponseInterface` and provides a fluent assertion API inspired by Laravel's `TestResponse`. Use it in feature tests to assert HTTP responses without parsing raw headers or body strings.
+`Modufolio\Appkit\Tests\Response\TestResponse` wraps a PSR-7 `ResponseInterface` and provides a fluent assertion API inspired by Laravel's `TestResponse`. Use it in feature tests to assert HTTP responses without parsing raw headers or body strings.
 
 ```php
-use Modufolio\Appkit\Testing\TestResponse;
+use Modufolio\Appkit\Tests\Response\TestResponse;
 
-$response = TestResponse::fromResponse($this->app->handle($request));
+$response = new TestResponse($this->app->handle($request));
 
 $response->assertStatus(200);
 $response->assertHeader('Content-Type', 'application/json');
@@ -177,7 +176,7 @@ $response
 
 | Method | Description |
 |--------|-------------|
-| `assertInertia()` | Assert the response is an Inertia response; returns an `InertiaAssert` instance |
+| `assertInertia()` | Assert the response is an Inertia response; returns `$this` for chaining |
 | `component(string $name)` | Assert the rendered component name |
 | `hasProp(string $key)` | Assert a prop key exists (dot notation supported) |
 | `whereProp(string $key, mixed $value)` | Assert a prop value (dot notation supported) |
@@ -193,10 +192,10 @@ $response->dd();   // print and exit
 
 ## `DatabaseTestingCapabilities`
 
-`Modufolio\Appkit\Testing\DatabaseTestingCapabilities` is a PHPUnit trait that adds query tracking, database assertions, fixture seeding, and performance monitoring to any test class. It registers its hooks with `#[Before]` and `#[After]` so no `setUp()`/`tearDown()` wiring is needed.
+`Modufolio\Appkit\Tests\Traits\DatabaseTestingCapabilities` is a PHPUnit trait that adds query tracking, database assertions, fixture seeding, and performance monitoring to any test class. It registers its hooks with `#[Before]` and `#[After]` so no `setUp()`/`tearDown()` wiring is needed.
 
 ```php
-use Modufolio\Appkit\Testing\DatabaseTestingCapabilities;
+use Modufolio\Appkit\Tests\Traits\DatabaseTestingCapabilities;
 use PHPUnit\Framework\TestCase;
 
 final class UserFeatureTest extends TestCase
@@ -300,7 +299,7 @@ $log = $this->getQueryLog('SELECT', 'users'); // filter by type and table
 composer stan
 ```
 
-PHPStan runs at level 6. The config file is `phpstan.php` in the project root.
+PHPStan runs at level 5. The config file is `phpstan.php` in the project root.
 
 To raise the level, edit `phpstan.php`:
 

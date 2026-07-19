@@ -218,7 +218,9 @@ Use this for individual scalars; reach for `#[MapQueryString]` or `#[MapFilter]`
 
 ### `#[MapFilter]`
 
-Builds a filter object from query parameters. Your filter class needs a `fromArray()` static method.
+Builds a filter object from query parameters. Your filter class must implement `MapFilterInterface`, which requires a static `fromArray(array $data): self`. Implementing `fromArray()` without the interface fails an assertion at resolution time.
+
+The whole query array is passed to `fromArray()` — parameters are flat (`?search=x`), not namespaced under `filter[...]`.
 
 ```php
 public function list(#[MapFilter] PostFilter $filter): ResponseInterface

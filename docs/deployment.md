@@ -168,30 +168,151 @@ rm -rf var/cache/router/
 
 ## RoadRunner
 
-AppKit is designed for RoadRunner's persistent worker model. The key behaviours:
+> **Reference implementation:** [`modufolio/appkit-roadrunner`](https://github.com/modufolio/appkit-roadrunner)
+> is the canonical setup — `worker.php`, `.rr.yaml`, and a `RoadRunnerApp` that
+> overrides `handle()`. Start from that repo rather than from this page.
 
-- `handle()` creates a fresh `NativeApplicationState` per request
-- `reset()` clears all request-scoped state after the response is sent
-- No static state in core classes — safe across multiple requests in the same process
+AppKit runs under RoadRunner's persistent worker model. The relevant behaviours:
+
+- A fresh application state is created per request
 - Controller instances are cached per request, not across requests
+- Static state in core classes is *managed*, not absent — `Router` keeps a static
+  compiled-route cache and clears it in `Router::reset()`
 
-If you run under RoadRunner, call `$app->handle($request)` in your worker loop and call `$app->reset()` after emitting each response.
+There is no framework-supplied runtime. The worker loop is written explicitly, so
+what happens per request is visible in your own code rather than hidden behind a
+runtime abstraction.
+
+```bash
+composer require spiral/roadrunner spiral/roadrunner-cli spiral/roadrunner-http
+```
 
 ```php
-// RoadRunner worker example
-$app = AppFactory::create(dirname(__DIR__));
+// worker.php
+use App\AppFactory;
+use App\RoadRunnerApp;
+use Modufolio\Psr7\Http\Factory\Psr17Factory;
+use Spiral\RoadRunner\Http\PSR7Worker;
+use Spiral\RoadRunner\Worker;
 
-while ($request = $worker->waitRequest()) {
+require_once __DIR__ . '/bootstrap.php';
+
+$psr17  = new Psr17Factory();
+$worker = new PSR7Worker(Worker::create(), $psr17, $psr17, $psr17);
+
+$app = AppFactory::create(__DIR__, RoadRunnerApp::class);
+
+$requestCount = 0;
+$gcInterval   = 100;
+
+while (true) {
+    try {
+        $request = $worker->waitRequest();
+    } catch (\Throwable $e) {
+        $worker->getWorker()->error((string) $e);
+        continue;
+    }
+
+    if ($request === null) {
+        break;   // graceful shutdown
+    }
+
     try {
         $response = $app->handle($request);
         $worker->respond($response);
     } catch (\Throwable $e) {
-        $worker->error((string) $e);
+        $worker->getWorker()->error((string) $e);
     } finally {
         $app->reset();
+
+        if (++$requestCount % $gcInterval === 0) {
+            gc_collect_cycles();
+        }
     }
 }
 ```
+
+Three details that are easy to miss:
+
+- `waitRequest()` returning `null` means shutdown — break, do not `continue`
+- `$app->reset()` belongs in `finally`, so it runs even when the handler throws
+- periodic `gc_collect_cycles()` keeps cyclic garbage from accumulating across
+  thousands of requests in one process
+
+### The reset contract
+
+**`Kernel::reset()` is abstract.** The framework mandates nothing — each
+application supplies its own and is responsible for tearing down whatever the
+framework does not.
+
+`AbstractApplicationState::reset()` clears exactly five things:
+
+| Cleared | Not cleared |
+|---|---|
+| `session` (saved, then nulled) | Router / route collection |
+| `sessionStorage` | Entity manager |
+| `tokenStorage` (token set to `null` first) | Emitter |
+| `requestInstances` | Environment |
+| `firewallNameCache` | Cached service instances |
+
+Everything in the right column is yours. A typical `App::reset()`:
+
+```php
+public function reset(): void
+{
+    $this->state?->reset();
+    $this->state = null;
+
+    $this->debugStack->resetQueries();
+    $this->entityManagerFactory?->reset();
+
+    $this->emitter = null;
+    $this->environment = null;
+    $this->instances = [];
+}
+```
+
+> **Whether you must also reset the router depends on your route loaders.**
+>
+> Routes loaded from PHP attributes or static config genuinely do not change
+> between requests, so leaving the router in place is correct and saves rebuilding
+> the collection every request. The reference implementation does exactly this.
+>
+> Routes *generated from the filesystem* are different. If a loader scans a
+> directory — a flat-file page loader, for example — then adding a file adds a
+> route, and a worker holding its boot-time collection will keep serving the old
+> one. Existing pages work, newly created ones 404 until workers restart. In that
+> case call `Router::reset()`, which clears the matcher, generator, collection and
+> the static route cache.
+
+### Configuration
+
+`.rr.yaml` at the project root:
+
+```yaml
+version: '3'
+
+server:
+    command: "php worker.php"
+    relay: pipes
+    env:
+        XDEBUG_MODE: "off"
+
+http:
+    address: 0.0.0.0:8080
+    middleware: ["static", "gzip"]
+    static:
+        dir: "public"
+        forbid: [".php", ".htaccess"]
+    pool:
+        num_workers: 8
+        supervisor:
+            max_worker_memory: 128
+```
+
+`max_worker_memory` (MB) restarts a worker that exceeds the limit — a safety net
+for slow leaks, not a substitute for resetting state properly. Disabling xdebug in
+the worker environment matters: it roughly halves throughput when left on.
 
 ## Security headers
 

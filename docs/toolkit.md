@@ -30,7 +30,8 @@ A::groupBy('status', $array);              // group items by a key value
 A::keyBy($array, 'id');                    // re-index array by a field value
 A::sort($array, 'name', 'asc');
 A::unique($array);
-A::flatten($array);                        // collapse nested arrays one level
+A::dot($array);                            // flatten nested keys to dot notation
+A::nest($array);                           // inverse of dot(): expand dotted keys
 ```
 
 ### Merging

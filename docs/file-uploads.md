@@ -68,8 +68,19 @@ $upload->assert(function (\Psr\Http\Message\UploadedFileInterface $file): bool {
 ```php
 $upload->saveTo('/absolute/path/to/directory');
 
-// With a custom filename (without extension — AppKit appends the original extension)
-$upload->saveTo('/absolute/path/to/directory', 'profile-123');
+// With a custom filename — used verbatim, so INCLUDE the extension yourself
+$upload->saveTo('/absolute/path/to/directory', 'profile-123.jpg');
+```
+
+The filename is passed through `F::safeName()` and used as given; no extension is
+appended. Omitting it writes an extensionless file, which then breaks anything
+downstream that infers type from the path — image processing in particular.
+
+To keep the original extension:
+
+```php
+$ext = pathinfo($upload->getFile()->getClientFilename(), PATHINFO_EXTENSION);
+$upload->saveTo($dir, 'profile-123.' . $ext);
 ```
 
 If validation fails, `saveTo()` throws `\InvalidArgumentException`. Always check `hasErrors()` *before* calling `saveTo()` (or wrap it in a try/catch).
@@ -79,7 +90,7 @@ If validation fails, `saveTo()` throws `\InvalidArgumentException`. Always check
 ```php
 $upload->hasErrors();         // bool
 $upload->getErrors();         // string[] — list of error messages
-$upload->getStoredFilePath(); // string — full path to the saved file
+$upload->getStoredFilePath(); // ?string — full path once saved, null before saveTo()
 $upload->getFile();           // UploadedFileInterface — the original PSR-7 file
 ```
 
@@ -121,7 +132,8 @@ public function updateAvatar(
         return Response::redirect($this->urlGenerator->generate('profile'));
     }
 
-    $upload->saveTo($this->baseDir . '/storage/avatars', 'user-' . $user->getId());
+    $ext = pathinfo($upload->getFile()->getClientFilename(), PATHINFO_EXTENSION);
+    $upload->saveTo($this->baseDir . '/storage/avatars', 'user-' . $user->getId() . '.' . $ext);
 
     $user->setAvatarPath($upload->getStoredFilePath());
     $this->entityManager->flush();

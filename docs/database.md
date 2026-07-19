@@ -64,6 +64,49 @@ $orm->connection([
 | `addSubscriber(EventSubscriber $subscriber)` | Register a Doctrine event subscriber |
 | `cache(?CacheItemPoolInterface $metadata, ?CacheItemPoolInterface $query, ?CacheItemPoolInterface $result)` | Configure caches for metadata, queries, and results |
 
+### Custom Doctrine types
+
+`OrmConfigurator` has no API for custom column types, and AppKit never registers
+any itself. Register them by hand inside the closure, **before** configuring the
+connection:
+
+```php
+// config/doctrine.php
+use Doctrine\DBAL\Types\Type;
+use Ramsey\Uuid\Doctrine\UuidType;
+
+return function (OrmConfigurator $orm): void {
+    if (!Type::hasType(UuidType::NAME)) {
+        Type::addType(UuidType::NAME, UuidType::class);
+    }
+
+    $orm->connection([...])->entities(...);
+};
+```
+
+The `hasType()` guard matters: the closure runs once per environment, but in a
+long-running worker or a test suite that boots the app repeatedly, a bare
+`addType()` throws on the second call.
+
+### Per-environment config replaces the base file
+
+`config/<env>/doctrine.php` does **not** extend `config/doctrine.php` — the kernel
+`require`s exactly one file:
+
+```php
+$closure = require $this->fileMap['doctrine'];
+$closure($configurator);
+```
+
+There is no merge and no fallback. Anything the base config does — custom types,
+filters, middleware — must be repeated in each environment file that replaces it.
+
+This is the most common way to break a test suite: entities declare
+`#[ORM\Column(type: 'uuid')]`, the base config registers `UuidType`, the test
+config does not, and every test dies in `setUp()` with
+`Unknown column type "uuid" requested` — an error that points at Doctrine rather
+than at the config file that caused it.
+
 ## Defining an entity
 
 Entity classes live in `src/Entity/`. Use Doctrine PHP attributes for mapping.

@@ -26,7 +26,9 @@ without Symfony's full kernel, bundle system, and compile step.
   `handleAuthentication()` top-to-bottom shows exactly what runs.
 - **RoadRunner-aware.** Every stateful service implements
   [`ResetInterface`](src/Core/ResetInterface.php); the kernel rebuilds
-  `ApplicationState` per request.
+  `ApplicationState` per request. The worker loop stays in your application
+  rather than behind a runtime — see
+  [modufolio/appkit-roadrunner](https://github.com/modufolio/appkit-roadrunner).
 - **Security hardening already wired.** CSRF rotation on login,
   session-fixation defence, token unserialize allowlist, password
   timing-parity dummy, brute-force protection, generic 401 responses.

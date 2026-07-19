@@ -48,9 +48,27 @@ Firewall options:
 | `entry_point` | `string` | Where unauthenticated users are redirected. |
 | `stateless` | `bool` | `true` for API-style firewalls with no session. |
 | `security` | `bool` | Set to `false` to disable security for this firewall entirely. |
-| `logout.path` | `string` | POST to this URL to log out. |
+| `logout.path` | `string` | POST to this URL to log out. Requires a CSRF token — see below. |
 | `logout.target` | `string` | Redirect destination after logout. |
 | `two_factor_path` | `string` | Path for the 2FA code entry form. Defaults to `/2fa`. |
+
+> **Logout is CSRF-protected.** The request must POST a `_csrf_token` field
+> generated with the intention id `logout`, or `AuthenticationException` is thrown.
+> This is a different id from login (`authenticate`) — a token minted for one will
+> not validate the other.
+>
+> ```php
+> $token = $csrfTokenManager->getToken('logout')->getValue();
+> ```
+>
+> ```html
+> <form method="post" action="/logout">
+>   <input type="hidden" name="_csrf_token" value="<?= $token ?>">
+> </form>
+> ```
+>
+> A GET request to the logout path is not handled and leaves the session
+> authenticated.
 
 Pattern syntax uses plain string matching, not regex. This prevents ReDoS attacks. Two forms:
 
@@ -299,7 +317,7 @@ A typical policy: extend `credentialsExpireAt` by 90 days on every successful pa
 ```php
 use Modufolio\Appkit\Security\SecurityHelper;
 
-$temporaryPassword = SecurityHelper::generatePassword(16); // 12–64 characters
+$temporaryPassword = SecurityHelper::generatePassword(16); // length clamped to 8–64
 ```
 
 Pair it with `CredentialsExpirableUserInterface` when creating accounts on behalf of users:
@@ -398,7 +416,7 @@ $token = $this->tokenStorage->getToken();
 
 $token instanceof SwitchUserToken;       // true when impersonating
 $token->isImpersonating();              // same check via method
-$token->getRoleNames();                 // includes 'ROLE_PREVIOUS_ADMIN'
+$token->getAttribute('ROLE_PREVIOUS_ADMIN'); // true — set as an ATTRIBUTE, not a role
 $token->getOriginalToken()->getUser();  // the original admin user
 ```
 

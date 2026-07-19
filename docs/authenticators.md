@@ -128,14 +128,27 @@ The authenticator extracts the token from `Authorization: Bearer <token>` and va
 
 For simple machine-to-machine requests where a static key is passed in a header.
 
+The constructor takes two parameters — `userProvider` and an `options` array. The
+individual settings are keys inside `options`, not constructor parameters of their
+own, so `header_name` goes in the array rather than being passed as `headerName:`.
+
 ```php
 'api_key' => function ($container) {
     return new ApiKeyAuthenticator(
         userProvider: $container->get(UserProviderInterface::class),
-        headerName:   'X-API-Key',
+        options: [
+            'api_keys'    => ['key-for-service-a' => 'service-a@example.com'],
+            'header_name' => 'X-API-KEY',   // default
+        ],
     );
 },
 ```
+
+| Option | Default | Description |
+|---|---|---|
+| `api_keys` | `[]` | **Required.** An empty array throws `InvalidArgumentException` at construction. |
+| `header_name` | `X-API-KEY` | Header carrying the key |
+| `query_parameter` | `null` | Optional query-string fallback |
 
 ## Remember me
 

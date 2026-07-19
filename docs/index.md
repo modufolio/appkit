@@ -10,7 +10,7 @@ AppKit makes deliberate choices to stay small and fast. If you need a full event
 
 **Readable auth flow.** AppKit does not use a PSR-15 middleware pipeline for authentication. Middleware pipelines are order-dependent — move one layer and authentication silently breaks. A fixed pipeline solves the ordering problem but hides the flow across multiple classes. AppKit's authentication lives in one place and reads as a straight sequence: restore session → run authenticators → enforce access control → resolve controller. You can follow it in the source without jumping between files.
 
-**Minimal, scoped state.** The framework was designed for RoadRunner from the start — not adapted for them after the fact. Request-scoped state is isolated in `ApplicationState`, created fresh for every request and cleared after the response is sent. Services with no per-request state live for the lifetime of the worker. Nothing leaks between requests by accident.
+**Minimal, scoped state.** The framework was designed for RoadRunner from the start — not adapted for them after the fact. Request-scoped state is isolated in `ApplicationState`, created fresh for every request and cleared after the response is sent. Services with no per-request state live for the lifetime of the worker. What gets cleared is explicit — `reset()` is yours to write, so nothing is torn down behind your back, and nothing you forget is torn down for you either.
 
 **Pipelines over procedures.** The parameter resolver, the brute-force protection, the query builder — data flows through explicit transformations rather than accumulating in shared state. This is a functional programming instinct applied pragmatically to PHP.
 
@@ -30,7 +30,7 @@ AppKit makes deliberate choices to stay small and fast. If you need a full event
 - Brute-force protection (file-based or Redis)
 - Console commands with Doctrine and maker support
 - Array, string, file, and directory utilities
-- RoadRunner compatible
+- RoadRunner compatible — see [modufolio/appkit-roadrunner](https://github.com/modufolio/appkit-roadrunner) for a working worker setup
 
 ## Requirements
 
