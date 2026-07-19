@@ -23,6 +23,9 @@ use Modufolio\Appkit\Security\TokenUnserializer;
 use Modufolio\Appkit\Security\User\UserProviderInterface;
 use Modufolio\Psr7\Http\Emitter;
 use Modufolio\Psr7\Http\EmitterInterface;
+use Modufolio\Psr7\Http\ServerRequest;
+use Modufolio\Psr7\Http\Stream;
+use Modufolio\Psr7\Http\Uri;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\NotFoundExceptionInterface;
 use Psr\Http\Message\ResponseInterface;
@@ -191,6 +194,37 @@ abstract class Kernel implements AppInterface
         ], []);
 
         return call_user_func_array([$classObject, $method], $arg);
+    }
+
+    /**
+     * Prime request-scoped state with a synthetic request, for callers that
+     * need the container (e.g. getController()) outside of a real HTTP
+     * request/response cycle — CLI commands and test suites.
+     *
+     * Idempotent: a request already primed by handle() (or a prior call) is
+     * left untouched.
+     */
+    public function initializeConsoleState(): static
+    {
+        if ($this->state === null) {
+            $request = new ServerRequest(
+                method: 'GET',
+                uri: new Uri('http://127.0.0.1'),
+                headers: [],
+                body: Stream::create(''),
+                version: '1.1',
+                serverParams: [
+                    'HTTP_HOST' => '127.0.0.1',
+                    'REQUEST_METHOD' => 'GET',
+                    'REQUEST_URI' => '/',
+                    'SERVER_PROTOCOL' => 'HTTP/1.1',
+                ]
+            );
+
+            $this->state = new NativeApplicationState($request, $this->baseDir, $this->firewallConfig);
+        }
+
+        return $this;
     }
 
     public function getController(string $id): object

@@ -43,7 +43,7 @@ class AppFactory
 
         $securityClosure($securityConfigurator);
 
-        return (new App(
+        $app = new App(
             baseDir: $baseDir,
             routeLoader: $routeLoader,
             logger: new NullLogger(),
@@ -56,6 +56,16 @@ class AppFactory
                 'interfaces' => $baseDir.'/config/interfaces.php',
             ],
             repositories: F::load($baseDir.'/config/repositories.php', []),
-        ))->configureSecurity($securityConfigurator)->boot();
+        );
+
+        $app->configureSecurity($securityConfigurator)->boot();
+
+        // JsonApiController isn't in config/controllers.php, so its
+        // constructor is auto-wired by reflection; the untyped $configPath
+        // string argument resolves to this container parameter by name.
+        // Requires boot() to have run first (initializes $parameterBag).
+        $app->setParameter('configPath', $baseDir.'/config/json_api.php');
+
+        return $app;
     }
 }

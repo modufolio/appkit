@@ -55,6 +55,23 @@ interface AppInterface extends ContainerInterface, RequestHandlerInterface, Rese
     public function entityManager(): EntityManagerInterface;
 
     // ============================================================================
+    // CONTROLLERS
+    // ============================================================================
+
+    /**
+     * Resolve (instantiating and caching if needed) the controller instance
+     * registered under $id in the DI container.
+     */
+    public function getController(string $id): object;
+
+    /**
+     * Prime request-scoped state with a synthetic request, for callers that
+     * need the container (e.g. getController()) outside of a real HTTP
+     * request/response cycle — CLI commands and test suites.
+     */
+    public function initializeConsoleState(): static;
+
+    // ============================================================================
     // REQUEST & SESSION
     // ============================================================================
 
