@@ -155,7 +155,13 @@ class FirewallConfigurationTest extends AppTestCase
         $this->configureFormLoginFirewall();
         $this->login();
 
-        $response = $this->post('/logout', [], ['Content-Type' => 'application/x-www-form-urlencoded']);
+        // An empty X-CSRF-Token suppresses the test harness's auto-attached
+        // valid header token — logout now accepts that header (same proof as
+        // enforceCsrf()), and this test is about the truly tokenless case.
+        $response = $this->post('/logout', [], [
+            'Content-Type' => 'application/x-www-form-urlencoded',
+            'X-CSRF-Token' => '',
+        ]);
 
         $response->assertStatus(401);
         $this->assertNotNull(

@@ -5,6 +5,22 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1] - 2026-07-25
+
+### Fixed
+
+- **Logging out now also works for JavaScript apps (Inertia, Vue, fetch).**
+  Before this release, logout only accepted the CSRF token as a hidden
+  `_csrf_token` field in a submitted form. JavaScript apps don't submit
+  forms — they send the CSRF token in the `X-CSRF-Token` header, which the
+  framework already accepts on every other request. Logout was the one
+  exception, so those apps always got a `401 Unauthorized` when signing out.
+
+  Logout now accepts both: the classic form field (unchanged) and the
+  `X-CSRF-Token` / `X-XSRF-Token` header. No changes needed in your app —
+  if your logout form works today, it keeps working; if your logout was
+  failing from JavaScript, it now just works.
+
 ## [0.4.0] - 2026-07-19
 
 ### Added

@@ -52,10 +52,18 @@ Firewall options:
 | `logout.target` | `string` | Redirect destination after logout. |
 | `two_factor_path` | `string` | Path for the 2FA code entry form. Defaults to `/2fa`. |
 
-> **Logout is CSRF-protected.** The request must POST a `_csrf_token` field
-> generated with the intention id `logout`, or `AuthenticationException` is thrown.
-> This is a different id from login (`authenticate`) — a token minted for one will
-> not validate the other.
+> **Logout is CSRF-protected.** Two equivalent proofs are accepted, mirroring
+> the general CSRF layer:
+>
+> - **HTML forms** POST a `_csrf_token` field generated with the intention id
+>   `logout`. This is a different id from login (`authenticate`) — a token
+>   minted for one will not validate the other.
+> - **fetch/XHR clients** (SPAs, Inertia apps) send the firewall's session
+>   token (`csrf_token_id`, default `csrf`) via the `X-CSRF-Token` or
+>   `X-XSRF-Token` header — the same header they already attach to every
+>   other state-changing request.
+>
+> Without either, `AuthenticationException` is thrown.
 >
 > ```php
 > $token = $csrfTokenManager->getToken('logout')->getValue();

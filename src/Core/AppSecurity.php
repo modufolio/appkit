@@ -73,7 +73,7 @@ trait AppSecurity
         }
 
         if ($this->isLogoutRequest($request, $config)) {
-            $this->assertValidLogoutCsrfToken($request);
+            $this->assertValidLogoutCsrfToken($request, $config);
 
             return $this->logout($firewallName);
         }
@@ -253,22 +253,43 @@ trait AppSecurity
     /**
      * Validate the CSRF token on a logout request.
      *
-     * Token id is `logout`. Templates obtain it via
-     * `$csrfTokenManager->getToken('logout')` and submit it as `_csrf_token`.
+     * Two equivalent proofs are accepted, mirroring enforceCsrf():
      *
-     * @throws AuthenticationException when the token is missing or invalid
+     *  - HTML forms submit the dedicated `logout` token as the
+     *    `_csrf_token` body field. Templates obtain it via
+     *    `$csrfTokenManager->getToken('logout')`.
+     *  - fetch/XHR clients (SPAs) send the firewall's session token
+     *    (`csrf_token_id`, default `csrf`) via the `X-CSRF-Token` /
+     *    `X-XSRF-Token` header — the same header the general CSRF
+     *    layer accepts for every other state-changing request.
+     *
+     * Both prove the same thing: same-origin JavaScript or markup with
+     * access to the user's session minted the request.
+     *
+     * @throws AuthenticationException when no valid token is presented
      */
-    private function assertValidLogoutCsrfToken(ServerRequestInterface $request): void
+    private function assertValidLogoutCsrfToken(ServerRequestInterface $request, array $config): void
     {
-        $body = $request->getParsedBody();
-        $submitted = is_array($body) ? ($body['_csrf_token'] ?? null) : null;
-
         $manager = $this->get(CsrfTokenManagerInterface::class);
         assert($manager instanceof CsrfTokenManagerInterface);
 
-        if (!is_string($submitted) || !$manager->validateToken('logout', $submitted)) {
-            throw new AuthenticationException('Invalid CSRF token for logout.');
+        $body = $request->getParsedBody();
+        $bodyToken = is_array($body) ? ($body['_csrf_token'] ?? null) : null;
+
+        if (is_string($bodyToken) && $manager->validateToken('logout', $bodyToken)) {
+            return;
         }
+
+        $tokenId = $config['csrf_token_id'] ?? 'csrf';
+
+        foreach (['X-CSRF-Token', 'X-XSRF-Token'] as $header) {
+            $value = trim($request->getHeaderLine($header));
+            if ('' !== $value && $manager->validateToken($tokenId, $value)) {
+                return;
+            }
+        }
+
+        throw new AuthenticationException('Invalid CSRF token for logout.');
     }
 
     /**
