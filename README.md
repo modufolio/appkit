@@ -1,5 +1,8 @@
 # Appkit
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-brightgreen.svg?style=flat-square)](https://opensource.org/licenses/MIT)
+[![codecov](https://img.shields.io/codecov/c/github/modufolio/appkit?token=RMUZV84J10&style=flat-square)](https://codecov.io/gh/modufolio/appkit)
+
 A small, hand-wired PHP application kernel built on Symfony components,
 Doctrine ORM, Firebase JWT, and a strict-typed PSR-7 fork. Designed for
 security-conscious SaaS applications that want Symfony-grade components
