@@ -84,7 +84,9 @@ abstract class Form
     protected function getValidator(): ValidatorInterface
     {
         if (null === $this->validator) {
-            $this->validator = Validation::createValidator();
+            $this->validator = Validation::createValidatorBuilder()
+                ->enableAttributeMapping()
+                ->getValidator();
         }
 
         return $this->validator;
