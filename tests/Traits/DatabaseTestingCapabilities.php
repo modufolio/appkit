@@ -264,13 +264,16 @@ trait DatabaseTestingCapabilities
         ++$this->totalQueries;
         $this->totalQueryTime += $executionTime;
 
-        match ($type) {
-            'SELECT' => $this->selectCounter++,
-            'INSERT' => $this->insertCounter++,
-            'UPDATE' => $this->updateCounter++,
-            'DELETE' => $this->deleteCounter++,
-            default => null,
-        };
+        switch ($type) {
+            case 'SELECT': ++$this->selectCounter;
+                break;
+            case 'INSERT': ++$this->insertCounter;
+                break;
+            case 'UPDATE': ++$this->updateCounter;
+                break;
+            case 'DELETE': ++$this->deleteCounter;
+                break;
+        }
 
         // Track slow queries
         if ($executionTime > $this->slowQueryThreshold) {
