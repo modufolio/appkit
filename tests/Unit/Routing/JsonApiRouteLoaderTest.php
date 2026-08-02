@@ -186,28 +186,15 @@ class JsonApiRouteLoaderTest extends TestCase
         $this->assertSame('contacts', $contactRoute->getDefault('relationship'));
     }
 
-    public function testIdRequirementOnShowRoute(): void
+    public function testIdHasNoFormatRequirement(): void
     {
         $routes = $this->loader->load('config/json_api.php', 'json_api');
 
-        $showRoute = $routes->get('api_account_show');
-        $this->assertSame('\d+', $showRoute->getRequirement('id'));
-    }
-
-    public function testIdRequirementOnUpdateRoute(): void
-    {
-        $routes = $this->loader->load('config/json_api.php', 'json_api');
-
-        $updateRoute = $routes->get('api_account_update');
-        $this->assertSame('\d+', $updateRoute->getRequirement('id'));
-    }
-
-    public function testIdRequirementOnDeleteRoute(): void
-    {
-        $routes = $this->loader->load('config/json_api.php', 'json_api');
-
-        $deleteRoute = $routes->get('api_account_delete');
-        $this->assertSame('\d+', $deleteRoute->getRequirement('id'));
+        // Ids may be numeric or uuids; the resource layer resolves them.
+        foreach (['show', 'update', 'delete'] as $op) {
+            $route = $routes->get("api_account_{$op}");
+            $this->assertNull($route->getRequirement('id'));
+        }
     }
 
     public function testAllRoutesHaveController(): void
@@ -263,12 +250,12 @@ class JsonApiRouteLoaderTest extends TestCase
         $this->assertSame('/v1/api/account', $indexRoute->getPath());
     }
 
-    public function testRelationshipRoutesIncludeIdRequirement(): void
+    public function testRelationshipRoutesHaveNoIdFormatRequirement(): void
     {
         $routes = $this->loader->load('config/json_api.php', 'json_api');
 
         $relationshipRoute = $routes->get('api_account_related_organizations');
-        $this->assertSame('\d+', $relationshipRoute->getRequirement('id'));
+        $this->assertNull($relationshipRoute->getRequirement('id'));
     }
 
     public function testTotalRouteCountForAllEntities(): void

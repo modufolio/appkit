@@ -56,7 +56,7 @@ class JsonApiRouteLoader extends Loader
             if ($operations['show'] ?? false) {
                 $routes->add(
                     "api_{$resourceKey}_show",
-                    $this->createRoute("/{$resourceKey}/{id}", ['GET'], 'show', $entityClass, ['id' => '\d+'])
+                    $this->createRoute("/{$resourceKey}/{id}", ['GET'], 'show', $entityClass)
                 );
             }
 
@@ -72,14 +72,14 @@ class JsonApiRouteLoader extends Loader
                 if ($operations['update'] ?? false) {
                     $routes->add(
                         "api_{$resourceKey}_update",
-                        $this->createRoute("/{$resourceKey}/{id}", ['PATCH', 'PUT'], 'update', $entityClass, ['id' => '\d+'])
+                        $this->createRoute("/{$resourceKey}/{id}", ['PATCH', 'PUT'], 'update', $entityClass)
                     );
                 }
 
                 if ($operations['delete'] ?? false) {
                     $routes->add(
                         "api_{$resourceKey}_delete",
-                        $this->createRoute("/{$resourceKey}/{id}", ['DELETE'], 'delete', $entityClass, ['id' => '\d+'])
+                        $this->createRoute("/{$resourceKey}/{id}", ['DELETE'], 'delete', $entityClass)
                     );
                 }
             }
@@ -93,7 +93,7 @@ class JsonApiRouteLoader extends Loader
                         ['GET'],
                         'related',
                         $entityClass,
-                        ['id' => '\d+'],
+                        [],
                         ['relationship' => $relationship]
                     )
                 );
