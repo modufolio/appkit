@@ -33,12 +33,16 @@ interface CsrfTokenManagerInterface
     /**
      * Validate a token by ID and value.
      *
-     * @param string $tokenId    The token identifier
-     * @param string $tokenValue The token value to validate
+     * A missing or empty value is an ordinary invalid submission, not an
+     * error: callers pass whatever the request contained, so this returns
+     * false instead of throwing.
+     *
+     * @param string      $tokenId    The token identifier
+     * @param string|null $tokenValue The token value to validate
      *
      * @return bool True if valid, false otherwise
      */
-    public function validateToken(string $tokenId, string $tokenValue): bool;
+    public function validateToken(string $tokenId, ?string $tokenValue): bool;
 
     /**
      * Remove a token from storage.

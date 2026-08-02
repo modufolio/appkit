@@ -29,6 +29,7 @@ namespace Modufolio\Appkit\Security;
  *         ])
  *         ->accessControl('/admin', ['ROLE_ADMIN'])
  *         ->accessControl('api:0', ['ROLE_API_USER'])
+ *         ->publicPath('/contact')            // reachable without signing in
  *         ->roleHierarchy([
  *             'ROLE_ADMIN' => ['ROLE_USER'],
  *         ]);
@@ -37,6 +38,17 @@ namespace Modufolio\Appkit\Security;
  */
 final class SecurityConfigurator
 {
+    /**
+     * Marks a path as reachable without authentication, while keeping it inside
+     * its firewall — the alternative is a second firewall with
+     * `security => false`, which also switches off CSRF enforcement and the
+     * authenticators for that path.
+     *
+     * A session that is already authenticated still authenticates normally on
+     * these paths, so `getUser()` works and CSRF is still enforced for it.
+     */
+    public const PUBLIC_ACCESS = 'PUBLIC_ACCESS';
+
     /** @var array<string, array<string, mixed>> */
     public array $firewalls = [];
 
@@ -102,6 +114,20 @@ final class SecurityConfigurator
         $this->accessControlRules[] = $rule;
 
         return $this;
+    }
+
+    /**
+     * Allow anonymous access to a path inside a firewall.
+     *
+     * Shorthand for `accessControl($path, [self::PUBLIC_ACCESS])`.
+     *
+     * @param string                  $path    Plain pattern, NOT regex — same syntax as accessControl()
+     * @param array<int, string>|null $methods Restrict the exemption to these methods
+     * @param array<string, mixed>    $options
+     */
+    public function publicPath(string $path, ?array $methods = null, array $options = []): self
+    {
+        return $this->accessControl($path, [self::PUBLIC_ACCESS], $methods, $options);
     }
 
     /**

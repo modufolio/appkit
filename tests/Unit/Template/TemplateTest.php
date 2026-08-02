@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace Modufolio\Appkit\Tests\Unit\Template;
 
 use Modufolio\Appkit\Template\Template;
+use Modufolio\Psr7\Http\ServerRequest;
+use Modufolio\Psr7\Http\Stream;
+use Modufolio\Psr7\Http\Uri;
 use PHPUnit\Framework\TestCase;
 
 class TemplateTest extends TestCase
@@ -208,5 +211,27 @@ class TemplateTest extends TestCase
 
         // Clean up
         unlink($snippetFile);
+    }
+
+    public function testUrlOnARequestWithoutSchemeOrHostIsRootRelative(): void
+    {
+        // A request built without an absolute URI (console, tests, some SAPIs)
+        // must yield root-relative URLs, not the "://" artefact that rendered
+        // url('/') as ":".
+        $request = new ServerRequest('GET', new Uri('/forms/appkit'), [], Stream::create(''), '1.1', []);
+        $template = new Template('home', [], [], [], $request);
+
+        $this->assertSame('/', $template->url('/'));
+        $this->assertSame('/', $template->url(''));
+        $this->assertSame('/assets/css/app.css', $template->url('/assets/css/app.css'));
+    }
+
+    public function testUrlOnAnAbsoluteRequestKeepsSchemeAndHost(): void
+    {
+        $request = new ServerRequest('GET', new Uri('https://example.com:8443/page'), [], Stream::create(''), '1.1', []);
+        $template = new Template('home', [], [], [], $request);
+
+        $this->assertSame('https://example.com:8443', $template->url('/'));
+        $this->assertSame('https://example.com:8443/assets/app.js', $template->url('assets/app.js'));
     }
 }

@@ -110,16 +110,23 @@ class CsrfTokenManager implements CsrfTokenManagerInterface
      *
      * Convenience method for direct validation without creating CsrfToken object.
      *
-     * @param string $tokenId    The token identifier
-     * @param string $tokenValue The token value to validate
+     * Callers hand over whatever the request contained, so a missing or empty
+     * value is answered with false rather than the InvalidArgumentException
+     * CsrfToken raises — an absent token is an invalid submission, not a
+     * programming error.
+     *
+     * @param string      $tokenId    The token identifier
+     * @param string|null $tokenValue The token value to validate
      *
      * @return bool True if valid, false otherwise
      */
-    public function validateToken(string $tokenId, string $tokenValue): bool
+    public function validateToken(string $tokenId, ?string $tokenValue): bool
     {
-        $token = new CsrfToken($tokenId, $tokenValue);
+        if (null === $tokenValue || '' === $tokenValue) {
+            return false;
+        }
 
-        return $this->isTokenValid($token);
+        return $this->isTokenValid(new CsrfToken($tokenId, $tokenValue));
     }
 
     /**

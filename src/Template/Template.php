@@ -308,6 +308,13 @@ class Template implements \Stringable
         $host = $uri->getHost();
         $port = $uri->getPort();
 
+        // A request built without an absolute URI (console, tests, some SAPIs)
+        // has no scheme or host. Returning "://" would make url('/x') render as
+        // ":/x" — emit root-relative URLs instead.
+        if ('' === $scheme || '' === $host) {
+            return '';
+        }
+
         $base = $scheme.'://'.$host;
 
         if (('http' === $scheme && 80 !== $port) || ('https' === $scheme && 443 !== $port)) {
@@ -326,7 +333,12 @@ class Template implements \Stringable
             $baseUrl = rtrim($this->baseUrl, '/');
             $path = ltrim($path, '/');
 
-            return '' === $path ? $baseUrl : $baseUrl.'/'.$path;
+            if ('' === $path) {
+                // Root of a request without scheme/host is "/", not "".
+                return '' === $baseUrl ? '/' : $baseUrl;
+            }
+
+            return $baseUrl.'/'.$path;
         }
 
         // Return path as-is when no request provided

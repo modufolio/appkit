@@ -32,6 +32,11 @@ class TestController
         return new Response(200, [], 'Logout');
     }
 
+    public function submit(ServerRequestInterface $request): ResponseInterface
+    {
+        return new Response(200, [], 'Submitted');
+    }
+
     public function public(ServerRequestInterface $request): ResponseInterface
     {
         return new Response(200, [], 'Public page');

@@ -224,4 +224,37 @@ class FormTest extends TestCase
         // Should not throw
         $result->throwIfFailed();
     }
+
+    public function testDefaultValidatorHonoursAttributeConstraintsOnNestedObjects(): void
+    {
+        // The default validator enables attribute mapping to match the
+        // kernel's validator(): #[Assert\…] on a nested object reached through
+        // Assert\Valid must not be silently ignored here.
+        $form = new TestNestedObjectForm();
+
+        $result = $form->validate(['profile' => new TestProfileDto('')]);
+        $this->assertTrue($result->hasErrors());
+
+        $result = $form->validate(['profile' => new TestProfileDto('Ada Lovelace')]);
+        $this->assertFalse($result->hasErrors());
+    }
+}
+
+class TestProfileDto
+{
+    public function __construct(
+        #[Assert\NotBlank]
+        public string $displayName,
+    ) {
+    }
+}
+
+class TestNestedObjectForm extends Form
+{
+    protected function rules(): Constraint
+    {
+        // Valid() cascades into the objects held by the data array, so their
+        // #[Assert\…] attributes are what actually get enforced.
+        return new Assert\Valid();
+    }
 }

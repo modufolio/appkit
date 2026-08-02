@@ -12,6 +12,7 @@ use Modufolio\Appkit\Security\Exception\AuthenticationException;
 use Modufolio\Appkit\Security\Exception\TwoFactorRequiredException;
 use Modufolio\Appkit\Security\Exception\UnsupportedUserException;
 use Modufolio\Appkit\Security\Exception\UserNotFoundException;
+use Modufolio\Appkit\Security\SecurityConfigurator;
 use Modufolio\Appkit\Security\Token\RememberMeToken;
 use Modufolio\Appkit\Security\Token\TokenInterface;
 use Modufolio\Appkit\Security\Token\TwoFactorToken;
@@ -22,6 +23,8 @@ use Modufolio\Appkit\Security\User\UserCheckerInterface;
 use Modufolio\Appkit\Security\User\UserInterface;
 use Modufolio\Appkit\Toolkit\A;
 use Modufolio\Psr7\Http\Response;
+use Negotiation\BaseAccept;
+use Negotiation\Negotiator;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Symfony\Component\HttpFoundation\IpUtils;
@@ -155,7 +158,44 @@ trait AppSecurity
             return $this->controllerResolver($request);
         }
 
+        // Nobody authenticated. A path declared public is served anonymously
+        // instead of being bounced to the entry point — the authenticators ran
+        // first, so a remember-me cookie still signs the visitor in.
+        if ($this->isPublicRequest($request)) {
+            return $this->controllerResolver($request);
+        }
+
         return $this->handleEntryPointRedirect($config, $stateless);
+    }
+
+    /**
+     * Whether an access-control rule declares this request public.
+     *
+     * A rule may narrow the exemption to certain methods, so that e.g. a page
+     * is readable anonymously while writing to it still requires a login.
+     *
+     * @see SecurityConfigurator::publicPath()
+     */
+    private function isPublicRequest(ServerRequestInterface $request): bool
+    {
+        $path = $request->getUri()->getPath();
+        $method = strtoupper($request->getMethod());
+
+        foreach ($this->accessControlRules ?? [] as $rule) {
+            if (!in_array(SecurityConfigurator::PUBLIC_ACCESS, $rule['roles'] ?? [], true)) {
+                continue;
+            }
+
+            if (!$this->matchesAccessControlPattern($rule['path'] ?? '/', $path)) {
+                continue;
+            }
+
+            if (empty($rule['methods']) || in_array($method, $rule['methods'], true)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -304,12 +344,26 @@ trait AppSecurity
      * Safe HTTP methods (GET/HEAD/OPTIONS/TRACE) are never checked.
      *
      * Per-firewall configuration:
-     *   'csrf'          => false   // disable CSRF entirely for this firewall
-     *   'csrf_token_id' => 'csrf'  // session token id to validate against
+     *   'csrf'           => false   // disable CSRF entirely for this firewall
+     *   'csrf_token_id'  => 'csrf'  // session token id to validate against
+     *   'csrf_validator' => callable(ServerRequestInterface, CsrfTokenManagerInterface): ?bool
      *
      * The token may be supplied as the `_csrf_token` body field or via an
      * `X-CSRF-Token` / `X-XSRF-Token` request header (for fetch/XHR clients).
      * Templates obtain it with `$csrfTokenManager->getToken('csrf')`.
+     *
+     * `csrf_validator` covers request shapes the built-in extraction cannot
+     * describe — a namespaced form field, a per-form token id, or a form layer
+     * that validates its own token. Return true to accept, false to reject, or
+     * null to fall through to the check above:
+     *
+     *   'csrf_validator' => function ($request, $tokens) {
+     *       $body = $request->getParsedBody();
+     *
+     *       return isset($body['contact']['_token'])
+     *           ? $tokens->validateToken('contact_form', $body['contact']['_token'])
+     *           : null;
+     *   },
      *
      * @return ResponseInterface|null a 403 response when the token is missing or
      *                                invalid, or null when the request may proceed
@@ -336,17 +390,85 @@ trait AppSecurity
         $manager = $this->get(CsrfTokenManagerInterface::class);
         assert($manager instanceof CsrfTokenManagerInterface);
 
-        $tokenId = $config['csrf_token_id'] ?? 'csrf';
-        $submitted = $this->extractCsrfToken($request);
+        // A form layer that names its field differently, namespaces it
+        // (`contact[_token]`) or keys the token by form rather than by firewall
+        // cannot be expressed by the built-in extraction. Such an app supplies
+        // a validator instead of being forced to disable CSRF wholesale.
+        $validator = $config['csrf_validator'] ?? null;
 
-        if (is_string($submitted) && $manager->validateToken($tokenId, $submitted)) {
+        if (is_callable($validator)) {
+            $verdict = $validator($request, $manager);
+
+            if (true === $verdict) {
+                return null;
+            }
+
+            if (false === $verdict) {
+                return $this->csrfFailureResponse($request);
+            }
+
+            // null → the validator has no opinion, fall through to the default.
+        }
+
+        $tokenId = $config['csrf_token_id'] ?? 'csrf';
+
+        if ($manager->validateToken($tokenId, $this->extractCsrfToken($request))) {
             return null;
+        }
+
+        return $this->csrfFailureResponse($request);
+    }
+
+    /**
+     * The response for a missing or invalid CSRF token.
+     *
+     * A browser posting a form gets whatever the app's exception handler
+     * renders for AccessDeniedException (an HTML page, typically); fetch/XHR
+     * and API clients keep the JSON body this has always returned.
+     *
+     * @throws \JsonException
+     */
+    private function csrfFailureResponse(ServerRequestInterface $request): ResponseInterface
+    {
+        if ($this->clientPrefersHtml($request)) {
+            return $this->exceptionHandler()->handle(
+                new AccessDeniedException('Missing or invalid CSRF token.'),
+                $request,
+            );
         }
 
         return Response::json([
             'error' => 'invalid_csrf_token',
             'error_description' => 'Missing or invalid CSRF token.',
         ], 403);
+    }
+
+    /**
+     * Whether the client asked for HTML ahead of anything else — a form
+     * submission from a browser, as opposed to fetch/XHR or an API client.
+     *
+     * Negotiated with the same library the exception handler uses, so the two
+     * agree on what a request wants: this decides whether to hand the failure
+     * to the handler, and the handler then picks its formatter the same way.
+     * JSON leads the priority list, so a client expressing no preference
+     * (`Accept: *\/*`, or no header at all) gets the machine-readable body.
+     */
+    private function clientPrefersHtml(ServerRequestInterface $request): bool
+    {
+        // An XHR that announces itself wants data back, whatever it accepts.
+        if ('xmlhttprequest' === strtolower($request->getHeaderLine('X-Requested-With'))) {
+            return false;
+        }
+
+        $accept = $request->getHeaderLine('Accept');
+
+        if ('' === $accept) {
+            return false;
+        }
+
+        $best = (new Negotiator())->getBest($accept, ['application/json', 'text/html']);
+
+        return $best instanceof BaseAccept && 'text/html' === $best->getValue();
     }
 
     /**
@@ -543,6 +665,13 @@ trait AppSecurity
 
         foreach ($this->accessControlRules ?? [] as $rule) {
             if (!$this->matchesAccessControlPattern($rule['path'] ?? '/', $path)) {
+                continue;
+            }
+
+            // A PUBLIC_ACCESS rule only waives the authentication redirect
+            // (see isPublicRequest()); it neither grants nor restricts anything
+            // here, so later rules still get their say.
+            if (in_array(SecurityConfigurator::PUBLIC_ACCESS, $rule['roles'] ?? [], true)) {
                 continue;
             }
 

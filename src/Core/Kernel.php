@@ -16,6 +16,7 @@ use Modufolio\Appkit\Exception\NotFoundException;
 use Modufolio\Appkit\Resolver\ParameterResolverInterface;
 use Modufolio\Appkit\Routing\Router;
 use Modufolio\Appkit\Routing\RouterInterface;
+use Modufolio\Appkit\Security\Csrf\CsrfTokenManagerInterface;
 use Modufolio\Appkit\Security\RoleHierarchy;
 use Modufolio\Appkit\Security\SecurityConfigurator;
 use Modufolio\Appkit\Security\Token\TokenStorageInterface;
@@ -208,7 +209,7 @@ abstract class Kernel implements AppInterface
      */
     public function initializeConsoleState(): static
     {
-        if ($this->state === null) {
+        if (null === $this->state) {
             $request = new ServerRequest(
                 method: 'GET',
                 uri: new Uri('http://127.0.0.1'),

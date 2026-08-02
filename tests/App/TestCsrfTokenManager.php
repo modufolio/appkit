@@ -53,7 +53,7 @@ class TestCsrfTokenManager implements CsrfTokenManagerInterface
             && hash_equals($this->tokens[$token->getId()], $token->getValue());
     }
 
-    public function validateToken(string $tokenId, string $tokenValue): bool
+    public function validateToken(string $tokenId, ?string $tokenValue): bool
     {
         if ($this->acceptAll) {
             return true;

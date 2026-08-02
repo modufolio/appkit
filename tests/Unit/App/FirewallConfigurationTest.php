@@ -74,10 +74,11 @@ class FirewallConfigurationTest extends AppTestCase
             ],
         ]);
 
-        // No route is registered for /public, so a security=false firewall must
-        // reach routing (and 404 via ResourceNotFoundException) instead of being
-        // intercepted by the authentication entry point (which would redirect/401).
-        $response = $this->get('/public');
+        // No route is registered for /public/missing, so a security=false
+        // firewall must reach routing (and 404 via ResourceNotFoundException)
+        // instead of being intercepted by the authentication entry point
+        // (which would redirect/401).
+        $response = $this->get('/public/missing');
         $response->assertStatus(404);
     }
 

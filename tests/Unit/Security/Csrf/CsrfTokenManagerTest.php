@@ -127,6 +127,21 @@ class CsrfTokenManagerTest extends TestCase
         $this->assertTrue($isValid);
     }
 
+    public function testValidateTokenAnswersFalseInsteadOfThrowingOnAMissingValue(): void
+    {
+        $tokenValue = bin2hex(random_bytes(32));
+        $session = $this->createMockSession([
+            '_csrf_tokens' => ['login' => $tokenValue],
+        ]);
+        $manager = new CsrfTokenManager($session);
+
+        // Callers pass whatever the request contained: an absent or empty
+        // token is an ordinary invalid submission, not a programming error.
+        $this->assertFalse($manager->validateToken('login', null));
+        $this->assertFalse($manager->validateToken('login', ''));
+        $this->assertTrue($manager->validateToken('login', $tokenValue));
+    }
+
     public function testRemoveToken(): void
     {
         $session = $this->createMockSession([

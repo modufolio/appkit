@@ -21,6 +21,16 @@ return [
         'methods' => ['GET'],
         'controller' => [TestController::class, 'index'],
     ],
+    'public' => [
+        'pattern' => '/public',
+        'methods' => ['GET', 'POST'],
+        'controller' => [TestController::class, 'public'],
+    ],
+    'submit' => [
+        'pattern' => '/submit',
+        'methods' => ['POST'],
+        'controller' => [TestController::class, 'submit'],
+    ],
     'api_me' => [
         'pattern' => '/api/me',
         'methods' => ['GET'],
