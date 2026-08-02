@@ -23,6 +23,12 @@ abstract class AppTestCase extends BaseTestCase
 {
     protected static App $app;
 
+    /**
+     * When true, the next request skips the automatic X-CSRF-Token header,
+     * letting tests exercise the firewall's CSRF rejection path.
+     */
+    private bool $skipAutoCsrf = false;
+
     protected function app(): App
     {
         if (!isset(self::$app)) {
@@ -42,6 +48,13 @@ abstract class AppTestCase extends BaseTestCase
         // while ensuring each test starts with a clean session.
         if ($this->app()->getState()?->hasSession()) {
             $this->app()->session()->clear();
+        }
+
+        // A test that failed mid-flush can leave the shared connection inside
+        // an aborted transaction, which would poison every test after it.
+        $connection = $this->app()->entityManager()->getConnection();
+        while ($connection->isTransactionActive()) {
+            $connection->rollBack();
         }
 
         // Clear the application instance after each test
@@ -228,16 +241,23 @@ abstract class AppTestCase extends BaseTestCase
             || isset($headers['X-XSRF-Token'])
             || array_key_exists('_csrf_token', $data);
 
-        if ($hasBody && $isAuthenticated && !$alreadyHasCsrf) {
+        if ($this->skipAutoCsrf) {
+            $this->skipAutoCsrf = false;
+        } elseif ($hasBody && $isAuthenticated && !$alreadyHasCsrf) {
             $headers['X-CSRF-Token'] = $this->app()
                 ->csrfTokenManager()
                 ->getToken('csrf')
                 ->getValue();
         }
 
-        // Add headers to server params following CGI convention
+        // Add headers to server params following CGI convention. Content-Type
+        // and Content-Length are exposed WITHOUT the HTTP_ prefix, exactly as
+        // a real SAPI does.
         foreach ($headers as $name => $value) {
-            $serverKey = 'HTTP_'.strtoupper(str_replace('-', '_', $name));
+            $normalized = strtoupper(str_replace('-', '_', $name));
+            $serverKey = in_array($normalized, ['CONTENT_TYPE', 'CONTENT_LENGTH'], true)
+                ? $normalized
+                : 'HTTP_'.$normalized;
             $serverParams[$serverKey] = $value;
         }
 
@@ -256,9 +276,19 @@ abstract class AppTestCase extends BaseTestCase
             $request = $request->withHeader($name, $value);
         }
 
-        // Set parsed body for form data and JSON
-        if ($hasBody && in_array($contentType, ['application/x-www-form-urlencoded', 'application/json'], true)) {
-            $request = $request->withParsedBody($data);
+        // Populate the parsed body the way production does: ServerRequestCreator
+        // decodes php://input by content type. Decoding the stream we actually
+        // wrote (instead of reusing $data) keeps the encode/decode round-trip
+        // under test.
+        if ($hasBody) {
+            $contents = (string) $stream;
+            if ($stream->isSeekable()) {
+                $stream->rewind(); // leave the stream readable for handlers using getContents()
+            }
+            $parsed = $this->parseBodyLikeSapi($contentType, $contents);
+            if (null !== $parsed) {
+                $request = $request->withParsedBody($parsed);
+            }
         }
 
         // Set query parameters
@@ -281,6 +311,36 @@ abstract class AppTestCase extends BaseTestCase
         }
 
         return new TestResponse($this->app()->handle($request));
+    }
+
+    /**
+     * Skip the automatic X-CSRF-Token header for the next request only.
+     */
+    protected function withoutCsrfToken(): static
+    {
+        $this->skipAutoCsrf = true;
+
+        return $this;
+    }
+
+    /**
+     * Decode a request body by content type, mirroring ServerRequestCreator's
+     * treatment of php://input in production.
+     */
+    private function parseBodyLikeSapi(?string $contentType, string $contents): ?array
+    {
+        switch ($contentType) {
+            case 'application/json':
+                $decoded = json_decode($contents, true);
+
+                return is_array($decoded) ? $decoded : [];
+            case 'application/x-www-form-urlencoded':
+                parse_str($contents, $parsed);
+
+                return $parsed;
+            default:
+                return null;
+        }
     }
 
     /**
@@ -310,11 +370,21 @@ abstract class AppTestCase extends BaseTestCase
         // Get CSRF token for authentication
         $csrfToken = $this->app()->csrfTokenManager()->getToken('authenticate')->getValue();
 
-        $this->form('/login', [
+        $response = $this->form('/login', [
             'email' => $email,
             'password' => $password,
             '_csrf_token' => $csrfToken,
         ]);
+
+        // Surface the actual HTTP failure (422, 500, ...) before the opaque
+        // token assertion below.
+        $status = $response->getResponse()->getStatusCode();
+        $this->assertLessThan(400, $status, sprintf(
+            'Login request for "%s" failed with status %d: %s',
+            $email,
+            $status,
+            substr((string) $response->getResponse()->getBody(), 0, 500),
+        ));
 
         // Assert that a token was set and the user is authenticated
         $token = $this->app()->tokenStorage()->getToken();

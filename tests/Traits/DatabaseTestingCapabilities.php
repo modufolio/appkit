@@ -30,11 +30,11 @@ use PHPUnit\Framework\Attributes\Before;
  * - Test data fixtures
  * - Query assertions
  * - Database state snapshots
- * - Mock and real connection switching
  */
 trait DatabaseTestingCapabilities
 {
     private static ?Connection $sharedConnection = null;
+    private static ?DebugStack $sharedDebugStack = null;
 
     protected ?Connection $connection = null;
 
@@ -75,9 +75,6 @@ trait DatabaseTestingCapabilities
     protected ?array $databaseSnapshot = null;
     protected bool $autoSnapshot = false;
 
-    // Query expectations
-    protected array $queryExpectations = [];
-    protected bool $strictQueryMode = false;
     public ?DebugStack $debugStack = null;
 
     /**
@@ -89,6 +86,10 @@ trait DatabaseTestingCapabilities
     protected function setUpDatabase(): void
     {
         $this->connection = $this->getConnection();
+
+        // The connection (and its debug stack) is shared across tests; start
+        // each test with a clean slate so counters only reflect this test.
+        $this->debugStack?->resetQueries();
 
         $this->resetTracking();
         $this->fixtures = [];
@@ -145,6 +146,13 @@ trait DatabaseTestingCapabilities
 
     public function getConnection(): Connection
     {
+        if (null !== self::$sharedConnection) {
+            // Reattach the shared connection's debug stack for this test.
+            $this->debugStack = self::$sharedDebugStack;
+
+            return self::$sharedConnection;
+        }
+
         $configurator = new OrmConfigurator();
 
         $closure = require dirname(__DIR__, 2).'/config/test/doctrine.php';
@@ -152,10 +160,13 @@ trait DatabaseTestingCapabilities
 
         $params = $configurator->connectionParams;
 
-        return DriverManager::getConnection(
+        self::$sharedConnection = DriverManager::getConnection(
             $params,
             $this->createConfiguration($params['driver']),
         );
+        self::$sharedDebugStack = $this->debugStack;
+
+        return self::$sharedConnection;
     }
 
     private function createConfiguration(string $driver): Configuration
@@ -207,8 +218,7 @@ trait DatabaseTestingCapabilities
             return;
         }
 
-        // Reset counters and logs, but preserve expectations
-        $this->resetTracking(false);
+        $this->resetTracking();
 
         // Process all queries from debug stack
         foreach ($this->debugStack->getQueries() as $query) {
@@ -227,6 +237,23 @@ trait DatabaseTestingCapabilities
 
         // Skip CONNECT queries
         if ('CONNECT' === $sql) {
+            return;
+        }
+
+        // Transaction markers emitted by the debug middleware feed the
+        // transaction log instead of the query counters.
+        $transactionAction = match ($sql) {
+            'BEGINNING TRANSACTION' => 'begin',
+            'COMMITTING TRANSACTION' => 'commit',
+            'ROLLING BACK TRANSACTION' => 'rollback',
+            default => null,
+        };
+
+        if (null !== $transactionAction) {
+            $this->transactionLog[] = ['action' => $transactionAction, 'timestamp' => microtime(true)];
+            $this->transactionLevel = max(0, $this->transactionLevel + ('begin' === $transactionAction ? 1 : -1));
+            $this->inTransaction = $this->transactionLevel > 0;
+
             return;
         }
 
@@ -291,6 +318,7 @@ trait DatabaseTestingCapabilities
             '/INTO\s+`?(\w+)`?/i',
             '/UPDATE\s+`?(\w+)`?/i',
             '/DELETE\s+FROM\s+`?(\w+)`?/i',
+            '/JOIN\s+`?(\w+)`?/i',
         ];
 
         foreach ($patterns as $pattern) {
@@ -333,11 +361,36 @@ trait DatabaseTestingCapabilities
     {
         $platform = $this->connection->getDatabasePlatform();
 
-        $this->connection->executeStatement('PRAGMA foreign_keys = OFF');
-        foreach (array_reverse($this->cleanupTables) as $table) {
-            $this->connection->executeStatement($platform->getTruncateTableSQL($table));
+        $this->withForeignKeysDisabled(function () use ($platform): void {
+            foreach (array_reverse($this->cleanupTables) as $table) {
+                $this->connection->executeStatement($platform->getTruncateTableSQL($table));
+            }
+        });
+
+        $this->cleanupTables = [];
+    }
+
+    /**
+     * Run $callback with foreign key enforcement disabled, using the
+     * platform-appropriate statements, and re-enable afterwards.
+     *
+     * @throws Exception
+     */
+    private function withForeignKeysDisabled(callable $callback): void
+    {
+        $platform = $this->connection->getDatabasePlatform();
+        $isSqlite = $platform instanceof \Doctrine\DBAL\Platforms\SQLitePlatform;
+
+        [$off, $on] = $isSqlite
+            ? ['PRAGMA foreign_keys = OFF', 'PRAGMA foreign_keys = ON']
+            : ['SET FOREIGN_KEY_CHECKS = 0', 'SET FOREIGN_KEY_CHECKS = 1'];
+
+        $this->connection->executeStatement($off);
+        try {
+            $callback();
+        } finally {
+            $this->connection->executeStatement($on);
         }
-        $this->connection->executeStatement('PRAGMA foreign_keys = ON');
     }
 
     /**
@@ -366,18 +419,16 @@ trait DatabaseTestingCapabilities
             return;
         }
 
-        // Disable foreign key checks
-        $this->connection->executeStatement('SET FOREIGN_KEY_CHECKS = 0');
+        $platform = $this->connection->getDatabasePlatform();
 
-        foreach ($this->databaseSnapshot as $table => $data) {
-            $this->connection->executeStatement("TRUNCATE TABLE {$table}");
-            foreach ($data as $row) {
-                $this->connection->insert($table, $row);
+        $this->withForeignKeysDisabled(function () use ($platform): void {
+            foreach ($this->databaseSnapshot as $table => $data) {
+                $this->connection->executeStatement($platform->getTruncateTableSQL($table));
+                foreach ($data as $row) {
+                    $this->connection->insert($table, $row);
+                }
             }
-        }
-
-        // Re-enable foreign key checks
-        $this->connection->executeStatement('SET FOREIGN_KEY_CHECKS = 1');
+        });
     }
 
     /**
@@ -617,7 +668,7 @@ trait DatabaseTestingCapabilities
     /**
      * Utility methods.
      */
-    protected function resetTracking(bool $resetExpectations = true): void
+    protected function resetTracking(): void
     {
         $this->deleteCounter = 0;
         $this->insertCounter = 0;
@@ -631,9 +682,6 @@ trait DatabaseTestingCapabilities
         $this->transactionLevel = 0;
         $this->inTransaction = false;
         $this->transactionLog = [];
-        if ($resetExpectations) {
-            $this->queryExpectations = [];
-        }
     }
 
     protected function determineQueryType(string $normalizedSql): string
@@ -737,16 +785,6 @@ trait DatabaseTestingCapabilities
     public function setSlowQueryThreshold(float $seconds): self
     {
         $this->slowQueryThreshold = $seconds;
-
-        return $this;
-    }
-
-    /**
-     * Enable strict query validation mode.
-     */
-    public function enableStrictMode(): self
-    {
-        $this->strictQueryMode = true;
 
         return $this;
     }
@@ -894,13 +932,13 @@ trait DatabaseTestingCapabilities
      */
     protected function truncate(string ...$tables): void
     {
-        $this->connection->executeStatement('SET FOREIGN_KEY_CHECKS = 0');
+        $platform = $this->connection->getDatabasePlatform();
 
-        foreach ($tables as $table) {
-            $this->connection->executeStatement("TRUNCATE TABLE {$table}");
-        }
-
-        $this->connection->executeStatement('SET FOREIGN_KEY_CHECKS = 1');
+        $this->withForeignKeysDisabled(function () use ($platform, $tables): void {
+            foreach ($tables as $table) {
+                $this->connection->executeStatement($platform->getTruncateTableSQL($table));
+            }
+        });
     }
 
     /**
