@@ -5,6 +5,95 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-08-02
+
+### Added
+
+- **Public pages inside a firewall: `publicPath()`.** Access-control rules
+  could only add restrictions; there was no way to say "this path needs no
+  login". Making one page public meant a second firewall with
+  `security => false`, which also switched off the authenticators and CSRF
+  enforcement for it. `SecurityConfigurator` now has a `PUBLIC_ACCESS`
+  constant and a shorthand: `$security->publicPath('/contact')` (any method)
+  or `$security->publicPath('/feed', ['GET'])` (readable anonymously, writing
+  still needs a login). Only the entry-point redirect is waived — the
+  authenticators still run first, so a remember-me cookie signs the visitor in
+  on a public page, and an authenticated session keeps `getUser()` and CSRF
+  enforcement. The rule itself is skipped by access control, so it neither
+  grants nor restricts anything; later rules still apply.
+
+  **CSRF on a public path is the payload handler's job**, by design. The
+  firewall's CSRF gate only ever runs on the restored-session and remember-me
+  paths, because CSRF protects an *ambient* credential — a cookie the browser
+  attaches by itself. An anonymous visitor has no such credential to ride, so
+  an anonymous POST to a public path is not gated by the firewall, and the
+  endpoint protects itself: a Symfony form validates its own `_token` (a form
+  error, so the visitor can correct and resubmit), and a hand-written form
+  checks the token in the controller. This is the same split Symfony makes —
+  its firewall only validates CSRF for the login and logout actions it owns,
+  never for state-changing requests at large.
+
+- **Let a form layer answer the CSRF question: `csrf_validator`.** The
+  firewall's CSRF check accepted exactly one shape: a top-level `_csrf_token`
+  field (or an `X-CSRF-Token` header) validated against the firewall's single
+  token id. A form library that namespaces its field (`contact[_token]`) or
+  keys tokens per form was rejected before the controller ever ran — a valid
+  form POST from a signed-in user got a 403, and the only escape was disabling
+  CSRF for the whole firewall. The new per-firewall `csrf_validator` option is
+  a `callable(ServerRequestInterface, CsrfTokenManagerInterface): ?bool`:
+  return `true` to accept, `false` to reject, or `null` to fall through to the
+  built-in check. It applies everywhere the firewall enforces CSRF, including
+  the first request authenticated by a remember-me cookie. Unset, nothing
+  changes.
+
+### Changed
+
+- **CSRF failures now honour the `Accept` header.** A browser posting a form
+  used to get a raw JSON blob on a missing or invalid CSRF token. A client
+  that prefers `text/html` now gets whatever your exception handler renders
+  for `AccessDeniedException` (an error page, typically); fetch/XHR clients
+  (detected via `X-Requested-With`) and API clients keep the exact
+  `{"error": "invalid_csrf_token", …}` body as before, so nothing
+  machine-readable changes. Preference is decided by real content negotiation
+  — the same `willdurand/negotiation` the exception handler already uses, so
+  the two agree on what a request wants — which means quality values decide,
+  not header order: `Accept: text/html;q=0.1, application/json;q=0.9` is a
+  JSON client despite listing HTML first. A request expressing no preference
+  (`*/*`, or no header) gets JSON.
+
+- **`validateToken()` answers instead of throwing.** `CsrfToken` rejects an
+  empty value with an `InvalidArgumentException`, so
+  `validateToken($id, $submitted)` exploded on an empty `_token` field.
+  Callers pass whatever the request contained, and a missing token is an
+  ordinary invalid submission — it now returns `false`. The parameter is
+  widened to `?string` on both `CsrfTokenManager` and
+  `CsrfTokenManagerInterface`: existing call sites keep working (a `string`
+  still satisfies `?string`), but if you implement the interface yourself you
+  must update your signature to
+  `validateToken(string $tokenId, ?string $tokenValue): bool`.
+
+- **`Form` validates attributes like the rest of the app.** The base `Form`
+  class built a bare validator while the kernel's `validator()` enables
+  attribute mapping — two validators with different capabilities in one app,
+  so `#[Assert\…]` on a nested object was honoured in a controller and
+  silently ignored inside a form. The form's default validator now enables
+  attribute mapping too.
+
+### Fixed
+
+- **`Template::url()` no longer renders `":/…"` for requests without a
+  scheme or host.** A request built without an absolute URI (console, tests,
+  some SAPIs) made `calculateBaseUrl()` return `'://'`, so a layout emitted
+  `href=":/assets/css/app.css"`. Such requests now yield root-relative URLs
+  (`/assets/css/app.css`), and `url('/')` is `/`. Requests with a real
+  scheme and host are unchanged.
+
+- **`env()` no longer requires the `BASE_DIR` constant.** Calling `env()` from
+  a script that doesn't define it (a one-off CLI script, a worker bootstrap, a
+  test harness) was a fatal undefined-constant error instead of a lookup. It
+  now falls back to `$_ENV` / `$_SERVER` and the default; when `BASE_DIR` is
+  defined, the `.env` file is read exactly as before.
+
 ## [0.5.0] - 2026-08-02
 
 ### Changed
