@@ -27,6 +27,7 @@ use Modufolio\Psr7\Http\ServerRequest;
 use Modufolio\Psr7\Http\Stream;
 use Modufolio\Psr7\Http\Uri;
 use Psr\Container\ContainerExceptionInterface;
+use Psr\Container\ContainerInterface;
 use Psr\Container\NotFoundExceptionInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -86,6 +87,7 @@ abstract class Kernel implements AppInterface
     protected ?ValidatorInterface $validator = null;
     protected ParameterBag $parameterBag;
     protected array $interfaceMap = [];
+    private ?ContainerInterface $fallbackContainer = null;
 
     // Security components
     protected array $firewallConfig = [];
@@ -431,6 +433,8 @@ abstract class Kernel implements AppInterface
                 $instance = $this->authenticators[$id]($this);
             } elseif (isset($this->factories[$id])) {
                 $instance = $this->factories[$id]($this);
+            } elseif ($this->fallbackContainer?->has($id)) {
+                $instance = $this->fallbackContainer->get($id);
             } else {
                 throw new NotFoundException("Class or parameter $id is not found.");
             }
@@ -469,7 +473,19 @@ abstract class Kernel implements AppInterface
         return isset($this->instances[$id])
             || array_key_exists($id, $this->interfaceMap)
             || array_key_exists($id, $this->repositories())
-            || isset($this->factories[$id]);
+            || isset($this->factories[$id])
+            || ($this->fallbackContainer?->has($id) ?? false);
+    }
+
+    public function setFallbackContainer(?ContainerInterface $container): static
+    {
+        if ($container === $this) {
+            throw new \LogicException('The kernel cannot be its own fallback container.');
+        }
+
+        $this->fallbackContainer = $container;
+
+        return $this;
     }
 
     /**
