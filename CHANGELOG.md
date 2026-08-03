@@ -5,6 +5,30 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.1] - 2026-08-03
+
+### Security
+
+- **Encoded paths could bypass the firewall.** The Symfony URL matcher
+  `rawurldecode()`s the path before routing, but the security layer matched the
+  raw, still-encoded path — so `GET /%61pi/me` slipped past a firewall guarding
+  `/api` yet still reached the controller. All security-side path reads now go
+  through a `securityPath()` helper that decodes exactly as the router does.
+  (`src/Core/AppSecurity.php`)
+
+- **A broad `publicPath()` could waive login for a stricter firewall.** Since
+  `/` prefix-matches every path, `publicPath('/')` for a public site also
+  disabled the login redirect for `/panel/*` on a separate firewall. Rules can
+  now be scoped with a `firewall` option (see below). (`src/Core/AppSecurity.php`,
+  `src/Security/SecurityConfigurator.php`)
+
+### Added
+
+- **Scope a public/access-control rule to one firewall.** Pass
+  `['firewall' => 'site']` to `publicPath()` or `accessControl()` so a broad
+  pattern cannot leak its exemption into another firewall. Unset, nothing
+  changes.
+
 ## [0.6.0] - 2026-08-02
 
 ### Added
