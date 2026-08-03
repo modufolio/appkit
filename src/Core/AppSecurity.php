@@ -61,7 +61,7 @@ trait AppSecurity
      */
     public function handleAuthentication(ServerRequestInterface $request): ResponseInterface
     {
-        $path = $request->getUri()->getPath();
+        $path = $this->securityPath($request);
         $firewallName = $this->getFirewallName($path);
 
         if (null === $firewallName) {
@@ -161,7 +161,7 @@ trait AppSecurity
         // Nobody authenticated. A path declared public is served anonymously
         // instead of being bounced to the entry point — the authenticators ran
         // first, so a remember-me cookie still signs the visitor in.
-        if ($this->isPublicRequest($request)) {
+        if ($this->isPublicRequest($request, $firewallName)) {
             return $this->controllerResolver($request);
         }
 
@@ -174,15 +174,23 @@ trait AppSecurity
      * A rule may narrow the exemption to certain methods, so that e.g. a page
      * is readable anonymously while writing to it still requires a login.
      *
+     * A rule may also be scoped to one firewall via its `firewall` option, so
+     * a broad pattern (a site-wide '/') cannot waive the login redirect for
+     * requests handled by a stricter firewall (e.g. an admin panel's).
+     *
      * @see SecurityConfigurator::publicPath()
      */
-    private function isPublicRequest(ServerRequestInterface $request): bool
+    private function isPublicRequest(ServerRequestInterface $request, ?string $firewallName = null): bool
     {
-        $path = $request->getUri()->getPath();
+        $path = $this->securityPath($request);
         $method = strtoupper($request->getMethod());
 
         foreach ($this->accessControlRules ?? [] as $rule) {
             if (!in_array(SecurityConfigurator::PUBLIC_ACCESS, $rule['roles'] ?? [], true)) {
+                continue;
+            }
+
+            if (isset($rule['firewall']) && $rule['firewall'] !== $firewallName) {
                 continue;
             }
 
@@ -287,7 +295,7 @@ trait AppSecurity
 
         return $logoutPath
             && 'POST' === $request->getMethod()
-            && $request->getUri()->getPath() === $logoutPath;
+            && $this->securityPath($request) === $logoutPath;
     }
 
     /**
@@ -383,7 +391,7 @@ trait AppSecurity
 
         // The login entry point validates its own CSRF token (a different id)
         // inside the authenticator, so don't double-check it here.
-        if (isset($config['entry_point']) && $request->getUri()->getPath() === $config['entry_point']) {
+        if (isset($config['entry_point']) && $this->securityPath($request) === $config['entry_point']) {
             return null;
         }
 
@@ -497,7 +505,7 @@ trait AppSecurity
      */
     private function isEntryPointPage(ServerRequestInterface $request, array $config): bool
     {
-        $path = $request->getUri()->getPath();
+        $path = $this->securityPath($request);
         $method = $request->getMethod();
 
         // Allow entry point (login page)
@@ -660,7 +668,7 @@ trait AppSecurity
      */
     private function enforceAccessControl(ServerRequestInterface $request): void
     {
-        $path = $request->getUri()->getPath();
+        $path = $this->securityPath($request);
         $method = $request->getMethod();
 
         foreach ($this->accessControlRules ?? [] as $rule) {
@@ -715,6 +723,21 @@ trait AppSecurity
 
             return; // Rule matched and passed
         }
+    }
+
+    /**
+     * The request path as the router will see it, for security matching.
+     *
+     * The Symfony URL matcher rawurldecode()s the path before resolving the
+     * controller (see UrlMatcher::match). Firewall and access-control matching
+     * must decode the same way, or an encoded byte in a protected prefix
+     * (e.g. "/%61pi" for "/api") slips past the firewall while the controller
+     * still runs — an authentication bypass. Decoding here keeps the security
+     * view and the routing view of the path identical.
+     */
+    private function securityPath(ServerRequestInterface $request): string
+    {
+        return rawurldecode($request->getUri()->getPath());
     }
 
     /**

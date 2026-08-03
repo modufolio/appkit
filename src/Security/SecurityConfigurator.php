@@ -123,7 +123,10 @@ final class SecurityConfigurator
      *
      * @param string                  $path    Plain pattern, NOT regex — same syntax as accessControl()
      * @param array<int, string>|null $methods Restrict the exemption to these methods
-     * @param array<string, mixed>    $options
+     * @param array<string, mixed>    $options Extra rule options; `firewall` scopes the exemption to
+     *                                         requests handled by that firewall, so a broad pattern
+     *                                         (e.g. '/') cannot waive the login redirect for paths
+     *                                         served by a stricter firewall
      */
     public function publicPath(string $path, ?array $methods = null, array $options = []): self
     {

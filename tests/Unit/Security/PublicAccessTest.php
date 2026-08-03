@@ -78,6 +78,57 @@ class PublicAccessTest extends AppTestCase
         $this->get('/public')->assertStatus(200);
     }
 
+    public function testFirewallScopedPublicPathDoesNotLeakIntoOtherFirewalls(): void
+    {
+        $security = new SecurityConfigurator();
+        // Declared first so its more specific pattern wins for /profile.
+        $security->firewall('admin', [
+            'pattern' => '/profile',
+            'authenticators' => ['form_login'],
+            'entry_point' => '/login',
+        ]);
+        $security->firewall('site', [
+            'pattern' => '/',
+            'authenticators' => ['form_login'],
+            'entry_point' => '/login',
+            'logout' => ['path' => '/logout', 'target' => '/login'],
+        ]);
+        // '/' prefix-matches every path; the firewall scope keeps the
+        // exemption from waiving the login redirect in the admin firewall.
+        $security->publicPath('/', null, ['firewall' => 'site']);
+
+        $this->app()->configureSecurity($security);
+
+        // Anonymous access works inside the scoped firewall ...
+        $this->get('/')->assertStatus(200);
+        $this->get('/public')->assertStatus(200);
+
+        // ... but requests handled by the other firewall still redirect.
+        $this->get('/profile')->assertRedirect('/login');
+    }
+
+    public function testUnscopedPublicPathStillAppliesInEveryFirewall(): void
+    {
+        $security = new SecurityConfigurator();
+        $security->firewall('admin', [
+            'pattern' => '/public',
+            'authenticators' => ['form_login'],
+            'entry_point' => '/login',
+        ]);
+        $security->firewall('site', [
+            'pattern' => '/',
+            'authenticators' => ['form_login'],
+            'entry_point' => '/login',
+            'logout' => ['path' => '/logout', 'target' => '/login'],
+        ]);
+        // No firewall option: pre-existing behavior is unchanged.
+        $security->publicPath('/public');
+
+        $this->app()->configureSecurity($security);
+
+        $this->get('/public')->assertStatus(200);
+    }
+
     public function testOtherAccessControlRulesStillApply(): void
     {
         $this->configureSecurity();
