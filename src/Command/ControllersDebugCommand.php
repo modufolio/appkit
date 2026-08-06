@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Modufolio\Appkit\Command;
 
@@ -39,8 +39,9 @@ final class ControllersDebugCommand extends Command
 
         $ids = $this->collectControllerIds();
 
-        if ($ids === []) {
+        if ([] === $ids) {
             $io->warning('No controllers are referenced by the configured routes.');
+
             return Command::SUCCESS;
         }
 
@@ -52,7 +53,7 @@ final class ControllersDebugCommand extends Command
                 $this->app->getController($id);
                 $rows[] = ['<info>OK</info>', $id, ''];
             } catch (\Throwable $e) {
-                $failures++;
+                ++$failures;
                 $rows[] = ['<error>FAIL</error>', $id, $e->getMessage()];
             }
         }
@@ -63,10 +64,12 @@ final class ControllersDebugCommand extends Command
 
         if ($failures > 0) {
             $io->error(sprintf('%d of %d controllers could not be wired.', $failures, $total));
+
             return Command::FAILURE;
         }
 
         $io->success(sprintf('All %d controllers wired successfully.', $total));
+
         return Command::SUCCESS;
     }
 

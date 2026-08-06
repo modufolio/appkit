@@ -39,9 +39,17 @@ class JsonApiRouteLoader extends Loader
         $routes = new RouteCollection();
 
         foreach ($jsonApiConfig as $entityClass => $entityConfig) {
-            [$resourceKey, $readOnly] = $this->debug
-                ? $this->validateEntityClass($entityClass, $entityConfig)
-                : [$entityConfig['resource_key'] ?? $this->extractResourceKey($entityClass), false];
+            // Config sanity checks (existence, resource_key presence) are dev-only
+            // conveniences and stay behind the debug flag.
+            if ($this->debug) {
+                $this->validateEntityConfig($entityClass, $entityConfig);
+            }
+
+            $resourceKey = $entityConfig['resource_key'] ?? $this->extractResourceKey($entityClass);
+
+            // The read-only guard is a security control and MUST be enforced in
+            // every environment, not just debug.
+            $readOnly = $this->isReadOnly($entityClass);
 
             $operations = $entityConfig['operations'] ?? [];
 
@@ -129,13 +137,11 @@ class JsonApiRouteLoader extends Loader
     }
 
     /**
-     * Validate the entity class and determine read-only mode.
+     * Validate the entity configuration.
      *
-     * Only called when debug = true.
-     *
-     * @return array{string, bool} [resourceKey, readOnly]
+     * These are developer-facing sanity checks, so they only run when debug = true.
      */
-    private function validateEntityClass(string $entityClass, array $entityConfig): array
+    private function validateEntityConfig(string $entityClass, array $entityConfig): void
     {
         if (!class_exists($entityClass)) {
             throw new \InvalidArgumentException(sprintf('Configured entity class "%s" does not exist.', $entityClass));
@@ -144,17 +150,28 @@ class JsonApiRouteLoader extends Loader
         if (!isset($entityConfig['resource_key'])) {
             throw new \InvalidArgumentException(sprintf('Missing "resource_key" for entity "%s".', $entityClass));
         }
+    }
 
-        $readOnly = false;
-        $reflection = new \ReflectionClass($entityClass);
-        $attributes = $reflection->getAttributes(DoctrineEntity::class);
-
-        if (!empty($attributes)) {
-            $doctrineEntity = $attributes[0]->newInstance();
-            $readOnly = (bool) $doctrineEntity->readOnly;
+    /**
+     * Determine whether an entity is marked read-only via its #[Entity(readOnly: true)]
+     * Doctrine attribute. Read-only entities must never expose write routes, so this
+     * runs in all environments (not just debug).
+     */
+    private function isReadOnly(string $entityClass): bool
+    {
+        if (!class_exists($entityClass)) {
+            // In production we don't throw on a bad class here; but if we can't
+            // reflect it, fail safe by treating it as read-only.
+            return true;
         }
 
-        return [$entityConfig['resource_key'], $readOnly];
+        $attributes = (new \ReflectionClass($entityClass))->getAttributes(DoctrineEntity::class);
+
+        if (empty($attributes)) {
+            return false;
+        }
+
+        return (bool) $attributes[0]->newInstance()->readOnly;
     }
 
     /**

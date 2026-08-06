@@ -683,7 +683,7 @@ class Collection extends Iterator implements \Stringable
             } else {
                 // if there are commas in the sort argument, removes it
                 if (true === Str::contains($sort, ',')) {
-                    $sort = Str::replace($sort, ',', '');
+                    $sort = Str::replace(',', '', $sort);
                 }
 
                 $sort = explode(' ', $sort);
@@ -792,7 +792,7 @@ class Collection extends Iterator implements \Stringable
     {
         // if there are commas in the sortBy argument, removes it
         if (true === Str::contains($sort, ',')) {
-            $sort = Str::replace($sort, ',', '');
+            $sort = Str::replace(',', '', $sort);
         }
 
         $args = Str::split($sort, ' ');

@@ -16,7 +16,6 @@ use Modufolio\Appkit\Exception\NotFoundException;
 use Modufolio\Appkit\Resolver\ParameterResolverInterface;
 use Modufolio\Appkit\Routing\Router;
 use Modufolio\Appkit\Routing\RouterInterface;
-use Modufolio\Appkit\Security\Csrf\CsrfTokenManagerInterface;
 use Modufolio\Appkit\Security\RoleHierarchy;
 use Modufolio\Appkit\Security\SecurityConfigurator;
 use Modufolio\Appkit\Security\Token\TokenStorageInterface;
