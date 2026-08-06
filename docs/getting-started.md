@@ -32,11 +32,15 @@ The three variables you need to set:
 Use the `env()` helper to read environment variables anywhere in your config files:
 
 ```php
-env('APP_ENV', 'prod')         // returns string
-env('COOKIE_SECURE', false)    // returns bool when value is "true" or "false"
+env('APP_ENV', 'prod')             // returns string
+env('COOKIE_SECURE', false)        // returns bool when value is "true" or "false"
+env()->getBool('COOKIE_SECURE')    // always a bool, or throws if unset
+env()->getRequired('JWT_SECRET')   // throws when the secret is missing
 ```
 
-`env()` checks `$_ENV`, then `$_SERVER`, then your `.env` file — in that order. The `.env` file is parsed once and cached for the request. In production, set variables in your web server config or container environment and skip the `.env` file entirely.
+See [Configuration](configuration.md) for the full set of typed accessors.
+
+`env()` checks `$_ENV`, then `$_SERVER`, then the `.env` file your `bootstrap.php` loaded — in that order, so a real environment variable always wins. The file is read once at boot and the reader is then frozen. In production, set variables in your web server config or container environment and skip the `.env` file entirely; a missing file is not an error.
 
 **Limitations.** The built-in `env()` helper reads a single `.env` file using `parse_ini_file()`. It does not support multiple layered files (`.env.local`, `.env.test`), variable interpolation, or multiline values. If you need any of those, replace it with [Symfony Dotenv](https://symfony.com/doc/current/components/dotenv.html) — see [Configuration](configuration.md) for the upgrade path.
 

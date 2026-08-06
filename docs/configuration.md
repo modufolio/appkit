@@ -11,16 +11,42 @@ env('APP_ENV', 'prod')       // falls back to 'prod' if not set
 env('COOKIE_SECURE', false)  // "true"/"false" strings are cast to bool
 ```
 
-`env()` checks `$_ENV`, `$_SERVER`, and then your `.env` file — in that order. The `.env` file is parsed once per process via `parse_ini_file()` and the result is statically cached.
+`env()` checks `$_ENV`, `$_SERVER`, and then any `.env` file loaded by the bootstrap — in that order, so a real environment variable always wins over a file. See [`bootstrap.php`](#bootstrapphp) for how the file is loaded and frozen.
+
+### Typed access
+
+Every value the environment hands you is a string, so `COOKIE_SECURE=false` arrives as `"false"` — which is truthy. Casting it yourself with `(bool)` silently turns the flag back on. Call `env()` with no arguments to get the `Env` reader and ask for the type you want instead:
+
+```php
+env()->getBool('COOKIE_SECURE', true)   // filter_var rules: "false", "0", "off", "no" are all false
+env()->getInt('DB_PORT', 3306)
+env()->getFloat('SAMPLE_RATE', 0.1)
+env()->getString('APP_NAME', 'AppKit')
+env()->has('SENTRY_DSN')
+```
+
+These are modelled on Symfony's env var processors (`%env(bool:FOO)%`, `%env(int:FOO)%`).
+
+A value that cannot be read as the requested type raises a `RuntimeException` rather than being coerced to `0` or `false`, so a typo in `.env` fails at boot instead of quietly disabling a setting.
+
+For secrets, `getRequired()` replaces the hand-written "is it set?" check:
+
+```php
+// throws RuntimeException naming the variable when it is missing or empty
+'secret' => env()->getRequired('REMEMBER_ME_SECRET'),
+```
+
+Omitting the default on any typed getter makes the variable required in the same way.
 
 ### Limitations of the built-in helper
 
 The `env()` helper covers simple setups. It has no support for:
 
-- Multiple layered files (`.env.local`, `.env.test`, `.env.prod`)
+- Automatic per-environment file resolution (you can chain `fromFile()` calls yourself, but nothing picks `.env.prod` for you based on `APP_ENV`)
 - Variable interpolation (`DATABASE_URL="${DB_HOST}/mydb"`)
-- Multiline values
-- Nested or typed values beyond the `"true"`/`"false"` boolean cast
+- Multiline values (a quoted newline is a parse error, reported with its line number)
+- Command substitution (`$(...)`) — deliberate: a `.env` file should not be executable
+- Secret resolution from a vault or secrets manager
 
 ### Using Symfony Dotenv for complex setups
 
@@ -249,12 +275,31 @@ $runner->run();
 
 ## `bootstrap.php`
 
-Defines the `BASE_DIR` constant and loads the Composer autoloader. Both `public/index.php` and `config/console.php` require it first.
+Defines the `BASE_DIR` constant, loads the Composer autoloader, and publishes the environment. Both `public/index.php` and `config/console.php` require it first.
 
 ```php
 define('BASE_DIR', dirname(__DIR__));
 require BASE_DIR . '/vendor/autoload.php';
+
+(new Env())->fromFile(BASE_DIR . '/.env')->freeze();
 ```
+
+`freeze()` seals the reader and publishes it process-wide, so `env()` and `Env::instance()` return it from anywhere — no constant sniffing, no lazy re-parsing mid-request. Load every file you need first; `fromFile()` throws once frozen, and later files win over earlier ones:
+
+```php
+(new Env())
+    ->fromFile(BASE_DIR . '/.env')
+    ->fromFile(BASE_DIR . '/.env.local')
+    ->freeze();
+```
+
+A missing file is ignored rather than fatal, so the same bootstrap works in production where you set real environment variables and ship no `.env`. Real environment variables and `$_SERVER` always outrank file values.
+
+A file that exists but is malformed *is* fatal, and the exception names the offending line. The underlying `parse_ini_file()` rejects the whole file on a single bad line, so failing quietly would drop every variable at once and surface much later as a confusing "required variable is not set" for a secret sitting right there in the file.
+
+`export FOO=bar` is accepted — the prefix is stripped, so the variable is `FOO`.
+
+A process that never runs the bootstrap — a one-off CLI script, a worker — still gets a working `env()`; it simply sees `$_ENV` and `$_SERVER` without any file.
 
 ## `public/index.php`
 

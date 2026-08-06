@@ -212,6 +212,8 @@ AppKit applies these session protections by default:
 
 Add the `Secure` flag in production by setting `COOKIE_SECURE=true` in your environment.
 
+If you also issue a remember-me cookie, read the same variable for its `cookie_secure` option (`env()->getBool('COOKIE_SECURE', true)`). Symfony's remember-me inherits this from the session config; AppKit's authenticators are configured independently, so nothing stops the two cookies from drifting apart. A remember-me cookie left with `Secure` on a plain-HTTP dev site is simply never sent back, and the opposite pairing leaks the credential over HTTP.
+
 ## Token deserialization whitelist
 
 AppKit's `TokenUnserializer` only deserialises a whitelist of classes from session-stored tokens. This prevents remote code execution via PHP unserialisation gadget chains.

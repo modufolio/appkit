@@ -127,7 +127,7 @@ abstract class AppTestCase extends BaseTestCase
             $this->app()->entityManager(),
             $serializer,
             $this->app()->validator()
-        ))->loadConfig(require $this->app()->baseDir.'/config/fixture_factories.php');
+        ))->loadConfig(require AppFactory::configDir($this->app()->baseDir).'/fixture_factories.php');
 
         $executor = new ORMExecutor($this->app()->entityManager(), new ORMPurger());
         $executor->execute([new AppFixtures($factory)]);

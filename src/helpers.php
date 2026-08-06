@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
-/**
+use Modufolio\Appkit\Core\Env;
+
+/*
  * Helper Functions.
  *
  * Minimal global helpers for Appkit.
@@ -10,33 +12,25 @@ declare(strict_types=1);
  */
 if (!function_exists('env')) {
     /**
-     * Get environment variable with .env file fallback.
+     * Read an environment variable, with a .env file fallback.
      *
-     * @param string     $key     Environment variable name
-     * @param mixed|null $default Default value if not found
+     * Called with a key this returns the value, casting the strings "true" and
+     * "false" to real booleans. Called with no arguments it returns the Env
+     * reader itself, for the typed accessors:
+     *
+     *     env('APP_ENV', 'prod')            // mixed
+     *     env()->getBool('COOKIE_SECURE')   // bool
+     *     env()->getInt('DB_PORT', 3306)    // int
+     *     env()->getRequired('JWT_SECRET')  // string, throws when unset
+     *
+     * @param string|null $key     Variable name, or null for the Env reader
+     * @param mixed|null  $default Value to use when the variable is not set
      */
-    function env(string $key, mixed $default = null)
+    function env(?string $key = null, mixed $default = null): mixed
     {
-        static $loaded = [];
+        $env = Env::instance();
 
-        // BASE_DIR is defined by the application's bootstrap. Without this
-        // guard, calling env() from a script that does not define it (a
-        // one-off CLI script, a worker bootstrap, a test harness) is a fatal
-        // error rather than a lookup that falls back to the real environment.
-        $baseDir = defined('BASE_DIR') ? constant('BASE_DIR') : null;
-
-        if (empty($loaded) && is_string($baseDir) && file_exists($baseDir.'/.env')) {
-            $parsed = parse_ini_file($baseDir.'/.env', false, INI_SCANNER_RAW);
-            if (false !== $parsed) {
-                $loaded = array_map(function ($value) {
-                    $value = trim($value, '"');
-
-                    return in_array($value, ['true', 'false']) ? ('true' === $value) : $value;
-                }, $parsed);
-            }
-        }
-
-        return $_ENV[$key] ?? $_SERVER[$key] ?? $loaded[$key] ?? $default;
+        return null === $key ? $env : $env->get($key, $default);
     }
 }
 

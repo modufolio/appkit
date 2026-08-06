@@ -116,7 +116,7 @@ $security->firewall('api', [
         userProvider: $container->get(UserProviderInterface::class),
         options: [
             'algorithm'  => 'HS256',
-            'secret_key' => getenv('JWT_SECRET'), // HMAC: fills both signing and verification keys
+            'secret_key' => env()->getRequired('JWT_SECRET'), // HMAC: fills both signing and verification keys
         ],
     );
 },
@@ -165,10 +165,12 @@ return [
         return new RememberMeAuthenticator(
             userProvider: $container->get(UserProviderInterface::class),
             options: [
-                'secret'          => getenv('APP_SECRET'), // required — shared HMAC secret
+                'secret'          => env()->getRequired('APP_SECRET'), // shared HMAC secret
                 'cookie_name'     => 'REMEMBERME',
                 'cookie_lifetime' => 2592000, // 30 days
-                'cookie_secure'   => true,
+                // Mirror the session cookie so both follow one HTTP/HTTPS
+                // policy, as Symfony's remember-me inherits framework.session.
+                'cookie_secure'   => env()->getBool('COOKIE_SECURE', true),
                 'cookie_httponly' => true,
                 'cookie_samesite' => 'Lax',
             ],
