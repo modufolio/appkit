@@ -23,8 +23,6 @@ return [
                 'password_parameter' => 'password',
                 'csrf_parameter' => '_csrf_token',
                 'csrf_token_id' => 'authenticate',
-                'totp_parameter' => 'totp_code',
-                'backup_code_parameter' => 'backup_code',
             ]
         );
     },
@@ -34,14 +32,10 @@ return [
         );
     },
     'jwt' => function (ContainerInterface $container) {
-        if (empty($_ENV['JWT_SECRET'])) {
-            throw new RuntimeException('JWT_SECRET environment variable is required for JWT authentication. Please set it in your .env file.');
-        }
-
         return new JwtAuthenticator(
             userProvider: $container->get(UserRepository::class),
             options: [
-                'secret_key' => $_ENV['JWT_SECRET'],
+                'secret_key' => env()->getRequired('JWT_SECRET'),
                 'algorithm' => 'HS256',
                 'user_identifier_claim' => 'sub',
             ]
@@ -57,18 +51,18 @@ return [
         );
     },
     'remember_me' => function (ContainerInterface $container) {
-        if (empty($_ENV['REMEMBER_ME_SECRET'])) {
-            throw new RuntimeException('REMEMBER_ME_SECRET environment variable is required for remember-me authentication. Please set it in your .env file.');
-        }
-
         return new RememberMeAuthenticator(
             userProvider: $container->get(UserRepository::class),
             options: [
-                'secret' => $_ENV['REMEMBER_ME_SECRET'],
+                'secret' => env()->getRequired('REMEMBER_ME_SECRET'),
                 'cookie_name' => 'REMEMBERME',
                 'cookie_lifetime' => 2592000, // 30 days
-                'cookie_secure' => true,
+                // Mirror the session cookie's Secure flag so both follow one
+                // HTTP/HTTPS policy, the way Symfony's RememberMeFactory
+                // inherits it from framework.session.
+                'cookie_secure' => env()->getBool('COOKIE_SECURE', true),
                 'cookie_httponly' => true,
+                'cookie_samesite' => 'Lax',
             ]
         );
     },

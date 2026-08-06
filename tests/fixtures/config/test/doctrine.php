@@ -7,13 +7,13 @@ use Modufolio\Appkit\Doctrine\Middleware\Debug\DebugStack;
 use Modufolio\Appkit\Doctrine\OrmConfigurator;
 
 return function (OrmConfigurator $orm): void {
-    $projectDir = dirname(__DIR__, 2);
+    $testsDir = dirname(__DIR__, 3);
     $orm->connection([
         'driver' => 'pdo_sqlite',
         'memory' => true,
     ])
         ->entities(
-            $projectDir.'/tests/App/Entity'
+            $testsDir.'/App/Entity'
         );
 
     $orm->middlewares([new DebugMiddleware(new DebugStack())]);

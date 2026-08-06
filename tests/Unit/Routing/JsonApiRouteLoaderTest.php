@@ -24,7 +24,8 @@ class JsonApiRouteLoaderTest extends TestCase
     {
         parent::setUp();
 
-        $this->configDir = __DIR__.'/../../..';
+        // Base for the relative 'config/json_api.php' paths loaded below.
+        $this->configDir = __DIR__.'/../../fixtures';
 
         $fileLocator = new FileLocator($this->configDir);
         $this->loader = new JsonApiRouteLoader(

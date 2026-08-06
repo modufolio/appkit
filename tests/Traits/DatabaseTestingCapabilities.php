@@ -17,6 +17,7 @@ use Modufolio\Appkit\Doctrine\Middleware\Debug\DebugMiddleware;
 use Modufolio\Appkit\Doctrine\Middleware\Debug\DebugStack;
 use Modufolio\Appkit\Doctrine\Middleware\Debug\Query;
 use Modufolio\Appkit\Doctrine\OrmConfigurator;
+use Modufolio\Appkit\Tests\App\AppFactory;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
 
@@ -155,7 +156,7 @@ trait DatabaseTestingCapabilities
 
         $configurator = new OrmConfigurator();
 
-        $closure = require dirname(__DIR__, 2).'/config/test/doctrine.php';
+        $closure = require AppFactory::configDir(dirname(__DIR__, 2)).'/test/doctrine.php';
         $closure($configurator);
 
         $params = $configurator->connectionParams;

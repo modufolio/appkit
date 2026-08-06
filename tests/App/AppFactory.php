@@ -22,12 +22,19 @@ use Symfony\Component\Routing\Loader\PhpFileLoader;
 
 class AppFactory
 {
+    public static function configDir(string $baseDir): string
+    {
+        return $baseDir.'/tests/fixtures/config';
+    }
+
     public static function create(string $baseDir, ?string $env = null): App
     {
         // Allow the test User class to be unserialized from session-stored tokens.
         TokenUnserializer::register(User::class);
 
-        $locator = new FileLocator([$baseDir.'/config']);
+        $configDir = self::configDir($baseDir);
+
+        $locator = new FileLocator([$configDir]);
         $routeLoader = new DelegatingLoader(new LoaderResolver(
             [
                 new PhpFileLoader($locator),
@@ -39,7 +46,7 @@ class AppFactory
 
         // Configure Security
         $securityConfigurator = new SecurityConfigurator();
-        $securityClosure = require $baseDir.'/config/security.php';
+        $securityClosure = require $configDir.'/security.php';
 
         $securityClosure($securityConfigurator);
 
@@ -48,14 +55,14 @@ class AppFactory
             routeLoader: $routeLoader,
             logger: new NullLogger(),
             userProviderClass: UserRepository::class,
-            authenticators: F::load($baseDir.'/config/authenticators.php', []),
-            controllers: F::load($baseDir.'/config/controllers.php', []),
-            factories: F::load($baseDir.'/config/factories.php', []),
+            authenticators: F::load($configDir.'/authenticators.php', []),
+            controllers: F::load($configDir.'/controllers.php', []),
+            factories: F::load($configDir.'/factories.php', []),
             fileMap: [
-                'doctrine' => $baseDir.'/config/test/doctrine.php',
-                'interfaces' => $baseDir.'/config/interfaces.php',
+                'doctrine' => $configDir.'/test/doctrine.php',
+                'interfaces' => $configDir.'/interfaces.php',
             ],
-            repositories: F::load($baseDir.'/config/repositories.php', []),
+            repositories: F::load($configDir.'/repositories.php', []),
         );
 
         $app->configureSecurity($securityConfigurator)->boot();
@@ -64,7 +71,7 @@ class AppFactory
         // constructor is auto-wired by reflection; the untyped $configPath
         // string argument resolves to this container parameter by name.
         // Requires boot() to have run first (initializes $parameterBag).
-        $app->setParameter('configPath', $baseDir.'/config/json_api.php');
+        $app->setParameter('configPath', $configDir.'/json_api.php');
 
         return $app;
     }
