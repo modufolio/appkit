@@ -36,7 +36,7 @@ class SwitchUserToken extends AbstractToken
         $this->originalToken = $originalToken;
 
         // Set a special role to identify impersonation
-        if (!in_array('ROLE_PREVIOUS_ADMIN', $this->getRoleNames())) {
+        if (!in_array('ROLE_PREVIOUS_ADMIN', $this->getRoleNames(), true)) {
             $this->setAttribute('ROLE_PREVIOUS_ADMIN', true);
         }
     }
