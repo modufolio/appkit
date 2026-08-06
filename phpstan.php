@@ -30,6 +30,11 @@ return [
                 // input/output in tests, referencing intentionally fake classes.
                 'tests/*/fixtures/*',
                 'tests/*/*/fixtures/*',
+                // The test app's service definitions are closures rebound to the
+                // container at load time, so `$this` is legitimately undefined
+                // when the file is read on its own. The rest of the test app's
+                // config analyses cleanly and stays in scope.
+                'tests/fixtures/config/interfaces.php*',
                 // These tests generate `use` statements / attribute nodes from arbitrary
                 // FQCN strings purely to exercise string-formatting logic; the FQCNs are
                 // deliberately fictitious and never actually loaded or instantiated.
