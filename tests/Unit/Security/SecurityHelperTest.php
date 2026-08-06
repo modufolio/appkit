@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Modufolio\Appkit\Tests\Unit\Security;
 
 use Modufolio\Appkit\Security\SecurityHelper;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(SecurityHelper::class)]
 class SecurityHelperTest extends TestCase
 {
     public function testGeneratePasswordDefaultLength(): void

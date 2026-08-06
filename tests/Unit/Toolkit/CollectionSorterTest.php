@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modufolio\Appkit\Tests\Unit\Toolkit;
 
 use Modufolio\Appkit\Toolkit\Collection;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 class MockObject
@@ -30,6 +31,7 @@ class MockObjectString extends MockObject
     }
 }
 
+#[CoversClass(Collection::class)]
 class CollectionSorterTest extends TestCase
 {
     public function testSort()
@@ -304,5 +306,25 @@ class CollectionSorterTest extends TestCase
 
         $shuffled = $collection->shuffle();
         $this->assertCount(3, $shuffled);
+    }
+
+    public function testSortArgs(): void
+    {
+        $this->assertSame(['name', 'desc'], Collection::sortArgs('name desc'));
+        $this->assertSame(['name', SORT_ASC], Collection::sortArgs('name SORT_ASC'));
+        $this->assertSame(['name', 'desc'], Collection::sortArgs('name, desc'));
+    }
+
+    public function testSortBy(): void
+    {
+        $collection = new Collection([
+            ['name' => 'Marge'],
+            ['name' => 'Bart'],
+            ['name' => 'Homer'],
+        ]);
+
+        $sorted = $collection->sortBy('name', 'asc');
+
+        $this->assertSame('Bart', $sorted->first()['name']);
     }
 }

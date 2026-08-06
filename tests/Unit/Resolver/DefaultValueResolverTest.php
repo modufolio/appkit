@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modufolio\Appkit\Tests\Unit\Resolver;
 
 use Modufolio\Appkit\Resolver\DefaultValueResolver;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 class DefaultValueController
@@ -30,6 +31,7 @@ class DefaultValueController
     }
 }
 
+#[CoversClass(DefaultValueResolver::class)]
 class DefaultValueResolverTest extends TestCase
 {
     private function resolve(string $method, array $resolved): array

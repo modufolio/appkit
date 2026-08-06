@@ -13,8 +13,10 @@ use Modufolio\Appkit\Security\User\ExpirableUserInterface;
 use Modufolio\Appkit\Security\User\LockableUserInterface;
 use Modufolio\Appkit\Security\User\UserChecker;
 use Modufolio\Appkit\Security\User\UserInterface;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(UserChecker::class)]
 class UserCheckerTest extends TestCase
 {
     public function testCheckPreAuthPassesForEnabledPlainUser(): void

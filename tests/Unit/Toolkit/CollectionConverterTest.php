@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Modufolio\Appkit\Tests\Unit\Toolkit;
 
 use Modufolio\Appkit\Toolkit\Collection;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(Collection::class)]
 class CollectionConverterTest extends TestCase
 {
     public function testToArray()
@@ -51,5 +53,22 @@ class CollectionConverterTest extends TestCase
         $string = 'one<br />two';
         $this->assertSame($string, $collection->toString());
         $this->assertSame($string, (string) $collection);
+    }
+
+    public function testJoin(): void
+    {
+        $collection = new Collection(['a', 'b', 'c']);
+
+        $this->assertSame('a, b, c', $collection->join());
+        $this->assertSame('a-b-c', $collection->join('-'));
+        $this->assertSame('A|B|C', $collection->join('|', fn ($item) => strtoupper($item)));
+    }
+
+    public function testValues(): void
+    {
+        $collection = new Collection(['a' => 1, 'b' => 2]);
+
+        $this->assertSame([1, 2], $collection->values());
+        $this->assertSame([2, 4], $collection->values(fn ($value) => $value * 2));
     }
 }

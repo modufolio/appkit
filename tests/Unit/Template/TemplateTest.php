@@ -8,8 +8,10 @@ use Modufolio\Appkit\Template\Template;
 use Modufolio\Psr7\Http\ServerRequest;
 use Modufolio\Psr7\Http\Stream;
 use Modufolio\Psr7\Http\Uri;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(Template::class)]
 class TemplateTest extends TestCase
 {
     protected Template $template;

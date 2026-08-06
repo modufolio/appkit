@@ -9,10 +9,12 @@ use Modufolio\Appkit\Tests\Attribute\RequiresCommand;
 use Modufolio\Appkit\Tests\Traits\RequiresCommandTrait;
 use Modufolio\Appkit\Toolkit\Dir;
 use Modufolio\Appkit\Toolkit\F;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 #[RequiresCommand('convert')]
+#[CoversClass(ImageMagick::class)]
 class ImageMagickTest extends TestCase
 {
     use RequiresCommandTrait;

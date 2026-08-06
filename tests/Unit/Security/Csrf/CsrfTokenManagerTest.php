@@ -6,9 +6,11 @@ namespace Modufolio\Appkit\Tests\Unit\Security\Csrf;
 
 use Modufolio\Appkit\Security\Csrf\CsrfToken;
 use Modufolio\Appkit\Security\Csrf\CsrfTokenManager;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;
 
+#[CoversClass(CsrfTokenManager::class)]
 class CsrfTokenManagerTest extends TestCase
 {
     private function createMockSession(array $sessionData = []): SessionInterface

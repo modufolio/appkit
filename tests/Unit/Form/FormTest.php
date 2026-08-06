@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modufolio\Appkit\Tests\Unit\Form;
 
 use Modufolio\Appkit\Form\Form;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -47,6 +48,7 @@ class TestLoginForm extends Form
     }
 }
 
+#[CoversClass(Form::class)]
 class FormTest extends TestCase
 {
     public function testValidateValidData(): void

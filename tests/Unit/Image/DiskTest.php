@@ -6,8 +6,10 @@ namespace Modufolio\Appkit\Tests\Unit\Image;
 
 use Modufolio\Appkit\Image\Disk;
 use Modufolio\Appkit\Image\DiskInterface;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(Disk::class)]
 class DiskTest extends TestCase
 {
     public function testDiskImplementsInterface(): void

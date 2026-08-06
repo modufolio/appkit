@@ -8,11 +8,13 @@ use Modufolio\Appkit\Routing\Loader\JsonApiRouteLoader;
 use Modufolio\Appkit\Tests\App\Entity\Account;
 use Modufolio\Appkit\Tests\App\Entity\Contact;
 use Modufolio\Appkit\Tests\App\Entity\Organization;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\Routing\Route;
 use Symfony\Component\Routing\RouteCollection;
 
+#[CoversClass(JsonApiRouteLoader::class)]
 class JsonApiRouteLoaderTest extends TestCase
 {
     private JsonApiRouteLoader $loader;

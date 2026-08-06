@@ -13,9 +13,11 @@ use Modufolio\Appkit\Security\User\UserInterface;
 use Modufolio\Appkit\Util\ClassSource\Model\ClassProperty;
 use Modufolio\Appkit\Util\ClassSourceManipulator;
 use PhpParser\Builder\Param;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(ClassSourceManipulator::class)]
 class ClassSourceManipulatorTest extends TestCase
 {
     #[DataProvider('getAddPropertyTests')]

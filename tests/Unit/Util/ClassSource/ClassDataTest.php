@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace Modufolio\Appkit\Tests\Unit\Util\ClassSource;
 
 use Modufolio\Appkit\Util\ClassSource\Model\ClassData;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(ClassData::class)]
 final class ClassDataTest extends TestCase
 {
     public function testStaticConstructor(): void

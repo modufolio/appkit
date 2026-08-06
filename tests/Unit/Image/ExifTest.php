@@ -8,9 +8,11 @@ use Modufolio\Appkit\Image\Camera;
 use Modufolio\Appkit\Image\Exif;
 use Modufolio\Appkit\Image\Image;
 use Modufolio\Appkit\Image\Location;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\RequiresPhpExtension;
 
 #[RequiresPhpExtension('exif')]
+#[CoversClass(Exif::class)]
 class ExifTest extends TestCase
 {
     public const FIXTURES = __DIR__.'/fixtures';

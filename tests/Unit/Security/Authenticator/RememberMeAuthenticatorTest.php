@@ -445,4 +445,80 @@ class RememberMeAuthenticatorTest extends AppTestCase
 
         $this->assertSame($this->user, $result);
     }
+
+    public function testGetRememberParameterDefaultAndCustom(): void
+    {
+        $default = new RememberMeAuthenticator($this->userProvider, ['secret' => $this->secret]);
+        $this->assertSame('_remember_me', $default->getRememberParameter());
+
+        $custom = new RememberMeAuthenticator($this->userProvider, [
+            'secret' => $this->secret,
+            'remember_parameter' => 'remember',
+        ]);
+        $this->assertSame('remember', $custom->getRememberParameter());
+    }
+
+    public function testBuildSetCookieHeaderCarriesFlags(): void
+    {
+        $authenticator = new RememberMeAuthenticator($this->userProvider, [
+            'secret' => $this->secret,
+            'cookie_name' => 'REMEMBERME',
+            'cookie_lifetime' => 2592000,
+            'cookie_secure' => true,
+            'cookie_httponly' => true,
+            'cookie_samesite' => 'Lax',
+        ]);
+
+        $header = $authenticator->buildSetCookieHeader('signed-value');
+
+        $this->assertStringStartsWith('REMEMBERME=signed-value', $header);
+        $this->assertStringContainsString('Path=/', $header);
+        $this->assertStringContainsString('Max-Age=2592000', $header);
+        $this->assertStringContainsString('Expires=', $header);
+        $this->assertStringContainsString('Secure', $header);
+        $this->assertStringContainsString('HttpOnly', $header);
+        $this->assertStringContainsString('SameSite=Lax', $header);
+    }
+
+    public function testBuildSetCookieHeaderOmitsSecureWhenDisabled(): void
+    {
+        $authenticator = new RememberMeAuthenticator($this->userProvider, [
+            'secret' => $this->secret,
+            'cookie_secure' => false,
+        ]);
+
+        $this->assertStringNotContainsString('Secure', $authenticator->buildSetCookieHeader('v'));
+    }
+
+    public function testBuildRememberMeCookieHeaderRoundTrips(): void
+    {
+        $authenticator = new RememberMeAuthenticator($this->userProvider, [
+            'secret' => $this->secret,
+            'cookie_secure' => false,
+        ]);
+
+        $header = $authenticator->buildRememberMeCookieHeader($this->user);
+
+        // extract the cookie value and confirm it authenticates back to the user
+        $value = substr($header, strlen('REMEMBERME='), strpos($header, ';') - strlen('REMEMBERME='));
+        $request = (new ServerRequest(method: 'GET', uri: new Uri('/'), headers: []))
+            ->withCookieParams(['REMEMBERME' => $value]);
+
+        $this->assertSame($this->user, $authenticator->authenticate($request));
+    }
+
+    public function testClearAndSetCookieHeadersShareFlags(): void
+    {
+        $authenticator = new RememberMeAuthenticator($this->userProvider, [
+            'secret' => $this->secret,
+            'cookie_secure' => true,
+            'cookie_samesite' => 'Lax',
+        ]);
+
+        // Same name/path/flags so the browser overwrites rather than duplicates.
+        foreach (['Path=/', 'Secure', 'HttpOnly', 'SameSite=Lax'] as $flag) {
+            $this->assertStringContainsString($flag, $authenticator->buildSetCookieHeader('v'));
+            $this->assertStringContainsString($flag, $authenticator->buildClearCookieHeader());
+        }
+    }
 }

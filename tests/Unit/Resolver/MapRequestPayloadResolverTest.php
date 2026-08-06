@@ -13,6 +13,7 @@ use Modufolio\Appkit\Resolver\TypeHintContainerResolver;
 use Modufolio\Appkit\Resolver\TypeHintResolver;
 use Modufolio\Psr7\Http\ServerRequest;
 use Modufolio\Psr7\Http\Uri;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
 use Psr\Container\NotFoundExceptionInterface;
@@ -25,6 +26,7 @@ use Symfony\Component\Validator\Exception\ValidationFailedException;
 use Symfony\Component\Validator\Validation;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
+#[CoversClass(MapRequestPayloadResolver::class)]
 class MapRequestPayloadResolverTest extends TestCase
 {
     private ValidatorInterface $validator;

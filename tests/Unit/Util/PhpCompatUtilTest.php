@@ -4,9 +4,11 @@ namespace Modufolio\Appkit\Tests\Unit\Util;
 
 use Modufolio\Appkit\Console\FileManager;
 use Modufolio\Appkit\Util\PhpCompatUtil;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(PhpCompatUtil::class)]
 class PhpCompatUtilTest extends TestCase
 {
     public function testFallBackToPhpVersionWithoutLockFile(): void

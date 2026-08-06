@@ -21,7 +21,7 @@ class FallbackContainerTest extends AppTestCase
 
     private function fallbackWith(array $services): ContainerInterface
     {
-        return new class ($services) implements ContainerInterface {
+        return new class($services) implements ContainerInterface {
             public function __construct(private array $services)
             {
             }
@@ -29,7 +29,7 @@ class FallbackContainerTest extends AppTestCase
             public function get(string $id): mixed
             {
                 if (!isset($this->services[$id])) {
-                    throw new class ("Not found: $id") extends \RuntimeException implements NotFoundExceptionInterface {};
+                    throw new class("Not found: $id") extends \RuntimeException implements NotFoundExceptionInterface {};
                 }
 
                 return $this->services[$id];

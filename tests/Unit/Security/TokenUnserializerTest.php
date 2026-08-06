@@ -8,8 +8,10 @@ use Modufolio\Appkit\Security\Token\TokenInterface;
 use Modufolio\Appkit\Security\TokenUnserializer;
 use Modufolio\Appkit\Security\User\InMemoryUser;
 use Modufolio\Appkit\Tests\App\Entity\User;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(TokenUnserializer::class)]
 class TokenUnserializerTest extends TestCase
 {
     private InMemoryUser $user;

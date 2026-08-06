@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Modufolio\Appkit\Tests\Unit\Security\Csrf;
 
 use Modufolio\Appkit\Security\Csrf\CsrfToken;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(CsrfToken::class)]
 class CsrfTokenTest extends TestCase
 {
     public function testConstructorWithValidParameters(): void

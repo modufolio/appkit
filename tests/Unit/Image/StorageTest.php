@@ -6,8 +6,10 @@ namespace Modufolio\Appkit\Tests\Unit\Image;
 
 use Modufolio\Appkit\Image\Storage;
 use Modufolio\Appkit\Image\StorageInterface;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(Storage::class)]
 class StorageTest extends TestCase
 {
     private Storage $storage;

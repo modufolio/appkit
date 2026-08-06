@@ -6,8 +6,10 @@ namespace Modufolio\Appkit\Tests\Unit\Resolver;
 
 use Modufolio\Appkit\Resolver\ParameterResolverInterface;
 use Modufolio\Appkit\Resolver\ResolverPipeline;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(ResolverPipeline::class)]
 class ResolverPipelineTest extends TestCase
 {
     public function testAddResolver(): void

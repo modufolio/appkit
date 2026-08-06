@@ -4,11 +4,13 @@ namespace Modufolio\Appkit\Tests\Unit\Util;
 
 use Modufolio\Appkit\Util\Sorter;
 use Modufolio\Appkit\Util\UseStatementGenerator;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 /**
  * @author Jesse Rushlow <jr@rushlow.dev>
  */
+#[CoversClass(UseStatementGenerator::class)]
 class UseStatementGeneratorTest extends TestCase
 {
     public function testUseStatements(): void

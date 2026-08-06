@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Modufolio\Appkit\Tests\Unit\Toolkit;
 
 use Modufolio\Appkit\Toolkit\Collection;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(Collection::class)]
 class CollectionPaginatorTest extends TestCase
 {
     public function testSlice()

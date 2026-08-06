@@ -864,4 +864,147 @@ class ATest extends TestCase
         $this->assertSame([1 => 'dog', 2 => 'bird', 3 => 'cat', 4 => 'dog', 5 => 'bird'], A::without($indexedArray, 0));
         $this->assertSame(['cat', 'dog', 'bird', 'cat', 'dog', 'bird'], A::without($indexedArray, -1));
     }
+
+    public function testContains(): void
+    {
+        $this->assertSame(['apple pie', 'Apple'], A::contains('apple', ['apple pie', 'Apple', 'banana']));
+        $this->assertNull(A::contains('kiwi', ['apple', 'banana']));
+    }
+
+    public function testCrossJoin(): void
+    {
+        $this->assertSame(
+            [[1, 'a'], [1, 'b'], [2, 'a'], [2, 'b']],
+            A::crossJoin([1, 2], ['a', 'b'])
+        );
+    }
+
+    public function testDuplicates(): void
+    {
+        $this->assertSame([3 => 'a'], A::duplicates(['a', 'b', 'c', 'a']));
+        $this->assertSame([], A::duplicates(['a', 'b']));
+    }
+
+    public function testDivide(): void
+    {
+        $this->assertSame(
+            [['name', 'age'], ['Homer', 42]],
+            A::divide(['name' => 'Homer', 'age' => 42])
+        );
+    }
+
+    public function testDot(): void
+    {
+        $this->assertSame(
+            ['user.name' => 'Homer', 'user.tags.0' => 'a', 'flat' => true, 'empty' => []],
+            A::dot(['user' => ['name' => 'Homer', 'tags' => ['a']], 'flat' => true, 'empty' => []])
+        );
+    }
+
+    public function testEndsWith(): void
+    {
+        $this->assertSame(['test.jpg'], array_values(A::endsWith('.jpg', ['test.jpg', 'test.png'])));
+    }
+
+    public function testGroupBy(): void
+    {
+        $data = [
+            ['type' => 'fruit', 'name' => 'apple'],
+            ['type' => 'fruit', 'name' => 'banana'],
+            ['type' => 'veg', 'name' => 'carrot'],
+            ['name' => 'no type'],
+        ];
+
+        $grouped = A::groupBy('type', $data);
+
+        $this->assertSame(['fruit', 'veg'], array_keys($grouped));
+        $this->assertCount(2, $grouped['fruit']);
+    }
+
+    public function testHasRespectsStrictComparison(): void
+    {
+        $this->assertTrue(A::has([1, 2, 3], 2));
+        $this->assertTrue(A::has([1, 2, 3], '2'));
+        $this->assertFalse(A::has([1, 2, 3], '2', true));
+    }
+
+    public function testIsList(): void
+    {
+        $this->assertTrue(A::isList([]));
+        $this->assertTrue(A::isList(['a', 'b']));
+        $this->assertFalse(A::isList([1 => 'a', 2 => 'b']));
+        $this->assertFalse(A::isList(['key' => 'value']));
+    }
+
+    public function testMoveInvalidFrom(): void
+    {
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Invalid "from" index');
+
+        A::move(['a', 'b'], 5, 0);
+    }
+
+    public function testMoveInvalidTo(): void
+    {
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Invalid "to" index');
+
+        A::move(['a', 'b'], 0, -1);
+    }
+
+    public function testOnly(): void
+    {
+        $this->assertSame(['a' => 1], A::only(['a' => 1, 'b' => 2], 'a'));
+        $this->assertSame(['a' => 1, 'b' => 2], A::only(['a' => 1, 'b' => 2, 'c' => 3], ['a', 'b']));
+    }
+
+    public function testPluckSkipsRowsMissingTheKey(): void
+    {
+        $data = [
+            ['name' => 'Homer'],
+            ['name' => 'Marge'],
+            ['other' => 'x'],
+        ];
+
+        $this->assertSame(['Homer', 'Marge'], A::pluck($data, 'name'));
+    }
+
+    public function testPrepend(): void
+    {
+        $this->assertSame(
+            ['b' => 2, 'a' => 1],
+            A::prepend(['a' => 1], ['b' => 2])
+        );
+    }
+
+    public function testQuery(): void
+    {
+        $this->assertSame('name=Homer&age=42', A::query(['name' => 'Homer', 'age' => 42]));
+    }
+
+    public function testSearch(): void
+    {
+        $array = ['a' => 1, 'nested' => ['deep' => ['b' => 2]]];
+
+        $this->assertSame(1, A::search('a', $array));
+        $this->assertSame(2, A::search('b', $array));
+        $this->assertNull(A::search('missing', $array));
+    }
+
+    public function testSome(): void
+    {
+        $this->assertTrue(A::some([1, 2, 3], fn ($v) => $v > 2));
+        $this->assertFalse(A::some([1, 2, 3], fn ($v) => $v > 5));
+    }
+
+    public function testStartsWith(): void
+    {
+        $this->assertSame(['apple'], array_values(A::startsWith('app', ['apple', 'banana'])));
+        $this->assertNull(A::startsWith('zzz', ['apple', 'banana']));
+    }
+
+    public function testUnique(): void
+    {
+        $this->assertSame(['a', 'b'], array_values(A::unique(['a', 'b', 'a'])));
+    }
 }

@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Modufolio\Appkit\Tests\Unit\Toolkit;
 
 use Modufolio\Appkit\Toolkit\Func;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(Func::class)]
 class FuncTest extends TestCase
 {
     public function testCompose(): void

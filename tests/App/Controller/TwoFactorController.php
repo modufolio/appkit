@@ -8,6 +8,7 @@ use Modufolio\Appkit\Security\Csrf\CsrfTokenManagerInterface;
 use Modufolio\Appkit\Security\Token\TokenStorageInterface;
 use Modufolio\Appkit\Security\Token\TwoFactorToken;
 use Modufolio\Appkit\Security\Token\UsernamePasswordToken;
+use Modufolio\Appkit\Security\TokenUnserializer;
 use Modufolio\Appkit\Security\TwoFactor\TotpService;
 use Modufolio\Appkit\Security\User\UserInterface;
 use Modufolio\Psr7\Http\Response;
@@ -138,8 +139,7 @@ class TwoFactorController
             return Response::redirect($this->urlGenerator->generate('login'));
         }
 
-        $tokenData = $this->session->get('_2fa_token');
-        $token = unserialize($tokenData);
+        $token = $this->readTwoFactorToken();
 
         if (!$token instanceof TwoFactorToken) {
             $this->session->remove('_2fa_token');
@@ -173,8 +173,7 @@ class TwoFactorController
             return Response::redirect($this->urlGenerator->generate('login'));
         }
 
-        $tokenData = $this->session->get('_2fa_token');
-        $token = unserialize($tokenData);
+        $token = $this->readTwoFactorToken();
 
         if (!$token instanceof TwoFactorToken) {
             $this->session->remove('_2fa_token');
@@ -240,12 +239,23 @@ class TwoFactorController
         // Promote to full authentication token
         $fullToken = new UsernamePasswordToken($user, 'main', $user->getRoles());
         $this->tokenStorage->setToken($fullToken);
-        $this->session->set('_security_main', serialize($fullToken));
 
+        if (!$this->session->isStarted()) {
+            $this->session->start();
+        }
+
+        $this->session->set('_security_main', serialize($fullToken));
         $this->session->remove('_2fa_token');
+
+        // Session completes here — regenerate the ID and rotate CSRF tokens, the
+        // same fixation defense the password step applies (AppSecurity). Without
+        // this, an ID fixed before login stays valid through 2FA. (OWASP A07:2021)
+        $this->session->migrate(false);
+        $this->csrfTokenManager->clear();
 
         $targetUrl = $this->session->get('_security.main.target_path', $this->urlGenerator->generate('home'));
         $this->session->remove('_security.main.target_path');
+        $this->session->save();
 
         return Response::redirect($targetUrl);
     }
@@ -261,6 +271,30 @@ class TwoFactorController
         $this->session->getFlashBag()->add('info', 'Two-factor authentication cancelled');
 
         return Response::redirect($this->urlGenerator->generate('login'));
+    }
+
+    /**
+     * Safely restore the pending 2FA token from the session.
+     *
+     * Uses TokenUnserializer (allowed_classes allowlist) rather than a bare
+     * unserialize(), so a tampered/attacker-writable session store cannot be
+     * used as a PHP object-injection sink. Returns null on any failure.
+     */
+    private function readTwoFactorToken(): ?TwoFactorToken
+    {
+        $tokenData = $this->session->get('_2fa_token');
+
+        if (!is_string($tokenData)) {
+            return null;
+        }
+
+        try {
+            $token = TokenUnserializer::create($tokenData);
+        } catch (\UnexpectedValueException) {
+            return null;
+        }
+
+        return $token instanceof TwoFactorToken ? $token : null;
     }
 
     private function getAuthenticatedUser(): UserInterface

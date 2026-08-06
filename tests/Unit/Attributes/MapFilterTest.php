@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Modufolio\Appkit\Tests\Unit\Attributes;
 
 use Modufolio\Appkit\Attributes\MapFilter;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(MapFilter::class)]
 class MapFilterTest extends TestCase
 {
     public function testConstructorWithDefaultName(): void

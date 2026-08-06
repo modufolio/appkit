@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Modufolio\Appkit\Tests\Unit\Image;
 
 use Modufolio\Appkit\Image\Location;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(Location::class)]
 class LocationTest extends TestCase
 {
     protected function _exif(): array

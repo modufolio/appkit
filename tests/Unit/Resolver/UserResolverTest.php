@@ -9,8 +9,10 @@ use Modufolio\Appkit\Resolver\UserResolver;
 use Modufolio\Appkit\Security\Token\Storage\TokenStorage;
 use Modufolio\Appkit\Security\Token\UsernamePasswordToken;
 use Modufolio\Appkit\Security\User\UserInterface;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(UserResolver::class)]
 class UserResolverTest extends TestCase
 {
     private UserResolver $resolver;

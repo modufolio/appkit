@@ -69,6 +69,15 @@ class TestSession implements FlashBagAwareSessionInterface
 
     public function migrate(bool $destroy = false, ?int $lifetime = null): bool
     {
+        // Emulate a real session's fixation defense: a new ID is issued. With
+        // $destroy = false the existing attributes are preserved (the default
+        // used after authentication so the auth token survives the rotation).
+        $this->id = bin2hex(random_bytes(16));
+
+        if ($destroy) {
+            $this->attributes = [];
+        }
+
         return true;
     }
 

@@ -344,6 +344,59 @@ class TwoFactorControllerTest extends AppTestCase
         $this->assertSame('johndoe@example.com', $token->getUser()->getUserIdentifier());
     }
 
+    public function testSuccessfulTwoFactorRegeneratesSessionId(): void
+    {
+        // Session fixation defense: completing 2FA must rotate the session ID,
+        // mirroring the password step (AppSecurity migrate(false)).
+        $clock = self::mockTime('2024-01-01 00:00:00');
+
+        $user = $this->loadUserFromFixture();
+
+        $totpService = $this->app()->totpService();
+        $secret = $totpService->generateSecret($user);
+        $totp = TOTP::createFromSecret($secret->getSecret());
+        $totpService->enableTwoFactor($secret, $totp->at($clock->now()->getTimestamp()));
+
+        $this->seedTwoFactorToken($user);
+
+        $getResponse = $this->get('/2fa');
+        $csrfToken = $getResponse->jsonData()['csrf_token'];
+
+        $sessionIdBefore = $this->app()->session()->getId();
+
+        $clock->sleep($totp->getPeriod());
+        $loginCode = $totp->at($clock->now()->getTimestamp());
+
+        $response = $this->request('POST', '/2fa', [
+            '_csrf_token' => $csrfToken,
+            'totp_code' => $loginCode,
+        ], null, ['Content-Type' => 'application/x-www-form-urlencoded']);
+
+        $response->assertRedirect('/');
+
+        $this->assertNotSame(
+            $sessionIdBefore,
+            $this->app()->session()->getId(),
+            'Session ID must change after successful 2FA to defeat session fixation.'
+        );
+        $this->assertFalse($this->app()->session()->has('_2fa_token'));
+    }
+
+    public function testTamperedTwoFactorTokenIsRejected(): void
+    {
+        // A session value that unserializes to a disallowed class must not be
+        // accepted (object-injection defense via TokenUnserializer).
+        if (!$this->app()->getState()) {
+            $this->get('/login');
+        }
+        $this->app()->session()->set('_2fa_token', serialize(new \stdClass()));
+
+        $response = $this->get('/2fa');
+
+        $response->assertRedirect('/login');
+        $this->assertFalse($this->app()->session()->has('_2fa_token'));
+    }
+
     public function testTwoFactorPostWithInvalidCodeRedirectsBackToForm(): void
     {
         $user = $this->loadUserFromFixture();

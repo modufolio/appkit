@@ -3,9 +3,11 @@
 namespace Modufolio\Appkit\Tests\Unit\Util;
 
 use Modufolio\Appkit\Util\MakerFileLinkFormatter;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(MakerFileLinkFormatter::class)]
 final class MakerFileLinkFormatterTest extends TestCase
 {
     protected function setUp(): void

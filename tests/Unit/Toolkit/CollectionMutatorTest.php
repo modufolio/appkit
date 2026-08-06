@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Modufolio\Appkit\Tests\Unit\Toolkit;
 
 use Modufolio\Appkit\Toolkit\Collection;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(Collection::class)]
 class CollectionMutatorTest extends TestCase
 {
     public function testData()
@@ -190,5 +192,41 @@ class CollectionMutatorTest extends TestCase
         $expected = ['homer', 'marge'];
 
         $this->assertSame($expected, $collection->pluck('user', null, true));
+    }
+
+    public function testWithout(): void
+    {
+        $collection = new Collection(['a' => 1, 'b' => 2, 'c' => 3]);
+
+        $this->assertSame(['b' => 2], $collection->without('a', 'c')->toArray());
+    }
+
+    public function testAppendSingleValueAndNoArgs(): void
+    {
+        $collection = new Collection(['a']);
+
+        $collection->append('b');
+        $this->assertSame(['a', 'b'], $collection->toArray());
+
+        $collection->append('key', 'c');
+        $this->assertSame('c', $collection->get('key'));
+
+        // no arguments is a no-op
+        $collection->append();
+        $this->assertCount(3, $collection);
+    }
+
+    public function testPrependSingleValueAndNoArgs(): void
+    {
+        $collection = new Collection(['b']);
+
+        $collection->prepend('a');
+        $this->assertSame(['a', 'b'], $collection->toArray());
+
+        $collection->prepend('key', 'z');
+        $this->assertSame('z', $collection->first());
+
+        $collection->prepend();
+        $this->assertCount(3, $collection);
     }
 }

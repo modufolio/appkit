@@ -6,12 +6,14 @@ namespace Modufolio\Appkit\Tests\Unit\Util;
 
 use Modufolio\Appkit\Util\ClassSource\Model\ClassData;
 use Modufolio\Appkit\Util\TemplateComponentGenerator;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /**
  * @internal
  */
+#[CoversClass(TemplateComponentGenerator::class)]
 final class TemplateComponentGeneratorTest extends TestCase
 {
     public function testRouteAttributes(): void

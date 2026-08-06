@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Modufolio\Appkit\Tests\Unit\Attributes;
 
 use Modufolio\Appkit\Attributes\IsGranted;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(IsGranted::class)]
 class IsGrantedTest extends TestCase
 {
     public function testConstructorWithSingleRole(): void

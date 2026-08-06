@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Modufolio\Appkit\Tests\Unit\Attributes;
 
 use Modufolio\Appkit\Attributes\MapEntity;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(MapEntity::class)]
 class MapEntityTest extends TestCase
 {
     public function testConstructorWithDefaultCriteria(): void

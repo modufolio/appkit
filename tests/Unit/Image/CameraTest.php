@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Modufolio\Appkit\Tests\Unit\Unit\Image;
 
 use Modufolio\Appkit\Image\Camera;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(Camera::class)]
 class CameraTest extends TestCase
 {
     protected function _exif(): array

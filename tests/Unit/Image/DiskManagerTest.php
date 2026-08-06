@@ -6,8 +6,10 @@ namespace Modufolio\Appkit\Tests\Unit\Image;
 
 use Modufolio\Appkit\Image\Disk;
 use Modufolio\Appkit\Image\DiskManager;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(DiskManager::class)]
 class DiskManagerTest extends TestCase
 {
     private DiskManager $diskManager;

@@ -7,11 +7,13 @@ namespace Modufolio\Appkit\Tests\Unit\Routing;
 use Modufolio\Appkit\Data\Txt;
 use Modufolio\Appkit\Routing\Loader\FlatFileRouteLoader;
 use Modufolio\Appkit\Tests\App\FlatFile\FlatFileController;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\Routing\Route;
 use Symfony\Component\Routing\RouteCollection;
 
+#[CoversClass(FlatFileRouteLoader::class)]
 class FlatFileRouteLoaderTest extends TestCase
 {
     private FlatFileRouteLoader $loader;

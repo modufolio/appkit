@@ -957,4 +957,127 @@ EOT;
         $this->assertSame('Omelette du&nbsp;fromage?', Str::widont('Omelette du fromage?'));
         $this->assertSame('Omelette du&nbsp;fromage&nbsp;?', Str::widont('Omelette du fromage ?'));
     }
+
+    public function testAccepted(): void
+    {
+        $result = Str::accepted('text/html,application/json;q=0.9,*/*;q=0.8');
+
+        $this->assertSame([
+            ['quality' => 1, 'value' => 'text/html'],
+            ['quality' => '0.9', 'value' => 'application/json'],
+            ['quality' => '0.8', 'value' => '*/*'],
+        ], $result);
+    }
+
+    public function testAcceptedSingleValue(): void
+    {
+        $this->assertSame(
+            [['quality' => 1, 'value' => 'application/json']],
+            Str::accepted('application/json')
+        );
+    }
+
+    public function testAsciiStripsNonPrintableCharacters(): void
+    {
+        $this->assertSame('abc', Str::ascii("abc\x01\x02"));
+        $this->assertSame('aou', Str::ascii('äöü'));
+    }
+
+    public function testBetweenWithEmptyDelimiters(): void
+    {
+        $this->assertSame('abc', Str::between('abc', '', 'c'));
+        $this->assertSame('abc', Str::between('abc', 'a', ''));
+    }
+
+    public function testEscapeRegex(): void
+    {
+        $escaped = Str::escapeRegex('a.b*c?');
+
+        $this->assertSame('a\.b\*c\?', $escaped);
+        $this->assertSame(1, preg_match('/^'.$escaped.'$/', 'a.b*c?'));
+    }
+
+    public function testContainsAll(): void
+    {
+        $this->assertTrue(Str::containsAll('hello world', ['hello', 'world']));
+        $this->assertFalse(Str::containsAll('hello world', ['hello', 'mars']));
+        $this->assertTrue(Str::containsAll('hello world', []));
+    }
+
+    public function testDateWithIntlDateFormatter(): void
+    {
+        $formatter = new \IntlDateFormatter(
+            'en_US',
+            \IntlDateFormatter::SHORT,
+            \IntlDateFormatter::NONE,
+            'UTC'
+        );
+
+        $this->assertSame($formatter->format(0), Str::date(0, $formatter));
+        $this->assertNotEmpty(Str::date(null, $formatter));
+    }
+
+    public function testFloat(): void
+    {
+        $this->assertSame('1.25', Str::float(1.25));
+        $this->assertSame('1.25', Str::float('1,25'));
+        $this->assertSame('42', Str::float(42));
+        $this->assertSame('0', Str::float(null));
+        $this->assertSame('0.00000001', Str::float('1e-8'));
+    }
+
+    public function testPool(): void
+    {
+        $this->assertSame(implode('', range('a', 'z')), Str::pool('alphaLower', false));
+        $this->assertSame(range('A', 'Z'), Str::pool('alphaUpper'));
+        $this->assertSame('!@#$%^&*()-_=+', Str::pool('special', false));
+        $this->assertCount(52, Str::pool('alpha'));
+        $this->assertCount(62, Str::pool('alphaNum'));
+        $this->assertSame([], Str::pool('unknown-pool'));
+
+        // array of pools
+        $this->assertCount(36, Str::pool(['alphaLower', 'num']));
+    }
+
+    public function testRemove(): void
+    {
+        $this->assertSame('hello ', Str::remove('world', 'hello world'));
+        $this->assertSame('hello ', Str::remove('WORLD', 'hello world', false));
+        $this->assertSame('hello world', Str::remove('WORLD', 'hello world'));
+        $this->assertSame(' ', Str::remove(['hello', 'world'], 'hello world'));
+    }
+
+    public function testPregSplit(): void
+    {
+        $this->assertSame(['a', 'b', 'c'], Str::pregSplit('a1b2c', '/\d/'));
+        $this->assertNull(Str::pregSplit('', '/\d/', -1, PREG_SPLIT_NO_EMPTY));
+    }
+
+    public function testTitle(): void
+    {
+        $this->assertSame('Hello World', Str::title('hello world'));
+    }
+
+    public function testSingular(): void
+    {
+        $this->assertSame('category', Str::singular('categories'));
+        $this->assertSame('user', Str::singular('users'));
+    }
+
+    public function testPlural(): void
+    {
+        $this->assertSame('categories', Str::plural('category'));
+        $this->assertSame('users', Str::plural('user'));
+    }
+
+    public function testUuid(): void
+    {
+        $uuid = Str::uuid();
+
+        $this->assertMatchesRegularExpression(
+            '/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/',
+            $uuid
+        );
+        $this->assertNotSame($uuid, Str::uuid());
+    }
 }

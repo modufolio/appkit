@@ -7,6 +7,7 @@ namespace Modufolio\Appkit\Tests\Unit\Routing;
 use Modufolio\Appkit\Routing\Router;
 use Modufolio\Psr7\Http\ServerRequest;
 use Modufolio\Psr7\Http\Uri;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Config\Loader\LoaderInterface;
 use Symfony\Component\Routing\Exception\ResourceNotFoundException;
@@ -59,6 +60,7 @@ class TestRouteLoader implements LoaderInterface
     }
 }
 
+#[CoversClass(Router::class)]
 class RouterTest extends TestCase
 {
     private function createLoader(?RouteCollection $collection = null): TestRouteLoader
@@ -535,6 +537,72 @@ class RouterTest extends TestCase
         $httpsRequest = $this->createRequest('GET', '/secure', 'example.com', 'https');
         $result = $router->match($httpsRequest);
         $this->assertSame('SecureController', $result['_controller']);
+    }
+
+    public function testPortIsNotAppliedToTheOppositeScheme(): void
+    {
+        $loader = $this->createLoader();
+        $router = new Router($loader, 'routes.php');
+
+        // Incoming HTTP request on a non-standard port.
+        $request = $this->createRequest('GET', '/test', 'example.com', 'http', 8080);
+        $router->match($request);
+
+        // The HTTPS URL must use the standard 443, NOT the incoming :8080.
+        $context = $router->getUrlGenerator()->getContext();
+        $this->assertSame(8080, $context->getHttpPort());
+        $this->assertSame(443, $context->getHttpsPort());
+    }
+
+    public function testHttpsPortIsNotAppliedToHttp(): void
+    {
+        $loader = $this->createLoader();
+        $router = new Router($loader, 'routes.php');
+
+        $request = $this->createRequest('GET', '/test', 'example.com', 'https', 8443);
+        $router->match($request);
+
+        $context = $router->getUrlGenerator()->getContext();
+        $this->assertSame(80, $context->getHttpPort());
+        $this->assertSame(8443, $context->getHttpsPort());
+    }
+
+    public function testUntrustedHostIsRejectedWhenAllowlistConfigured(): void
+    {
+        $loader = $this->createLoader();
+        $router = new Router($loader, 'routes.php', [
+            'trusted_hosts' => ['example.com', 'www.example.com'],
+        ]);
+
+        $request = $this->createRequest('GET', '/test', 'evil.attacker.test', 'https', 443);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Untrusted request host');
+        $router->match($request);
+    }
+
+    public function testTrustedHostIsAcceptedCaseInsensitively(): void
+    {
+        $loader = $this->createLoader();
+        $router = new Router($loader, 'routes.php', [
+            'trusted_hosts' => ['example.com'],
+        ]);
+
+        $request = $this->createRequest('GET', '/test', 'EXAMPLE.com', 'https', 443);
+        $result = $router->match($request);
+
+        $this->assertSame('TestController', $result['_controller']);
+    }
+
+    public function testEmptyTrustedHostsAllowsAnyHost(): void
+    {
+        $loader = $this->createLoader();
+        $router = new Router($loader, 'routes.php'); // trusted_hosts defaults to []
+
+        $request = $this->createRequest('GET', '/test', 'anything.example', 'https', 443);
+        $result = $router->match($request);
+
+        $this->assertSame('TestController', $result['_controller']);
     }
 
     public function testGenerateUrlPreservesSlashes(): void

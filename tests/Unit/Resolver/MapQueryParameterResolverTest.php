@@ -8,6 +8,7 @@ use Modufolio\Appkit\Attributes\MapQueryParameter;
 use Modufolio\Appkit\Resolver\MapQueryParameterResolver;
 use Modufolio\Psr7\Http\ServerRequest;
 use Modufolio\Psr7\Http\Uri;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Uid\Uuid;
 
@@ -56,6 +57,7 @@ class MapQueryParameterController
     }
 }
 
+#[CoversClass(MapQueryParameterResolver::class)]
 class MapQueryParameterResolverTest extends TestCase
 {
     private function resolveArgument(string $method, array $query): mixed

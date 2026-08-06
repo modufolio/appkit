@@ -10,8 +10,10 @@ use Modufolio\Appkit\Image\File;
 use Modufolio\Appkit\Image\FileInterface;
 use Modufolio\Appkit\Image\ImageException;
 use Modufolio\Appkit\Image\Storage;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(File::class)]
 class FileTest extends TestCase
 {
     private string $testFile;

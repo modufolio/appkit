@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Modufolio\Appkit\Tests\Unit\DependencyInjection;
 
 use Modufolio\Appkit\DependencyInjection\ParameterBag;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(ParameterBag::class)]
 class ParameterBagTest extends TestCase
 {
     public function testConstructorWithParameters(): void

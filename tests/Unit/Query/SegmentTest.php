@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modufolio\Appkit\Tests\Unit\Query;
 
 use Modufolio\Appkit\Query\Segment;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -105,6 +106,7 @@ class TestUser
     }
 }
 
+#[CoversClass(Segment::class)]
 class SegmentTest extends TestCase
 {
     public static function scalarProvider(): array

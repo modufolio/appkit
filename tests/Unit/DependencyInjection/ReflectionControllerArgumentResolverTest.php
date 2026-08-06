@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modufolio\Appkit\Tests\Unit\DependencyInjection;
 
 use Modufolio\Appkit\DependencyInjection\ReflectionControllerArgumentResolver;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 // Mock controllers for testing
@@ -68,6 +69,7 @@ class MockContainer
     }
 }
 
+#[CoversClass(ReflectionControllerArgumentResolver::class)]
 class ReflectionControllerArgumentResolverTest extends TestCase
 {
     public function testResolveSimpleController(): void

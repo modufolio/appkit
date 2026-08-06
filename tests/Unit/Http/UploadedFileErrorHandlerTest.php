@@ -7,9 +7,11 @@ namespace Modufolio\Appkit\Tests\Unit\Http;
 use Modufolio\Appkit\Http\UploadedFileErrorHandler;
 use Modufolio\Psr7\Http\Factory\Psr17Factory;
 use Modufolio\Psr7\Http\Stream;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\UploadedFileInterface;
 
+#[CoversClass(UploadedFileErrorHandler::class)]
 class UploadedFileErrorHandlerTest extends TestCase
 {
     private Psr17Factory $factory;
@@ -197,7 +199,9 @@ class UploadedFileErrorHandlerTest extends TestCase
         $handler->matchesFilenamePattern('/^report_\d{4}\.pdf$/');
 
         $this->assertTrue($handler->hasErrors());
-        $this->assertStringContainsString('Filename must match pattern', $handler->getErrors()[0]);
+        $this->assertStringContainsString('Filename does not match the required pattern', $handler->getErrors()[0]);
+        // The default message must NOT echo the server-side regex back to the client.
+        $this->assertStringNotContainsString('report_', $handler->getErrors()[0]);
     }
 
     public function testMatchesFilenamePatternWithCustomMessage(): void
@@ -317,6 +321,67 @@ class UploadedFileErrorHandlerTest extends TestCase
             if (is_dir($tmpDir)) {
                 rmdir($tmpDir);
             }
+        }
+    }
+
+    public function testSaveToRejectsExecutableExtensionByDefault(): void
+    {
+        $tmpDir = sys_get_temp_dir().'/upload_test_'.uniqid();
+
+        $file = $this->createUploadedFile('GIF89a<?php system($_GET[0]); ?>', 'shell.php');
+        $handler = UploadedFileErrorHandler::from($file);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('potentially executable extension');
+
+        try {
+            $handler->saveTo($tmpDir);
+        } finally {
+            $this->assertFileDoesNotExist($tmpDir.'/shell.php');
+            if (is_dir($tmpDir)) {
+                rmdir($tmpDir);
+            }
+        }
+    }
+
+    public function testSaveToAllowsExecutableExtensionWhenExplicitlyOptedOut(): void
+    {
+        $tmpDir = sys_get_temp_dir().'/upload_test_'.uniqid();
+
+        $file = $this->createUploadedFile('<?php echo 1;', 'script.php');
+        $handler = UploadedFileErrorHandler::from($file);
+
+        try {
+            $handler->saveTo($tmpDir, null, true);
+            $this->assertFileExists($tmpDir.'/script.php');
+        } finally {
+            if (file_exists($tmpDir.'/script.php')) {
+                unlink($tmpDir.'/script.php');
+            }
+            if (is_dir($tmpDir)) {
+                rmdir($tmpDir);
+            }
+        }
+    }
+
+    public function testSaveToRefusesToOverwriteExistingFile(): void
+    {
+        $tmpDir = sys_get_temp_dir().'/upload_test_'.uniqid();
+        mkdir($tmpDir, 0755, true);
+        file_put_contents($tmpDir.'/avatar.jpg', 'original');
+
+        $file = $this->createUploadedFile('attacker', 'avatar.jpg');
+        $handler = UploadedFileErrorHandler::from($file);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Refusing to overwrite');
+
+        try {
+            $handler->saveTo($tmpDir);
+        } finally {
+            $this->assertEquals('original', file_get_contents($tmpDir.'/avatar.jpg'));
+            unlink($tmpDir.'/avatar.jpg');
+            rmdir($tmpDir);
         }
     }
 

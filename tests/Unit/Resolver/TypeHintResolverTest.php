@@ -3,8 +3,10 @@
 namespace Modufolio\Appkit\Tests\Unit\Resolver;
 
 use Modufolio\Appkit\Resolver\TypeHintResolver;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(TypeHintResolver::class)]
 class TypeHintResolverTest extends TestCase
 {
     private TypeHintResolver $resolver;

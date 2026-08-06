@@ -6,10 +6,12 @@ namespace Modufolio\Appkit\Tests\Unit\Resolver;
 
 use Modufolio\Appkit\Resolver\ParameterResolverInterface;
 use Modufolio\Appkit\Resolver\TypeHintContainerResolver;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
 
+#[CoversClass(TypeHintContainerResolver::class)]
 class TypeHintContainerResolverTest extends TestCase
 {
     private ContainerInterface&MockObject $container;

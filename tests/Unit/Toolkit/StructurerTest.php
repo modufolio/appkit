@@ -3,8 +3,10 @@
 namespace Modufolio\Appkit\Tests\Unit\Toolkit;
 
 use Modufolio\Appkit\Toolkit\Structurer;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(Structurer::class)]
 class StructurerTest extends TestCase
 {
     private string $testRoot;

@@ -8,10 +8,12 @@ use Modufolio\Appkit\Core\Environment;
 use Modufolio\Appkit\Exception\ExceptionHandler;
 use Modufolio\Psr7\Http\ServerRequest;
 use Modufolio\Psr7\Http\Uri;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 
+#[CoversClass(ExceptionHandler::class)]
 class ExceptionHandlerTest extends TestCase
 {
     private ExceptionHandler $handler;

@@ -7,8 +7,10 @@ namespace Modufolio\Appkit\Tests\Unit\Database;
 use Doctrine\DBAL\Schema\Schema;
 use Modufolio\Appkit\Doctrine\QueryBuilder;
 use Modufolio\Appkit\Tests\Traits\DatabaseTestingCapabilities;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(QueryBuilder::class)]
 class QueryBuilderTest extends TestCase
 {
     use DatabaseTestingCapabilities;

@@ -3,11 +3,13 @@
 namespace Modufolio\Appkit\Tests\Unit\Util;
 
 use Modufolio\Appkit\Util\CliOutputHelper;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 /**
  * @author Jesse Rushlow <jr@rushlow.dev>
  */
+#[CoversClass(CliOutputHelper::class)]
 class CliOutputHelperTest extends TestCase
 {
     protected function tearDown(): void

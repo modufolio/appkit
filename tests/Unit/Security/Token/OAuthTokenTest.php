@@ -5,8 +5,10 @@ namespace Modufolio\Appkit\Tests\Unit\Security\Token;
 use Modufolio\Appkit\Security\Token\OAuthToken;
 use Modufolio\Appkit\Security\User\InMemoryUser;
 use Modufolio\Appkit\Security\User\UserInterface;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(OAuthToken::class)]
 class OAuthTokenTest extends TestCase
 {
     private UserInterface $user;
