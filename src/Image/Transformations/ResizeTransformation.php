@@ -43,7 +43,7 @@ class ResizeTransformation implements Transformation
             'width' => $this->width,
             'height' => $this->height,
             'quality' => $this->quality,
-        ], fn ($v) => null !== $v);
+        ], static fn ($v) => null !== $v);
 
         $mediaRoot = dirname($file->mediaRoot());
         $template = $mediaRoot.'/{{ name }}{{ attributes }}.{{ extension }}';
@@ -66,6 +66,6 @@ class ResizeTransformation implements Transformation
             'width' => $this->width,
             'height' => $this->height,
             'quality' => $this->quality,
-        ], fn ($v) => null !== $v);
+        ], static fn ($v) => null !== $v);
     }
 }

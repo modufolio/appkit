@@ -39,7 +39,7 @@ class FileBruteForceProtection implements BruteForceProtectionInterface
         $this->windowDuration = $windowDuration;
 
         if (!is_dir($this->storageDir)) {
-            if (!mkdir($this->storageDir, 0755, true) && !is_dir($this->storageDir)) {
+            if (!mkdir($this->storageDir, 0o755, true) && !is_dir($this->storageDir)) {
                 throw new \RuntimeException(sprintf('Failed to create brute force storage directory: %s', $this->storageDir));
             }
         }
@@ -71,7 +71,7 @@ class FileBruteForceProtection implements BruteForceProtectionInterface
     public function recordSuccess(string $identifier, ?string $ipAddress = null): void
     {
         foreach ($this->counters($identifier, $ipAddress) as [$key]) {
-            $this->modify($key, fn () => ['failures' => [], 'locked_until' => null]);
+            $this->modify($key, static fn () => ['failures' => [], 'locked_until' => null]);
         }
     }
 
@@ -115,7 +115,7 @@ class FileBruteForceProtection implements BruteForceProtectionInterface
             }
 
             // Lockout expired — clear under an exclusive lock.
-            $this->modify($key, function (array $data, int $now): array {
+            $this->modify($key, static function (array $data, int $now): array {
                 if (isset($data['locked_until']) && $data['locked_until'] <= $now) {
                     return ['failures' => [], 'locked_until' => null];
                 }
@@ -130,7 +130,7 @@ class FileBruteForceProtection implements BruteForceProtectionInterface
     public function reset(string $identifier, ?string $ipAddress = null): void
     {
         foreach ($this->counters($identifier, $ipAddress) as [$key]) {
-            $this->modify($key, fn () => ['failures' => [], 'locked_until' => null]);
+            $this->modify($key, static fn () => ['failures' => [], 'locked_until' => null]);
         }
     }
 

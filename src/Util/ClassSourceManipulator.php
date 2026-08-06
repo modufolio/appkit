@@ -239,7 +239,7 @@ final class ClassSourceManipulator
         $importedClassName = $this->addUseStatementIfNecessary($trait);
 
         /** @var Node\Stmt\TraitUse[] $traitNodes */
-        $traitNodes = $this->findAllNodes(fn ($node) => $node instanceof Node\Stmt\TraitUse);
+        $traitNodes = $this->findAllNodes(static fn ($node) => $node instanceof Node\Stmt\TraitUse);
 
         foreach ($traitNodes as $node) {
             if ($node->traits[0]->toString() === $importedClassName) {
@@ -258,9 +258,11 @@ final class ClassSourceManipulator
         // avoid all the use traits in class for unshift all the new UseTrait
         // in the right order.
         foreach ($classNode->stmts as $key => $node) {
-            if ($node instanceof Node\Stmt\TraitUse) {
-                unset($classNode->stmts[$key]);
+            if (!$node instanceof Node\Stmt\TraitUse) {
+                continue;
             }
+
+            unset($classNode->stmts[$key]);
         }
 
         array_unshift($classNode->stmts, ...$traitNodes);
@@ -962,7 +964,7 @@ final class ClassSourceManipulator
 
     private function getClassNode(): Node\Stmt\Class_
     {
-        $node = $this->findFirstNode(fn ($node) => $node instanceof Node\Stmt\Class_);
+        $node = $this->findFirstNode(static fn ($node) => $node instanceof Node\Stmt\Class_);
 
         if (!$node instanceof Node\Stmt\Class_) {
             throw new \Exception('Could not find class node');
@@ -973,7 +975,7 @@ final class ClassSourceManipulator
 
     private function getNamespaceNode(): Node\Stmt\Namespace_
     {
-        $node = $this->findFirstNode(fn ($node) => $node instanceof Node\Stmt\Namespace_);
+        $node = $this->findFirstNode(static fn ($node) => $node instanceof Node\Stmt\Namespace_);
 
         if (!$node instanceof Node\Stmt\Namespace_) {
             throw new \Exception('Could not find namespace node');
@@ -1065,7 +1067,7 @@ final class ClassSourceManipulator
         $docBlock = "/**\n";
         foreach ($commentLines as $commentLine) {
             if ($commentLine) {
-                $docBlock .= " * $commentLine\n";
+                $docBlock .= " * {$commentLine}\n";
             } else {
                 // avoid the empty, extra space on blank lines
                 $docBlock .= " *\n";
@@ -1154,16 +1156,16 @@ final class ClassSourceManipulator
         $classNode = $this->getClassNode();
 
         // try to add after last property
-        $targetNode = $this->findLastNode(fn ($node) => $node instanceof Node\Stmt\Property, [$classNode]);
+        $targetNode = $this->findLastNode(static fn ($node) => $node instanceof Node\Stmt\Property, [$classNode]);
 
         // otherwise, try to add after the last constant
         if (!$targetNode) {
-            $targetNode = $this->findLastNode(fn ($node) => $node instanceof Node\Stmt\ClassConst, [$classNode]);
+            $targetNode = $this->findLastNode(static fn ($node) => $node instanceof Node\Stmt\ClassConst, [$classNode]);
         }
 
         // otherwise, try to add after the last trait
         if (!$targetNode) {
-            $targetNode = $this->findLastNode(fn ($node) => $node instanceof Node\Stmt\TraitUse, [$classNode]);
+            $targetNode = $this->findLastNode(static fn ($node) => $node instanceof Node\Stmt\TraitUse, [$classNode]);
         }
 
         // add the new property after this node
@@ -1397,10 +1399,12 @@ final class ClassSourceManipulator
 
         $sorted = [];
         foreach ($constructorParameterNames as $name) {
-            if (\array_key_exists($name, $options)) {
-                $sorted[$name] = $options[$name];
-                unset($options[$name]);
+            if (!\array_key_exists($name, $options)) {
+                continue;
             }
+
+            $sorted[$name] = $options[$name];
+            unset($options[$name]);
         }
 
         return array_merge($sorted, $options);

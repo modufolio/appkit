@@ -43,7 +43,7 @@ final class Expression
         // into actual types and treats all other parts as their own queries
         $parts = A::map(
             $parts,
-            fn ($part) => in_array($part, ['?', ':', '?:', '??'])
+            static fn ($part) => in_array($part, ['?', ':', '?:', '??'])
                     ? $part
                     : Argument::factory($part)
         );

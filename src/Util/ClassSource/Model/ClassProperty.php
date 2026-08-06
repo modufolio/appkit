@@ -51,9 +51,11 @@ final class ClassProperty
         }
 
         foreach (['length', 'id', 'nullable', 'precision', 'scale'] as $property) {
-            if (null !== $this->$property) {
-                $attributes[$property] = $this->$property;
+            if (null === $this->$property) {
+                continue;
             }
+
+            $attributes[$property] = $this->$property;
         }
 
         return $attributes;

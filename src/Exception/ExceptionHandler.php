@@ -68,11 +68,13 @@ final class ExceptionHandler implements ExceptionHandlerInterface
         try {
             // Try to handle with registered exception handlers
             foreach ($this->handlers as $class => $handler) {
-                if ($e instanceof $class) {
-                    $data = $handler($e, $request);
-                    $matchedClass = $class;
-                    break;
+                if (!$e instanceof $class) {
+                    continue;
                 }
+
+                $data = $handler($e, $request);
+                $matchedClass = $class;
+                break;
             }
 
             // Handle 2FA exceptions using the interface
@@ -216,7 +218,7 @@ final class ExceptionHandler implements ExceptionHandlerInterface
     private function registerDefaultFormatters(): void
     {
         // JSON:API
-        $this->registerFormatter('application/vnd.api+json', function (array $data) {
+        $this->registerFormatter('application/vnd.api+json', static function (array $data) {
             $status = $data['status'] ?? 500;
 
             $errors = $data['errors'] ?? [[
@@ -236,7 +238,7 @@ final class ExceptionHandler implements ExceptionHandlerInterface
         });
 
         // JSON
-        $this->registerFormatter('application/json', function (array $data) {
+        $this->registerFormatter('application/json', static function (array $data) {
             return new Response(
                 $data['status'] ?? 500,
                 ['Content-Type' => 'application/json'],
@@ -245,7 +247,7 @@ final class ExceptionHandler implements ExceptionHandlerInterface
         });
 
         // Plain text
-        $this->registerFormatter('text/plain', function (array $data) {
+        $this->registerFormatter('text/plain', static function (array $data) {
             $status = $data['status'] ?? 500;
             $title = $data['title'] ?? 'Error';
             $detail = $data['detail'] ?? '';
@@ -261,7 +263,7 @@ final class ExceptionHandler implements ExceptionHandlerInterface
     private function registerDefaultExceptions(): void
     {
         // Invalid input
-        $this->registerException(\InvalidArgumentException::class, function (\InvalidArgumentException $e) {
+        $this->registerException(\InvalidArgumentException::class, static function (\InvalidArgumentException $e) {
             return [
                 'status' => 400,
                 'title' => 'Bad Request',
@@ -270,7 +272,7 @@ final class ExceptionHandler implements ExceptionHandlerInterface
         });
 
         // JSON decoding errors
-        $this->registerException(\JsonException::class, function (\JsonException $e) {
+        $this->registerException(\JsonException::class, static function (\JsonException $e) {
             return [
                 'status' => 422,
                 'title' => 'Invalid JSON payload',
@@ -278,7 +280,7 @@ final class ExceptionHandler implements ExceptionHandlerInterface
             ];
         });
 
-        $this->registerException(PayloadTooLargeException::class, function (PayloadTooLargeException $e) {
+        $this->registerException(PayloadTooLargeException::class, static function (PayloadTooLargeException $e) {
             return [
                 'status' => 413,
                 'title' => 'Payload Too Large',
@@ -301,7 +303,7 @@ final class ExceptionHandler implements ExceptionHandlerInterface
         }, true);
 
         // Resource not found (404 errors)
-        $this->registerException(ResourceNotFoundException::class, function (ResourceNotFoundException $e) {
+        $this->registerException(ResourceNotFoundException::class, static function (ResourceNotFoundException $e) {
             return [
                 'status' => 404,
                 'title' => 'Resource not found',
@@ -311,7 +313,7 @@ final class ExceptionHandler implements ExceptionHandlerInterface
 
         // Method not allowed (405 errors)
         // Note: $e->getMessage() already includes the allowed methods.
-        $this->registerException(MethodNotAllowedException::class, function (MethodNotAllowedException $e) {
+        $this->registerException(MethodNotAllowedException::class, static function (MethodNotAllowedException $e) {
             return [
                 'status' => 405,
                 'title' => 'Method not allowed',
@@ -320,7 +322,7 @@ final class ExceptionHandler implements ExceptionHandlerInterface
         });
 
         // Validation errors
-        $this->registerException(ValidationFailedException::class, function (ValidationFailedException $e) {
+        $this->registerException(ValidationFailedException::class, static function (ValidationFailedException $e) {
             $violations = $e->getViolations();
             $errors = [];
 
@@ -353,7 +355,7 @@ final class ExceptionHandler implements ExceptionHandlerInterface
         // Authenticators that need a richer response (e.g. WWW-Authenticate
         // challenge headers) should return one from unauthorizedResponse()
         // before the exception bubbles to this handler.
-        $this->registerException(AuthenticationException::class, function (AuthenticationException $e) {
+        $this->registerException(AuthenticationException::class, static function (AuthenticationException $e) {
             return [
                 'status' => 401,
                 'title' => 'Authentication failed',
@@ -362,7 +364,7 @@ final class ExceptionHandler implements ExceptionHandlerInterface
         });
 
         // Authenticated but not allowed — distinct from 401 (not authenticated).
-        $this->registerException(AccessDeniedException::class, function (AccessDeniedException $e) {
+        $this->registerException(AccessDeniedException::class, static function (AccessDeniedException $e) {
             return [
                 'status' => 403,
                 'title' => 'Access denied',

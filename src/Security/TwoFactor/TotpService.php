@@ -81,7 +81,7 @@ class TotpService implements TwoFactorServiceInterface
     /**
      * Get the TOTP provisioning URI for QR code generation.
      */
-    public function getProvisioningUri(UserTotpSecretInterface $totpSecret): string
+    public function getProvisioningUri(#[\SensitiveParameter] UserTotpSecretInterface $totpSecret): string
     {
         $totp = TOTP::createFromSecret($totpSecret->getSecret());
         $totp->setLabel($totpSecret->getUser()->getEmail());
@@ -90,7 +90,7 @@ class TotpService implements TwoFactorServiceInterface
         return $totp->getProvisioningUri();
     }
 
-    public function generateQrCode(UserTotpSecretInterface $totpSecret): string
+    public function generateQrCode(#[\SensitiveParameter] UserTotpSecretInterface $totpSecret): string
     {
         $provisioningUri = $this->getProvisioningUri($totpSecret);
 
@@ -116,7 +116,7 @@ class TotpService implements TwoFactorServiceInterface
      *
      * @throws TwoFactorException When currently locked out
      */
-    public function verifyCode(TwoFactorSecret $totpSecret, string $code): bool
+    public function verifyCode(#[\SensitiveParameter] TwoFactorSecret $totpSecret, string $code): bool
     {
         $now = $this->clock->now()->getTimestamp();
 
@@ -159,7 +159,7 @@ class TotpService implements TwoFactorServiceInterface
      *
      * @throws TwoFactorException
      */
-    private function guardLockout(TwoFactorSecret $totpSecret, int $now): void
+    private function guardLockout(#[\SensitiveParameter] TwoFactorSecret $totpSecret, int $now): void
     {
         $lockedUntil = $totpSecret->getLockedUntil();
 
@@ -179,7 +179,7 @@ class TotpService implements TwoFactorServiceInterface
     /**
      * Count a failed attempt and start a lockout once the threshold is reached.
      */
-    private function registerFailure(TwoFactorSecret $totpSecret, int $now): void
+    private function registerFailure(#[\SensitiveParameter] TwoFactorSecret $totpSecret, int $now): void
     {
         $totpSecret->incrementFailedAttempts();
 
@@ -218,7 +218,7 @@ class TotpService implements TwoFactorServiceInterface
     /**
      * Verify and enable 2FA for the user.
      */
-    public function enableTwoFactor(TwoFactorSecret $totpSecret, string $code): bool
+    public function enableTwoFactor(#[\SensitiveParameter] TwoFactorSecret $totpSecret, string $code): bool
     {
         if (!$this->verifyCode($totpSecret, $code)) {
             return false;
@@ -230,7 +230,7 @@ class TotpService implements TwoFactorServiceInterface
         // Generate backup codes
         $backupCodes = $this->generateBackupCodes();
         $hashedBackupCodes = array_map(
-            fn ($code) => password_hash($code, PASSWORD_DEFAULT),
+            static fn ($code) => password_hash($code, PASSWORD_DEFAULT),
             $backupCodes
         );
         $totpSecret->setBackupCodes($hashedBackupCodes);
@@ -268,7 +268,7 @@ class TotpService implements TwoFactorServiceInterface
      *
      * @throws TwoFactorException When currently locked out
      */
-    public function verifyBackupCode(TwoFactorSecret $totpSecret, string $code): bool
+    public function verifyBackupCode(#[\SensitiveParameter] TwoFactorSecret $totpSecret, string $code): bool
     {
         $now = $this->clock->now()->getTimestamp();
         $this->guardLockout($totpSecret, $now);
@@ -294,7 +294,7 @@ class TotpService implements TwoFactorServiceInterface
     /**
      * Regenerate backup codes for a user.
      */
-    public function regenerateBackupCodes(TwoFactorSecret $totpSecret): array
+    public function regenerateBackupCodes(#[\SensitiveParameter] TwoFactorSecret $totpSecret): array
     {
         if (!$totpSecret->isEnabled()) {
             throw new \RuntimeException('Two-factor authentication must be enabled to regenerate backup codes.');
@@ -303,7 +303,7 @@ class TotpService implements TwoFactorServiceInterface
         // Generate new backup codes
         $backupCodes = $this->generateBackupCodes();
         $hashedBackupCodes = array_map(
-            fn ($code) => password_hash($code, PASSWORD_DEFAULT),
+            static fn ($code) => password_hash($code, PASSWORD_DEFAULT),
             $backupCodes
         );
 

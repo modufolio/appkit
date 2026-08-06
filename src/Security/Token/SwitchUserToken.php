@@ -23,7 +23,7 @@ class SwitchUserToken extends AbstractToken
         UserInterface $user,
         string $firewallName,
         array $roles,
-        TokenInterface $originalToken,
+        #[\SensitiveParameter] TokenInterface $originalToken,
     ) {
         parent::__construct($roles);
 

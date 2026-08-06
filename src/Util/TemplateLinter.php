@@ -38,9 +38,11 @@ final class TemplateLinter
         $phpFiles = [];
 
         foreach ($templateFilePaths as $filePath) {
-            if (str_ends_with($filePath, '.php')) {
-                $phpFiles[] = $filePath;
+            if (!str_ends_with($filePath, '.php')) {
+                continue;
             }
+
+            $phpFiles[] = $filePath;
         }
 
         $this->lintPhpTemplate($phpFiles);

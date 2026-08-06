@@ -55,9 +55,8 @@ final class Str
         $value = ucwords($value);
         $value = str_replace(' ', '', $value);
         $value = ucfirst($value);
-        $value = self::addSuffix($value, $suffix);
 
-        return $value;
+        return self::addSuffix($value, $suffix);
     }
 
     /**
@@ -70,9 +69,8 @@ final class Str
         $value = preg_replace('/[^a-zA-Z0-9_]/', '_', $value);
         $value = preg_replace('/(?<=\\w)([A-Z])/', '_$1', $value);
         $value = preg_replace('/_{2,}/', '_', $value);
-        $value = strtolower($value);
 
-        return $value;
+        return strtolower($value);
     }
 
     public static function asLowerCamelCase(string $str): string

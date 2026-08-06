@@ -31,7 +31,7 @@ interface UserTotpSecretInterface extends TwoFactorSecret
     /**
      * Set the TOTP secret.
      */
-    public function setSecret(string $secret): void;
+    public function setSecret(#[\SensitiveParameter] string $secret): void;
 
     /**
      * Check if 2FA is enabled.

@@ -290,7 +290,7 @@ class Mime
         // filter extensions for given MIME type
         $extensions = A::filter(
             $extensions,
-            function ($extension) use ($mime, $matchWildcards) {
+            static function ($extension) use ($mime, $matchWildcards) {
                 // get corresponding MIME types as array
                 $mimes = A::wrap(static::$types[$extension]);
 
@@ -298,7 +298,7 @@ class Mime
                     // check if at least one MIME type with wildcards matches
                     return A::some(
                         $mimes,
-                        fn (string $v): bool => static::matches($v, $mime)
+                        static fn (string $v): bool => static::matches($v, $mime)
                     );
                 }
 
@@ -325,7 +325,7 @@ class Mime
         }
 
         // get the extension or extract it from the filename
-        $extension = $extension ?? F::extension($file);
+        $extension ??= F::extension($file);
 
         // try to guess the mime type at least
         if (false === $mime) {

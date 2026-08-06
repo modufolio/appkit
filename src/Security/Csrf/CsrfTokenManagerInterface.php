@@ -28,7 +28,7 @@ interface CsrfTokenManagerInterface
      *
      * @return bool True if valid, false otherwise
      */
-    public function isTokenValid(CsrfToken $token): bool;
+    public function isTokenValid(#[\SensitiveParameter] CsrfToken $token): bool;
 
     /**
      * Validate a token by ID and value.

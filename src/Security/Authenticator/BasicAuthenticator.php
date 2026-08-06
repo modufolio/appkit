@@ -105,7 +105,7 @@ class BasicAuthenticator extends AbstractAuthenticator
             ->withHeader('WWW-Authenticate', 'Basic realm="Access to the API"');
     }
 
-    private function verifyDummyPassword(string $password): void
+    private function verifyDummyPassword(#[\SensitiveParameter] string $password): void
     {
         if (null !== $this->passwordHasher) {
             $this->passwordHasher->verifyDummy($password);

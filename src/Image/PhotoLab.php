@@ -37,7 +37,7 @@ class PhotoLab
         ?DiskManager $diskManager = null,
     ) {
         if (!file_exists($absolutePath)) {
-            throw new \InvalidArgumentException("File does not exist: $absolutePath");
+            throw new \InvalidArgumentException("File does not exist: {$absolutePath}");
         }
         $this->file = new File($absolutePath, $disk, $storage, $diskManager);
         $this->jobStorage = $jobStorage;

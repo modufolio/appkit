@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Modufolio\Appkit\Util;
 
-use Symfony\Component\Console\Formatter\OutputFormatterStyle;
-
 final class MakerFileLinkFormatter
 {
     private string $fileLinkFormat;

@@ -84,7 +84,7 @@ final class TokenUnserializer
         self::$frozen = false;
     }
 
-    public static function create(string $serializedToken): mixed
+    public static function create(#[\SensitiveParameter] string $serializedToken): mixed
     {
         try {
             $token = unserialize($serializedToken, [

@@ -72,10 +72,12 @@ class RoleHierarchy
     {
         if (isset($this->hierarchy[$role])) {
             foreach ($this->hierarchy[$role] as $inheritedRole) {
-                if (!in_array($inheritedRole, $visited, true)) {
-                    $visited[] = $inheritedRole;
-                    $this->collectRoles($inheritedRole, $visited);
+                if (in_array($inheritedRole, $visited, true)) {
+                    continue;
                 }
+
+                $visited[] = $inheritedRole;
+                $this->collectRoles($inheritedRole, $visited);
             }
         }
     }

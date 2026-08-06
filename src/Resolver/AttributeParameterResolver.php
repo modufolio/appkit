@@ -41,19 +41,21 @@ class AttributeParameterResolver implements ParameterResolverInterface
             }
 
             foreach ($this->attributeResolvers as $resolver) {
-                if ($resolver->supports($parameter)) {
-                    $result = $resolver->resolve($parameter, $providedParameters);
-
-                    if ($result instanceof ResolvedPayload) {
-                        $resolvedParameters[$parameter->getName()] = $result->payload;
-                        $pendingValidationResult = $result->validationResult;
-                        $hasPendingValidationResult = true;
-                    } else {
-                        $resolvedParameters[$parameter->getName()] = $result;
-                    }
-
-                    break;
+                if (!$resolver->supports($parameter)) {
+                    continue;
                 }
+
+                $result = $resolver->resolve($parameter, $providedParameters);
+
+                if ($result instanceof ResolvedPayload) {
+                    $resolvedParameters[$parameter->getName()] = $result->payload;
+                    $pendingValidationResult = $result->validationResult;
+                    $hasPendingValidationResult = true;
+                } else {
+                    $resolvedParameters[$parameter->getName()] = $result;
+                }
+
+                break;
             }
         }
 

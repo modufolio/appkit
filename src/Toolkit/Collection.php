@@ -290,9 +290,11 @@ class Collection extends Iterator implements \Stringable
         $matches = 0;
 
         foreach ($values as $value) {
-            if (false !== $validator($value, $test)) {
-                ++$matches;
+            if (false === $validator($value, $test)) {
+                continue;
             }
+
+            ++$matches;
         }
 
         return 0 === $matches;
@@ -311,13 +313,15 @@ class Collection extends Iterator implements \Stringable
         $result = [];
 
         foreach ($keys as $key) {
-            if ($item = $this->findByKey($key)) {
-                if (is_object($item) && true === method_exists($item, 'id')) {
-                    $key = $item->id();
-                }
-
-                $result[$key] = $item;
+            if (!($item = $this->findByKey($key))) {
+                continue;
             }
+
+            if (is_object($item) && true === method_exists($item, 'id')) {
+                $key = $item->id();
+            }
+
+            $result[$key] = $item;
         }
 
         $collection = clone $this;
@@ -657,15 +661,17 @@ class Collection extends Iterator implements \Stringable
         if ($filters = $arguments['filterBy'] ?? $arguments['filter'] ?? null) {
             foreach ($filters as $filter) {
                 if (
-                    true === isset($filter['field'])
-                    && true === isset($filter['value'])
+                    !(true === isset($filter['field'])
+                    && true === isset($filter['value']))
                 ) {
-                    $result = $result->filter(
-                        $filter['field'],
-                        $filter['operator'] ?? '==',
-                        $filter['value']
-                    );
+                    continue;
                 }
+
+                $result = $result->filter(
+                    $filter['field'],
+                    $filter['operator'] ?? '==',
+                    $filter['value']
+                );
             }
         }
 
@@ -798,7 +804,7 @@ class Collection extends Iterator implements \Stringable
         $args = Str::split($sort, ' ');
 
         // fill in PHP constants
-        array_walk($args, function (string &$value) {
+        array_walk($args, static function (string &$value) {
             if (
                 true === Str::startsWith($value, 'SORT_')
                 && true === defined($value)
@@ -845,7 +851,7 @@ class Collection extends Iterator implements \Stringable
             } elseif (true === is_string($arg)) {
                 $fields[] = [
                     'field' => $arg,
-                    'values' => A::map($array, function ($value) use ($collection, $arg) {
+                    'values' => A::map($array, static function ($value) use ($collection, $arg) {
                         $value = $collection->getAttribute($value, $arg);
 
                         // make sure that we return something sortable
@@ -859,7 +865,7 @@ class Collection extends Iterator implements \Stringable
             } elseif (true === is_callable($arg)) {
                 $fields[] = [
                     'field' => null,
-                    'values' => A::map($array, function ($value) use ($arg) {
+                    'values' => A::map($array, static function ($value) use ($arg) {
                         $value = $arg($value);
 
                         // make sure that we return something sortable

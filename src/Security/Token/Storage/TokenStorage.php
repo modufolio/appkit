@@ -23,7 +23,7 @@ class TokenStorage implements TokenStorageInterface, ResetInterface
         return $this->token;
     }
 
-    public function setToken(?TokenInterface $token): void
+    public function setToken(#[\SensitiveParameter] ?TokenInterface $token): void
     {
         if ($token) {
             // ensure any initializer is called

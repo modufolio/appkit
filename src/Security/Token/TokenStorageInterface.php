@@ -16,5 +16,5 @@ interface TokenStorageInterface
      *
      * @param TokenInterface|null $token A TokenInterface token, or null if no further authentication information should be stored
      */
-    public function setToken(?TokenInterface $token): void;
+    public function setToken(#[\SensitiveParameter] ?TokenInterface $token): void;
 }

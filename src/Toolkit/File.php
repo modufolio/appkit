@@ -14,7 +14,7 @@ class File
     public function __construct(string $filename, $mode = 'r')
     {
         if (!file_exists($filename) && 'r' === $mode) {
-            throw new \RuntimeException("File does not exist: $filename");
+            throw new \RuntimeException("File does not exist: {$filename}");
         }
         $this->fileObject = new \SplFileObject($filename, $mode);
     }
@@ -95,9 +95,11 @@ class File
     {
         $lines = [];
         foreach ($this->fileObject as $line) {
-            if (str_contains($line, $string)) {
-                $lines[] = $line;
+            if (!str_contains($line, $string)) {
+                continue;
             }
+
+            $lines[] = $line;
         }
 
         return $lines;

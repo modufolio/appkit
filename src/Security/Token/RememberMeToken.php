@@ -9,7 +9,7 @@ class RememberMeToken extends AbstractToken
     private string $firewallName;
     private string $secret;
 
-    public function __construct(UserInterface $user, string $firewallName, string $secret, array $roles = [])
+    public function __construct(UserInterface $user, string $firewallName, #[\SensitiveParameter] string $secret, array $roles = [])
     {
         parent::__construct($roles);
 

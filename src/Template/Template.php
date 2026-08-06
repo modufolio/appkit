@@ -357,7 +357,7 @@ class Template implements \Stringable
         // Guard the BASE_DIR constant so a misconfigured app fails as a clean
         // "snippet not found" rather than a fatal undefined-constant error (TPL4).
         $snippetPaths = !empty($this->templatePaths)
-            ? array_map(fn ($p) => str_replace('/templates', '/snippets', $p), $this->templatePaths)
+            ? array_map(static fn ($p) => str_replace('/templates', '/snippets', $p), $this->templatePaths)
             : (defined('BASE_DIR') ? [BASE_DIR.'/site/snippets'] : []);
 
         // Clone this template instance to prevent state pollution

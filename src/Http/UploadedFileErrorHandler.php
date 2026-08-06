@@ -23,7 +23,7 @@ class UploadedFileErrorHandler
      * Bytes read from an in-memory stream to sniff the MIME type. libmagic only
      * inspects leading bytes, so this caps memory use for streamed uploads.
      */
-    private const MIME_SNIFF_BYTES = 65536;
+    private const MIME_SNIFF_BYTES = 65_536;
 
     /**
      * Extensions that must never be written by saveTo() unless the caller opts
@@ -239,7 +239,7 @@ class UploadedFileErrorHandler
         }
 
         // Create directory if it doesn't exist
-        if (!is_dir($path) && !mkdir($path, 0755, true) && !is_dir($path)) {
+        if (!is_dir($path) && !mkdir($path, 0o755, true) && !is_dir($path)) {
             throw new \RuntimeException(sprintf('Failed to create upload directory: %s', $path));
         }
 

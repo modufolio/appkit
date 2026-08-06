@@ -21,7 +21,7 @@ use Psr\Http\Message\ServerRequestInterface;
 class OAuthService implements OAuthServiceInterface
 {
     private const ACCESS_TOKEN_LIFETIME = 3600; // 1 hour
-    private const REFRESH_TOKEN_LIFETIME = 2592000; // 30 days
+    private const REFRESH_TOKEN_LIFETIME = 2_592_000; // 30 days
 
     /**
      * Minimum age before the "last used" timestamp is rewritten, to avoid a
@@ -92,7 +92,7 @@ class OAuthService implements OAuthServiceInterface
     /**
      * Validate an access token.
      */
-    public function validateAccessToken(string $accessToken): ?OAuthAccessTokenInterface
+    public function validateAccessToken(#[\SensitiveParameter] string $accessToken): ?OAuthAccessTokenInterface
     {
         $tokenHash = hash('sha256', $accessToken);
         $token = $this->tokenRepository->findValidToken($tokenHash);
@@ -119,7 +119,7 @@ class OAuthService implements OAuthServiceInterface
      * Implements refresh token rotation (OAuth 2.1 requirement).
      */
     public function refreshAccessToken(
-        string $refreshToken,
+        #[\SensitiveParameter] string $refreshToken,
         string $clientId,
         ?ServerRequestInterface $request = null,
     ): ?OAuthAccessTokenInterface {
@@ -163,7 +163,7 @@ class OAuthService implements OAuthServiceInterface
     /**
      * Revoke an access token.
      */
-    public function revokeAccessToken(string $accessToken): bool
+    public function revokeAccessToken(#[\SensitiveParameter] string $accessToken): bool
     {
         $tokenHash = hash('sha256', $accessToken);
         $token = $this->tokenRepository->findValidToken($tokenHash);
@@ -197,7 +197,7 @@ class OAuthService implements OAuthServiceInterface
     /**
      * Format token response for OAuth 2.1.
      */
-    public function formatTokenResponse(OAuthAccessTokenInterface $token): array
+    public function formatTokenResponse(#[\SensitiveParameter] OAuthAccessTokenInterface $token): array
     {
         $response = [
             'access_token' => $token->getPlainAccessToken(),

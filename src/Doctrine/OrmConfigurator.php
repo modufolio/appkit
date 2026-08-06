@@ -27,7 +27,7 @@ final class OrmConfigurator
         $this->ormConfig = new OrmConfiguration();
 
         // Enable native lazy objects for PHP 8.4+
-        if (PHP_VERSION_ID >= 80400) {
+        if (PHP_VERSION_ID >= 80_400) {
             $this->ormConfig->enableNativeLazyObjects(true);
         }
     }

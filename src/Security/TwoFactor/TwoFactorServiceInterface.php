@@ -25,14 +25,14 @@ interface TwoFactorServiceInterface
      *
      * @throws TwoFactorException If verification fails
      */
-    public function verifyCode(TwoFactorSecret $secret, string $code): bool;
+    public function verifyCode(#[\SensitiveParameter] TwoFactorSecret $secret, string $code): bool;
 
     /**
      * Enable 2FA for a user after verifying a code.
      *
      * @throws TwoFactorException If code is invalid or 2FA cannot be enabled
      */
-    public function enableTwoFactor(TwoFactorSecret $secret, string $code): bool;
+    public function enableTwoFactor(#[\SensitiveParameter] TwoFactorSecret $secret, string $code): bool;
 
     /**
      * Disable 2FA for a user.
@@ -54,7 +54,7 @@ interface TwoFactorServiceInterface
      *
      * @throws TwoFactorException If backup code is invalid
      */
-    public function verifyBackupCode(TwoFactorSecret $secret, string $code): bool;
+    public function verifyBackupCode(#[\SensitiveParameter] TwoFactorSecret $secret, string $code): bool;
 
     /**
      * Regenerate backup codes.
@@ -63,5 +63,5 @@ interface TwoFactorServiceInterface
      *
      * @throws TwoFactorException If 2FA is not enabled
      */
-    public function regenerateBackupCodes(TwoFactorSecret $secret): array;
+    public function regenerateBackupCodes(#[\SensitiveParameter] TwoFactorSecret $secret): array;
 }

@@ -42,7 +42,7 @@ final class ReflectionControllerArgumentResolver implements ControllerArgumentRe
                     }
                 } else {
                     $typeName = $type instanceof \ReflectionNamedType ? $type->getName() : (string) $type;
-                    throw new \RuntimeException("Cannot resolve parameter \${$param->getName()} of type '{$typeName}' for controller '$controllerClass'.");
+                    throw new \RuntimeException("Cannot resolve parameter \${$param->getName()} of type '{$typeName}' for controller '{$controllerClass}'.");
                 }
             }
         }

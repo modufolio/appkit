@@ -53,9 +53,7 @@ class Txt extends Handler
         }
 
         // escape accidental dividers within a field
-        $value = preg_replace('!(?<=\n|^)----!', '\\----', $value);
-
-        return $value;
+        return preg_replace('!(?<=\n|^)----!', '\\----', $value);
     }
 
     /**
@@ -107,24 +105,26 @@ class Txt extends Handler
 
         // loop through all fields and add them to the content
         foreach ($fields as $field) {
-            if ($pos = strpos($field, ':')) {
-                $key = strtolower(trim(substr($field, 0, $pos)));
-                $key = str_replace(['-', ' '], '_', $key);
-
-                // Don't add fields with empty keys
-                if (true === empty($key)) {
-                    continue;
-                }
-
-                $value = trim(substr($field, $pos + 1));
-
-                // unescape escaped dividers within a field
-                $data[$key] = preg_replace(
-                    '!(?<=\n|^)\\\\----!',
-                    '----',
-                    $value
-                );
+            if (!($pos = strpos($field, ':'))) {
+                continue;
             }
+
+            $key = strtolower(trim(substr($field, 0, $pos)));
+            $key = str_replace(['-', ' '], '_', $key);
+
+            // Don't add fields with empty keys
+            if (true === empty($key)) {
+                continue;
+            }
+
+            $value = trim(substr($field, $pos + 1));
+
+            // unescape escaped dividers within a field
+            $data[$key] = preg_replace(
+                '!(?<=\n|^)\\\\----!',
+                '----',
+                $value
+            );
         }
 
         return $data;

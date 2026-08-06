@@ -38,7 +38,7 @@ final class Segments extends Collection
 
         $segments = A::map(
             $segments,
-            function ($segment) use (&$position) {
+            static function ($segment) use (&$position) {
                 // leave connectors as they are
                 if (true === in_array($segment, ['.', '?.'])) {
                     return $segment;

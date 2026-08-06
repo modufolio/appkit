@@ -912,8 +912,8 @@ class Str
      */
     public static function slug(string $string, ?string $separator = null, ?string $allowed = null, int $maxlength = 128): string
     {
-        $separator = $separator ?? static::$defaults['slug']['separator'];
-        $allowed = $allowed ?? static::$defaults['slug']['allowed'];
+        $separator ??= static::$defaults['slug']['separator'];
+        $allowed ??= static::$defaults['slug']['allowed'];
 
         $string = trim($string);
         $string = static::lower($string);
@@ -1144,7 +1144,7 @@ class Str
 
         return preg_replace_callback(
             '!'.$start.'(.*?)'.$end.'!',
-            function (array $match) use ($data, $fallback, $callback) {
+            static function (array $match) use ($data, $fallback, $callback) {
                 $query = trim($match[1]);
 
                 try {

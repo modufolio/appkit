@@ -77,7 +77,7 @@ class A
     public static function contains(string $needle, array $haystack): ?array
     {
         $escapedNeedle = Str::escapeRegex($needle);
-        $result = preg_grep("/$escapedNeedle/i", $haystack);
+        $result = preg_grep("/{$escapedNeedle}/i", $haystack);
 
         return $result ? array_values($result) : null;
     }
@@ -144,7 +144,7 @@ class A
     {
         $escapedNeedle = Str::escapeRegex($needle);
 
-        return preg_grep("/$escapedNeedle$/i", $haystack);
+        return preg_grep("/{$escapedNeedle}$/i", $haystack);
     }
 
     /**
@@ -276,9 +276,11 @@ class A
     {
         $output = [];
         foreach ($array as $a) {
-            if (array_key_exists($key, $a)) {
-                $output[$a[$key]][] = $a;
+            if (!array_key_exists($key, $a)) {
+                continue;
             }
+
+            $output[$a[$key]][] = $a;
         }
 
         return $output;
@@ -582,9 +584,11 @@ class A
     {
         $output = [];
         foreach ($array as $a) {
-            if (true === isset($a[$key])) {
-                $output[] = $a[$key];
+            if (true !== isset($a[$key])) {
+                continue;
             }
+
+            $output[] = $a[$key];
         }
 
         return $output;
@@ -765,7 +769,7 @@ class A
     public static function startsWith(string $needle, array $haystack): ?array
     {
         $escapedNeedle = Str::escapeRegex($needle);
-        $result = preg_grep("/^$escapedNeedle/i", $haystack);
+        $result = preg_grep("/^{$escapedNeedle}/i", $haystack);
 
         return empty($result) ? null : $result;
     }

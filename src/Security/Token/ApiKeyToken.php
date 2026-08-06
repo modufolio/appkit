@@ -9,7 +9,7 @@ class ApiKeyToken extends AbstractToken
     private string $firewallName;
     private ?string $apiKey;
 
-    public function __construct(UserInterface $user, string $firewallName, ?string $apiKey = null, array $roles = [])
+    public function __construct(UserInterface $user, string $firewallName, #[\SensitiveParameter] ?string $apiKey = null, array $roles = [])
     {
         parent::__construct($roles);
 

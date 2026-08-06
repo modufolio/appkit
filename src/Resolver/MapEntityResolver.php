@@ -55,9 +55,11 @@ class MapEntityResolver implements AttributeResolverInterface
 
         // Translate route parameters into entity field criteria.
         foreach ($attribute->mapping ?? [] as $routeParam => $field) {
-            if (array_key_exists($routeParam, $providedParameters)) {
-                $criteria[$field] = $providedParameters[$routeParam];
+            if (!array_key_exists($routeParam, $providedParameters)) {
+                continue;
             }
+
+            $criteria[$field] = $providedParameters[$routeParam];
         }
 
         // Use the route's id as a primary-key criterion when one is available.

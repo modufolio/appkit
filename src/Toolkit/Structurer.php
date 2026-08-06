@@ -52,7 +52,7 @@ class Structurer
             // Otherwise → directory
             $path = $base.DIRECTORY_SEPARATOR.$name;
             if (!is_dir($path)) {
-                mkdir($path, 0777, true);
+                mkdir($path, 0o777, true);
             }
 
             // Copy resources if matching dir exists
@@ -179,7 +179,7 @@ class Structurer
     private function ensureDir(string $dir): void
     {
         if (!is_dir($dir)) {
-            mkdir($dir, 0777, true);
+            mkdir($dir, 0o777, true);
         }
     }
 }

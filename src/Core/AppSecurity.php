@@ -242,7 +242,7 @@ trait AppSecurity
     /**
      * Refresh user data from the user provider.
      */
-    private function refreshUser(TokenInterface $token): ?TokenInterface
+    private function refreshUser(#[\SensitiveParameter] TokenInterface $token): ?TokenInterface
     {
         $user = $token->getUser();
         if (!$user instanceof UserInterface) {
@@ -497,11 +497,13 @@ trait AppSecurity
     private function extractCsrfToken(ServerRequestInterface $request): ?string
     {
         foreach (['X-CSRF-Token', 'X-XSRF-Token'] as $header) {
-            if ($request->hasHeader($header)) {
-                $value = trim($request->getHeaderLine($header));
-                if ('' !== $value) {
-                    return $value;
-                }
+            if (!$request->hasHeader($header)) {
+                continue;
+            }
+
+            $value = trim($request->getHeaderLine($header));
+            if ('' !== $value) {
+                return $value;
             }
         }
 
@@ -574,9 +576,7 @@ trait AppSecurity
                     $userChecker->checkPreAuth($user);
                     $userChecker->checkPostAuth($user);
 
-                    $token = $authenticator->createToken($user, $firewallName);
-
-                    return $token;
+                    return $authenticator->createToken($user, $firewallName);
                 } catch (AuthenticationException $e) {
                     if (!$stateless && isset($config['entry_point'])) {
                         // If 2FA is required, create partial auth token and redirect to /2fa
@@ -657,7 +657,7 @@ trait AppSecurity
     private function issueRememberMeCookie(
         ServerRequestInterface $request,
         array $config,
-        TokenInterface $token,
+        #[\SensitiveParameter] TokenInterface $token,
         ResponseInterface $response,
     ): ResponseInterface {
         $user = $token->getUser();
@@ -770,10 +770,12 @@ trait AppSecurity
                 $userRoles = $this->roleHierarchy?->getReachableRoles($user->getRoles()) ?? $user->getRoles();
                 $hasRole = false;
                 foreach ($rule['roles'] as $requiredRole) {
-                    if (in_array($requiredRole, $userRoles, true)) {
-                        $hasRole = true;
-                        break;
+                    if (!in_array($requiredRole, $userRoles, true)) {
+                        continue;
                     }
+
+                    $hasRole = true;
+                    break;
                 }
                 if (!$hasRole) {
                     throw new AccessDeniedException('Insufficient roles for path: '.$path);
@@ -859,10 +861,12 @@ trait AppSecurity
             $satisfied = false;
 
             foreach ($group as $role) {
-                if (in_array($role, $userRoles, true)) {
-                    $satisfied = true;
-                    break;
+                if (!in_array($role, $userRoles, true)) {
+                    continue;
                 }
+
+                $satisfied = true;
+                break;
             }
 
             if (!$satisfied) {

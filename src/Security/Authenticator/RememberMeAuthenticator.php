@@ -26,7 +26,7 @@ class RememberMeAuthenticator extends AbstractAuthenticator
         $this->options = array_merge([
             'secret' => null,
             'cookie_name' => 'REMEMBERME',
-            'cookie_lifetime' => 2592000,
+            'cookie_lifetime' => 2_592_000,
             'cookie_path' => '/',
             'cookie_domain' => null,
             'cookie_secure' => true,

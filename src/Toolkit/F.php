@@ -778,7 +778,7 @@ class F
         if (true === is_array($file)) {
             return array_reduce(
                 $file,
-                fn ($total, $file) => $total + F::size($file),
+                static fn ($total, $file) => $total + F::size($file),
                 0
             );
         }

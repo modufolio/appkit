@@ -17,7 +17,7 @@ class AuthenticationException extends RuntimeException
         return $this->token;
     }
 
-    public function setToken(TokenInterface $token): void
+    public function setToken(#[\SensitiveParameter] TokenInterface $token): void
     {
         $this->token = $token;
     }

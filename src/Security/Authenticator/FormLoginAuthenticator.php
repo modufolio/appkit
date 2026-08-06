@@ -119,7 +119,7 @@ class FormLoginAuthenticator extends AbstractAuthenticator
         return $user;
     }
 
-    private function verifyDummyPassword(string $password): void
+    private function verifyDummyPassword(#[\SensitiveParameter] string $password): void
     {
         if (null !== $this->passwordHasher) {
             $this->passwordHasher->verifyDummy($password);

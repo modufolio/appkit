@@ -88,7 +88,7 @@ final class Argument
             $query = Str::after($argument, '() =>');
             $query = trim($query);
 
-            return new static(fn () => $query);
+            return new static(static fn () => $query);
         }
 
         return new static(match ($argument) {
@@ -113,7 +113,7 @@ final class Argument
         if ($this->value instanceof \Closure) {
             $query = ($this->value)();
 
-            return fn () => static::factory($query)->resolve($data);
+            return static fn () => static::factory($query)->resolve($data);
         }
 
         if (true === is_object($this->value)) {

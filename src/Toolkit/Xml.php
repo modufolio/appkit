@@ -119,7 +119,7 @@ class Xml
                 static fn ($item) => static::encode((string) $item),
                 array_filter(
                     $value,
-                    fn ($value) => !empty($value) || is_numeric($value)
+                    static fn ($value) => !empty($value) || is_numeric($value)
                 )
             ));
         }
@@ -374,11 +374,13 @@ class Xml
             // don't do anything with special `@` metadata keys
             foreach ($array as $name => $item) {
                 if (
-                    false === str_starts_with($name, '@')
-                    && 1 === count($item)
+                    !(false === str_starts_with($name, '@')
+                    && 1 === count($item))
                 ) {
-                    $array[$name] = $item[0];
+                    continue;
                 }
+
+                $array[$name] = $item[0];
             }
 
             return $array;

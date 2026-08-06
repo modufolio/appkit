@@ -87,11 +87,13 @@ final class EntityRepositoryClassReflectionExtension implements MethodsClassRefl
     private function resolveFieldName(string $methodName): ?string
     {
         foreach (['findOneBy', 'findBy', 'countBy'] as $prefix) {
-            if (str_starts_with($methodName, $prefix) && \strlen($methodName) > \strlen($prefix)) {
-                $by = substr($methodName, \strlen($prefix));
-
-                return lcfirst(str_replace([' ', '_', '-'], '', ucwords($by, ' _-')));
+            if (!(str_starts_with($methodName, $prefix) && \strlen($methodName) > \strlen($prefix))) {
+                continue;
             }
+
+            $by = substr($methodName, \strlen($prefix));
+
+            return lcfirst(str_replace([' ', '_', '-'], '', ucwords($by, ' _-')));
         }
 
         return null;

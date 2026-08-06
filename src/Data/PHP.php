@@ -31,7 +31,7 @@ class PHP extends Handler
                 $array = [];
 
                 foreach ($data as $key => $value) {
-                    $array[] = "$indent    ".($indexed ? '' : static::encode($key).' => ').static::encode($value, "$indent    ");
+                    $array[] = "{$indent}    ".($indexed ? '' : static::encode($key).' => ').static::encode($value, "{$indent}    ");
                 }
 
                 return "[\n".implode(",\n", $array)."\n".$indent.']';
@@ -73,7 +73,7 @@ class PHP extends Handler
     public static function write(string $file, $data = []): bool
     {
         $php = static::encode($data);
-        $php = "<?php\n\nreturn $php;";
+        $php = "<?php\n\nreturn {$php};";
 
         if (true === F::write($file, $php)) {
             F::invalidateOpcodeCache($file);

@@ -268,7 +268,7 @@ class RedisBruteForceProtection implements BruteForceProtectionInterface
         }
 
         // Select database if specified in path
-        if (isset($parsed['path']) && isset($parsed['host'])) {
+        if (isset($parsed['path'], $parsed['host'])) {
             $db = (int) ltrim($parsed['path'], '/');
             if (!$redis->select($db)) {
                 throw new \RuntimeException('Failed to select Redis database: '.$db);

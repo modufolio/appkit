@@ -175,16 +175,18 @@ abstract class Kernel implements AppInterface
         }
 
         foreach ($parameters as $key => $value) {
-            if ('_' !== $key[0]) {
-                $request = $request->withAttribute($key, $value);
+            if ('_' === $key[0]) {
+                continue;
             }
+
+            $request = $request->withAttribute($key, $value);
         }
 
         [$class, $method] = $controller;
         $classObject = $this->getController($class);
 
         if (!method_exists($classObject, $method)) {
-            throw new \InvalidArgumentException("Method $method does not exist in $class");
+            throw new \InvalidArgumentException("Method {$method} does not exist in {$class}");
         }
 
         $reflection = new \ReflectionMethod($class, $method);
@@ -287,7 +289,7 @@ abstract class Kernel implements AppInterface
         if (str_starts_with($dep, '@')) {
             $method = substr($dep, 1);
             if (!method_exists($this, $method)) {
-                throw new \InvalidArgumentException("Service method '$method' not found.");
+                throw new \InvalidArgumentException("Service method '{$method}' not found.");
             }
 
             return $this->$method();
@@ -413,7 +415,7 @@ abstract class Kernel implements AppInterface
     protected function resolve(string $id, ?string $interface, array $resolving): mixed
     {
         if (isset($resolving[$id])) {
-            throw new \RuntimeException("Circular dependency detected for class $id");
+            throw new \RuntimeException("Circular dependency detected for class {$id}");
         }
 
         $resolving[$id] = true;
@@ -436,7 +438,7 @@ abstract class Kernel implements AppInterface
             } elseif ($this->fallbackContainer?->has($id)) {
                 $instance = $this->fallbackContainer->get($id);
             } else {
-                throw new NotFoundException("Class or parameter $id is not found.");
+                throw new NotFoundException("Class or parameter {$id} is not found.");
             }
 
             if ($interface && !$instance instanceof $interface) {
@@ -521,7 +523,7 @@ abstract class Kernel implements AppInterface
         $repositories = $this->repositories();
 
         if (!array_key_exists($repositoryClass, $repositories)) {
-            throw new \InvalidArgumentException("Repository $repositoryClass not found.");
+            throw new \InvalidArgumentException("Repository {$repositoryClass} not found.");
         }
 
         $entityClass = $repositories[$repositoryClass];

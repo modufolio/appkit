@@ -163,7 +163,7 @@ final class QueryBuilder
     public function join(string $table, string $first, string $operator, string $second, ?string $alias = null): self
     {
         $alias ??= $table;
-        $this->queryBuilder->innerJoin($this->alias, $table, $alias, "$first $operator $second");
+        $this->queryBuilder->innerJoin($this->alias, $table, $alias, "{$first} {$operator} {$second}");
 
         return $this;
     }
@@ -171,7 +171,7 @@ final class QueryBuilder
     public function leftJoin(string $table, string $first, string $operator, string $second, ?string $alias = null): self
     {
         $alias ??= $table;
-        $this->queryBuilder->leftJoin($this->alias, $table, $alias, "$first $operator $second");
+        $this->queryBuilder->leftJoin($this->alias, $table, $alias, "{$first} {$operator} {$second}");
 
         return $this;
     }
@@ -179,7 +179,7 @@ final class QueryBuilder
     public function rightJoin(string $table, string $first, string $operator, string $second, ?string $alias = null): self
     {
         $alias ??= $table;
-        $this->queryBuilder->rightJoin($this->alias, $table, $alias, "$first $operator $second");
+        $this->queryBuilder->rightJoin($this->alias, $table, $alias, "{$first} {$operator} {$second}");
 
         return $this;
     }

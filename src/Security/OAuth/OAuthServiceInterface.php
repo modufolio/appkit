@@ -31,14 +31,14 @@ interface OAuthServiceInterface
      * Validate an access token string and return the token entity,
      * or null if the token is invalid / expired / revoked.
      */
-    public function validateAccessToken(string $accessToken): ?OAuthAccessTokenInterface;
+    public function validateAccessToken(#[\SensitiveParameter] string $accessToken): ?OAuthAccessTokenInterface;
 
     /**
      * Refresh an access token using a refresh token.
      * Implements refresh-token rotation (OAuth 2.1 requirement).
      */
     public function refreshAccessToken(
-        string $refreshToken,
+        #[\SensitiveParameter] string $refreshToken,
         string $clientId,
         ?ServerRequestInterface $request = null,
     ): ?OAuthAccessTokenInterface;
@@ -48,7 +48,7 @@ interface OAuthServiceInterface
      *
      * @return bool true if the token was found and revoked
      */
-    public function revokeAccessToken(string $accessToken): bool;
+    public function revokeAccessToken(#[\SensitiveParameter] string $accessToken): bool;
 
     /**
      * Revoke all tokens for a user.
@@ -58,7 +58,7 @@ interface OAuthServiceInterface
     /**
      * Format a token entity into an OAuth 2.1 token response array.
      */
-    public function formatTokenResponse(OAuthAccessTokenInterface $token): array;
+    public function formatTokenResponse(#[\SensitiveParameter] OAuthAccessTokenInterface $token): array;
 
     /**
      * Clean up expired tokens (maintenance).

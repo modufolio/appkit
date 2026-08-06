@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Modufolio\Appkit\Image;
 
 use Modufolio\Appkit\Toolkit\F;
-use Modufolio\Appkit\Toolkit\Mime;
 
 /**
  * Image.

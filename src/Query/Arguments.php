@@ -42,7 +42,7 @@ final class Arguments extends Collection
         $arguments = A::map(
             // split by comma, but not inside skip groups
             preg_split('!,|'.self::OUTSIDE.'!', $arguments),
-            fn ($argument) => Argument::factory($argument)
+            static fn ($argument) => Argument::factory($argument)
         );
 
         return new static($arguments);
@@ -56,7 +56,7 @@ final class Arguments extends Collection
     {
         return A::map(
             $this->data,
-            fn ($argument) => $argument->resolve($data)
+            static fn ($argument) => $argument->resolve($data)
         );
     }
 }

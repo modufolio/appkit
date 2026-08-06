@@ -117,7 +117,7 @@ class ImageProcessor
      */
     public function getTransformationNames(): array
     {
-        return array_map(fn (Transformation $t) => $t->name(), $this->transformations);
+        return array_map(static fn (Transformation $t) => $t->name(), $this->transformations);
     }
 
     /**
@@ -125,7 +125,7 @@ class ImageProcessor
      */
     public function getConfigurations(): array
     {
-        return array_map(fn (Transformation $t) => [
+        return array_map(static fn (Transformation $t) => [
             'name' => $t->name(),
             'config' => $t->config(),
         ], $this->transformations);

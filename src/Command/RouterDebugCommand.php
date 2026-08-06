@@ -93,9 +93,11 @@ EOF
     {
         $foundRoutesNames = [];
         foreach ($routes as $routeName => $route) {
-            if (false !== stripos($routeName, $name)) {
-                $foundRoutesNames[] = $routeName;
+            if (false === stripos($routeName, $name)) {
+                continue;
             }
+
+            $foundRoutesNames[] = $routeName;
         }
 
         return $foundRoutesNames;
@@ -118,9 +120,11 @@ EOF
     {
         $foundRoutes = new RouteCollection();
         foreach ($routes as $routeName => $route) {
-            if (false !== stripos($routeName, $name)) {
-                $foundRoutes->add($routeName, $route);
+            if (false === stripos($routeName, $name)) {
+                continue;
             }
+
+            $foundRoutes->add($routeName, $route);
         }
 
         return $foundRoutes;

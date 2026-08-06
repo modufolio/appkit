@@ -27,7 +27,7 @@ final class RelationOneToOne extends BaseRelation
                 propertyName: $mapping->fieldName,
                 targetClassName: $mapping->targetEntity,
                 targetPropertyName: $mapping->inversedBy,
-                mapInverseRelation: (null !== $mapping->inversedBy),
+                mapInverseRelation: null !== $mapping->inversedBy,
                 isOwning: true,
                 isNullable: $mapping->joinColumns[0]->nullable ?? true,
             );

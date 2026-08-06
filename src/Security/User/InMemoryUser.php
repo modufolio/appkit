@@ -11,7 +11,7 @@ final class InMemoryUser implements UserInterface, PasswordAuthenticatedUserInte
     /**
      * @param list<string> $roles
      */
-    public function __construct(?string $username, private ?string $password, private array $roles = [], private bool $enabled = true)
+    public function __construct(?string $username, #[\SensitiveParameter] private ?string $password, private array $roles = [], private bool $enabled = true)
     {
         if ('' === $username || null === $username) {
             throw new \InvalidArgumentException('The username cannot be empty.');

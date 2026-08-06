@@ -719,7 +719,7 @@ final class MakeEntity extends AbstractMaker
             implode(', ', EntityRelation::getValidRelationTypes())
         ));
         $question->setAutocompleterValues(EntityRelation::getValidRelationTypes());
-        $question->setValidator(function ($type) {
+        $question->setValidator(static function ($type) {
             if (!\in_array($type, EntityRelation::getValidRelationTypes())) {
                 throw new \InvalidArgumentException(\sprintf('Invalid type: use one of: %s', implode(', ', EntityRelation::getValidRelationTypes())));
             }

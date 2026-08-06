@@ -42,7 +42,7 @@ class CsrfTokenManager implements CsrfTokenManagerInterface
      */
     public function getToken(?string $tokenId = null): CsrfToken
     {
-        $tokenId = $tokenId ?? $this->defaultTokenId;
+        $tokenId ??= $this->defaultTokenId;
 
         // Check if token already exists in session
         $tokens = $this->getSessionTokens();
@@ -71,7 +71,7 @@ class CsrfTokenManager implements CsrfTokenManagerInterface
      */
     public function refreshToken(?string $tokenId = null): CsrfToken
     {
-        $tokenId = $tokenId ?? $this->defaultTokenId;
+        $tokenId ??= $this->defaultTokenId;
 
         // Remove old token
         $this->removeToken($tokenId);
@@ -89,7 +89,7 @@ class CsrfTokenManager implements CsrfTokenManagerInterface
      *
      * @return bool True if valid, false otherwise
      */
-    public function isTokenValid(CsrfToken $token): bool
+    public function isTokenValid(#[\SensitiveParameter] CsrfToken $token): bool
     {
         $tokens = $this->getSessionTokens();
 
@@ -134,7 +134,7 @@ class CsrfTokenManager implements CsrfTokenManagerInterface
      */
     public function removeToken(?string $tokenId = null): void
     {
-        $tokenId = $tokenId ?? $this->defaultTokenId;
+        $tokenId ??= $this->defaultTokenId;
 
         $tokens = $this->getSessionTokens();
         unset($tokens[$tokenId]);
@@ -146,7 +146,7 @@ class CsrfTokenManager implements CsrfTokenManagerInterface
      */
     public function hasToken(?string $tokenId = null): bool
     {
-        $tokenId = $tokenId ?? $this->defaultTokenId;
+        $tokenId ??= $this->defaultTokenId;
         $tokens = $this->getSessionTokens();
 
         return isset($tokens[$tokenId]);

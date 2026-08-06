@@ -103,13 +103,15 @@ class ApiKeyAuthenticator extends AbstractAuthenticator
      * Why: `isset($map[$key])` short-circuits and leaks via timing whether a
      * supplied key partially matches a stored key.
      */
-    private function resolveIdentifier(string $apiKey): ?string
+    private function resolveIdentifier(#[\SensitiveParameter] string $apiKey): ?string
     {
         $matchedIdentifier = null;
         foreach ($this->options['api_keys'] as $configuredKey => $identifier) {
-            if (hash_equals((string) $configuredKey, $apiKey)) {
-                $matchedIdentifier = (string) $identifier;
+            if (!hash_equals((string) $configuredKey, $apiKey)) {
+                continue;
             }
+
+            $matchedIdentifier = (string) $identifier;
         }
 
         return $matchedIdentifier;

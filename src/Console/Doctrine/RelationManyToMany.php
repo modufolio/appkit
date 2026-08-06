@@ -38,7 +38,7 @@ final class RelationManyToMany extends BaseCollectionRelation
                 propertyName: $mapping->fieldName,
                 targetClassName: $mapping->targetEntity,
                 targetPropertyName: $mapping->inversedBy,
-                mapInverseRelation: (null !== $mapping->inversedBy),
+                mapInverseRelation: null !== $mapping->inversedBy,
                 isOwning: true,
             );
         }

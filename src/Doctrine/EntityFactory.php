@@ -34,7 +34,7 @@ final class EntityFactory
     public function create(string $className, array $attributes = []): self
     {
         if (!$this->has($className)) {
-            throw new \InvalidArgumentException("No configuration found for class $className.");
+            throw new \InvalidArgumentException("No configuration found for class {$className}.");
         }
 
         $defaults = $this->resolveDefaults($className);
@@ -56,11 +56,13 @@ final class EntityFactory
         $metadata = $this->entityManager->getClassMetadata($className);
 
         foreach ($data as $field => $value) {
-            if ($metadata->hasAssociation($field) && is_array($value)) {
-                $targetClass = $metadata->getAssociationTargetClass($field);
-
-                $data[$field] = $this->serializer->denormalize($value, $targetClass);
+            if (!($metadata->hasAssociation($field) && is_array($value))) {
+                continue;
             }
+
+            $targetClass = $metadata->getAssociationTargetClass($field);
+
+            $data[$field] = $this->serializer->denormalize($value, $targetClass);
         }
 
         return $data;

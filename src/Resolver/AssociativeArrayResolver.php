@@ -15,7 +15,7 @@ class AssociativeArrayResolver implements ParameterResolverInterface
 
         // Skip parameters already resolved
         if (!empty($resolvedParameters)) {
-            $parameters = array_filter($parameters, fn ($param) => !array_key_exists($param->getName(), $resolvedParameters));
+            $parameters = array_filter($parameters, static fn ($param) => !array_key_exists($param->getName(), $resolvedParameters));
         }
 
         foreach ($parameters as $parameter) {

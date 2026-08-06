@@ -111,7 +111,7 @@ final class DoctrineHelper
 
     public static function getPropertyTypeForColumn(string $columnType): ?string
     {
-        $propertyType = match ($columnType) {
+        return match ($columnType) {
             Types::STRING, Types::TEXT, Types::GUID, Types::BIGINT, Types::DECIMAL => 'string',
             'array', Types::SIMPLE_ARRAY, Types::JSON => 'array',
             Types::BOOLEAN => 'bool',
@@ -125,7 +125,5 @@ final class DoctrineHelper
             'ulid' => '\\'.Ulid::class,
             default => null,
         };
-
-        return $propertyType;
     }
 }

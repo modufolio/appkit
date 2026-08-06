@@ -21,7 +21,7 @@ interface OAuthAccessTokenInterface
 
     public function getToken(): string;
 
-    public function setToken(string $token): void;
+    public function setToken(#[\SensitiveParameter] string $token): void;
 
     public function getClientId(): string;
 
@@ -47,7 +47,7 @@ interface OAuthAccessTokenInterface
 
     public function getRefreshToken(): ?string;
 
-    public function setRefreshToken(?string $refreshToken): void;
+    public function setRefreshToken(#[\SensitiveParameter] ?string $refreshToken): void;
 
     public function getRefreshTokenExpiresAt(): ?\DateTimeImmutable;
 
@@ -77,7 +77,7 @@ interface OAuthAccessTokenInterface
      */
     public function getPlainAccessToken(): ?string;
 
-    public function setPlainAccessToken(?string $token): void;
+    public function setPlainAccessToken(#[\SensitiveParameter] ?string $token): void;
 
     /**
      * Get the plain (unhashed) refresh token.
@@ -85,5 +85,5 @@ interface OAuthAccessTokenInterface
      */
     public function getPlainRefreshToken(): ?string;
 
-    public function setPlainRefreshToken(?string $token): void;
+    public function setPlainRefreshToken(#[\SensitiveParameter] ?string $token): void;
 }
