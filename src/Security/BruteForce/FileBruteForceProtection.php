@@ -14,17 +14,27 @@ class FileBruteForceProtection implements BruteForceProtectionInterface
 {
     private string $storageDir;
     private int $maxAttempts;
+    private int $accountMaxAttempts;
     private int $lockoutDuration;
     private int $windowDuration;
 
+    /**
+     * @param int      $maxAttempts        Max failed attempts per (account + IP) before lockout
+     * @param int|null $accountMaxAttempts Max failed attempts per account across ALL IPs before the account
+     *                                     locks. Defends against distributed / IP-rotating guessing that the
+     *                                     per-IP counter alone cannot see. Higher than $maxAttempts so a single
+     *                                     source can't trivially lock a victim out. Null defaults to 5 * $maxAttempts.
+     */
     public function __construct(
         string $storageDir,
         int $maxAttempts = 5,
         int $lockoutDuration = 900,
         int $windowDuration = 300,
+        ?int $accountMaxAttempts = null,
     ) {
         $this->storageDir = rtrim($storageDir, '/');
         $this->maxAttempts = $maxAttempts;
+        $this->accountMaxAttempts = $accountMaxAttempts ?? (5 * $maxAttempts);
         $this->lockoutDuration = $lockoutDuration;
         $this->windowDuration = $windowDuration;
 
@@ -41,24 +51,28 @@ class FileBruteForceProtection implements BruteForceProtectionInterface
 
     public function recordFailure(string $identifier, ?string $ipAddress = null): void
     {
-        $this->modify($identifier, $ipAddress, function (array $data, int $now): array {
-            $data['failures'][] = $now;
-            $data['failures'] = array_values(array_filter(
-                $data['failures'],
-                fn ($timestamp): bool => ($now - $timestamp) <= $this->windowDuration,
-            ));
+        foreach ($this->counters($identifier, $ipAddress) as [$key, $threshold]) {
+            $this->modify($key, function (array $data, int $now) use ($threshold): array {
+                $data['failures'][] = $now;
+                $data['failures'] = array_values(array_filter(
+                    $data['failures'],
+                    fn ($timestamp): bool => ($now - $timestamp) <= $this->windowDuration,
+                ));
 
-            if (count($data['failures']) >= $this->maxAttempts) {
-                $data['locked_until'] = $now + $this->lockoutDuration;
-            }
+                if (count($data['failures']) >= $threshold) {
+                    $data['locked_until'] = $now + $this->lockoutDuration;
+                }
 
-            return $data;
-        });
+                return $data;
+            });
+        }
     }
 
     public function recordSuccess(string $identifier, ?string $ipAddress = null): void
     {
-        $this->modify($identifier, $ipAddress, fn () => ['failures' => [], 'locked_until' => null]);
+        foreach ($this->counters($identifier, $ipAddress) as [$key]) {
+            $this->modify($key, fn () => ['failures' => [], 'locked_until' => null]);
+        }
     }
 
     public function isLocked(string $identifier, ?string $ipAddress = null): bool
@@ -68,43 +82,76 @@ class FileBruteForceProtection implements BruteForceProtectionInterface
 
     public function getFailureCount(string $identifier, ?string $ipAddress = null): int
     {
-        $data = $this->read($this->generateKey($identifier, $ipAddress));
         $now = time();
 
-        return count(array_filter(
-            $data['failures'],
-            fn ($timestamp): bool => ($now - $timestamp) <= $this->windowDuration,
-        ));
+        $max = 0;
+        foreach ($this->counters($identifier, $ipAddress) as [$key]) {
+            $data = $this->read($key);
+            $count = count(array_filter(
+                $data['failures'],
+                fn ($timestamp): bool => ($now - $timestamp) <= $this->windowDuration,
+            ));
+            $max = max($max, $count);
+        }
+
+        return $max;
     }
 
     public function getRemainingLockoutTime(string $identifier, ?string $ipAddress = null): int
     {
-        // Quick lock-free check; if not locked, no write needed.
-        $data = $this->read($this->generateKey($identifier, $ipAddress));
-        if (!isset($data['locked_until'])) {
-            return 0;
-        }
+        $remaining = 0;
 
-        $remaining = $data['locked_until'] - time();
-        if ($remaining > 0) {
-            return $remaining;
-        }
-
-        // Lockout expired — clear under an exclusive lock.
-        $this->modify($identifier, $ipAddress, function (array $data, int $now): array {
-            if (isset($data['locked_until']) && $data['locked_until'] <= $now) {
-                return ['failures' => [], 'locked_until' => null];
+        foreach ($this->counters($identifier, $ipAddress) as [$key]) {
+            // Quick lock-free check; if not locked, no write needed.
+            $data = $this->read($key);
+            if (!isset($data['locked_until'])) {
+                continue;
             }
 
-            return $data;
-        });
+            if ($data['locked_until'] - time() > 0) {
+                $remaining = max($remaining, $data['locked_until'] - time());
 
-        return 0;
+                continue;
+            }
+
+            // Lockout expired — clear under an exclusive lock.
+            $this->modify($key, function (array $data, int $now): array {
+                if (isset($data['locked_until']) && $data['locked_until'] <= $now) {
+                    return ['failures' => [], 'locked_until' => null];
+                }
+
+                return $data;
+            });
+        }
+
+        return $remaining;
     }
 
     public function reset(string $identifier, ?string $ipAddress = null): void
     {
-        $this->modify($identifier, $ipAddress, fn () => ['failures' => [], 'locked_until' => null]);
+        foreach ($this->counters($identifier, $ipAddress) as [$key]) {
+            $this->modify($key, fn () => ['failures' => [], 'locked_until' => null]);
+        }
+    }
+
+    /**
+     * The set of independent counters a failure/check fans out to.
+     *
+     * Each entry is [hashedKey, threshold]:
+     *  - the account-wide counter (IP-independent) at $accountMaxAttempts;
+     *  - the tighter per-(account + IP) counter at $maxAttempts, when an IP is known.
+     *
+     * @return list<array{string, int}>
+     */
+    private function counters(string $identifier, ?string $ipAddress): array
+    {
+        $counters = [[$this->generateKey($identifier, null), $this->accountMaxAttempts]];
+
+        if (null !== $ipAddress) {
+            $counters[] = [$this->generateKey($identifier, $ipAddress), $this->maxAttempts];
+        }
+
+        return $counters;
     }
 
     private function generateKey(string $identifier, ?string $ipAddress = null): string
@@ -150,11 +197,12 @@ class FileBruteForceProtection implements BruteForceProtectionInterface
     /**
      * Read-modify-write under a single exclusive lock.
      *
+     * @param string                                                                                                                $key     Pre-hashed storage key
      * @param callable(array{failures: list<int>, locked_until: int|null}, int): array{failures: list<int>, locked_until: int|null} $mutator
      */
-    private function modify(string $identifier, ?string $ipAddress, callable $mutator): void
+    private function modify(string $key, callable $mutator): void
     {
-        $filepath = $this->getFilePath($this->generateKey($identifier, $ipAddress));
+        $filepath = $this->getFilePath($key);
 
         $handle = fopen($filepath, 'c+');
         if (false === $handle) {

@@ -72,6 +72,12 @@ class SwitchUserToken extends AbstractToken
 
     public function __unserialize(array $data): void
     {
+        // Block gadget-chain "trampolines": a forged payload placing an object
+        // in a string slot would otherwise fire its __toString on assignment.
+        if (($data[0] ?? null) instanceof \Stringable) {
+            throw new \BadMethodCallException('Cannot unserialize '.self::class);
+        }
+
         [$this->firewallName, $this->originalToken, $parentData] = $data;
         parent::__unserialize($parentData);
     }

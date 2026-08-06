@@ -32,6 +32,10 @@ class RememberMeAuthenticator extends AbstractAuthenticator
             'cookie_secure' => true,
             'cookie_httponly' => true,
             'cookie_samesite' => 'Lax',
+            // Login-form field that opts a user into a persistent session. The
+            // firewall reads this on interactive login success to decide whether
+            // to auto-issue the cookie (mirrors Symfony's `_remember_me`).
+            'remember_parameter' => '_remember_me',
         ], $options);
 
         if (empty($this->options['secret'])) {
@@ -138,6 +142,57 @@ class RememberMeAuthenticator extends AbstractAuthenticator
     public function getCookieName(): string
     {
         return $this->options['cookie_name'];
+    }
+
+    /**
+     * The login-form field name that opts into a persistent session.
+     */
+    public function getRememberParameter(): string
+    {
+        return $this->options['remember_parameter'];
+    }
+
+    /**
+     * Build a Set-Cookie header value carrying an already-signed cookie value.
+     *
+     * The counterpart to buildClearCookieHeader(): the flags are identical, so
+     * the cookie issued here is later matched and overwritten by the logout
+     * clear-cookie header rather than lingering as a second cookie.
+     */
+    public function buildSetCookieHeader(string $value): string
+    {
+        $expires = time() + $this->options['cookie_lifetime'];
+
+        $parts = [
+            $this->options['cookie_name'].'='.$value,
+            'Path='.$this->options['cookie_path'],
+            'Max-Age='.$this->options['cookie_lifetime'],
+            'Expires='.gmdate('D, d M Y H:i:s', $expires).' GMT',
+        ];
+
+        if (!empty($this->options['cookie_domain'])) {
+            $parts[] = 'Domain='.$this->options['cookie_domain'];
+        }
+        if ($this->options['cookie_secure']) {
+            $parts[] = 'Secure';
+        }
+        if ($this->options['cookie_httponly']) {
+            $parts[] = 'HttpOnly';
+        }
+        if (!empty($this->options['cookie_samesite'])) {
+            $parts[] = 'SameSite='.ucfirst((string) $this->options['cookie_samesite']);
+        }
+
+        return implode('; ', $parts);
+    }
+
+    /**
+     * Convenience wrapper: sign a fresh cookie for the user and wrap it in a
+     * Set-Cookie header, ready to attach to a response.
+     */
+    public function buildRememberMeCookieHeader(UserInterface $user): string
+    {
+        return $this->buildSetCookieHeader($this->generateRememberMeCookie($user));
     }
 
     /**

@@ -155,7 +155,18 @@ trait AppSecurity
                 $session->save();
             }
 
-            return $this->controllerResolver($request);
+            $response = $this->controllerResolver($request);
+
+            // Auto-issue the remember-me cookie on a fresh interactive login,
+            // so no controller has to assemble a Set-Cookie header itself.
+            // Skipped for stateless firewalls and for the remember-me restore
+            // path (that token is not an interactive login and carries no
+            // opt-in parameter anyway).
+            if (!$stateless && !($result instanceof RememberMeToken)) {
+                $response = $this->issueRememberMeCookie($request, $config, $result, $response);
+            }
+
+            return $response;
         }
 
         // Nobody authenticated. A path declared public is served anonymously
@@ -635,6 +646,54 @@ trait AppSecurity
         }
 
         return $response;
+    }
+
+    /**
+     * Attach a signed remember-me cookie to the response when the just-completed
+     * interactive login opted in via the configured parameter (default
+     * `_remember_me`). A no-op when the firewall has no remember-me authenticator
+     * or the opt-in parameter is absent, so ordinary logins are unaffected.
+     */
+    private function issueRememberMeCookie(
+        ServerRequestInterface $request,
+        array $config,
+        TokenInterface $token,
+        ResponseInterface $response,
+    ): ResponseInterface {
+        $user = $token->getUser();
+        if (null === $user) {
+            return $response;
+        }
+
+        foreach ($this->rememberMeAuthenticators($config) as $rememberMe) {
+            if (!$this->requestOptedIntoRememberMe($request, $rememberMe->getRememberParameter())) {
+                continue;
+            }
+
+            $response = $response->withAddedHeader(
+                'Set-Cookie',
+                $rememberMe->buildRememberMeCookieHeader($user),
+            );
+        }
+
+        return $response;
+    }
+
+    /**
+     * Whether the request opted into a persistent session. The opt-in is read
+     * from the parsed body (login POST) first, then the query string, and
+     * accepts the usual truthy encodings ("1"/"true"/"on"/true).
+     */
+    private function requestOptedIntoRememberMe(ServerRequestInterface $request, string $parameter): bool
+    {
+        $body = $request->getParsedBody();
+        $value = is_array($body) ? ($body[$parameter] ?? null) : null;
+
+        if (null === $value) {
+            $value = $request->getQueryParams()[$parameter] ?? null;
+        }
+
+        return null !== $value && filter_var($value, FILTER_VALIDATE_BOOL);
     }
 
     /**

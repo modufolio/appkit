@@ -39,6 +39,13 @@ class ApiKeyToken extends AbstractToken
 
     public function __unserialize(array $data): void
     {
+        // Block gadget-chain "trampolines": a forged payload placing an object
+        // in a string slot (firewallName, apiKey) would otherwise fire its
+        // __toString when assigned to the typed property.
+        if (($data[1] ?? null) instanceof \Stringable || ($data[2] ?? null) instanceof \Stringable) {
+            throw new \BadMethodCallException('Cannot unserialize '.self::class);
+        }
+
         [, $this->firewallName, $this->apiKey, $parentData] = $data;
         $parentData = \is_array($parentData) ? $parentData : unserialize($parentData);
         parent::__unserialize($parentData);

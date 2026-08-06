@@ -26,6 +26,19 @@ class UploadedFileErrorHandler
     private const MIME_SNIFF_BYTES = 65536;
 
     /**
+     * Extensions that must never be written by saveTo() unless the caller opts
+     * out explicitly. These are server-executable or config files that lead to
+     * remote code execution when dropped in a web-served directory. The check is
+     * a last-line default; content-type validation (isImage/hasMimeType) is still
+     * the primary defense.
+     */
+    private const DANGEROUS_EXTENSIONS = [
+        'php', 'php3', 'php4', 'php5', 'php7', 'php8', 'phps', 'pht', 'phtml', 'phar',
+        'shtml', 'cgi', 'pl', 'py', 'rb', 'sh', 'bash', 'asp', 'aspx', 'jsp', 'jspx',
+        'htaccess', 'htpasswd', 'ini', 'exe', 'com', 'bat', 'cmd', 'dll', 'so', 'svg',
+    ];
+
+    /**
      * Create a new file wrapper.
      */
     public function __construct(UploadedFileInterface $file)
@@ -55,7 +68,7 @@ class UploadedFileErrorHandler
     public function hasExtension($extension, ?string $message = null): self
     {
         $extensions = is_array($extension) ? $extension : [$extension];
-        $fileExtension = pathinfo($this->file->getClientFilename(), PATHINFO_EXTENSION);
+        $fileExtension = pathinfo($this->file->getClientFilename() ?? '', PATHINFO_EXTENSION);
 
         if (!in_array(strtolower($fileExtension), array_map('strtolower', $extensions))) {
             $this->addError($message ?? sprintf(
@@ -156,11 +169,12 @@ class UploadedFileErrorHandler
      */
     public function matchesFilenamePattern(string $pattern, ?string $message = null): self
     {
-        if (!preg_match($pattern, $this->file->getClientFilename())) {
+        $clientFilename = $this->file->getClientFilename() ?? '';
+
+        if (!preg_match($pattern, $clientFilename)) {
             $this->addError($message ?? sprintf(
-                'Filename must match pattern %s. Got: %s.',
-                $pattern,
-                $this->file->getClientFilename()
+                'Filename does not match the required pattern. Got: %s.',
+                $clientFilename
             ));
         }
 
@@ -185,23 +199,48 @@ class UploadedFileErrorHandler
     /**
      * Save the file to a specific location.
      *
-     * @param string      $path     Where to save the file
-     * @param string|null $filename Optional filename (defaults to the original name)
+     * By default this refuses to write server-executable extensions (see
+     * DANGEROUS_EXTENSIONS) even if no explicit validator was chained, so a
+     * forgotten isImage()/hasExtension() call cannot silently drop a .php file
+     * into a web-served directory. Pass $allowUnsafeExtension = true only when
+     * you fully control and trust the target directory.
      *
-     * @throws \InvalidArgumentException If validation fails
+     * It also never overwrites an existing file: pass an explicit unique
+     * $filename (e.g. derived from a random token or DB id) for user uploads.
+     *
+     * @param string      $path                 Where to save the file
+     * @param string|null $filename             Optional filename (defaults to the original name)
+     * @param bool        $allowUnsafeExtension Opt out of the executable-extension denylist
+     *
+     * @throws \InvalidArgumentException If validation fails, the extension is unsafe, or the target exists
      */
-    public function saveTo(string $path, ?string $filename = null): self
+    public function saveTo(string $path, ?string $filename = null, bool $allowUnsafeExtension = false): self
     {
         if ($this->hasErrors) {
             throw new \InvalidArgumentException('Cannot save file due to validation errors: '.implode(', ', $this->errors));
         }
 
-        $filename = F::safeName($filename ?? $this->file->getClientFilename());
+        $filename = F::safeName($filename ?? $this->file->getClientFilename() ?? '');
+
+        if ('' === $filename) {
+            throw new \InvalidArgumentException('Cannot save file: resolved filename is empty.');
+        }
+
+        $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+
+        if (!$allowUnsafeExtension && in_array($extension, self::DANGEROUS_EXTENSIONS, true)) {
+            throw new \InvalidArgumentException(sprintf('Refusing to save file with a potentially executable extension ".%s". Validate the upload (e.g. isImage()) and store it under a safe extension.', $extension));
+        }
+
         $fullPath = rtrim($path, '/').'/'.$filename;
 
+        if (file_exists($fullPath)) {
+            throw new \InvalidArgumentException(sprintf('Refusing to overwrite existing file: %s', $fullPath));
+        }
+
         // Create directory if it doesn't exist
-        if (!is_dir($path)) {
-            mkdir($path, 0755, true);
+        if (!is_dir($path) && !mkdir($path, 0755, true) && !is_dir($path)) {
+            throw new \RuntimeException(sprintf('Failed to create upload directory: %s', $path));
         }
 
         $this->file->moveTo($fullPath);

@@ -15,18 +15,43 @@ namespace Modufolio\Appkit\Security\BruteForce;
  */
 class RedisBruteForceProtection implements BruteForceProtectionInterface
 {
+    /**
+     * Atomic record-failure: append a unique failure marker, prune the window,
+     * refresh the TTL, count, and lock if over threshold — all in one round trip
+     * so concurrent requests can't each read a sub-threshold count and slip past.
+     *
+     * KEYS[1] failures sorted set, KEYS[2] lock key.
+     * ARGV: 1 now, 2 unique member, 3 cutoff, 4 windowDuration, 5 maxAttempts,
+     *       6 lockoutDuration, 7 lockValue.
+     */
+    private const RECORD_FAILURE_LUA = <<<'LUA'
+        redis.call('ZADD', KEYS[1], ARGV[1], ARGV[2])
+        redis.call('ZREMRANGEBYSCORE', KEYS[1], '-inf', ARGV[3])
+        redis.call('EXPIRE', KEYS[1], ARGV[4])
+        local count = redis.call('ZCOUNT', KEYS[1], ARGV[3], '+inf')
+        if count >= tonumber(ARGV[5]) then
+            redis.call('SETEX', KEYS[2], ARGV[6], ARGV[7])
+        end
+        return count
+        LUA;
+
     private \Redis $redis;
     private string $keyPrefix;
     private int $maxAttempts;
+    private int $accountMaxAttempts;
     private int $lockoutDuration; // seconds
     private int $windowDuration; // seconds - time window for counting failures
 
     /**
-     * @param \Redis $redis           Redis instance (already connected)
-     * @param string $keyPrefix       Key prefix for Redis keys (default: 'bruteforce:')
-     * @param int    $maxAttempts     Maximum failed attempts before lockout (default: 5)
-     * @param int    $lockoutDuration Lockout duration in seconds (default: 900 = 15 minutes)
-     * @param int    $windowDuration  Time window for counting failures in seconds (default: 300 = 5 minutes)
+     * @param \Redis   $redis              Redis instance (already connected)
+     * @param string   $keyPrefix          Key prefix for Redis keys (default: 'bruteforce:')
+     * @param int      $maxAttempts        Max failed attempts per (account + IP) before lockout (default: 5)
+     * @param int      $lockoutDuration    Lockout duration in seconds (default: 900 = 15 minutes)
+     * @param int      $windowDuration     Time window for counting failures in seconds (default: 300 = 5 minutes)
+     * @param int|null $accountMaxAttempts Max failed attempts per account across ALL IPs before the account
+     *                                     locks. Defends against distributed / IP-rotating guessing that the
+     *                                     per-IP counter alone cannot see. Higher than $maxAttempts so a single
+     *                                     source can't trivially lock a victim out. Null defaults to 5 * $maxAttempts.
      */
     public function __construct(
         \Redis $redis,
@@ -34,10 +59,12 @@ class RedisBruteForceProtection implements BruteForceProtectionInterface
         int $maxAttempts = 5,
         int $lockoutDuration = 900,
         int $windowDuration = 300,
+        ?int $accountMaxAttempts = null,
     ) {
         $this->redis = $redis;
         $this->keyPrefix = $keyPrefix;
         $this->maxAttempts = $maxAttempts;
+        $this->accountMaxAttempts = $accountMaxAttempts ?? (5 * $maxAttempts);
         $this->lockoutDuration = $lockoutDuration;
         $this->windowDuration = $windowDuration;
 
@@ -51,40 +78,37 @@ class RedisBruteForceProtection implements BruteForceProtectionInterface
 
     public function recordFailure(string $identifier, ?string $ipAddress = null): void
     {
-        $key = $this->generateKey($identifier, $ipAddress);
-        $lockKey = $this->getLockKey($key);
-        $failuresKey = $this->getFailuresKey($key);
-
         $now = time();
-
-        // Add failure timestamp to sorted set (score = timestamp)
-        // This allows us to query by time range
-        $this->redis->zAdd($failuresKey, $now, (string) $now);
-
-        // Remove old failures outside the window
         $cutoff = $now - $this->windowDuration;
-        $this->redis->zRemRangeByScore($failuresKey, '-inf', (string) $cutoff);
 
-        // Set expiration on failures key to auto-cleanup
-        $this->redis->expire($failuresKey, $this->windowDuration);
+        foreach ($this->counters($identifier, $ipAddress) as [$key, $threshold]) {
+            // Unique member so multiple failures in the same second are all
+            // counted (a bare timestamp member would collapse them into one).
+            $member = $now.'-'.bin2hex(random_bytes(8));
 
-        // Count failures in the current window
-        $failureCount = (int) $this->redis->zCount($failuresKey, (string) $cutoff, '+inf');
-
-        // If we've exceeded max attempts, set lockout
-        if ($failureCount >= $this->maxAttempts) {
-            $this->redis->setex($lockKey, $this->lockoutDuration, (string) ($now + $this->lockoutDuration));
+            $this->redis->eval(
+                self::RECORD_FAILURE_LUA,
+                [
+                    $this->getFailuresKey($key),
+                    $this->getLockKey($key),
+                    (string) $now,
+                    $member,
+                    (string) $cutoff,
+                    (string) $this->windowDuration,
+                    (string) $threshold,
+                    (string) $this->lockoutDuration,
+                    (string) ($now + $this->lockoutDuration),
+                ],
+                2,
+            );
         }
     }
 
     public function recordSuccess(string $identifier, ?string $ipAddress = null): void
     {
-        $key = $this->generateKey($identifier, $ipAddress);
-        $lockKey = $this->getLockKey($key);
-        $failuresKey = $this->getFailuresKey($key);
-
-        // Delete both the failures and lock on successful authentication
-        $this->redis->del($failuresKey, $lockKey);
+        foreach ($this->counters($identifier, $ipAddress) as [$key]) {
+            $this->redis->del($this->getFailuresKey($key), $this->getLockKey($key));
+        }
     }
 
     public function isLocked(string $identifier, ?string $ipAddress = null): bool
@@ -94,42 +118,58 @@ class RedisBruteForceProtection implements BruteForceProtectionInterface
 
     public function getFailureCount(string $identifier, ?string $ipAddress = null): int
     {
-        $key = $this->generateKey($identifier, $ipAddress);
-        $failuresKey = $this->getFailuresKey($key);
-
         $now = time();
         $cutoff = $now - $this->windowDuration;
 
-        // Count failures within the window using sorted set score range
-        $count = $this->redis->zCount($failuresKey, (string) $cutoff, '+inf');
+        $max = 0;
+        foreach ($this->counters($identifier, $ipAddress) as [$key]) {
+            $count = (int) $this->redis->zCount($this->getFailuresKey($key), (string) $cutoff, '+inf');
+            $max = max($max, $count);
+        }
 
-        return (int) $count;
+        return $max;
     }
 
     public function getRemainingLockoutTime(string $identifier, ?string $ipAddress = null): int
     {
-        $key = $this->generateKey($identifier, $ipAddress);
-        $lockKey = $this->getLockKey($key);
+        $now = time();
 
-        $lockedUntil = $this->redis->get($lockKey);
-
-        if (false === $lockedUntil) {
-            return 0;
+        $remaining = 0;
+        foreach ($this->counters($identifier, $ipAddress) as [$key]) {
+            $lockedUntil = $this->redis->get($this->getLockKey($key));
+            if (false !== $lockedUntil) {
+                $remaining = max($remaining, (int) $lockedUntil - $now);
+            }
         }
-
-        $remaining = (int) $lockedUntil - time();
 
         return max(0, $remaining);
     }
 
     public function reset(string $identifier, ?string $ipAddress = null): void
     {
-        $key = $this->generateKey($identifier, $ipAddress);
-        $lockKey = $this->getLockKey($key);
-        $failuresKey = $this->getFailuresKey($key);
+        foreach ($this->counters($identifier, $ipAddress) as [$key]) {
+            $this->redis->del($this->getFailuresKey($key), $this->getLockKey($key));
+        }
+    }
 
-        // Delete both failures and lock
-        $this->redis->del($failuresKey, $lockKey);
+    /**
+     * The set of independent counters a failure/check fans out to.
+     *
+     * Each entry is [hashedKey, threshold]:
+     *  - the account-wide counter (IP-independent) at $accountMaxAttempts;
+     *  - the tighter per-(account + IP) counter at $maxAttempts, when an IP is known.
+     *
+     * @return list<array{string, int}>
+     */
+    private function counters(string $identifier, ?string $ipAddress): array
+    {
+        $counters = [[$this->generateKey($identifier, null), $this->accountMaxAttempts]];
+
+        if (null !== $ipAddress) {
+            $counters[] = [$this->generateKey($identifier, $ipAddress), $this->maxAttempts];
+        }
+
+        return $counters;
     }
 
     /**
@@ -168,11 +208,12 @@ class RedisBruteForceProtection implements BruteForceProtectionInterface
      * Example: redis://password@localhost:6379/1
      * Example: redis:///var/run/redis.sock
      *
-     * @param string $dsn             Redis connection DSN
-     * @param string $keyPrefix       Key prefix for Redis keys
-     * @param int    $maxAttempts     Maximum failed attempts
-     * @param int    $lockoutDuration Lockout duration in seconds
-     * @param int    $windowDuration  Window duration in seconds
+     * @param string   $dsn                Redis connection DSN
+     * @param string   $keyPrefix          Key prefix for Redis keys
+     * @param int      $maxAttempts        Maximum failed attempts
+     * @param int      $lockoutDuration    Lockout duration in seconds
+     * @param int      $windowDuration     Window duration in seconds
+     * @param int|null $accountMaxAttempts Max failed attempts per account across all IPs; null defaults to 5 * $maxAttempts
      *
      * @throws \RuntimeException If Redis extension is not available or connection fails
      */
@@ -182,6 +223,7 @@ class RedisBruteForceProtection implements BruteForceProtectionInterface
         int $maxAttempts = 5,
         int $lockoutDuration = 900,
         int $windowDuration = 300,
+        ?int $accountMaxAttempts = null,
     ): self {
         if (!extension_loaded('redis')) {
             throw new \RuntimeException('Redis extension (phpredis) is not installed. Install it or use FileBruteForceProtection instead.');
@@ -233,6 +275,6 @@ class RedisBruteForceProtection implements BruteForceProtectionInterface
             }
         }
 
-        return new self($redis, $keyPrefix, $maxAttempts, $lockoutDuration, $windowDuration);
+        return new self($redis, $keyPrefix, $maxAttempts, $lockoutDuration, $windowDuration, $accountMaxAttempts);
     }
 }

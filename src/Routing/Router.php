@@ -61,6 +61,12 @@ class Router implements RouterInterface, ResetInterface
             'debug' => false,
             'resource_type' => null,
             'strict_requirements' => true,
+            // Allowlist of hostnames the router may take from the incoming request
+            // when building absolute URLs. Empty = trust the request Host header
+            // (fine behind a trusted proxy/load balancer that pins Host, unsafe
+            // otherwise). Populate it in production to block Host-header poisoning
+            // of generated links (e.g. password-reset URLs). Compared case-insensitively.
+            'trusted_hosts' => [],
         ], $this->options);
     }
 
@@ -195,6 +201,11 @@ class Router implements RouterInterface, ResetInterface
     private function ensureContext(ServerRequestInterface $request): void
     {
         $uri = $request->getUri();
+        $scheme = strtolower($uri->getScheme());
+        $host = $uri->getHost();
+        $port = $uri->getPort();
+
+        $this->assertHostTrusted($host);
 
         if (null === $this->context) {
             $this->setContext(new RequestContext());
@@ -202,12 +213,42 @@ class Router implements RouterInterface, ResetInterface
 
         $this->context
             ->setMethod($request->getMethod())
-            ->setHost($uri->getHost())
-            ->setScheme($uri->getScheme())
-            ->setHttpPort($uri->getPort() ?: 80)
-            ->setHttpsPort($uri->getPort() ?: 443)
+            ->setHost($host)
+            ->setScheme($scheme)
+            // Only apply the request's port to the scheme actually in use; the
+            // other scheme keeps its standard default. Setting both to the same
+            // incoming port made an HTTP request on :8080 generate HTTPS URLs on
+            // :8080. Both are reset every request so a stale port cannot carry
+            // over in long-running workers.
+            ->setHttpPort('http' === $scheme ? ($port ?: 80) : 80)
+            ->setHttpsPort('https' === $scheme ? ($port ?: 443) : 443)
             ->setPathInfo($uri->getPath())
             ->setQueryString($uri->getQuery());
+    }
+
+    /**
+     * Reject a request Host that is not in the configured allowlist.
+     *
+     * A no-op when 'trusted_hosts' is empty (opt-in). When configured, an
+     * unlisted host throws instead of being propagated into generated URLs.
+     */
+    private function assertHostTrusted(string $host): void
+    {
+        $trusted = $this->options['trusted_hosts'] ?? [];
+
+        if ([] === $trusted) {
+            return;
+        }
+
+        $host = strtolower($host);
+
+        foreach ($trusted as $trustedHost) {
+            if ($host === strtolower((string) $trustedHost)) {
+                return;
+            }
+        }
+
+        throw new \RuntimeException(sprintf('Untrusted request host "%s".', $host));
     }
 
     /**

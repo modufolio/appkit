@@ -63,6 +63,14 @@ class TwoFactorToken extends AbstractToken
 
     public function __unserialize(array $data): void
     {
+        // Block gadget-chain "trampolines": a forged payload placing an object
+        // in a string slot would otherwise fire its __toString — slot 0 when
+        // assigned to $firewallName, slot 1 when coerced by the DateTimeImmutable
+        // constructor below.
+        if (($data[0] ?? null) instanceof \Stringable || ($data[1] ?? null) instanceof \Stringable) {
+            throw new \BadMethodCallException('Cannot unserialize '.self::class);
+        }
+
         [$this->firewallName, $createdAt, $parentData] = $data;
         $parentData = \is_array($parentData) ? $parentData : unserialize($parentData);
         parent::__unserialize($parentData);

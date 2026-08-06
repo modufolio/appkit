@@ -43,6 +43,13 @@ class RememberMeToken extends AbstractToken
 
     public function __unserialize(array $data): void
     {
+        // Block gadget-chain "trampolines": a forged payload placing an object
+        // in a string slot (firewallName, secret) would otherwise fire its
+        // __toString when assigned to the typed property.
+        if (($data[1] ?? null) instanceof \Stringable || ($data[2] ?? null) instanceof \Stringable) {
+            throw new \BadMethodCallException('Cannot unserialize '.self::class);
+        }
+
         [, $this->firewallName, $this->secret, $parentData] = $data;
         parent::__unserialize($parentData);
     }
