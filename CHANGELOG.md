@@ -5,6 +5,58 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2026-08-07
+
+### Upgrading
+
+- `bootstrap.php` must now publish the environment, or `.env` is never read and
+  every variable silently falls back to its default:
+
+  ```php
+  (new Env())->fromFile(__DIR__ . '/.env')->freeze();
+  ```
+
+### Security
+
+- **`env()` returned the string `"false"` as a truthy value.** The documented
+  `"true"`/`"false"` boolean cast only ran for values parsed out of the `.env`
+  file, so a real environment variable — `COOKIE_SECURE=false` via
+  `fastcgi_param`, a container env, or `$_SERVER` — came through as the string
+  `"false"`, which is truthy. Any caller writing `(bool) env('COOKIE_SECURE')`
+  silently got `true`. Casting now applies to every source. (`src/Core/Env.php`)
+
+- **The remember-me cookie no longer drifts from the session cookie.** Its
+  `cookie_secure` option was hardcoded while the session cookie read
+  `COOKIE_SECURE`, so the two could disagree about HTTP vs HTTPS. Both now read
+  the same variable, matching how Symfony's `RememberMeFactory` inherits the
+  flag from `framework.session`. (`docs/security.md`)
+
+### Added
+
+- **`Env`, a typed reader for environment variables.** `env()` with no arguments
+  returns it: `getBool()`, `getInt()`, `getFloat()`, `getString()`, `has()`, and
+  `getRequired()` for secrets, modelled on Symfony's env var processors. A value
+  that cannot be read as the requested type raises rather than being coerced to
+  `0`/`false`, so a typo in `.env` fails at boot instead of quietly disabling a
+  setting. (`src/Core/Env.php`)
+
+### Changed
+
+- **A malformed `.env` now fails at boot instead of vanishing.** `parse_ini_file()`
+  rejects the entire file on one bad line, and the previous code swallowed that
+  into an empty result — so a single unquoted newline dropped every variable and
+  resurfaced as a misleading "required variable is not set" for a secret that was
+  present in the file. The parse error is now thrown, naming the file and the
+  offending line. `export FOO=bar` is also handled: the prefix used to end up in
+  the key name (`"export FOO"`), making the variable unreachable. (`src/Core/Env.php`)
+
+- **The environment is loaded explicitly and frozen.** `bootstrap.php` now calls
+  `(new Env())->fromFile(__DIR__ . '/.env')->freeze()`; `Env` no longer sniffs
+  the `BASE_DIR` constant to find the file. Chain `fromFile()` to layer files
+  (later wins) before freezing — afterwards the reader is immutable and
+  published process-wide. A process without a bootstrap still resolves `$_ENV`
+  and `$_SERVER`. `env('KEY')` is unchanged. (`src/Core/Env.php`, `bootstrap.php`)
+
 ## [0.6.1] - 2026-08-03
 
 ### Security
