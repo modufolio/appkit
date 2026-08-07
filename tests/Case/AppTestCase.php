@@ -354,11 +354,22 @@ abstract class AppTestCase extends BaseTestCase
             return Stream::create($raw);
         }
 
-        return match ($contentType) {
-            'application/json' => Stream::create(json_encode($data, JSON_THROW_ON_ERROR)),
-            'application/x-www-form-urlencoded' => Stream::create(http_build_query($data)),
-            default => Stream::create(''), // PSR-7 compliant empty stream
-        };
+        // Drop any parameters (`; charset=utf-8`) and honour the RFC 6839
+        // structured syntax suffix, so a media type like JSON:API's
+        // application/vnd.api+json is encoded as JSON rather than silently
+        // going out as an empty body — which surfaces far away as the endpoint
+        // rejecting the request for invalid JSON.
+        $mediaType = strtolower(trim(explode(';', $contentType ?? '')[0]));
+
+        if ('application/json' === $mediaType || str_ends_with($mediaType, '+json')) {
+            return Stream::create(json_encode($data, JSON_THROW_ON_ERROR));
+        }
+
+        if ('application/x-www-form-urlencoded' === $mediaType) {
+            return Stream::create(http_build_query($data));
+        }
+
+        return Stream::create(''); // PSR-7 compliant empty stream
     }
 
     // ----------------------------
