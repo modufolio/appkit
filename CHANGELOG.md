@@ -5,6 +5,81 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2026-08-15
+
+### Upgrading
+
+- `AppInterface` gained `csrfTokenManager(): CsrfTokenManagerInterface`. Apps
+  extending `Kernel` inherit a working default (a per-call
+  `new CsrfTokenManager($this->session())` — stateless, so nothing to reset)
+  and most apps already declared an identical memoized override, which now
+  simply takes precedence. Only classes implementing `AppInterface` *without*
+  extending `Kernel` must add the method.
+
+### Fixed
+
+- **A stale remember-me cookie no longer flashes "Invalid credentials." on
+  every request.** The cookie is an ambient credential — the browser presents
+  it on its own — so when it stops validating (expired, password changed,
+  `secret` rotated) the firewall treated every page load as a failed login and
+  greeted anonymous visitors with an error until the cookie expired. A dead
+  cookie is now expired on the response (`Max-Age=0`) and the request continues
+  anonymously: no flash, remaining authenticators still run, public paths stay
+  reachable. (`src/Core/AppSecurity.php`)
+
+- **A freshly issued remember-me cookie can no longer be clobbered by the
+  expiry of a stale one.** When a stale cookie and a successful opt-in login
+  meet in the same request, both a clearing header and a new cookie are sent —
+  and with duplicate `Set-Cookie` headers for one name the browser honors the
+  last. The clearing header is now always attached before the fresh cookie.
+  (`src/Core/AppSecurity.php`)
+
+### Security
+
+- **Authentication failures now flash the exception's `getMessageKey()` instead
+  of a hardcoded string — with account-status detail deliberately hidden.**
+  `getMessageKey()` is the user-safe half of the exception contract:
+  `getMessage()` may carry internal detail for logs. CSRF and brute-force
+  failures now surface their own accurate messages, while
+  locked/disabled/expired accounts (`AccountStatusException`) read as
+  "Invalid credentials.", so a login response never confirms that an account
+  exists. The original exception is preserved as `getPrevious()` for logging.
+  (`src/Core/AppSecurity.php`, `src/Security/Authenticator/FormLoginAuthenticator.php`)
+
+- **A failed interactive login also expires any remember-me cookie riding along
+  on the request.** (`src/Core/AppSecurity.php`)
+
+### Added
+
+- **`TooManyLoginAttemptsException`** — thrown by the brute-force throttle in
+  `FormLoginAuthenticator`, with a display-safe message key ("Too many failed
+  login attempts. Please try again later."). Previously the throttle threw a
+  generic `AuthenticationException`. (`src/Security/Exception/TooManyLoginAttemptsException.php`)
+
+- **`InvalidCsrfTokenException::getMessageKey()`** — "Invalid CSRF token.",
+  so CSRF failures no longer masquerade as bad credentials.
+  (`src/Security/Exception/InvalidCsrfTokenException.php`)
+
+- **`AppInterface::csrfTokenManager()` with a `Kernel` default** — the firewall
+  (logout CSRF check, state-changing CSRF enforcement, login token rotation)
+  now calls it directly instead of `get()` + `assert()` against the container.
+  (`src/Core/AppInterface.php`, `src/Core/Kernel.php`, `src/Core/AppSecurity.php`)
+
+- Docs: new [Authentication failure behaviour](docs/security.md) section
+  (interactive vs ambient failures, the `getMessageKey()` contract, enumeration
+  guards) and a remember-me subsection on what happens when the cookie stops
+  validating. (`docs/security.md`, `docs/authenticators.md`)
+
+### Changed
+
+- **`FormLoginAuthenticator` throws specific exception subclasses.** Credential
+  failures (wrong password, unknown user, empty fields) throw
+  `BadCredentialsException`; unknown users stay deliberately indistinguishable
+  from wrong passwords. `unauthorizedResponse()` flashes `getMessageKey()`,
+  replacing the private `publicErrorMessage()` map — the CSRF flash text
+  changes from "Invalid security token. Please try again." to
+  "Invalid CSRF token.". (`src/Security/Authenticator/FormLoginAuthenticator.php`)
+
 ## [0.7.0] - 2026-08-07
 
 ### Upgrading
