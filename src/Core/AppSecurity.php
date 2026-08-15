@@ -8,7 +8,9 @@ use Modufolio\Appkit\Exception\NotFoundException;
 use Modufolio\Appkit\Security\Authenticator\RememberMeAuthenticator;
 use Modufolio\Appkit\Security\Csrf\CsrfTokenManagerInterface;
 use Modufolio\Appkit\Security\Exception\AccessDeniedException;
+use Modufolio\Appkit\Security\Exception\AccountStatusException;
 use Modufolio\Appkit\Security\Exception\AuthenticationException;
+use Modufolio\Appkit\Security\Exception\BadCredentialsException;
 use Modufolio\Appkit\Security\Exception\TwoFactorRequiredException;
 use Modufolio\Appkit\Security\Exception\UnsupportedUserException;
 use Modufolio\Appkit\Security\Exception\UserNotFoundException;
@@ -110,11 +112,16 @@ trait AppSecurity
             return $this->controllerResolver($request);
         }
 
-        $result = $this->tryAuthenticators($request, $config, $firewallName, $stateless);
+        // Set-Cookie headers expiring ambient credentials (remember-me cookies)
+        // that failed to validate — attached to whichever response this request
+        // produces, otherwise the browser re-presents the dead cookie forever.
+        $staleCookies = [];
+
+        $result = $this->tryAuthenticators($request, $config, $firewallName, $stateless, $staleCookies);
 
         // Handle ResponseInterface (e.g., 2FA redirect)
         if ($result instanceof ResponseInterface) {
-            return $result;
+            return $this->withStaleCookiesExpired($result, $staleCookies);
         }
 
         // Handle TokenInterface (successful authentication)
@@ -127,7 +134,7 @@ trait AppSecurity
             if ($result instanceof RememberMeToken) {
                 $csrfFailure = $this->enforceCsrf($request, $config);
                 if (null !== $csrfFailure) {
-                    return $csrfFailure;
+                    return $this->withStaleCookiesExpired($csrfFailure, $staleCookies);
                 }
             }
 
@@ -150,12 +157,16 @@ trait AppSecurity
                 // data, so any pre-auth CSRF tokens that may have leaked
                 // (referrer logs, shared-machine browser history) would otherwise
                 // remain valid after authentication.
-                $this->get(CsrfTokenManagerInterface::class)->clear();
+                $this->csrfTokenManager()->clear();
 
                 $session->save();
             }
 
-            $response = $this->controllerResolver($request);
+            // Expire stale cookies BEFORE issuing a fresh one: with duplicate
+            // Set-Cookie headers for the same name, the browser honors the
+            // last one — the expiry must not clobber a cookie minted by the
+            // login that just succeeded.
+            $response = $this->withStaleCookiesExpired($this->controllerResolver($request), $staleCookies);
 
             // Auto-issue the remember-me cookie on a fresh interactive login,
             // so no controller has to assemble a Set-Cookie header itself.
@@ -173,10 +184,25 @@ trait AppSecurity
         // instead of being bounced to the entry point — the authenticators ran
         // first, so a remember-me cookie still signs the visitor in.
         if ($this->isPublicRequest($request, $firewallName)) {
-            return $this->controllerResolver($request);
+            return $this->withStaleCookiesExpired($this->controllerResolver($request), $staleCookies);
         }
 
-        return $this->handleEntryPointRedirect($config, $stateless);
+        return $this->withStaleCookiesExpired($this->handleEntryPointRedirect($config, $stateless), $staleCookies);
+    }
+
+    /**
+     * Attach Set-Cookie headers that expire ambient credentials which failed
+     * validation during this request (collected by tryAuthenticators()).
+     *
+     * @param list<string> $staleCookies
+     */
+    private function withStaleCookiesExpired(ResponseInterface $response, array $staleCookies): ResponseInterface
+    {
+        foreach ($staleCookies as $header) {
+            $response = $response->withAddedHeader('Set-Cookie', $header);
+        }
+
+        return $response;
     }
 
     /**
@@ -329,8 +355,7 @@ trait AppSecurity
      */
     private function assertValidLogoutCsrfToken(ServerRequestInterface $request, array $config): void
     {
-        $manager = $this->get(CsrfTokenManagerInterface::class);
-        assert($manager instanceof CsrfTokenManagerInterface);
+        $manager = $this->csrfTokenManager();
 
         $body = $request->getParsedBody();
         $bodyToken = is_array($body) ? ($body['_csrf_token'] ?? null) : null;
@@ -406,8 +431,7 @@ trait AppSecurity
             return null;
         }
 
-        $manager = $this->get(CsrfTokenManagerInterface::class);
-        assert($manager instanceof CsrfTokenManagerInterface);
+        $manager = $this->csrfTokenManager();
 
         // A form layer that names its field differently, namespaces it
         // (`contact[_token]`) or keys the token by form rather than by firewall
@@ -547,6 +571,29 @@ trait AppSecurity
     /**
      * Try each configured authenticator until one succeeds.
      *
+     * Failures are handled by credential kind:
+     *
+     *  - Ambient credentials (a remember-me cookie the browser attaches on its
+     *    own) fail silently: nobody typed anything, so a dead cookie — expired,
+     *    password changed, secret rotated — is not a failed login attempt and
+     *    must not surface an error on every request until the cookie expires.
+     *    The cookie is expired via $staleCookies and the request continues to
+     *    the remaining authenticators, then anonymously.
+     *
+     *  - Interactive credentials (a submitted login form) flash the exception's
+     *    getMessageKey() — the user-safe message, while getMessage() may carry
+     *    internal detail for logs. Account-status failures (locked, disabled,
+     *    expired) deliberately read as 'Invalid credentials.' so the response
+     *    never confirms that an account exists. A failed interactive login also
+     *    expires any remember-me cookie riding along on the request.
+     *
+     * See docs/security.md § "Authentication failure behaviour".
+     *
+     * @param list<string> $staleCookies Filled with Set-Cookie headers that
+     *                                   expire remember-me cookies invalidated
+     *                                   by this attempt; the caller attaches
+     *                                   them to whatever response it returns
+     *
      * @throws \Exception
      */
     private function tryAuthenticators(
@@ -554,6 +601,7 @@ trait AppSecurity
         array $config,
         string $firewallName,
         bool $stateless,
+        array &$staleCookies = [],
     ): TokenInterface|ResponseInterface|null {
         // Iterate in the order the firewall declares its authenticators, not the
         // order of the global registry. array_intersect_key() would key off the
@@ -578,6 +626,13 @@ trait AppSecurity
 
                     return $authenticator->createToken($user, $firewallName);
                 } catch (AuthenticationException $e) {
+                    // Ambient credential: expire the dead cookie, continue anonymously.
+                    if ($authenticator instanceof RememberMeAuthenticator) {
+                        $staleCookies[] = $authenticator->buildClearCookieHeader();
+
+                        continue;
+                    }
+
                     if (!$stateless && isset($config['entry_point'])) {
                         // If 2FA is required, create partial auth token and redirect to /2fa
                         if ($e instanceof TwoFactorRequiredException) {
@@ -594,7 +649,16 @@ trait AppSecurity
                             return $authenticator->unauthorizedResponse($request, $e);
                         }
 
-                        $this->session()->getFlashBag()->add('error', 'Invalid credentials.');
+                        // Account-status detail must not confirm the account exists.
+                        $publicException = $e instanceof AccountStatusException
+                            ? new BadCredentialsException('Account status rejected', 0, $e)
+                            : $e;
+                        $this->session()->getFlashBag()->add('error', $publicException->getMessageKey());
+
+                        // A failed interactive login also invalidates remember-me cookies.
+                        foreach ($this->rememberMeAuthenticators($config) as $rememberMe) {
+                            $staleCookies[] = $rememberMe->buildClearCookieHeader();
+                        }
 
                         return null;
                     }

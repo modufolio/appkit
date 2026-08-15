@@ -6,6 +6,7 @@ namespace Modufolio\Appkit\Core;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Modufolio\Appkit\Resolver\ParameterResolverInterface;
+use Modufolio\Appkit\Security\Csrf\CsrfTokenManagerInterface;
 use Modufolio\Appkit\Security\Token\TokenStorageInterface;
 use Modufolio\Appkit\Security\User\UserProviderInterface;
 use Psr\Container\ContainerInterface;
@@ -86,6 +87,8 @@ interface AppInterface extends ContainerInterface, RequestHandlerInterface, Rese
     public function tokenStorage(): TokenStorageInterface;
 
     public function userProvider(): UserProviderInterface;
+
+    public function csrfTokenManager(): CsrfTokenManagerInterface;
 
     // ============================================================================
     // ROUTING

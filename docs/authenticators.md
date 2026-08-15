@@ -193,7 +193,34 @@ $security->firewall('main', [
 
 ### Issuing the cookie after login
 
-The cookie is not set automatically. Issue it yourself in the login success handler or a dedicated controller method when the user checks "Remember me":
+The firewall issues the cookie automatically. When an interactive login (e.g. `form_login`) succeeds and the login request carries the opt-in parameter, the firewall attaches the signed `Set-Cookie` header to the response itself — no controller code required.
+
+The opt-in parameter defaults to `_remember_me` and is read from the login POST body first, then the query string. Any usual truthy encoding counts (`1`, `true`, `on`, or boolean `true`); an absent or falsey value means no cookie is issued, so ordinary logins are unaffected. A typical login form just adds:
+
+```html
+<label>
+    <input type="checkbox" name="_remember_me" value="1"> Remember me
+</label>
+```
+
+Rename the parameter via the authenticator's `remember_parameter` option:
+
+```php
+new RememberMeAuthenticator(
+    userProvider: $container->get(UserProviderInterface::class),
+    options: [
+        'secret'             => env()->getRequired('APP_SECRET'),
+        'remember_parameter' => 'remember', // default: '_remember_me'
+        // ...
+    ],
+);
+```
+
+Auto-issue only requires the `remember_me` authenticator to be listed on the firewall (as shown above). It is skipped for stateless firewalls, and a request authenticated purely by an existing remember-me cookie does not re-issue the cookie — only a fresh interactive login does.
+
+#### Manual issuance (advanced)
+
+If you need to mint the cookie outside the interactive login flow — for example right after programmatic registration — you can still build it yourself:
 
 ```php
 use Modufolio\Appkit\Security\Authenticator\RememberMeAuthenticator;
@@ -201,11 +228,21 @@ use Modufolio\Appkit\Security\Authenticator\RememberMeAuthenticator;
 // Retrieve the registered authenticator from the container
 $rememberMe = $this->get(RememberMeAuthenticator::class);
 
+$response = Response::redirect($urlGenerator->generate('dashboard'));
+
+// buildRememberMeCookieHeader() produces the complete Set-Cookie value
+return $response->withAddedHeader(
+    'Set-Cookie',
+    $rememberMe->buildRememberMeCookieHeader($user),
+);
+```
+
+For full control over the header, `generateRememberMeCookie()` returns just the signed value and `getCookieOptions()` the configured attributes:
+
+```php
 $cookieValue   = $rememberMe->generateRememberMeCookie($user);
 $cookieOptions = $rememberMe->getCookieOptions();
 
-// Attach as a Set-Cookie header on the response
-$response = Response::redirect($urlGenerator->generate('dashboard'));
 return $response->withAddedHeader('Set-Cookie', sprintf(
     '%s=%s; Expires=%s; Path=%s; SameSite=%s%s%s',
     $rememberMe->getCookieName(),
@@ -227,6 +264,10 @@ The cookie value is `base64(identifier:expires:hmac)`. The HMAC covers the ident
 - `hash_equals()` is used for the signature comparison — timing-safe.
 
 > **Secret rotation**: if you rotate `APP_SECRET`, all existing remember-me cookies are invalidated. Users will need to log in again.
+
+### When the cookie stops validating
+
+A remember-me cookie that fails validation is not treated as a failed login: the firewall silently expires it on the response and serves the request anonymously — no error message, no flash. Without this, a browser holding a dead cookie (password changed, secret rotated) would see *"Invalid credentials."* on every request until the cookie expired. See [Authentication failure behaviour](security.md#authentication-failure-behaviour).
 
 ## OAuth 2.1
 

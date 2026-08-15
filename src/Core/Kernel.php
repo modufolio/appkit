@@ -16,6 +16,8 @@ use Modufolio\Appkit\Exception\NotFoundException;
 use Modufolio\Appkit\Resolver\ParameterResolverInterface;
 use Modufolio\Appkit\Routing\Router;
 use Modufolio\Appkit\Routing\RouterInterface;
+use Modufolio\Appkit\Security\Csrf\CsrfTokenManager;
+use Modufolio\Appkit\Security\Csrf\CsrfTokenManagerInterface;
 use Modufolio\Appkit\Security\RoleHierarchy;
 use Modufolio\Appkit\Security\SecurityConfigurator;
 use Modufolio\Appkit\Security\Token\TokenStorageInterface;
@@ -391,6 +393,17 @@ abstract class Kernel implements AppInterface
         }
 
         return $this->state->getTokenStorage();
+    }
+
+    /**
+     * The manager is a thin stateless wrapper over the session (tokens live in
+     * the session itself), so constructing one per call is safe in long-running
+     * workers — no request-scoped state is cached across requests. Applications
+     * that want a memoized instance override this and reset it themselves.
+     */
+    public function csrfTokenManager(): CsrfTokenManagerInterface
+    {
+        return new CsrfTokenManager($this->session());
     }
 
     // ============================================================================

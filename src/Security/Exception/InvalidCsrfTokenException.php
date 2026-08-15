@@ -13,4 +13,9 @@ class InvalidCsrfTokenException extends AuthenticationException
     {
         parent::__construct($message, $code, $previous);
     }
+
+    public function getMessageKey(): string
+    {
+        return 'Invalid CSRF token.';
+    }
 }

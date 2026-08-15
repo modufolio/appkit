@@ -214,6 +214,19 @@ Add the `Secure` flag in production by setting `COOKIE_SECURE=true` in your envi
 
 If you also issue a remember-me cookie, read the same variable for its `cookie_secure` option (`env()->getBool('COOKIE_SECURE', true)`). Symfony's remember-me inherits this from the session config; AppKit's authenticators are configured independently, so nothing stops the two cookies from drifting apart. A remember-me cookie left with `Secure` on a plain-HTTP dev site is simply never sent back, and the opposite pairing leaks the credential over HTTP.
 
+## Authentication failure behaviour
+
+The firewall treats a failed login differently depending on who presented the credential: a person submitting a form (interactive), or the browser attaching a cookie on its own (ambient).
+
+**Interactive failures** — someone submitted a login form — flash the exception's `getMessageKey()` and redirect to the entry point. `getMessageKey()` is the user-safe half of the exception contract: `getMessage()` may carry internal detail destined for logs (*"User not found"*), while the key is always fit to display (*"Invalid credentials."*). Two deliberate obfuscations apply:
+
+- A user that does not exist produces the same message as a wrong password, so responses never reveal whether an email is registered.
+- Account-status failures (locked, disabled, expired — thrown by `UserChecker`) are also flashed as *"Invalid credentials."* — a distinct message would confirm to an attacker that the account exists. The original exception is preserved as `getPrevious()` for logging.
+
+**Ambient failures** — the browser presented a remember-me cookie on its own — are silent. Nobody typed anything, so a cookie that no longer validates (expired, password changed, `secret` rotated) is not a failed login attempt; flashing an error would accuse a visitor who never tried, on every request until the cookie expires. Instead the firewall expires the dead cookie on the response (`Max-Age=0`) and the request continues anonymously: remaining authenticators still run, public paths stay reachable, protected paths redirect to the entry point without a message.
+
+A failed interactive login also expires any remember-me cookie riding along on the request, and a successful login wins over the expiry of a stale one — the fresh cookie is always issued after the clearing header.
+
 ## Token deserialization whitelist
 
 AppKit's `TokenUnserializer` only deserialises a whitelist of classes from session-stored tokens. This prevents remote code execution via PHP unserialisation gadget chains.

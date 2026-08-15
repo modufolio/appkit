@@ -7,7 +7,9 @@ namespace Modufolio\Appkit\Security\Authenticator;
 use Modufolio\Appkit\Security\BruteForce\BruteForceProtectionInterface;
 use Modufolio\Appkit\Security\Csrf\CsrfTokenManagerInterface;
 use Modufolio\Appkit\Security\Exception\AuthenticationException;
+use Modufolio\Appkit\Security\Exception\BadCredentialsException;
 use Modufolio\Appkit\Security\Exception\InvalidCsrfTokenException;
+use Modufolio\Appkit\Security\Exception\TooManyLoginAttemptsException;
 use Modufolio\Appkit\Security\Exception\TwoFactorRequiredException;
 use Modufolio\Appkit\Security\Exception\UserNotFoundException;
 use Modufolio\Appkit\Security\Token\TokenInterface;
@@ -76,21 +78,24 @@ class FormLoginAuthenticator extends AbstractAuthenticator
         $this->validateCsrfToken($request);
 
         if ($this->bruteForce?->isLocked($identifier, $ipAddress)) {
-            throw new AuthenticationException('Too many failed login attempts. Try again later.');
+            throw new TooManyLoginAttemptsException('Too many failed login attempts. Try again later.');
         }
 
+        // Every credential failure throws BadCredentialsException so consumers
+        // of getMessageKey() surface 'Invalid credentials.'. A user that does
+        // not exist is deliberately indistinguishable from a wrong password.
         try {
             $user = $this->userProvider->loadUserByIdentifier($identifier);
         } catch (UserNotFoundException) {
             $this->verifyDummyPassword($password);
             $this->bruteForce?->recordFailure($identifier, $ipAddress);
-            throw new AuthenticationException('Invalid credentials');
+            throw new BadCredentialsException('User not found');
         }
 
         if (!$user instanceof PasswordAuthenticatedUserInterface) {
             $this->verifyDummyPassword($password);
             $this->bruteForce?->recordFailure($identifier, $ipAddress);
-            throw new AuthenticationException('Invalid credentials');
+            throw new BadCredentialsException('User is not password-authenticatable');
         }
 
         $valid = null !== $this->passwordHasher
@@ -99,7 +104,7 @@ class FormLoginAuthenticator extends AbstractAuthenticator
 
         if (!$valid) {
             $this->bruteForce?->recordFailure($identifier, $ipAddress);
-            throw new AuthenticationException('Invalid credentials');
+            throw new BadCredentialsException('Invalid password');
         }
 
         $this->upgradePasswordIfNeeded($user, $password);
@@ -148,8 +153,9 @@ class FormLoginAuthenticator extends AbstractAuthenticator
      * Handle unauthorized response for Inertia.js.
      *
      * Inertia expects redirects (303) for navigation and reads errors from
-     * session-flashed messages. The flashed message is intentionally generic
-     * so we don't leak whether a username exists.
+     * session-flashed messages. getMessageKey() is the user-safe message —
+     * a user that does not exist reads as 'Invalid credentials.', never as
+     * anything that leaks whether the username exists.
      */
     public function unauthorizedResponse(ServerRequestInterface $request, AuthenticationException $exception): ResponseInterface
     {
@@ -157,22 +163,13 @@ class FormLoginAuthenticator extends AbstractAuthenticator
             return Response::redirect($this->options['two_factor_path'], 303);
         }
 
-        $this->session->getFlashBag()->add('error', $this->publicErrorMessage($exception));
+        $this->session->getFlashBag()->add('error', $exception->getMessageKey());
 
         if ($this->isInertiaRequest($request)) {
             return Response::redirect($this->options['login_path'], 303);
         }
 
         return Response::redirect($this->options['login_path']);
-    }
-
-    private function publicErrorMessage(AuthenticationException $exception): string
-    {
-        if ($exception instanceof InvalidCsrfTokenException) {
-            return 'Invalid security token. Please try again.';
-        }
-
-        return 'Invalid credentials.';
     }
 
     private function isInertiaRequest(ServerRequestInterface $request): bool
@@ -192,7 +189,7 @@ class FormLoginAuthenticator extends AbstractAuthenticator
     {
         $parsedBody = $request->getParsedBody();
         if (!is_array($parsedBody)) {
-            throw new AuthenticationException('Username and password cannot be empty.');
+            throw new BadCredentialsException('Username and password cannot be empty.');
         }
 
         $username = $parsedBody[$this->options['username_parameter']] ?? '';
@@ -202,7 +199,7 @@ class FormLoginAuthenticator extends AbstractAuthenticator
         $password = is_string($password) ? $password : '';
 
         if ('' === $username || '' === $password) {
-            throw new AuthenticationException('Username and password cannot be empty.');
+            throw new BadCredentialsException('Username and password cannot be empty.');
         }
 
         return [$username, $password];
