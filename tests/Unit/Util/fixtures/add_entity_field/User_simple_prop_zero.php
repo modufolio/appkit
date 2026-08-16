@@ -13,7 +13,7 @@ class User
     #[ORM\Column()]
     private ?int $id = null;
 
-    #[ORM\Column(type: 'DECIMAL', precision: 6, scale: 0)]
+    #[ORM\Column(type: Types::DECIMAL, precision: 6, scale: 0)]
     private ?string $decimal = null;
 
     public function getId(): ?int

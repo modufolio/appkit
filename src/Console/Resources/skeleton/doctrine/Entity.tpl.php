@@ -17,8 +17,21 @@ class <?= $class_name."\n"; ?>
     #[ORM\Column]
     private ?int $id = null;
 
+    #[ORM\Column(type: Types::GUID, unique: true)]
+    private string $uuid;
+
+    public function __construct()
+    {
+        $this->uuid = Uuid::v7()->toRfc4122();
+    }
+
     public function getId(): ?int
     {
         return $this->id;
+    }
+
+    public function getUuid(): string
+    {
+        return $this->uuid;
     }
 }

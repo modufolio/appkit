@@ -13,7 +13,7 @@ class User
     #[ORM\Column()]
     private ?int $id = null;
 
-    #[ORM\Column(type: 'DATETIME_MUTABLE', nullable: true)]
+    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
     private ?\DateTimeInterface $createdAt = null;
 
     public function getId(): ?int

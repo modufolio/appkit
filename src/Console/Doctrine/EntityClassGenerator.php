@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Modufolio\Appkit\Console\Doctrine;
 
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\EntityRepository;
 use Modufolio\Appkit\Console\Generator;
 use Modufolio\Appkit\Console\Str;
 use Modufolio\Appkit\Util\ClassNameDetails;
 use Modufolio\Appkit\Util\UseStatementGenerator;
+use Symfony\Component\Uid\Uuid;
 
 final class EntityClassGenerator
 {
@@ -31,6 +33,8 @@ final class EntityClassGenerator
         $useStatements = new UseStatementGenerator([
             $repoClassDetails->getFullName(),
             ['Doctrine\\ORM\\Mapping' => 'ORM'],
+            Types::class,
+            Uuid::class,
         ]);
 
         $entityPath = $this->generator->generateClass(

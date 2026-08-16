@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modufolio\Appkit\Console\Doctrine;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\Mapping\ClassMetadata;
@@ -84,7 +85,11 @@ final class DoctrineHelper
         $reflection = new \ReflectionClass(Types::class);
         $constants = array_flip($reflection->getConstants());
 
-        return $constants[$columnType] ?? null;
+        if (!isset($constants[$columnType])) {
+            return null;
+        }
+
+        return \sprintf('Types::%s', $constants[$columnType]);
     }
 
     /**
@@ -111,7 +116,7 @@ final class DoctrineHelper
 
     public static function getPropertyTypeForColumn(string $columnType): ?string
     {
-        return match ($columnType) {
+        $propertyType = match ($columnType) {
             Types::STRING, Types::TEXT, Types::GUID, Types::BIGINT, Types::DECIMAL => 'string',
             'array', Types::SIMPLE_ARRAY, Types::JSON => 'array',
             Types::BOOLEAN => 'bool',
@@ -125,5 +130,20 @@ final class DoctrineHelper
             'ulid' => '\\'.Ulid::class,
             default => null,
         };
+
+        if (null !== $propertyType || !($registry = Type::getTypeRegistry())->has($columnType)) {
+            return $propertyType;
+        }
+
+        // infer the property type from the DBAL type's convertToPHPValue() return type
+        $returnType = (new \ReflectionClass(($registry->get($columnType))::class))
+            ->getMethod('convertToPHPValue')->getReturnType();
+
+        // union and intersection types are not supported
+        if (!$returnType instanceof \ReflectionNamedType) {
+            return null;
+        }
+
+        return $returnType->isBuiltin() ? $returnType->getName() : '\\'.$returnType->getName();
     }
 }
