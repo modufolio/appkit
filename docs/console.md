@@ -46,6 +46,13 @@ $console->run();
 | `debug:router [name]` | List all registered routes, optionally filtered by name |
 | `debug:controllers` | List controllers with their resolved dependencies |
 
+### Security commands
+
+| Command | Description |
+|---------|-------------|
+| `debug:firewall [name]` | Show firewalls, their restrictions, access-control rules and the role hierarchy; pass a name to detail one firewall |
+| `security:validate` | Validate firewall and access-control configuration; exits non-zero on the first problem (run it in CI/at deploy — see [Security](security.md#validating-configuration)) |
+
 ### ORM / schema commands
 
 | Command | Description |

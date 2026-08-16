@@ -32,9 +32,14 @@ without Symfony's full kernel, bundle system, and compile step.
   `ApplicationState` per request. The worker loop stays in your application
   rather than behind a runtime — see
   [modufolio/appkit-roadrunner](https://github.com/modufolio/appkit-roadrunner).
-- **Security hardening already wired.** CSRF rotation on login,
-  session-fixation defence, token unserialize allowlist, password
-  timing-parity dummy, brute-force protection, generic 401 responses.
+- **Security hardening already wired.** Symfony-style firewalls with
+  method/host/IP restrictions; path- and attribute-based access control with a
+  role hierarchy and trust-level attributes (`IS_AUTHENTICATED_FULLY`,
+  `IS_IMPERSONATOR`, …); CSRF rotation on login; session-fixation defence;
+  remember-me with optional persistent tokens (theft detection and rotation);
+  HTTPS channel upgrades; brute-force protection; a token unserialize allowlist;
+  password timing-parity; credential-length DoS caps; and boot-time
+  firewall-config validation.
 - **Strict typing.** PHP 8.2+, `declare(strict_types=1)` throughout. The
   bundled PSR-7 implementation is a strict-typed fork of `nyholm/psr7`.
 
@@ -83,14 +88,14 @@ Full guides under [docs/](docs/index.md):
 - [Controllers](docs/controllers.md) — controllers and parameter attributes
 - [Dependency injection](docs/dependency-injection.md) — wiring services with config files
 - [Templates](docs/templates.md) — layouts, snippets, sections, asset helpers
-- [Security](docs/security.md) — firewalls, access control, CSRF, roles
-- [Authenticators](docs/authenticators.md) — form login, JWT, OAuth 2.1, 2FA, brute-force
+- [Security](docs/security.md) — firewalls, access control, CSRF, roles, trust levels
+- [Authenticators](docs/authenticators.md) — form login, JWT, OAuth 2.1, 2FA, remember-me, brute-force
 - [Database](docs/database.md) — Doctrine ORM, QueryBuilder, pagination, soft delete
 - [Forms](docs/forms.md) — validation, `ValidationResult`, payload mapping
 - [Exception handling](docs/exception-handling.md) — turning exceptions into HTTP responses
 - [File uploads](docs/file-uploads.md) — validating and storing uploaded files
 - [Image processing](docs/image-processing.md) — Darkroom, Dimensions, DiskManager
-- [Console](docs/console.md) — built-in commands, `make:entity`, writing your own
+- [Console](docs/console.md) — built-in commands (`debug:firewall`, `security:validate`, `make:entity`), writing your own
 - [Toolkit](docs/toolkit.md) — array, file, string, and directory utilities
 - [Testing](docs/testing.md) — PHPUnit, EntityFactory, static analysis
 - [Deployment](docs/deployment.md) — Nginx/Caddy, permissions, RoadRunner, databases

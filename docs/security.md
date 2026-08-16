@@ -48,9 +48,32 @@ Firewall options:
 | `entry_point` | `string` | Where unauthenticated users are redirected. |
 | `stateless` | `bool` | `true` for API-style firewalls with no session. |
 | `security` | `bool` | Set to `false` to disable security for this firewall entirely. |
+| `methods` | `string[]` | Restrict the firewall to these HTTP methods. |
+| `host` | `string` | Restrict the firewall to this host (case-insensitive, plain match). |
+| `ips` | `string[]` | Restrict the firewall to these client IPs / CIDR ranges. |
 | `logout.path` | `string` | POST to this URL to log out. Requires a CSRF token — see below. |
 | `logout.target` | `string` | Redirect destination after logout. |
 | `two_factor_path` | `string` | Path for the 2FA code entry form. Defaults to `/2fa`. |
+
+> **Firewall restrictions (Symfony-style).** A firewall handles a request only
+> when *all* of its declared restrictions match — `pattern` **and** `methods`
+> **and** `host` **and** `ips`. A request that fails any one of them falls
+> through to the next firewall whose restrictions do match. This makes a
+> method-scoped public firewall safe: a `security => false` firewall limited to
+> `methods => ['GET']` exposes only reads, while writes to the same path fall
+> through to an authenticated firewall.
+>
+> ```php
+> $security->firewalls([
+>     // Public GET-only API for the menu tree.
+>     'menu_read' => ['pattern' => '/api/menu', 'methods' => ['GET'], 'security' => false],
+>     // Everything else under /api (incl. writes to /api/menu) needs a token.
+>     'api'       => ['pattern' => '/api', 'authenticators' => ['jwt'], 'stateless' => true],
+> ]);
+> ```
+>
+> Invalid firewall configuration is rejected at boot (in `dev`/`test`) against a
+> schema — see [Validating configuration](#validating-configuration) below.
 
 > **Logout is CSRF-protected.** Two equivalent proofs are accepted, mirroring
 > the general CSRF layer:
@@ -103,6 +126,31 @@ $security->firewalls([
 ]);
 ```
 
+## Validating configuration
+
+Firewall configuration is checked against a schema
+(`FirewallConfiguration`) whenever it is loaded. Type errors and keys that would
+silently fail open are rejected with a clear message — for example a `methods`
+value that is not a list, or a non-callable `csrf_validator`.
+
+Validation runs in `dev` and `test` (where config is authored) but is **skipped
+in `prod`** for performance: the schema is not re-built on every production
+request. To catch a bad config before it ships, run the check in CI or at deploy
+time:
+
+```bash
+php bin/console security:validate
+```
+
+It validates both firewalls and access-control rules and exits non-zero on the
+first problem. To inspect the resolved configuration — firewalls, their
+restrictions, access-control rules, and the role hierarchy — use:
+
+```bash
+php bin/console debug:firewall            # list everything
+php bin/console debug:firewall main       # detail one firewall
+```
+
 ## Global access control
 
 Define path-based rules that apply before any controller runs.
@@ -135,6 +183,12 @@ $security->accessControl('/checkout', [], null, [
 ]);
 ```
 
+An `http` request to an `https`-required path is **redirected** to the same URL
+over `https` (preserving path and query), not hard-denied — the same request
+over `https` is legitimate, so bouncing the user to an error page would be
+wrong. The redirect is carried by `InsecureChannelException` and issued by the
+exception handler.
+
 Register multiple rules at once:
 
 Unlike `accessControl()`, the bulk method stores each rule verbatim, so the rules must use associative keys (`path`, `roles`, optional `methods`) — positional arrays will silently match nothing and leave the paths unprotected:
@@ -147,6 +201,48 @@ $security->accessControlRules([
 ```
 
 For route-level access control, use `#[IsGranted]` instead. See [Routing](routing.md).
+
+### Deny by default
+
+By default a request that matches **no** access-control rule is allowed through
+(the firewall still governs authentication). To flip this to fail-closed — deny
+anything not explicitly allowed by a rule — opt in:
+
+```php
+$security->denyUnmatchedRequests();
+```
+
+With this on, a request matching no rule is refused: an unauthenticated visitor
+is sent to the entry point to log in, an authenticated one gets a hard `403`.
+Make sure every legitimately public path (assets, health checks, the login page)
+has a matching `publicPath()` / `accessControl()` rule before enabling it.
+
+### Trust-level access
+
+Alongside ordinary `ROLE_*` attributes, rules and `#[IsGranted]` accept
+trust-level attributes decided by *how* the request authenticated rather than by
+the user's roles:
+
+| Attribute | Granted when |
+|-----------|--------------|
+| `IS_AUTHENTICATED` | any authenticated token (including remember-me) |
+| `IS_AUTHENTICATED_REMEMBERED` | a full login **or** a remember-me cookie |
+| `IS_AUTHENTICATED_FULLY` | an interactive login this session (not remember-me) |
+| `IS_IMPERSONATOR` | the request is impersonating another user (switch-user) |
+
+```php
+use Modufolio\Appkit\Security\AuthenticationTrustResolverInterface as Trust;
+
+// Reachable from a remember-me cookie...
+$security->accessControl('/account', [Trust::IS_AUTHENTICATED_REMEMBERED]);
+// ...but changing the password needs a fresh, full login.
+$security->accessControl('/account/password', [Trust::IS_AUTHENTICATED_FULLY], ['POST']);
+```
+
+When a rule requires `IS_AUTHENTICATED_FULLY` but the visitor is only
+remembered, they are sent to log in again (step-up) rather than hard-denied —
+the distinction between "authenticate more strongly" and "you may not do this"
+is preserved.
 
 ## Role hierarchy
 
@@ -206,7 +302,7 @@ AppKit applies these session protections by default:
 
 - `HttpOnly` — JavaScript cannot read the session cookie
 - `SameSite=Lax` — mitigates most CSRF scenarios in modern browsers
-- Session migration on login — the session ID is rotated after authentication to prevent session fixation (OWASP A07:2021)
+- Session migration on login — the session ID is rotated after authentication and the pre-login session storage is destroyed, so a fixed ID cannot be replayed as an authenticated session (OWASP A07:2021)
 - CSRF tokens are cleared at login so any pre-authentication tokens become invalid
 - Session invalidation on user change — on each request the session user is reloaded via the user provider, and the session is dropped if security-relevant state changed (revoked roles or a changed password). Implement `EquatableInterface` on your `User` to control exactly which attributes trigger this; otherwise roles, password, and identifier are compared.
 
@@ -442,6 +538,11 @@ $token->isImpersonating();              // same check via method
 $token->getAttribute('ROLE_PREVIOUS_ADMIN'); // true — set as an ATTRIBUTE, not a role
 $token->getOriginalToken()->getUser();  // the original admin user
 ```
+
+To gate a route or path on impersonation, use the `IS_IMPERSONATOR`
+[trust-level attribute](#trust-level-access) rather than checking the token
+type by hand — e.g. an "exit impersonation" banner action reachable only while
+impersonating.
 
 ### `SwitchUserToken` constructor
 

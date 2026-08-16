@@ -265,6 +265,42 @@ The cookie value is `base64(identifier:expires:hmac)`. The HMAC covers the ident
 
 > **Secret rotation**: if you rotate `APP_SECRET`, all existing remember-me cookies are invalidated. Users will need to log in again.
 
+### Persistent tokens (theft detection)
+
+The default mode above is stateless: nothing is stored server-side, so a stolen
+cookie stays valid until it expires or the password changes, and there is no
+per-device revocation. For higher-value applications you can opt into
+**persistent tokens**, which add server-side theft detection and rotation
+(Symfony's series+value scheme).
+
+Pass a `RememberMeTokenProviderInterface` as the third constructor argument:
+
+```php
+use Modufolio\Appkit\Security\Authenticator\RememberMeAuthenticator;
+use Modufolio\Appkit\Security\RememberMe\FileTokenProvider;
+
+new RememberMeAuthenticator(
+    userProvider: $container->get(UserProviderInterface::class),
+    options: ['secret' => env()->getRequired('APP_SECRET'), /* cookie_* … */],
+    tokenProvider: new FileTokenProvider(storageDir: $baseDir . '/var/remember-me'),
+);
+```
+
+With a provider configured, each cookie carries a **series** id and a one-time
+**value**:
+
+- On every successful use the value is **rotated** — a fresh value is stored and
+  re-issued in the cookie, so a captured cookie is good for at most one request.
+- If a cookie presents a known series with the **wrong** value, that is the
+  fingerprint of a stolen-and-replayed cookie: all tokens in the series are
+  deleted (logging the device out everywhere) and `CookieTheftException` is
+  raised.
+
+`FileTokenProvider` (filesystem) and `InMemoryTokenProvider` (tests) ship with
+the framework; implement `RememberMeTokenProviderInterface` to back tokens with
+your own store (e.g. a database table). Deleting a user's tokens
+(`deleteTokensByUserIdentifier()`) revokes remember-me on all their devices.
+
 ### When the cookie stops validating
 
 A remember-me cookie that fails validation is not treated as a failed login: the firewall silently expires it on the response and serves the request anonymously — no error message, no flash. Without this, a browser holding a dead cookie (password changed, secret rotated) would see *"Invalid credentials."* on every request until the cookie expired. See [Authentication failure behaviour](security.md#authentication-failure-behaviour).
