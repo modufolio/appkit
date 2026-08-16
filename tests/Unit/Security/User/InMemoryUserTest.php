@@ -130,4 +130,110 @@ class InMemoryUserTest extends TestCase
 
         $this->assertFalse($user->isEqualTo($other));
     }
+
+    public function testEqualityIsSymmetricForIdenticalUsers(): void
+    {
+        $user = new InMemoryUser('john@example.com', 'secret', ['ROLE_USER']);
+        $same = new InMemoryUser('john@example.com', 'secret', ['ROLE_USER']);
+
+        $this->assertTrue($user->isEqualTo($same));
+        $this->assertTrue($same->isEqualTo($user));
+    }
+
+    public function testInequalityIsSymmetricForDifferentClass(): void
+    {
+        $user = new InMemoryUser('john@example.com', 'secret');
+        $other = new class implements \Modufolio\Appkit\Security\User\UserInterface, \Modufolio\Appkit\Security\User\EquatableInterface {
+            public function getRoles(): array
+            {
+                return [];
+            }
+
+            public function getUserIdentifier(): string
+            {
+                return 'john@example.com';
+            }
+
+            public function eraseCredentials(): void
+            {
+            }
+
+            public function getId(): mixed
+            {
+                return null;
+            }
+
+            public function getEmail(): string
+            {
+                return 'john@example.com';
+            }
+
+            public function isEnabled(): bool
+            {
+                return true;
+            }
+
+            public function isEqualTo(\Modufolio\Appkit\Security\User\UserInterface $user): bool
+            {
+                return $user instanceof self;
+            }
+        };
+
+        $this->assertFalse($user->isEqualTo($other));
+        $this->assertFalse($other->isEqualTo($user));
+    }
+
+    public function testInequalityIsSymmetricForDifferentPassword(): void
+    {
+        $user = new InMemoryUser('john@example.com', 'secret');
+        $other = new InMemoryUser('john@example.com', 'different');
+
+        $this->assertFalse($user->isEqualTo($other));
+        $this->assertFalse($other->isEqualTo($user));
+    }
+
+    public function testInequalityIsSymmetricForDifferentRoles(): void
+    {
+        $user = new InMemoryUser('john@example.com', 'secret', ['ROLE_USER']);
+        $other = new InMemoryUser('john@example.com', 'secret', ['ROLE_ADMIN']);
+
+        $this->assertFalse($user->isEqualTo($other));
+        $this->assertFalse($other->isEqualTo($user));
+    }
+
+    public function testInequalityIsSymmetricForDifferentIdentifier(): void
+    {
+        $user = new InMemoryUser('john@example.com', 'secret');
+        $other = new InMemoryUser('jane@example.com', 'secret');
+
+        $this->assertFalse($user->isEqualTo($other));
+        $this->assertFalse($other->isEqualTo($user));
+    }
+
+    public function testInequalityIsSymmetricForDifferentEnabledState(): void
+    {
+        $user = new InMemoryUser('john@example.com', 'secret');
+        $other = new InMemoryUser('john@example.com', 'secret', [], false);
+
+        $this->assertFalse($user->isEqualTo($other));
+        $this->assertFalse($other->isEqualTo($user));
+    }
+
+    public function testRoleOrderDoesNotAffectEquality(): void
+    {
+        $user = new InMemoryUser('john@example.com', 'secret', ['ROLE_USER', 'ROLE_ADMIN']);
+        $reordered = new InMemoryUser('john@example.com', 'secret', ['ROLE_ADMIN', 'ROLE_USER']);
+
+        $this->assertTrue($user->isEqualTo($reordered));
+        $this->assertTrue($reordered->isEqualTo($user));
+    }
+
+    public function testDifferentRoleSetsAreNotEqualInBothDirections(): void
+    {
+        $user = new InMemoryUser('john@example.com', 'secret', ['ROLE_USER']);
+        $elevated = new InMemoryUser('john@example.com', 'secret', ['ROLE_USER', 'ROLE_ADMIN']);
+
+        $this->assertFalse($user->isEqualTo($elevated));
+        $this->assertFalse($elevated->isEqualTo($user));
+    }
 }

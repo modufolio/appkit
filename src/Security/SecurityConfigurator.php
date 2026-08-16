@@ -60,6 +60,9 @@ final class SecurityConfigurator
 
     public ?RoleHierarchy $roleHierarchy = null;
 
+    /** When true, a request matching no access-control rule is denied (fail-closed). */
+    public bool $denyUnmatched = false;
+
     /**
      * Configure a firewall.
      *
@@ -158,6 +161,28 @@ final class SecurityConfigurator
         $this->roleHierarchy = new RoleHierarchy($hierarchy);
 
         return $this;
+    }
+
+    /**
+     * Deny any request that matches no access-control rule (fail-closed).
+     *
+     * Off by default: appkit lets unmatched requests through and relies on the
+     * firewall for authentication. Turning this on makes access-control
+     * allow-listed — every reachable path must be covered by a rule (or a
+     * publicPath()), otherwise anonymous visitors are sent to log in and
+     * authenticated ones get a 403. Pair with explicit publicPath() rules for
+     * assets and public pages.
+     */
+    public function denyUnmatchedRequests(bool $deny = true): self
+    {
+        $this->denyUnmatched = $deny;
+
+        return $this;
+    }
+
+    public function deniesUnmatchedRequests(): bool
+    {
+        return $this->denyUnmatched;
     }
 
     /** @return array<string, array<string, mixed>> */

@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace Modufolio\Appkit\Security\Authenticator;
 
 use Modufolio\Appkit\Security\Exception\AuthenticationException;
+use Modufolio\Appkit\Security\Exception\CookieTheftException;
 use Modufolio\Appkit\Security\Exception\UserNotFoundException;
+use Modufolio\Appkit\Security\RememberMe\PersistentToken;
+use Modufolio\Appkit\Security\RememberMe\RememberMeTokenProviderInterface;
 use Modufolio\Appkit\Security\Token\RememberMeToken;
 use Modufolio\Appkit\Security\Token\TokenInterface;
 use Modufolio\Appkit\Security\User\PasswordAuthenticatedUserInterface;
@@ -19,9 +22,18 @@ class RememberMeAuthenticator extends AbstractAuthenticator
 {
     private array $options;
 
+    /**
+     * Set during a persistent-mode authenticate() when the token value is
+     * rotated: the fresh Set-Cookie header the firewall must attach to the
+     * response so the browser stores the new value. Null in signature mode or
+     * when nothing was rotated.
+     */
+    private ?string $pendingCookieHeader = null;
+
     public function __construct(
         private UserProviderInterface $userProvider,
         array $options = [],
+        private ?RememberMeTokenProviderInterface $tokenProvider = null,
     ) {
         $this->options = array_merge([
             'secret' => null,
@@ -41,6 +53,28 @@ class RememberMeAuthenticator extends AbstractAuthenticator
         if (empty($this->options['secret'])) {
             throw new \InvalidArgumentException('RememberMe secret must be configured.');
         }
+    }
+
+    /**
+     * Whether this authenticator persists tokens server-side (series + rotating
+     * value) — enabling per-device revocation and cookie-theft detection —
+     * rather than relying on a stateless signature.
+     */
+    public function isPersistent(): bool
+    {
+        return null !== $this->tokenProvider;
+    }
+
+    /**
+     * The rotated cookie the firewall must re-send after a persistent-mode
+     * restore, or null if nothing rotated this request. Consumed once.
+     */
+    public function consumePendingCookieHeader(): ?string
+    {
+        $header = $this->pendingCookieHeader;
+        $this->pendingCookieHeader = null;
+
+        return $header;
     }
 
     public function supports(ServerRequestInterface $request): bool
@@ -67,6 +101,10 @@ class RememberMeAuthenticator extends AbstractAuthenticator
             throw new AuthenticationException('Invalid remember me cookie format.');
         }
 
+        if (null !== $this->tokenProvider) {
+            return $this->authenticatePersistent($cookieData);
+        }
+
         $parts = explode(':', $cookieData, 3);
         if (3 !== count($parts)) {
             throw new AuthenticationException('Invalid remember me cookie structure.');
@@ -88,6 +126,60 @@ class RememberMeAuthenticator extends AbstractAuthenticator
         if (!hash_equals($expectedHash, $hash)) {
             throw new AuthenticationException('Invalid remember me cookie signature.');
         }
+
+        return $user;
+    }
+
+    /**
+     * Persistent-mode authentication (series + rotating value).
+     *
+     * A known series presented with a stale value is unambiguous cookie theft:
+     * the legitimate client rotated the value on its last use, so a mismatch
+     * means someone replayed an old copy. We revoke every token for the user
+     * (logging out all devices) and raise CookieTheftException. On success the
+     * value is rotated and a fresh cookie is queued for the response.
+     *
+     * @throws AuthenticationException
+     */
+    private function authenticatePersistent(string $cookieData): UserInterface
+    {
+        $parts = explode(':', $cookieData, 2);
+        if (2 !== count($parts) || '' === $parts[0] || '' === $parts[1]) {
+            throw new AuthenticationException('Invalid remember me cookie structure.');
+        }
+
+        [$series, $value] = $parts;
+
+        $token = $this->tokenProvider->loadTokenBySeries($series);
+        if (null === $token) {
+            throw new AuthenticationException('Remember me token not found.');
+        }
+
+        if (!hash_equals($token->tokenValue, $this->hashValue($value))) {
+            // Theft: known series, wrong value. Revoke everything for this user.
+            $this->tokenProvider->deleteTokensByUserIdentifier($token->userIdentifier);
+
+            throw new CookieTheftException('Remember me cookie theft detected.');
+        }
+
+        if ($token->lastUsed + (int) $this->options['cookie_lifetime'] < time()) {
+            $this->tokenProvider->deleteTokenBySeries($series);
+
+            throw new AuthenticationException('Remember me cookie has expired.');
+        }
+
+        try {
+            $user = $this->userProvider->loadUserByIdentifier($token->userIdentifier);
+        } catch (UserNotFoundException $e) {
+            $this->tokenProvider->deleteTokenBySeries($series);
+
+            throw new AuthenticationException('User not found for remember me cookie.', 0, $e);
+        }
+
+        // Rotate the value on every use so a replayed copy is detectable.
+        $newValue = $this->randomValue();
+        $this->tokenProvider->updateExistingToken($series, $this->hashValue($newValue), time());
+        $this->pendingCookieHeader = $this->buildSetCookieHeader($this->encodeCookie($series, $newValue));
 
         return $user;
     }
@@ -118,6 +210,20 @@ class RememberMeAuthenticator extends AbstractAuthenticator
 
     public function generateRememberMeCookie(UserInterface $user): string
     {
+        // Persistent mode: mint a new series + value and store the value hash.
+        if (null !== $this->tokenProvider) {
+            $series = $this->randomValue();
+            $value = $this->randomValue();
+            $this->tokenProvider->createNewToken(new PersistentToken(
+                userIdentifier: $user->getUserIdentifier(),
+                series: $series,
+                tokenValue: $this->hashValue($value),
+                lastUsed: time(),
+            ));
+
+            return $this->encodeCookie($series, $value);
+        }
+
         $identifier = $user->getUserIdentifier();
         $expires = time() + $this->options['cookie_lifetime'];
         $hash = $this->generateHash($identifier, $expires, $this->userStateFingerprint($user));
@@ -125,6 +231,25 @@ class RememberMeAuthenticator extends AbstractAuthenticator
         $cookieData = sprintf('%s:%d:%s', $identifier, $expires, $hash);
 
         return base64_encode($cookieData);
+    }
+
+    /**
+     * A URL-safe, colon-free high-entropy value (usable as a cookie series or
+     * value without clashing with the ':' field separator).
+     */
+    private function randomValue(): string
+    {
+        return rtrim(strtr(base64_encode(random_bytes(32)), '+/', '-_'), '=');
+    }
+
+    private function hashValue(#[\SensitiveParameter] string $value): string
+    {
+        return hash('sha256', $value);
+    }
+
+    private function encodeCookie(string $series, #[\SensitiveParameter] string $value): string
+    {
+        return base64_encode($series.':'.$value);
     }
 
     public function getCookieOptions(): array

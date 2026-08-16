@@ -6,6 +6,15 @@ namespace Modufolio\Appkit\Security\User;
 
 class UserPasswordHasher implements UserPasswordHasherInterface
 {
+    /**
+     * Maximum accepted plain-password length in bytes. Mirrors Symfony's
+     * PasswordHasherInterface::MAX_PASSWORD_LENGTH. Feeding arbitrarily long
+     * strings to password_hash()/password_verify() is a denial-of-service
+     * vector (bcrypt/argon2 cost scales with input), so oversized inputs are
+     * rejected before ever reaching the hashing primitives.
+     */
+    public const MAX_PASSWORD_LENGTH = 4096;
+
     private string|int $algorithm;
 
     /** @var array<string, mixed> */
@@ -27,6 +36,10 @@ class UserPasswordHasher implements UserPasswordHasherInterface
 
     public function hashPassword(PasswordAuthenticatedUserInterface $user, #[\SensitiveParameter] string $plainPassword): string
     {
+        if ($this->isPasswordTooLong($plainPassword)) {
+            throw new \InvalidArgumentException('Invalid password.');
+        }
+
         return password_hash($plainPassword, $this->algorithm, $this->options);
     }
 
@@ -35,6 +48,10 @@ class UserPasswordHasher implements UserPasswordHasherInterface
         $hashedPassword = $user->getPassword();
 
         if (null === $hashedPassword) {
+            return false;
+        }
+
+        if ($this->isPasswordTooLong($plainPassword)) {
             return false;
         }
 
@@ -54,8 +71,21 @@ class UserPasswordHasher implements UserPasswordHasherInterface
 
     public function verifyDummy(#[\SensitiveParameter] string $plainPassword): void
     {
+        if ($this->isPasswordTooLong($plainPassword)) {
+            return;
+        }
+
         // Lazily computed once; ~one hash worth of cost on first call, then constant verify time.
         $this->dummyHash ??= password_hash(bin2hex(random_bytes(16)), $this->algorithm, $this->options);
         password_verify($plainPassword, $this->dummyHash);
+    }
+
+    /**
+     * Guards the hashing primitives against oversized inputs (bcrypt/argon2 DoS).
+     * Mirrors Symfony's CheckPasswordLengthTrait semantics.
+     */
+    private function isPasswordTooLong(#[\SensitiveParameter] string $plainPassword): bool
+    {
+        return strlen($plainPassword) > self::MAX_PASSWORD_LENGTH;
     }
 }

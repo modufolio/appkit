@@ -98,6 +98,7 @@ abstract class Kernel implements AppInterface
     protected array $firewallConfig = [];
     public ?array $accessControlRules = null;
     public ?RoleHierarchy $roleHierarchy = null;
+    protected bool $denyUnmatchedAccess = false;
     protected ?AccessDecisionEngine $accessDecisionEngine = null;
 
     // Request-scoped state (created per request in handle())
@@ -558,6 +559,7 @@ abstract class Kernel implements AppInterface
         $this->firewallConfig = $config['firewalls'] ?? [];
         $this->accessControlRules = $config['access_control'] ?? [];
         $this->roleHierarchy = new RoleHierarchy($config['role_hierarchy'] ?? []);
+        $this->denyUnmatchedAccess = (bool) ($config['deny_unmatched'] ?? false);
         $this->accessDecisionEngine = null;
 
         // Sync firewall config to application state if it exists
@@ -575,6 +577,7 @@ abstract class Kernel implements AppInterface
         $this->firewallConfig = $configurator->getFirewalls();
         $this->accessControlRules = $configurator->getAccessControlRules();
         $this->roleHierarchy = $configurator->getRoleHierarchy();
+        $this->denyUnmatchedAccess = $configurator->deniesUnmatchedRequests();
         $this->accessDecisionEngine = null;
         $this->state?->setFirewallConfig($this->firewallConfig);
 
@@ -726,8 +729,9 @@ abstract class Kernel implements AppInterface
     public function accessDecisionEngine(): AccessDecisionEngine
     {
         return $this->accessDecisionEngine ??= new AccessDecisionEngine(
-            $this->accessControlRules ?? [],
-            $this->roleHierarchy,
+            rules: $this->accessControlRules ?? [],
+            roleHierarchy: $this->roleHierarchy,
+            denyByDefault: $this->denyUnmatchedAccess,
         );
     }
 

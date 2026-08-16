@@ -177,7 +177,10 @@ class RedisBruteForceProtection implements BruteForceProtectionInterface
      */
     private function generateKey(string $identifier, ?string $ipAddress = null): string
     {
-        $combined = $identifier;
+        // Normalize the account identifier so the same username/email in different
+        // case (Ryan / ryan / rYan) maps to a single counter and can't be
+        // used to bypass throttling. The IP is left untouched.
+        $combined = mb_strtolower($identifier);
         if (null !== $ipAddress) {
             $combined .= ':'.$ipAddress;
         }

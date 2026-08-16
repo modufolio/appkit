@@ -124,6 +124,34 @@ class FormLoginAuthenticatorTest extends AppTestCase
         $this->assertNull($this->app()->tokenStorage()->getToken());
     }
 
+    public function testLoginFailsWithOversizedUsername(): void
+    {
+        $csrfToken = $this->app()->csrfTokenManager()->getToken('authenticate')->getValue();
+
+        // 4097 bytes exceeds MAX_USERNAME_LENGTH (4096) -> BadCredentialsException.
+        $this->form('/login', [
+            'email' => str_repeat('a', 4097),
+            'password' => 'secret',
+            '_csrf_token' => $csrfToken,
+        ]);
+
+        $this->assertNull($this->app()->tokenStorage()->getToken());
+    }
+
+    public function testLoginFailsWithArrayUsername(): void
+    {
+        $csrfToken = $this->app()->csrfTokenManager()->getToken('authenticate')->getValue();
+
+        // Non-string username (email[]=) is coerced to '' -> BadCredentialsException.
+        $this->form('/login', [
+            'email' => ['johndoe@example.com'],
+            'password' => 'secret',
+            '_csrf_token' => $csrfToken,
+        ]);
+
+        $this->assertNull($this->app()->tokenStorage()->getToken());
+    }
+
     // ---- CSRF protection ----
 
     public function testLoginFailsWithoutCsrfToken(): void

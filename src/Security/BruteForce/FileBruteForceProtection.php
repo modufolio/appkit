@@ -156,6 +156,11 @@ class FileBruteForceProtection implements BruteForceProtectionInterface
 
     private function generateKey(string $identifier, ?string $ipAddress = null): string
     {
+        // Normalize the account identifier so the same username/email in different
+        // case (Ryan / ryan / rYan) maps to a single counter and can't be
+        // used to bypass throttling. The IP is left untouched.
+        $identifier = mb_strtolower($identifier);
+
         return hash('sha256', $identifier.(null !== $ipAddress ? ':'.$ipAddress : ''));
     }
 

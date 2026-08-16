@@ -8,6 +8,8 @@ use Modufolio\Appkit\Security\AccessControl\Constraint\ChannelConstraint;
 use Modufolio\Appkit\Security\AccessControl\Constraint\IpConstraint;
 use Modufolio\Appkit\Security\AccessControl\Constraint\MethodConstraint;
 use Modufolio\Appkit\Security\AccessControl\Constraint\RoleConstraint;
+use Modufolio\Appkit\Security\AuthenticationTrustResolver;
+use Modufolio\Appkit\Security\AuthenticationTrustResolverInterface;
 use Modufolio\Appkit\Security\Exception\AccessDeniedException;
 use Modufolio\Appkit\Security\Exception\AuthenticationException;
 use Modufolio\Appkit\Security\RoleHierarchy;
@@ -46,14 +48,27 @@ final class AccessDecisionEngine
     /** @var list<RuleConstraintInterface> */
     private array $constraints;
 
+    private readonly RoleAttributeEvaluator $roleEvaluator;
+
     /**
-     * @param array<int, array<string, mixed>> $rules access-control rules as plain config arrays
+     * @param array<int, array<string, mixed>> $rules         access-control rules as plain config arrays
+     * @param bool                             $denyByDefault when true, a request matching no rule is denied
+     *                                                        (fail-closed) instead of allowed (fail-open, the default)
      */
-    public function __construct(array $rules, private readonly ?RoleHierarchy $roleHierarchy = null)
-    {
+    public function __construct(
+        array $rules,
+        private readonly ?RoleHierarchy $roleHierarchy = null,
+        ?AuthenticationTrustResolverInterface $trustResolver = null,
+        private readonly bool $denyByDefault = false,
+    ) {
         foreach ($rules as $rule) {
             $this->rules[] = AccessRule::fromArray($rule);
         }
+
+        $this->roleEvaluator = new RoleAttributeEvaluator(
+            $roleHierarchy,
+            $trustResolver ?? new AuthenticationTrustResolver(),
+        );
 
         // Order matters and mirrors the historical checks: method, channel,
         // IP, then roles — so e.g. a wrong method 405s before a missing
@@ -62,7 +77,7 @@ final class AccessDecisionEngine
             new MethodConstraint(),
             new ChannelConstraint(),
             new IpConstraint(),
-            new RoleConstraint($roleHierarchy),
+            new RoleConstraint($this->roleEvaluator),
         ];
     }
 
@@ -123,6 +138,20 @@ final class AccessDecisionEngine
 
             return; // Rule matched and passed
         }
+
+        // No rule matched. Fail-open (allow) by default — the firewall still
+        // governs authentication. When deny-by-default is enabled the request
+        // is refused instead: unauthenticated visitors are sent to log in,
+        // authenticated ones get a hard 403.
+        if ($this->denyByDefault) {
+            $this->roleEvaluator->assert(
+                [AuthenticationTrustResolverInterface::IS_AUTHENTICATED],
+                $token,
+                'path: '.$path.' (no access-control rule matched; deny-by-default is on)',
+            );
+
+            throw new AccessDeniedException(sprintf('No access-control rule matched %s and deny-by-default is on.', $path));
+        }
     }
 
     /**
@@ -131,40 +160,21 @@ final class AccessDecisionEngine
      * Every group (one per #[IsGranted]) must be satisfied (AND); within a
      * group, holding any one of the listed roles is enough (OR).
      *
+     * Attributes may be ordinary roles or trust-level attributes
+     * (IS_AUTHENTICATED_FULLY, IS_IMPERSONATOR, …); both are handled uniformly
+     * by the shared RoleAttributeEvaluator.
+     *
      * @param array<int, string|array<int, string>> $roleGroups
      *
-     * @throws AuthenticationException when no authenticated user is present
+     * @throws AuthenticationException when authentication (or a stronger one) is required
      * @throws AccessDeniedException   when a group is not satisfied
      */
     public function enforceRoleGroups(array $roleGroups, ?TokenInterface $token): void
     {
-        if ([] === $roleGroups) {
-            return;
-        }
-
-        if (null === $token || !$token->getUser()) {
-            throw new AuthenticationException('Authentication required for this route');
-        }
-
-        $user = $token->getUser();
-        $userRoles = $this->roleHierarchy?->getReachableRoles($user->getRoles()) ?? $user->getRoles();
-
         // The (array) cast tolerates a legacy flat list from a stale
-        // compiled-route cache.
+        // compiled-route cache; array_values normalises string keys to a list.
         foreach ($roleGroups as $group) {
-            $group = (array) $group;
-            $satisfied = false;
-
-            foreach ($group as $role) {
-                if (in_array($role, $userRoles, true)) {
-                    $satisfied = true;
-                    break;
-                }
-            }
-
-            if (!$satisfied) {
-                throw new AccessDeniedException(sprintf('Insufficient roles for route. Required one of: %s', implode(', ', $group)));
-            }
+            $this->roleEvaluator->assert(array_values((array) $group), $token, 'route');
         }
     }
 }

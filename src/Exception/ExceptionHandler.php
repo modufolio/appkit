@@ -7,6 +7,7 @@ namespace Modufolio\Appkit\Exception;
 use Modufolio\Appkit\Core\Environment;
 use Modufolio\Appkit\Security\Exception\AccessDeniedException;
 use Modufolio\Appkit\Security\Exception\AuthenticationException;
+use Modufolio\Appkit\Security\Exception\InsecureChannelException;
 use Modufolio\Psr7\Http\Response;
 use Negotiation\BaseAccept;
 use Negotiation\Negotiator;
@@ -62,6 +63,12 @@ final class ExceptionHandler implements ExceptionHandlerInterface
 
     public function handle(\Throwable $e, ServerRequestInterface $request): ResponseInterface
     {
+        // A required-channel violation is a redirect to the https URL, not an
+        // error payload — issue it before the error-formatting machinery runs.
+        if ($e instanceof InsecureChannelException) {
+            return Response::redirect($e->getTargetUrl(), 301);
+        }
+
         $data = null;
         $matchedClass = null;
 

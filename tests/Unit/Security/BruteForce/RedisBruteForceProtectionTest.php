@@ -134,6 +134,41 @@ final class RedisBruteForceProtectionTest extends TestCase
         $this->assertFalse($bf->isLocked('victim@example.com', '203.0.113.251'));
     }
 
+    /**
+     * The account identifier is case-insensitive: failures recorded under
+     * 'Ryan' and 'ryan' accumulate into the same counter, so an attacker
+     * can't reset the throttle by varying the case of the username/email.
+     */
+    public function testIdentifierIsCaseInsensitive(): void
+    {
+        $bf = $this->protection(maxAttempts: 3);
+
+        $bf->recordFailure('Ryan', '10.0.0.1');
+        $bf->recordFailure('ryan', '10.0.0.1');
+        $this->assertFalse($bf->isLocked('RYAN', '10.0.0.1'));
+
+        $bf->recordFailure('rYaN', '10.0.0.1');
+        $this->assertTrue($bf->isLocked('RYAN', '10.0.0.1'));
+        $this->assertTrue($bf->isLocked('ryan', '10.0.0.1'));
+        $this->assertGreaterThanOrEqual(3, $bf->getFailureCount('Ryan', '10.0.0.1'));
+    }
+
+    /**
+     * Normalization must not leak across the IP dimension: the same identifier
+     * from a different IP still gets its own per-IP counter.
+     */
+    public function testIdentifierNormalizationKeepsIpSeparation(): void
+    {
+        $bf = $this->protection(maxAttempts: 3, accountMaxAttempts: 100);
+
+        $bf->recordFailure('Ryan', '10.0.0.1');
+        $bf->recordFailure('ryan', '10.0.0.1');
+        $bf->recordFailure('RYAN', '10.0.0.1');
+
+        $this->assertTrue($bf->isLocked('ryan', '10.0.0.1'));
+        $this->assertFalse($bf->isLocked('ryan', '10.0.0.2'));
+    }
+
     public function testRecordSuccessClearsAllCounters(): void
     {
         $bf = $this->protection(maxAttempts: 3);

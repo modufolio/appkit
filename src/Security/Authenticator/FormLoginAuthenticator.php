@@ -35,6 +35,12 @@ class FormLoginAuthenticator extends AbstractAuthenticator
      */
     private const DUMMY_HASH = '$2y$12$abcdefghijklmnopqrstuuGfQ7w0rqXjK0LhV0XjY6wWyJ4Z7lYqe';
 
+    /**
+     * Cap the submitted username length. Symfony caps at 4096 to keep an
+     * attacker from driving bcrypt/argon2 work with an oversized identifier.
+     */
+    private const MAX_USERNAME_LENGTH = 4096;
+
     private array $options;
 
     public function __construct(
@@ -200,6 +206,10 @@ class FormLoginAuthenticator extends AbstractAuthenticator
 
         if ('' === $username || '' === $password) {
             throw new BadCredentialsException('Username and password cannot be empty.');
+        }
+
+        if (strlen($username) > self::MAX_USERNAME_LENGTH) {
+            throw new BadCredentialsException('Invalid username.');
         }
 
         return [$username, $password];

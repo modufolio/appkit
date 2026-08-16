@@ -115,7 +115,12 @@ trait AppSecurity
         // produces, otherwise the browser re-presents the dead cookie forever.
         $staleCookies = [];
 
-        $result = $this->tryAuthenticators($request, $config, $firewallName, $stateless, $staleCookies);
+        // Set-Cookie headers re-issuing a rotated persistent remember-me cookie
+        // (see RememberMeAuthenticator persistent mode), attached to the response
+        // so the browser stores the freshly rotated value.
+        $reissueCookies = [];
+
+        $result = $this->tryAuthenticators($request, $config, $firewallName, $stateless, $staleCookies, $reissueCookies);
 
         // Handle ResponseInterface (e.g., 2FA redirect)
         if ($result instanceof ResponseInterface) {
@@ -181,6 +186,13 @@ trait AppSecurity
             // opt-in parameter anyway).
             if (!$stateless && !($result instanceof RememberMeToken)) {
                 $response = $this->issueRememberMeCookie($request, $config, $result, $response);
+            }
+
+            // Re-send the rotated persistent remember-me cookie (if any). Only
+            // the restore path produces these, so it does not conflict with the
+            // fresh-login issuance above.
+            foreach ($reissueCookies as $header) {
+                $response = $response->withAddedHeader('Set-Cookie', $header);
             }
 
             return $response;
@@ -571,6 +583,7 @@ trait AppSecurity
         string $firewallName,
         bool $stateless,
         array &$staleCookies = [],
+        array &$reissueCookies = [],
     ): TokenInterface|ResponseInterface|null {
         // Iterate in the order the firewall declares its authenticators, not the
         // order of the global registry. array_intersect_key() would key off the
@@ -593,7 +606,17 @@ trait AppSecurity
                     $userChecker->checkPreAuth($user);
                     $userChecker->checkPostAuth($user);
 
-                    return $authenticator->createToken($user, $firewallName);
+                    $token = $authenticator->createToken($user, $firewallName);
+
+                    // Persistent remember-me rotates its cookie value on each
+                    // use; carry the fresh Set-Cookie back so the caller can
+                    // attach it to the response.
+                    if ($authenticator instanceof RememberMeAuthenticator
+                        && null !== ($rotated = $authenticator->consumePendingCookieHeader())) {
+                        $reissueCookies[] = $rotated;
+                    }
+
+                    return $token;
                 } catch (AuthenticationException $e) {
                     // Ambient credential: expire the dead cookie, continue anonymously.
                     if ($authenticator instanceof RememberMeAuthenticator) {
