@@ -16,6 +16,7 @@ use Modufolio\Appkit\Exception\NotFoundException;
 use Modufolio\Appkit\Resolver\ParameterResolverInterface;
 use Modufolio\Appkit\Routing\Router;
 use Modufolio\Appkit\Routing\RouterInterface;
+use Modufolio\Appkit\Security\AccessControl\AccessDecisionEngine;
 use Modufolio\Appkit\Security\Csrf\CsrfTokenManager;
 use Modufolio\Appkit\Security\Csrf\CsrfTokenManagerInterface;
 use Modufolio\Appkit\Security\RoleHierarchy;
@@ -95,6 +96,7 @@ abstract class Kernel implements AppInterface
     protected array $firewallConfig = [];
     public ?array $accessControlRules = null;
     public ?RoleHierarchy $roleHierarchy = null;
+    protected ?AccessDecisionEngine $accessDecisionEngine = null;
 
     // Request-scoped state (created per request in handle())
     protected ?ApplicationStateInterface $state = null;
@@ -553,6 +555,7 @@ abstract class Kernel implements AppInterface
         $this->firewallConfig = $config['firewalls'] ?? [];
         $this->accessControlRules = $config['access_control'] ?? [];
         $this->roleHierarchy = new RoleHierarchy($config['role_hierarchy'] ?? []);
+        $this->accessDecisionEngine = null;
 
         // Sync firewall config to application state if it exists
         $this->state?->setFirewallConfig($this->firewallConfig);
@@ -568,6 +571,7 @@ abstract class Kernel implements AppInterface
         $this->firewallConfig = $configurator->getFirewalls();
         $this->accessControlRules = $configurator->getAccessControlRules();
         $this->roleHierarchy = $configurator->getRoleHierarchy();
+        $this->accessDecisionEngine = null;
         $this->state?->setFirewallConfig($this->firewallConfig);
 
         return $this;
@@ -630,6 +634,23 @@ abstract class Kernel implements AppInterface
     public function getFirewallConfig(string $firewallName): array
     {
         return $this->firewallConfig[$firewallName] ?? [];
+    }
+
+    /**
+     * The engine enforcing access-control rules and #[IsGranted] attributes.
+     *
+     * Built lazily from the configured rules and role hierarchy; rebuilt when
+     * configureFirewall()/configureSecurity() replaces the configuration.
+     * Register custom rule constraints on it during application setup:
+     *
+     *   $app->accessDecisionEngine()->registerConstraint(new OfficeHoursConstraint());
+     */
+    public function accessDecisionEngine(): AccessDecisionEngine
+    {
+        return $this->accessDecisionEngine ??= new AccessDecisionEngine(
+            $this->accessControlRules ?? [],
+            $this->roleHierarchy,
+        );
     }
 
     public function getParameterBag(): ParameterBag

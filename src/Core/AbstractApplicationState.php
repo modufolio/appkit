@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modufolio\Appkit\Core;
 
+use Modufolio\Appkit\Security\AccessControl\RequestMatcher;
 use Modufolio\Appkit\Security\Token\Storage\TokenStorage;
 use Modufolio\Appkit\Security\Token\TokenStorageInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -202,15 +203,7 @@ abstract class AbstractApplicationState implements ApplicationStateInterface
      */
     protected function matchesPattern(string $pattern, string $path): bool
     {
-        // Fast check: segment-based syntax (e.g. "api:0")
-        if (str_contains($pattern, ':')) {
-            [$value, $pos] = explode(':', $pattern, 2);
-
-            return $this->matchesSimplePattern($value, (int) $pos, $path);
-        }
-
-        // Otherwise treat it as "starts with"
-        return $this->matchesStartsWith($pattern, $path);
+        return RequestMatcher::matches($pattern, $path);
     }
 
     /**
@@ -218,10 +211,7 @@ abstract class AbstractApplicationState implements ApplicationStateInterface
      */
     protected function matchesSimplePattern(string $value, int $position, string $path): bool
     {
-        // Trim slashes and split path
-        $segments = explode('/', trim($path, '/'));
-
-        return isset($segments[$position]) && $segments[$position] === $value;
+        return RequestMatcher::matchesSegment($value, $position, $path);
     }
 
     /**
@@ -229,21 +219,13 @@ abstract class AbstractApplicationState implements ApplicationStateInterface
      *
      * A pattern of "/admin" matches "/admin" and "/admin/users" but NOT
      * "/administrator" — the same segment-boundary rule the access-control
-     * matcher uses, so firewall and access-control coverage stay consistent.
-     * The "/" pattern still matches every path (catch-all firewall).
+     * matcher uses (both delegate to RequestMatcher), so firewall and
+     * access-control coverage stay consistent. The "/" pattern still matches
+     * every path (catch-all firewall).
      */
     protected function matchesStartsWith(string $pattern, string $path): bool
     {
-        // Normalize pattern to always start with a slash
-        if (!isset($pattern[0]) || '/' !== $pattern[0]) {
-            $pattern = '/'.ltrim($pattern, '/');
-        }
-
-        $normalized = rtrim($pattern, '/');
-
-        return '' === $normalized
-            || $path === $normalized
-            || str_starts_with($path, $normalized.'/');
+        return RequestMatcher::matchesPrefix($pattern, $path);
     }
 
     public function setFirewallConfig(array $config): self

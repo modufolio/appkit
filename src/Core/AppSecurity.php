@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Modufolio\Appkit\Core;
 
 use Modufolio\Appkit\Exception\NotFoundException;
+use Modufolio\Appkit\Security\AccessControl\AccessDecisionEngine;
+use Modufolio\Appkit\Security\AccessControl\RequestMatcher;
 use Modufolio\Appkit\Security\Authenticator\RememberMeAuthenticator;
 use Modufolio\Appkit\Security\Csrf\CsrfTokenManagerInterface;
 use Modufolio\Appkit\Security\Exception\AccessDeniedException;
@@ -14,7 +16,6 @@ use Modufolio\Appkit\Security\Exception\BadCredentialsException;
 use Modufolio\Appkit\Security\Exception\TwoFactorRequiredException;
 use Modufolio\Appkit\Security\Exception\UnsupportedUserException;
 use Modufolio\Appkit\Security\Exception\UserNotFoundException;
-use Modufolio\Appkit\Security\SecurityConfigurator;
 use Modufolio\Appkit\Security\Token\RememberMeToken;
 use Modufolio\Appkit\Security\Token\TokenInterface;
 use Modufolio\Appkit\Security\Token\TwoFactorToken;
@@ -29,8 +30,6 @@ use Negotiation\BaseAccept;
 use Negotiation\Negotiator;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
-use Symfony\Component\HttpFoundation\IpUtils;
-use Symfony\Component\Routing\Exception\MethodNotAllowedException;
 
 /**
  * Security trait for authentication and authorization functionality.
@@ -183,7 +182,8 @@ trait AppSecurity
         // Nobody authenticated. A path declared public is served anonymously
         // instead of being bounced to the entry point — the authenticators ran
         // first, so a remember-me cookie still signs the visitor in.
-        if ($this->isPublicRequest($request, $firewallName)) {
+        // See SecurityConfigurator::publicPath() for how paths opt in.
+        if ($this->accessDecisionEngine()->isPublic($request, $firewallName)) {
             return $this->withStaleCookiesExpired($this->controllerResolver($request), $staleCookies);
         }
 
@@ -203,44 +203,6 @@ trait AppSecurity
         }
 
         return $response;
-    }
-
-    /**
-     * Whether an access-control rule declares this request public.
-     *
-     * A rule may narrow the exemption to certain methods, so that e.g. a page
-     * is readable anonymously while writing to it still requires a login.
-     *
-     * A rule may also be scoped to one firewall via its `firewall` option, so
-     * a broad pattern (a site-wide '/') cannot waive the login redirect for
-     * requests handled by a stricter firewall (e.g. an admin panel's).
-     *
-     * @see SecurityConfigurator::publicPath()
-     */
-    private function isPublicRequest(ServerRequestInterface $request, ?string $firewallName = null): bool
-    {
-        $path = $this->securityPath($request);
-        $method = strtoupper($request->getMethod());
-
-        foreach ($this->accessControlRules ?? [] as $rule) {
-            if (!in_array(SecurityConfigurator::PUBLIC_ACCESS, $rule['roles'] ?? [], true)) {
-                continue;
-            }
-
-            if (isset($rule['firewall']) && $rule['firewall'] !== $firewallName) {
-                continue;
-            }
-
-            if (!$this->matchesAccessControlPattern($rule['path'] ?? '/', $path)) {
-                continue;
-            }
-
-            if (empty($rule['methods']) || in_array($method, $rule['methods'], true)) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     /**
@@ -787,155 +749,37 @@ trait AppSecurity
     /**
      * Enforces global access control rules.
      *
+     * @see AccessDecisionEngine::enforce()
+     *
      * @throws AuthenticationException
      */
     private function enforceAccessControl(ServerRequestInterface $request): void
     {
-        $path = $this->securityPath($request);
-        $method = $request->getMethod();
-
-        foreach ($this->accessControlRules ?? [] as $rule) {
-            if (!$this->matchesAccessControlPattern($rule['path'] ?? '/', $path)) {
-                continue;
-            }
-
-            // A PUBLIC_ACCESS rule only waives the authentication redirect
-            // (see isPublicRequest()); it neither grants nor restricts anything
-            // here, so later rules still get their say.
-            if (in_array(SecurityConfigurator::PUBLIC_ACCESS, $rule['roles'] ?? [], true)) {
-                continue;
-            }
-
-            if (!empty($rule['methods']) && !in_array($method, $rule['methods'], true)) {
-                throw new MethodNotAllowedException($rule['methods'], 'Method not allowed for this path: '.$path);
-            }
-
-            if (isset($rule['requires_channel']) && 'https' === $rule['requires_channel'] && 'https' !== $request->getUri()->getScheme()) {
-                throw new AuthenticationException('HTTPS required for this path: '.$path);
-            }
-
-            if (!empty($rule['ips'])) {
-                $clientIp = $request->getServerParams()['REMOTE_ADDR'] ?? '127.0.0.1';
-
-                if (!IpUtils::checkIp($clientIp, $rule['ips'])) {
-                    throw new AccessDeniedException('Access denied due to IP restriction for path: '.$path);
-                }
-            }
-
-            if (!empty($rule['roles'])) {
-                $token = $this->tokenStorage()->getToken();
-                if (null === $token) {
-                    throw new AuthenticationException('Authentication required for path: '.$path);
-                }
-                $user = $token->getUser();
-                if (!$user instanceof UserInterface) {
-                    throw new AuthenticationException('Invalid user for path: '.$path);
-                }
-                $userRoles = $this->roleHierarchy?->getReachableRoles($user->getRoles()) ?? $user->getRoles();
-                $hasRole = false;
-                foreach ($rule['roles'] as $requiredRole) {
-                    if (!in_array($requiredRole, $userRoles, true)) {
-                        continue;
-                    }
-
-                    $hasRole = true;
-                    break;
-                }
-                if (!$hasRole) {
-                    throw new AccessDeniedException('Insufficient roles for path: '.$path);
-                }
-            }
-
-            return; // Rule matched and passed
-        }
+        $this->accessDecisionEngine()->enforce($request, $this->tokenStorage()->getToken());
     }
 
     /**
      * The request path as the router will see it, for security matching.
      *
-     * The Symfony URL matcher rawurldecode()s the path before resolving the
-     * controller (see UrlMatcher::match). Firewall and access-control matching
-     * must decode the same way, or an encoded byte in a protected prefix
-     * (e.g. "/%61pi" for "/api") slips past the firewall while the controller
-     * still runs — an authentication bypass. Decoding here keeps the security
-     * view and the routing view of the path identical.
+     * @see RequestMatcher::securityPath()
      */
     private function securityPath(ServerRequestInterface $request): string
     {
-        return rawurldecode($request->getUri()->getPath());
-    }
-
-    /**
-     * Match path against access control pattern.
-     *
-     * Supported syntax:
-     *  - "api:0" → matches if segment 0 == "api"
-     *  - "/api"  → matches if path starts with "/api"
-     */
-    private function matchesAccessControlPattern(string $pattern, string $path): bool
-    {
-        // Segment-based syntax (e.g. "api:0")
-        if (str_contains($pattern, ':')) {
-            [$value, $pos] = explode(':', $pattern, 2);
-            $segments = explode('/', trim($path, '/'));
-
-            return isset($segments[(int) $pos]) && $segments[(int) $pos] === $value;
-        }
-
-        // Prefix matching (e.g. "/api")
-        if (!isset($pattern[0]) || '/' !== $pattern[0]) {
-            $pattern = '/'.ltrim($pattern, '/');
-        }
-
-        // Match on full path segments, not a bare string prefix (audit L4):
-        // a rule for "/admin" must NOT match "/administrator". The path either
-        // equals the pattern exactly, or continues with a "/" after it.
-        $normalized = rtrim($pattern, '/');
-
-        return $path === $normalized
-            || str_starts_with($path, $normalized.'/');
+        return RequestMatcher::securityPath($request->getUri());
     }
 
     /**
      * Enforces access control based on #[IsGranted] roles in route defaults.
      *
+     * @see AccessDecisionEngine::enforceRoleGroups()
+     *
      * @throws AuthenticationException
      */
     private function enforceAttributeAccessControl(array $parameters): void
     {
-        $requiredRoleGroups = $parameters['_is_granted_roles'] ?? [];
-        if (empty($requiredRoleGroups)) {
-            return;
-        }
-
-        $token = $this->tokenStorage()->getToken();
-        if (null === $token || !$token->getUser()) {
-            throw new AuthenticationException('Authentication required for this route');
-        }
-
-        $user = $token->getUser();
-
-        $userRoles = $this->roleHierarchy?->getReachableRoles($user->getRoles()) ?? $user->getRoles();
-
-        // Every group (one per #[IsGranted]) must be satisfied (AND); within a
-        // group, holding any one of the listed roles is enough (OR). The (array)
-        // cast tolerates a legacy flat list from a stale compiled-route cache.
-        foreach ($requiredRoleGroups as $group) {
-            $group = (array) $group;
-            $satisfied = false;
-
-            foreach ($group as $role) {
-                if (!in_array($role, $userRoles, true)) {
-                    continue;
-                }
-
-                $satisfied = true;
-                break;
-            }
-
-            if (!$satisfied) {
-                throw new AccessDeniedException(sprintf('Insufficient roles for route. Required one of: %s', implode(', ', $group)));
-            }
-        }
+        $this->accessDecisionEngine()->enforceRoleGroups(
+            $parameters['_is_granted_roles'] ?? [],
+            $this->tokenStorage()->getToken(),
+        );
     }
 }
