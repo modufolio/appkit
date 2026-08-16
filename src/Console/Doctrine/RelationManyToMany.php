@@ -39,7 +39,7 @@ final class RelationManyToMany extends BaseCollectionRelation
                 targetClassName: $mapping->targetEntity,
                 targetPropertyName: $mapping->inversedBy,
                 mapInverseRelation: null !== $mapping->inversedBy,
-                isOwning: $mapping->isOwningSide(),
+                isOwning: true,
             );
         }
 
@@ -48,7 +48,7 @@ final class RelationManyToMany extends BaseCollectionRelation
             targetClassName: $mapping->targetEntity,
             targetPropertyName: $mapping->mappedBy,
             mapInverseRelation: true,
-            isOwning: $mapping->isOwningSide(),
+            isOwning: false,
         );
     }
 }

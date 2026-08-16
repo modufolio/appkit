@@ -32,6 +32,12 @@ interface ApplicationStateInterface extends ResetInterface
     public function getBaseUrl(): string;
 
     /**
+     * Get the application base directory (used for var/sessions and other
+     * runtime paths).
+     */
+    public function getBaseDir(): string;
+
+    /**
      * Replace the current request with a new one.
      *
      * Recalculates base URL and clears firewall cache.
