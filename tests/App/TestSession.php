@@ -23,6 +23,15 @@ class TestSession implements FlashBagAwareSessionInterface
     private bool $started = false;
     private string $id;
 
+    /**
+     * Session IDs retired by migrate($destroy: true) — the storage a real
+     * backend deletes. Tests can assert a pre-login ID landed here, proving
+     * the fixation window is closed.
+     *
+     * @var list<string>
+     */
+    private array $destroyedIds = [];
+
     public function __construct(?FlashBagInterface $flashBag = null)
     {
         $this->flashBag = $flashBag ?? new FlashBag();
@@ -69,16 +78,28 @@ class TestSession implements FlashBagAwareSessionInterface
 
     public function migrate(bool $destroy = false, ?int $lifetime = null): bool
     {
-        // Emulate a real session's fixation defense: a new ID is issued. With
-        // $destroy = false the existing attributes are preserved (the default
-        // used after authentication so the auth token survives the rotation).
+        // Faithful to SessionInterface::migrate: a new ID is issued and the
+        // current attributes are ALWAYS carried over to it. $destroy controls
+        // only whether the OLD session storage is deleted (true) or left to
+        // garbage collection (false) — it never touches the current data.
+        $oldId = $this->id;
         $this->id = bin2hex(random_bytes(16));
 
         if ($destroy) {
-            $this->attributes = [];
+            $this->destroyedIds[] = $oldId;
         }
 
         return true;
+    }
+
+    /**
+     * IDs that migrate($destroy: true) retired, for fixation assertions.
+     *
+     * @return list<string>
+     */
+    public function getDestroyedIds(): array
+    {
+        return $this->destroyedIds;
     }
 
     public function save(): void

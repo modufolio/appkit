@@ -56,6 +56,45 @@ class LoginTest extends AppTestCase
         );
     }
 
+    /**
+     * The teeth behind fixation defense: rotating the ID is not enough — the
+     * pre-login session storage must be DELETED, or an attacker who fixed that
+     * ID can keep using it as an authenticated session after the victim logs
+     * in. This is why the login flow calls migrate(true), not migrate(false):
+     * the boolean deletes the old storage (attributes are carried over either
+     * way). See AppSecurity::handleAuthentication.
+     */
+    public function testLoginDestroysPreLoginSessionStorage(): void
+    {
+        $session = $this->app()->session();
+        $session->start();
+        $idBefore = $session->getId();
+
+        // Materialise the pre-login session on disk (a fixed session an
+        // attacker would have planted).
+        $session->set('probe', 'fixed');
+        $session->save();
+
+        $sessionDir = $this->app()->getState()->getBaseDir().'/var/sessions';
+        $oldFile = $sessionDir.'/sess_'.$idBefore;
+        $this->assertFileExists($oldFile, 'pre-login session file should exist before login');
+
+        $csrfToken = $this->app()->csrfTokenManager()->getToken('authenticate')->getValue();
+        $this->form('/login', [
+            'email' => 'johndoe@example.com',
+            'password' => 'secret',
+            '_csrf_token' => $csrfToken,
+        ])->assertRedirect('/');
+
+        // ID rotated (fixation defense) ...
+        $this->assertNotSame($idBefore, $this->app()->session()->getId());
+        // ... and the old storage is gone, so the fixed ID cannot be replayed.
+        $this->assertFileDoesNotExist(
+            $oldFile,
+            'pre-login session storage must be destroyed on login (migrate(true)).',
+        );
+    }
+
     public function testLoginSuccessfullyStoresToken(): void
     {
         // ARRANGE - Set up test data and initial state

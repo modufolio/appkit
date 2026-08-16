@@ -62,8 +62,7 @@ trait AppSecurity
      */
     public function handleAuthentication(ServerRequestInterface $request): ResponseInterface
     {
-        $path = $this->securityPath($request);
-        $firewallName = $this->getFirewallName($path);
+        $firewallName = $this->getFirewallNameForRequest($request);
 
         if (null === $firewallName) {
             return $this->controllerResolver($request);
@@ -148,12 +147,20 @@ trait AppSecurity
                 // Defend against session fixation: rotate the session ID once
                 // the auth token has been associated with it. Any ID an attacker
                 // might have pre-set on the victim becomes worthless.
-                // false = preserve session data (auth token, flash bag).
-                // (OWASP A07:2021)
-                $session->migrate(false);
+                //
+                // $destroy = true DELETES the old session storage — it does not
+                // touch the attributes, which migrate() always carries over to
+                // the new ID (see SessionInterface::migrate). Passing false
+                // would leave the pre-login ID valid until garbage collection,
+                // and since the auth token was just written above, that stale ID
+                // would remain a usable authenticated session — exactly the
+                // fixation window this is meant to close. Symfony's
+                // SessionAuthenticationStrategy::MIGRATE uses true for the same
+                // reason. (OWASP A07:2021)
+                $session->migrate(true);
 
-                // Rotate CSRF tokens at login — migrate(false) preserves session
-                // data, so any pre-auth CSRF tokens that may have leaked
+                // Rotate CSRF tokens at login — migrate() preserves session
+                // attributes, so any pre-auth CSRF tokens that may have leaked
                 // (referrer logs, shared-machine browser history) would otherwise
                 // remain valid after authentication.
                 $this->csrfTokenManager()->clear();

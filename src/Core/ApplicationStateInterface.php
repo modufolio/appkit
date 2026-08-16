@@ -89,9 +89,16 @@ interface ApplicationStateInterface extends ResetInterface
     public function hasTokenStorage(): bool;
 
     /**
-     * Get the firewall name for a given path.
+     * Get the firewall name for a given path (pattern-only).
      */
     public function getFirewallName(string $path): ?string;
+
+    /**
+     * Resolve the firewall for a request, honouring pattern + methods + host +
+     * ips restrictions (Symfony-style). Use this for security-critical
+     * selection; getFirewallName() is a pattern-only convenience.
+     */
+    public function getFirewallNameForRequest(ServerRequestInterface $request): ?string;
 
     /**
      * Set the firewall configuration.

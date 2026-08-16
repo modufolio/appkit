@@ -3,7 +3,10 @@
 namespace Modufolio\Appkit\Tests\Unit\App;
 
 use Modufolio\Appkit\Tests\Case\AppTestCase;
+use Modufolio\Psr7\Http\ServerRequest;
+use Modufolio\Psr7\Http\Uri;
 use Psr\Http\Message\ResponseInterface;
+use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 
 class FirewallConfigurationTest extends AppTestCase
 {
@@ -35,6 +38,62 @@ class FirewallConfigurationTest extends AppTestCase
     public function testEmptyFirewallConfig(): void
     {
         $this->assertSame([], $this->app()->getFirewallConfig('non_existent'));
+    }
+
+    /**
+     * A `methods`-restricted firewall handles only the listed methods; other
+     * methods fall through to the next matching firewall. This is the safe,
+     * Symfony-style behaviour (the firewall selection honours the restriction).
+     */
+    public function testMethodRestrictedFirewallOnlyHandlesListedMethods(): void
+    {
+        $this->app()->configureFirewall([
+            'firewalls' => [
+                'read_only' => ['pattern' => '/api', 'methods' => ['GET'], 'security' => false],
+                'main' => ['pattern' => '/api', 'authenticators' => ['form_login'], 'entry_point' => '/login'],
+            ],
+        ]);
+
+        $get = new ServerRequest('GET', new Uri('/api/data'));
+        $post = new ServerRequest('POST', new Uri('/api/data'));
+
+        $this->assertSame('read_only', $this->app()->getFirewallNameForRequest($get));
+        $this->assertSame('main', $this->app()->getFirewallNameForRequest($post));
+    }
+
+    /**
+     * App-specific firewall keys appkit does not consume (e.g. a session
+     * `context`) must pass through validation untouched — the schema only
+     * type-checks the keys appkit understands.
+     */
+    public function testUnknownFirewallKeysArePreserved(): void
+    {
+        $this->app()->configureFirewall([
+            'firewalls' => [
+                'main' => [
+                    'pattern' => '/',
+                    'context' => 'app',
+                    'authenticators' => ['form_login'],
+                ],
+            ],
+        ]);
+
+        $config = $this->app()->getFirewallConfig('main');
+        $this->assertSame('app', $config['context']);
+    }
+
+    public function testFirewallWithWrongTypeIsRejected(): void
+    {
+        $this->expectException(InvalidConfigurationException::class);
+
+        $this->app()->configureFirewall([
+            'firewalls' => [
+                'main' => [
+                    'pattern' => '/',
+                    'stateless' => 'yes', // not a boolean
+                ],
+            ],
+        ]);
     }
 
     public function testMultipleFirewallConfigurations(): void

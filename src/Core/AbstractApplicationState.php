@@ -8,6 +8,7 @@ use Modufolio\Appkit\Security\AccessControl\RequestMatcher;
 use Modufolio\Appkit\Security\Token\Storage\TokenStorage;
 use Modufolio\Appkit\Security\Token\TokenStorageInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Symfony\Component\HttpFoundation\IpUtils;
 use Symfony\Component\HttpFoundation\Session\FlashBagAwareSessionInterface;
 use Symfony\Component\HttpFoundation\Session\Storage\SessionStorageInterface;
 
@@ -32,6 +33,9 @@ abstract class AbstractApplicationState implements ApplicationStateInterface
     protected ?TokenStorageInterface $tokenStorage = null;
 
     protected array $firewallNameCache = [];
+
+    /** @var array<string, string|null> keyed by method+host+ip+path */
+    protected array $firewallRequestCache = [];
     protected array $firewallConfig = [];
 
     /**
@@ -81,6 +85,7 @@ abstract class AbstractApplicationState implements ApplicationStateInterface
         $this->request = $request;
         $this->baseUrl = $this->calculateBaseUrl($request);
         $this->firewallNameCache = [];
+        $this->firewallRequestCache = [];
 
         return $this;
     }
@@ -174,6 +179,39 @@ abstract class AbstractApplicationState implements ApplicationStateInterface
     // -----------------------------------------------------------------
     // Firewall handling
     // -----------------------------------------------------------------
+
+    /**
+     * Resolve the firewall for a request, honouring the full set of firewall
+     * restrictions — pattern, methods, host and ips — the way Symfony does.
+     *
+     * A firewall handles the request only if EVERY restriction it declares
+     * matches; the first firewall (in declaration order) that matches wins.
+     * This is what makes a `methods`-scoped firewall safe: a firewall meant
+     * for GET only is skipped for a POST, which then falls through to the next
+     * matching firewall (typically the authenticated one).
+     *
+     * @see https://symfony.com/doc/current/security/firewall_restriction.html
+     */
+    public function getFirewallNameForRequest(ServerRequestInterface $request): ?string
+    {
+        $path = RequestMatcher::securityPath($request->getUri());
+        $method = strtoupper($request->getMethod());
+        $host = $request->getUri()->getHost();
+        $ip = $request->getServerParams()['REMOTE_ADDR'] ?? null;
+
+        $cacheKey = $method."\0".$host."\0".($ip ?? '')."\0".$path;
+
+        return $this->firewallRequestCache[$cacheKey]
+            ??= $this->resolveFirewallNameForRequest($path, $method, $host, $ip);
+    }
+
+    /**
+     * Pattern-only firewall resolution.
+     *
+     * Kept for callers that only have a path (URL generation, tooling) and for
+     * backward compatibility. Security-critical selection goes through
+     * getFirewallNameForRequest(), which also honours methods/host/ips.
+     */
     public function getFirewallName(string $path): ?string
     {
         return $this->firewallNameCache[$path] ??= $this->resolveFirewallName($path);
@@ -190,6 +228,54 @@ abstract class AbstractApplicationState implements ApplicationStateInterface
         }
 
         return null;
+    }
+
+    protected function resolveFirewallNameForRequest(string $path, string $method, string $host, ?string $ip): ?string
+    {
+        foreach ($this->firewallConfig as $name => $config) {
+            $pattern = $config['pattern'] ?? '';
+
+            if (!$pattern || !$this->matchesPattern($pattern, $path)) {
+                continue;
+            }
+
+            if (!$this->matchesFirewallRestrictions($config, $method, $host, $ip)) {
+                continue;
+            }
+
+            return $name;
+        }
+
+        return null;
+    }
+
+    /**
+     * Whether a firewall's methods/host/ips restrictions all match the request.
+     * A restriction that is not declared imposes no constraint.
+     *
+     * @param array<string, mixed> $config
+     */
+    protected function matchesFirewallRestrictions(array $config, string $method, string $host, ?string $ip): bool
+    {
+        $methods = $config['methods'] ?? [];
+        if (is_array($methods) && [] !== $methods
+            && !in_array($method, array_map('strtoupper', $methods), true)) {
+            return false;
+        }
+
+        $allowedHost = $config['host'] ?? null;
+        if (is_string($allowedHost) && '' !== $allowedHost
+            && 0 !== strcasecmp($allowedHost, $host)) {
+            return false;
+        }
+
+        $ips = $config['ips'] ?? [];
+        if (is_array($ips) && [] !== $ips
+            && (null === $ip || !IpUtils::checkIp($ip, $ips))) {
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -232,6 +318,7 @@ abstract class AbstractApplicationState implements ApplicationStateInterface
     {
         $this->firewallConfig = $config;
         $this->firewallNameCache = [];
+        $this->firewallRequestCache = [];
 
         return $this;
     }
@@ -303,5 +390,6 @@ abstract class AbstractApplicationState implements ApplicationStateInterface
 
         // Clear firewall cache
         $this->firewallNameCache = [];
+        $this->firewallRequestCache = [];
     }
 }

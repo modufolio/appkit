@@ -7,6 +7,7 @@ namespace Modufolio\Appkit\Core;
 use Doctrine\ORM\EntityManagerInterface;
 use Modufolio\Appkit\Resolver\ParameterResolverInterface;
 use Modufolio\Appkit\Security\Csrf\CsrfTokenManagerInterface;
+use Modufolio\Appkit\Security\RoleHierarchy;
 use Modufolio\Appkit\Security\Token\TokenStorageInterface;
 use Modufolio\Appkit\Security\User\UserProviderInterface;
 use Psr\Container\ContainerInterface;
@@ -42,6 +43,22 @@ interface AppInterface extends ContainerInterface, RequestHandlerInterface, Rese
     public function getParameter(string $name): array|bool|string|int|float|null;
 
     public function hasParameter(string $name): bool;
+
+    /**
+     * All configured firewalls, keyed by name, in declaration order.
+     *
+     * @return array<string, array<string, mixed>>
+     */
+    public function getFirewalls(): array;
+
+    /**
+     * The configured access-control rules, in declaration order.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function getAccessControlRules(): array;
+
+    public function getRoleHierarchy(): ?RoleHierarchy;
 
     // ============================================================================
     // CORE SERVICES

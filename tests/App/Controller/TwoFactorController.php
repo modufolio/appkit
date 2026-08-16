@@ -249,8 +249,10 @@ class TwoFactorController
 
         // Session completes here — regenerate the ID and rotate CSRF tokens, the
         // same fixation defense the password step applies (AppSecurity). Without
-        // this, an ID fixed before login stays valid through 2FA. (OWASP A07:2021)
-        $this->session->migrate(false);
+        // this, an ID fixed before login stays valid through 2FA. $destroy = true
+        // deletes the old session storage (attributes are carried over either
+        // way), so the pre-login ID cannot be replayed. (OWASP A07:2021)
+        $this->session->migrate(true);
         $this->csrfTokenManager->clear();
 
         $targetUrl = $this->session->get('_security.main.target_path', $this->urlGenerator->generate('home'));

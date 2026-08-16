@@ -22,6 +22,16 @@ class RoleHierarchy
     }
 
     /**
+     * The declared hierarchy map (role => roles it inherits), for inspection.
+     *
+     * @return array<string, list<string>>
+     */
+    public function getMap(): array
+    {
+        return $this->hierarchy;
+    }
+
+    /**
      * @param list<string> $roles
      *
      * @return list<string>

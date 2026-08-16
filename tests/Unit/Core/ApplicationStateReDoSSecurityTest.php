@@ -159,6 +159,61 @@ class ApplicationStateReDoSSecurityTest extends AppTestCase
         return new NativeApplicationState($request, sys_get_temp_dir(), $firewallConfig);
     }
 
+    // ================================================================
+    // Firewall restriction tests (methods / host / ips)
+    // ================================================================
+
+    public function testMethodRestrictionSelectsDifferentFirewalls(): void
+    {
+        $state = $this->createApplicationState([
+            'read_only' => ['pattern' => '/api', 'methods' => ['GET', 'HEAD'], 'security' => false],
+            'main' => ['pattern' => '/api'],
+        ]);
+
+        $this->assertSame('read_only', $state->getFirewallNameForRequest(new ServerRequest('GET', '/api/x')));
+        $this->assertSame('read_only', $state->getFirewallNameForRequest(new ServerRequest('HEAD', '/api/x')));
+        $this->assertSame('main', $state->getFirewallNameForRequest(new ServerRequest('POST', '/api/x')));
+        $this->assertSame('main', $state->getFirewallNameForRequest(new ServerRequest('PATCH', '/api/x')));
+    }
+
+    public function testHostRestrictionIsHonoured(): void
+    {
+        $state = $this->createApplicationState([
+            'admin' => ['pattern' => '/', 'host' => 'admin.example.com'],
+            'site' => ['pattern' => '/'],
+        ]);
+
+        $this->assertSame('admin', $state->getFirewallNameForRequest(new ServerRequest('GET', 'http://admin.example.com/dashboard')));
+        $this->assertSame('site', $state->getFirewallNameForRequest(new ServerRequest('GET', 'http://www.example.com/dashboard')));
+    }
+
+    public function testIpRestrictionIsHonoured(): void
+    {
+        $state = $this->createApplicationState([
+            'internal' => ['pattern' => '/', 'ips' => ['10.0.0.0/8']],
+            'public' => ['pattern' => '/'],
+        ]);
+
+        $fromInternal = new ServerRequest('GET', '/x', [], null, '1.1', ['REMOTE_ADDR' => '10.1.2.3']);
+        $fromOutside = new ServerRequest('GET', '/x', [], null, '1.1', ['REMOTE_ADDR' => '203.0.113.1']);
+
+        $this->assertSame('internal', $state->getFirewallNameForRequest($fromInternal));
+        $this->assertSame('public', $state->getFirewallNameForRequest($fromOutside));
+    }
+
+    public function testNoRestrictionsBehavesLikePatternOnly(): void
+    {
+        $state = $this->createApplicationState([
+            'main' => ['pattern' => '/api'],
+        ]);
+
+        // With no methods/host/ips, request-aware and path-only agree.
+        $this->assertSame(
+            $state->getFirewallName('/api/x'),
+            $state->getFirewallNameForRequest(new ServerRequest('POST', '/api/x')),
+        );
+    }
+
     /**
      * Test prefix patterns work correctly.
      */

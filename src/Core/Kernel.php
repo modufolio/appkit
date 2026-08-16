@@ -19,6 +19,7 @@ use Modufolio\Appkit\Routing\RouterInterface;
 use Modufolio\Appkit\Security\AccessControl\AccessDecisionEngine;
 use Modufolio\Appkit\Security\Csrf\CsrfTokenManager;
 use Modufolio\Appkit\Security\Csrf\CsrfTokenManagerInterface;
+use Modufolio\Appkit\Security\FirewallConfiguration;
 use Modufolio\Appkit\Security\RoleHierarchy;
 use Modufolio\Appkit\Security\SecurityConfigurator;
 use Modufolio\Appkit\Security\Token\TokenStorageInterface;
@@ -36,6 +37,7 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\Config\Definition\Processor;
 use Symfony\Component\Config\Loader\LoaderInterface;
 use Symfony\Component\HttpFoundation\Session\FlashBagAwareSessionInterface;
 use Symfony\Component\Routing\Exception\ResourceNotFoundException;
@@ -197,7 +199,7 @@ abstract class Kernel implements AppInterface
         $arg = [] === $reflection->getParameters() ? [] : $this->parameterResolver()->getParameters($reflection, [
             ServerRequestInterface::class => $request,
             RequestHandlerInterface::class => $this,
-            'firewall' => $this->getFirewallName($request->getUri()->getPath()),
+            'firewall' => $this->getFirewallNameForRequest($request),
             ...$parameters,
         ], []);
 
@@ -552,6 +554,7 @@ abstract class Kernel implements AppInterface
 
     public function configureFirewall(array $config): self
     {
+        $this->assertValidFirewallConfig($config['firewalls'] ?? []);
         $this->firewallConfig = $config['firewalls'] ?? [];
         $this->accessControlRules = $config['access_control'] ?? [];
         $this->roleHierarchy = new RoleHierarchy($config['role_hierarchy'] ?? []);
@@ -568,6 +571,7 @@ abstract class Kernel implements AppInterface
      */
     public function configureSecurity(SecurityConfigurator $configurator): static
     {
+        $this->assertValidFirewallConfig($configurator->getFirewalls());
         $this->firewallConfig = $configurator->getFirewalls();
         $this->accessControlRules = $configurator->getAccessControlRules();
         $this->roleHierarchy = $configurator->getRoleHierarchy();
@@ -575,6 +579,42 @@ abstract class Kernel implements AppInterface
         $this->state?->setFirewallConfig($this->firewallConfig);
 
         return $this;
+    }
+
+    /**
+     * Validate firewall configuration against the FirewallConfiguration schema.
+     *
+     * Type-checks the keys appkit itself consumes and rejects `methods` — a key
+     * that reads as a per-method firewall filter but is silently ignored by
+     * firewall selection (which matches on pattern alone), so it fails open.
+     * App-specific keys the schema does not know are passed through untouched,
+     * since firewall config is handed to the app's own ApplicationState.
+     *
+     * Skipped in prod. Config configuration runs on every request in appkit's
+     * per-request boot, and building + normalizing the schema tree is not free;
+     * paying that on every production hit to re-check config that has not
+     * changed since deploy mirrors nothing Symfony does — Symfony validates at
+     * container compile time and serves a cached, pre-validated result at
+     * runtime. Here the equivalent is to validate in dev/test (and CI), where
+     * the config is authored and the failure is wanted loud and immediate, and
+     * to trust the already-validated config in prod. Deploys that never run
+     * dev/test should validate in CI (the schema is public: run the Processor
+     * against FirewallConfiguration there).
+     *
+     * @param array<string, array<string, mixed>> $firewalls
+     *
+     * @throws \Symfony\Component\Config\Definition\Exception\InvalidConfigurationException
+     */
+    private function assertValidFirewallConfig(array $firewalls): void
+    {
+        if ($this->environment()->isProd()) {
+            return;
+        }
+
+        (new Processor())->processConfiguration(
+            new FirewallConfiguration(),
+            [['firewalls' => $firewalls]],
+        );
     }
 
     public function setRouterOptions(array $options): void
@@ -631,9 +671,47 @@ abstract class Kernel implements AppInterface
         return $this->state->getFirewallName($path);
     }
 
+    /**
+     * Resolve the firewall for a request, honouring pattern + methods + host +
+     * ips restrictions (Symfony-style). Security-critical selection uses this.
+     */
+    public function getFirewallNameForRequest(ServerRequestInterface $request): ?string
+    {
+        if (null === $this->state) {
+            throw new \RuntimeException('Firewall resolution is not available. ApplicationState must be initialized by handling a request first.');
+        }
+
+        return $this->state->getFirewallNameForRequest($request);
+    }
+
     public function getFirewallConfig(string $firewallName): array
     {
         return $this->firewallConfig[$firewallName] ?? [];
+    }
+
+    /**
+     * All configured firewalls, keyed by name, in declaration order.
+     *
+     * @return array<string, array<string, mixed>>
+     */
+    public function getFirewalls(): array
+    {
+        return $this->firewallConfig;
+    }
+
+    /**
+     * The configured access-control rules, in declaration order.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function getAccessControlRules(): array
+    {
+        return $this->accessControlRules ?? [];
+    }
+
+    public function getRoleHierarchy(): ?RoleHierarchy
+    {
+        return $this->roleHierarchy;
     }
 
     /**
