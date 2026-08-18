@@ -1,2 +1,28 @@
-# Auto detect text files and perform LF normalization
+# normalize line endings
 * text=auto
+
+# git
+.gitattributes export-ignore
+.github/ export-ignore
+.gitignore export-ignore
+
+# tests
+.php-cs-fixer.php export-ignore
+.php-cs-fixer.cache export-ignore
+.phpunit.cache/ export-ignore
+phpstan.php export-ignore
+phpstan-bootstrap.php export-ignore
+phpunit.xml.dist export-ignore
+tests/ export-ignore
+
+# docs
+docs/ export-ignore
+
+# docker
+Dockerfile export-ignore
+docker-compose.yml export-ignore
+
+# other
+.idea/ export-ignore
+composer.lock export-ignore
+var/ export-ignore
