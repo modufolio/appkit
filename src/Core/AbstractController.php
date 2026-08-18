@@ -14,11 +14,15 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
 /**
  * Abstract base class for Controllers.
  *
+ * Provides the common services as protected properties. Controllers that want
+ * a different set can implement AppAwareInterface themselves instead of
+ * extending this class.
+ *
  * @author    Maarten Thiebou
  * @copyright Modufolio
  * @license   https://opensource.org/licenses/MIT
  */
-class AbstractController
+class AbstractController implements AppAwareInterface
 {
     protected EntityManagerInterface $entityManager;
     protected FlashBagInterface $flashBag;

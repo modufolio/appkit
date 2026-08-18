@@ -313,7 +313,7 @@ abstract class Kernel implements AppInterface
     {
         $controller = new $id(...$resolved);
 
-        if ($controller instanceof AbstractController) {
+        if ($controller instanceof AppAwareInterface) {
             $controller->setSubscribedServices($this);
         }
 
