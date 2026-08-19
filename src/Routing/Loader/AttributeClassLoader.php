@@ -27,14 +27,22 @@ class AttributeClassLoader extends \Symfony\Component\Routing\Loader\AttributeCl
         // class-level one instead of widening it.
         $requiredRoleGroups = [];
         foreach ($attributes as $attribute) {
+            $instance = $attribute->newInstance();
+
             $roles = array_values(array_filter(
-                array_unique((array) $attribute->newInstance()->roles),
+                array_unique((array) $instance->roles),
                 static fn (string $role): bool => '' !== $role,
             ));
 
-            if ([] !== $roles) {
-                $requiredRoleGroups[] = $roles;
+            if ([] === $roles) {
+                continue;
             }
+
+            // A group is a plain role list when it applies to every method, and
+            // a ['roles' => …, 'methods' => …] map when it is method-scoped.
+            $requiredRoleGroups[] = [] === $instance->methods
+                ? $roles
+                : ['roles' => $roles, 'methods' => $instance->methods];
         }
 
         if (!empty($requiredRoleGroups)) {

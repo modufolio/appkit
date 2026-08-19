@@ -31,6 +31,16 @@ class IsGrantedFixtureController
     public function emptyRole(): void
     {
     }
+
+    #[IsGranted('ROLE_EDITOR', methods: ['post', 'delete'])]
+    public function methodScoped(): void
+    {
+    }
+
+    #[IsGranted('ROLE_EDITOR', methods: 'get')]
+    public function getScoped(): void
+    {
+    }
 }
 
 class ExposedAttributeClassLoader extends AttributeClassLoader
@@ -72,5 +82,21 @@ class AttributeClassLoaderIsGrantedTest extends TestCase
     {
         // The empty method-level role contributes no group; only the class group remains.
         $this->assertSame([['ROLE_ADMIN']], $this->rolesFor('emptyRole'));
+    }
+
+    public function testMethodScopedAttributeCarriesUppercasedMethods(): void
+    {
+        $this->assertSame([
+            ['ROLE_ADMIN'],
+            ['roles' => ['ROLE_EDITOR'], 'methods' => ['POST', 'DELETE']],
+        ], $this->rolesFor('methodScoped'));
+    }
+
+    public function testGetImpliesHead(): void
+    {
+        $this->assertSame([
+            ['ROLE_ADMIN'],
+            ['roles' => ['ROLE_EDITOR'], 'methods' => ['GET', 'HEAD']],
+        ], $this->rolesFor('getScoped'));
     }
 }

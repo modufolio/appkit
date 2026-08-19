@@ -91,9 +91,17 @@ For an either/or check, list the roles in a single attribute:
 public function edit(): ResponseInterface
 ```
 
+A check can be scoped to specific HTTP methods with `methods:`, which is useful when one route serves both a safe read and a mutating write. Listing `GET` implicitly covers `HEAD`, and an omitted `methods` applies the check to every method:
+
+```php
+#[Route(path: '/posts', name: 'posts', methods: ['GET', 'POST'])]
+#[IsGranted('ROLE_ADMIN', methods: ['POST'])] // reading is open, writing is not
+public function posts(): ResponseInterface
+```
+
 Because attributes are AND'd, a method-level `#[IsGranted]` *tightens* a class-level one — it cannot widen access. A user must satisfy the class requirement **and** the method requirement.
 
-The attributes are read by `AttributeClassLoader` at route load time — once on boot, not on every request. Each `#[IsGranted]` (class- and method-level) becomes one role group stored as `_is_granted_roles` (a list of groups) in the route's defaults. In production, Symfony serializes the entire route collection to `var/cache/router`, so the groups are compiled into that cache — clear it on deploy after changing access rules. At request time, enforcement is a single `$route->getDefault('_is_granted_roles')` lookup with no reflection involved.
+The attributes are read by `AttributeClassLoader` at route load time — once on boot, not on every request. Each `#[IsGranted]` (class- and method-level) becomes one role group stored as `_is_granted_roles` (a list of groups) in the route's defaults. A group is a plain list of roles, or a `['roles' => …, 'methods' => …]` map when it is method-scoped. In production, Symfony serializes the entire route collection to `var/cache/router`, so the groups are compiled into that cache — clear it on deploy after changing access rules. At request time, enforcement is a single `$route->getDefault('_is_granted_roles')` lookup with no reflection involved.
 
 The Kernel enforces the check during controller resolution, before any controller code executes.
 

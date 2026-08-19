@@ -805,11 +805,12 @@ trait AppSecurity
      *
      * @throws AuthenticationException
      */
-    private function enforceAttributeAccessControl(array $parameters): void
+    private function enforceAttributeAccessControl(array $parameters, ?ServerRequestInterface $request = null): void
     {
         $this->accessDecisionEngine()->enforceRoleGroups(
             $parameters['_is_granted_roles'] ?? [],
             $this->tokenStorage()->getToken(),
+            $request?->getMethod(),
         );
     }
 }

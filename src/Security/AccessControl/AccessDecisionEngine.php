@@ -164,17 +164,32 @@ final class AccessDecisionEngine
      * (IS_AUTHENTICATED_FULLY, IS_IMPERSONATOR, …); both are handled uniformly
      * by the shared RoleAttributeEvaluator.
      *
-     * @param array<int, string|array<int, string>> $roleGroups
+     * A group carrying a `methods` list only applies to those HTTP methods;
+     * groups without one apply to every method.
+     *
+     * @param array<int, string|array<int|string, mixed>> $roleGroups
      *
      * @throws AuthenticationException when authentication (or a stronger one) is required
      * @throws AccessDeniedException   when a group is not satisfied
      */
-    public function enforceRoleGroups(array $roleGroups, ?TokenInterface $token): void
+    public function enforceRoleGroups(array $roleGroups, ?TokenInterface $token, ?string $method = null): void
     {
-        // The (array) cast tolerates a legacy flat list from a stale
-        // compiled-route cache; array_values normalises string keys to a list.
+        $method = null === $method ? null : strtoupper($method);
+
         foreach ($roleGroups as $group) {
-            $this->roleEvaluator->assert(array_values((array) $group), $token, 'route');
+            $methods = \is_array($group) ? ($group['methods'] ?? []) : [];
+
+            // Skip only on a definite mismatch: with an unknown request method
+            // the check still runs, so a missing method never widens access.
+            if ([] !== $methods && null !== $method && !\in_array($method, $methods, true)) {
+                continue;
+            }
+
+            $roles = \is_array($group) ? ($group['roles'] ?? $group) : $group;
+
+            // The (array) cast tolerates a legacy flat list from a stale
+            // compiled-route cache; array_values normalises string keys to a list.
+            $this->roleEvaluator->assert(array_values((array) $roles), $token, 'route');
         }
     }
 }

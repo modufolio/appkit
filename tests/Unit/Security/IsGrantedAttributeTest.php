@@ -105,4 +105,27 @@ class IsGrantedAttributeTest extends AppTestCase
 
         $this->get('/admin/audit')->assertStatus(403);
     }
+
+    public function testMethodScopedAttributeIsSkippedForOtherMethods(): void
+    {
+        // /admin/posts requires ROLE_ADMIN on POST only; GET is left to the
+        // class-level ROLE_USER gate, which johndoe satisfies.
+        $this->actingAs('johndoe@example.com', 'secret');
+
+        $this->get('/admin/posts')->assertStatus(200);
+    }
+
+    public function testMethodScopedAttributeIsEnforcedForItsMethod(): void
+    {
+        $this->actingAs('johndoe@example.com', 'secret');
+
+        $this->post('/admin/posts')->assertStatus(403);
+    }
+
+    public function testMethodScopedAttributePassesForPermittedUser(): void
+    {
+        $this->actingAs('admin@example.com', 'secret');
+
+        $this->post('/admin/posts')->assertStatus(200);
+    }
 }

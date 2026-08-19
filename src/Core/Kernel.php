@@ -175,7 +175,7 @@ abstract class Kernel implements AppInterface
             throw new ResourceNotFoundException('No controller found for request');
         }
 
-        $this->enforceAttributeAccessControl($parameters);
+        $this->enforceAttributeAccessControl($parameters, $request);
 
         if (!is_array($controller) || 2 !== count($controller)) {
             throw new \InvalidArgumentException('One of the routes does not have a valid controller definition. Expected format: [ClassName, methodName].');

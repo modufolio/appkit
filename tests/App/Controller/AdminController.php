@@ -35,4 +35,15 @@ class AdminController
     {
         return new Response(200, [], 'Audit');
     }
+
+    /**
+     * The role check applies only to the writing methods; GET stays open to
+     * anyone satisfying the class-level attribute.
+     */
+    #[Route(path: '/admin/posts', name: 'admin_posts', methods: ['GET', 'POST'])]
+    #[IsGranted('ROLE_ADMIN', methods: ['POST'])]
+    public function posts(): ResponseInterface
+    {
+        return new Response(200, [], 'Posts');
+    }
 }
