@@ -5,6 +5,94 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0] - 2026-08-19
+
+### Security
+
+- **Firewall selection now honours a firewall's `methods`, `host` and `ips`
+  restrictions, not just its `pattern`.** Previously
+  `getFirewallName()`/request resolution matched on pattern alone, so a
+  firewall scoped to e.g. `methods: [GET, HEAD]` was still selected for a
+  `POST` — silently applying the wrong firewall's (looser) security to a
+  mutating request. A new request-aware
+  `getFirewallNameForRequest(ServerRequestInterface $request)` checks pattern
+  *and* every declared restriction, falling through to the next matching
+  firewall (typically the authenticated one) when a restriction doesn't
+  match, the way Symfony does. `getFirewallName(string $path)` remains as a
+  pattern-only convenience for callers that only have a path (URL generation,
+  tooling). (`src/Core/AbstractApplicationState.php`,
+  `src/Core/ApplicationStateInterface.php`)
+
+### Added
+
+- **Persistent (database-backed) remember-me tokens with cookie-theft
+  detection.** Opting a `RememberMeAuthenticator` into a
+  `RememberMeTokenProviderInterface` switches it from a stateless signed
+  cookie to a series + rotating-value token stored server-side: the value is
+  rotated on every use, and a known series presented with a stale value is
+  treated as unambiguous theft — every token for that user is revoked and a
+  new `CookieTheftException` is thrown. Ships with `FileTokenProvider` and
+  `InMemoryTokenProvider` implementations. (`src/Security/RememberMe/`,
+  `src/Security/Authenticator/RememberMeAuthenticator.php`,
+  `src/Security/Exception/CookieTheftException.php`)
+
+- **Trust-level authorization attributes** (`IS_AUTHENTICATED_FULLY`,
+  `IS_IMPERSONATOR`, …), decided by a new `RoleAttributeEvaluator` shared by
+  both path-based access-control rules and `#[IsGranted]` route groups, so
+  the two can't drift apart. A group that needs a stronger authentication
+  than the current token provides (e.g. `IS_AUTHENTICATED_FULLY` while on a
+  remember-me cookie) now asks the user to step up instead of hard-denying.
+  (`src/Security/AccessControl/RoleAttributeEvaluator.php`,
+  `src/Security/AuthenticationTrustResolver.php`)
+
+- **`#[IsGranted]` accepts a `methods` option**, scoping the check to
+  specific HTTP methods on a route that serves more than one — e.g. leaving a
+  `GET` open while requiring a role on the same route's `POST`. Listing `GET`
+  implicitly covers `HEAD`. (`src/Attributes/IsGranted.php`,
+  `src/Routing/Loader/AttributeClassLoader.php`,
+  `src/Security/AccessControl/AccessDecisionEngine.php`)
+
+- **`AccessDecisionEngine`** consolidates access-control matching
+  (path/method/host/IP/channel/role constraints) that was previously
+  duplicated between `AbstractApplicationState` and `AppSecurity` into one
+  rule/constraint model. (`src/Security/AccessControl/`)
+
+- **`debug:firewall` and `security:validate` console commands** — the former
+  lists configured firewalls, their scoped access-control rules, and the role
+  hierarchy (or details a single named firewall); the latter checks the
+  security configuration for common mistakes.
+  (`src/Command/FirewallDebugCommand.php`,
+  `src/Command/SecurityValidateCommand.php`)
+
+- **`AppAwareInterface`**, implemented by `AbstractController`, for
+  controllers (or any kernel-instantiated object) that want the application
+  handed to them right after construction without extending
+  `AbstractController`'s full set of injected services.
+  (`src/Core/AppAwareInterface.php`, `src/Core/AbstractController.php`)
+
+- Generated entities now get an internal auto-increment `id` plus an
+  external-facing `uuid` (v7, set in the constructor), so the auto-increment
+  value doesn't need to be exposed outside the app. The Doctrine maker's
+  column-type-to-PHP-type inference was also synced with upstream, falling
+  back to reflecting a custom DBAL type's `convertToPHPValue()` return type
+  when it isn't one of the built-in types. (`src/Console/Doctrine/`,
+  `src/Console/Resources/skeleton/doctrine/Entity.tpl.php`)
+
+### Fixed
+
+- Excluded `tests/Unit/Util/fixtures/` from the Composer classmap so fixture
+  files (invalid/incomplete PHP by design) no longer break classmap
+  generation. (`composer.json`)
+
+### Docs
+
+- Documented persistent remember-me tokens, the new security console
+  commands, and security configuration options. (`README.md`,
+  `docs/authenticators.md`, `docs/console.md`, `docs/security.md`)
+
+- Documented the `#[IsGranted]` `methods` option. (`docs/index.md`,
+  `docs/routing.md`)
+
 ## [0.8.0] - 2026-08-15
 
 ### Upgrading
