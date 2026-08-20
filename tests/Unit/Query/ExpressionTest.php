@@ -14,9 +14,10 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(Expression::class)]
 class ExpressionTest extends TestCase
 {
-    public function testFactory()
+    public function testFactory(): void
     {
         $expression = Expression::factory('a ? b : c');
+        $this->assertInstanceOf(Expression::class, $expression);
         $this->assertSame(5, count($expression->parts));
         $this->assertInstanceOf(Argument::class, $expression->parts[0]);
         $this->assertIsString($expression->parts[1]);
@@ -25,12 +26,15 @@ class ExpressionTest extends TestCase
         $this->assertInstanceOf(Argument::class, $expression->parts[4]);
     }
 
-    public function testFactoryWithoutComparison()
+    public function testFactoryWithoutComparison(): void
     {
         $expression = Expression::factory('foo.bar(true).url');
         $this->assertInstanceOf(Segments::class, $expression);
     }
 
+    /**
+     * @return list<array<int, mixed>>
+     */
     public static function parseProvider(): array
     {
         return [
@@ -69,13 +73,19 @@ class ExpressionTest extends TestCase
         ];
     }
 
+    /**
+     * @param array<string, mixed> $result
+     */
     #[DataProvider('parseProvider')]
-    public function testParse(string $expression, array $result)
+    public function testParse(string $expression, array $result): void
     {
         $parts = Expression::parse($expression);
         $this->assertSame($result, $parts);
     }
 
+    /**
+     * @return list<array<int, mixed>>
+     */
     public static function resolveProvider(): array
     {
         return [
@@ -91,20 +101,20 @@ class ExpressionTest extends TestCase
     }
 
     #[DataProvider('resolveProvider')]
-    public function testResolve(string $input, mixed $result)
+    public function testResolve(string $input, mixed $result): void
     {
         $expression = Expression::factory($input);
         $this->assertSame($result, $expression->resolve());
     }
 
-    public function testResolveWithObject()
+    public function testResolveWithObject(): void
     {
         $expression = Expression::factory('user.isYello(true) ? user.says("me") : "you"');
         $data = ['user' => new TestUser()];
         $this->assertSame('me', $expression->resolve($data));
     }
 
-    public function testResolveIncompleteTernary()
+    public function testResolveIncompleteTernary(): void
     {
         $expression = Expression::factory('"a" ? "b"');
 

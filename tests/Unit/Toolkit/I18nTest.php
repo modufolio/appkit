@@ -19,7 +19,7 @@ class I18nTest extends TestCase
         I18n::$translations = [];
     }
 
-    public function testFallbacks()
+    public function testFallbacks(): void
     {
         I18n::$fallback = 'de';
         $this->assertSame(['de'], I18n::fallbacks());
@@ -43,7 +43,7 @@ class I18nTest extends TestCase
         $this->assertSame(['de', 'en'], I18n::fallbacks());
     }
 
-    public function testForm()
+    public function testForm(): void
     {
         $this->assertSame('singular', I18n::form(1));
         $this->assertSame('plural', I18n::form(2));
@@ -55,7 +55,7 @@ class I18nTest extends TestCase
         $this->assertSame('none', I18n::form(0, true));
     }
 
-    public function testFormatNumber()
+    public function testFormatNumber(): void
     {
         $this->assertSame('2', I18n::formatNumber(2));
         $this->assertSame('2', I18n::formatNumber(2, 'en'));
@@ -70,7 +70,7 @@ class I18nTest extends TestCase
         $this->assertSame('1.234.567,89', I18n::formatNumber(1234567.89, 'de'));
     }
 
-    public function testLocale()
+    public function testLocale(): void
     {
         I18n::$locale = 'de';
         $this->assertSame('de', I18n::locale());
@@ -82,7 +82,7 @@ class I18nTest extends TestCase
         $this->assertSame('en', I18n::locale());
     }
 
-    public function testTemplate()
+    public function testTemplate(): void
     {
         I18n::$translations = [
             'en' => [
@@ -125,7 +125,7 @@ class I18nTest extends TestCase
         );
     }
 
-    public function testTranslateI18nKey()
+    public function testTranslateI18nKey(): void
     {
         I18n::$translations = [
             'en' => ['save' => 'Speichern'],
@@ -135,7 +135,7 @@ class I18nTest extends TestCase
         $this->assertNull(I18n::translate('invalid'));
     }
 
-    public function testTranslateI18nKeyShortLocale()
+    public function testTranslateI18nKeyShortLocale(): void
     {
         I18n::$translations = [
             'en' => ['go' => 'Let\'s go'],
@@ -146,12 +146,12 @@ class I18nTest extends TestCase
         $this->assertSame('Vamos', I18n::translate('go'));
     }
 
-    public function testTranslateI18nKeyWithFallbackStringArgument()
+    public function testTranslateI18nKeyWithFallbackStringArgument(): void
     {
         $this->assertSame('My fallback', I18n::translate('not.exist', 'My fallback'));
     }
 
-    public function testTranslateI18nKeyWithFallbackArrayArgument()
+    public function testTranslateI18nKeyWithFallbackArrayArgument(): void
     {
         $this->assertSame('My fallback in array', I18n::translate('not.exist', [
             'de' => 'Notfalllösung',
@@ -159,7 +159,7 @@ class I18nTest extends TestCase
         ]));
     }
 
-    public function testTranslateI18nKeyWithFallbackLocales()
+    public function testTranslateI18nKeyWithFallbackLocales(): void
     {
         I18n::$translations = [
             'en' => [
@@ -182,18 +182,18 @@ class I18nTest extends TestCase
         $this->assertSame('Save2', I18n::translate('save2'));
     }
 
-    public function testTranslateArray()
+    public function testTranslateArray(): void
     {
         $this->assertSame('Save', I18n::translate(['en' => 'Save']));
     }
 
-    public function testTranslateArrayShortLocale()
+    public function testTranslateArrayShortLocale(): void
     {
         I18n::$locale = 'es_ES';
         $this->assertSame('Vamos', I18n::translate(['es' => 'Vamos']));
     }
 
-    public function testTranslateArrayWildcard()
+    public function testTranslateArrayWildcard(): void
     {
         I18n::$locale = 'de';
 
@@ -204,7 +204,7 @@ class I18nTest extends TestCase
         $this->assertSame('Speichern', I18n::translate(['*' => 'save']));
     }
 
-    public function testTranslateArrayWithFallbackArray()
+    public function testTranslateArrayWithFallbackArray(): void
     {
         // English is current locale, not in first array,
         // but in fallback array
@@ -214,7 +214,7 @@ class I18nTest extends TestCase
         );
     }
 
-    public function testTranslateArrayWithFallbackArrayShortLocale()
+    public function testTranslateArrayWithFallbackArrayShortLocale(): void
     {
         I18n::$locale = 'es_ES';
         $this->assertSame(
@@ -223,7 +223,7 @@ class I18nTest extends TestCase
         );
     }
 
-    public function testTranslateArrayFallbackLocales()
+    public function testTranslateArrayFallbackLocales(): void
     {
         I18n::$locale = 'fr';
         I18n::$fallback = 'de';
@@ -245,7 +245,7 @@ class I18nTest extends TestCase
         );
     }
 
-    public function testTranslateArrayFallbackLocalesFromFallbackArray()
+    public function testTranslateArrayFallbackLocalesFromFallbackArray(): void
     {
         I18n::$locale = 'fr';
         I18n::$fallback = 'en';
@@ -267,7 +267,7 @@ class I18nTest extends TestCase
         );
     }
 
-    public function testTranslateArrayWithFallbackString()
+    public function testTranslateArrayWithFallbackString(): void
     {
         $this->assertSame(
             'fallback',
@@ -275,7 +275,7 @@ class I18nTest extends TestCase
         );
     }
 
-    public function testTranslateArrayWithFallbackFirstKey()
+    public function testTranslateArrayWithFallbackFirstKey(): void
     {
         $this->assertSame(
             'Algunos',
@@ -294,7 +294,7 @@ class I18nTest extends TestCase
         );
     }
 
-    public function testTranslateCount()
+    public function testTranslateCount(): void
     {
         I18n::$translations = [
             'en' => [
@@ -309,7 +309,7 @@ class I18nTest extends TestCase
         $this->assertSame('Many cars', I18n::translateCount('car', 4));
     }
 
-    public function testTranslateCountWithPlaceholders()
+    public function testTranslateCountWithPlaceholders(): void
     {
         I18n::$translations = [
             'en' => [
@@ -331,7 +331,7 @@ class I18nTest extends TestCase
         $this->assertSame('1234567 Autos', I18n::translateCount('car', 1234567, 'de', false));
     }
 
-    public function testTranslateCountWithMissingTranslation()
+    public function testTranslateCountWithMissingTranslation(): void
     {
         I18n::$translations = [
             'en' => [],
@@ -340,7 +340,7 @@ class I18nTest extends TestCase
         $this->assertNull(I18n::translateCount('car', 1));
     }
 
-    public function testTranslateCountWithStringTranslation()
+    public function testTranslateCountWithStringTranslation(): void
     {
         I18n::$translations = [
             'en' => [
@@ -355,7 +355,7 @@ class I18nTest extends TestCase
         $this->assertSame('2 bike(s)', I18n::translateCount('bike', 2));
     }
 
-    public function testTranslateCountWithCallback()
+    public function testTranslateCountWithCallback(): void
     {
         I18n::$translations = [
             'en' => [
@@ -380,7 +380,7 @@ class I18nTest extends TestCase
         $this->assertSame('Many cars', I18n::translateCount('car', 5));
     }
 
-    public function testTranslation()
+    public function testTranslation(): void
     {
         I18n::$translations = [
             'en' => ['test' => 'yay'],
@@ -402,7 +402,7 @@ class I18nTest extends TestCase
         $this->assertNull(I18n::translate('test'));
     }
 
-    public function testTranslationLoad()
+    public function testTranslationLoad(): void
     {
         $translations = [
             'en' => ['test' => 'yay'],
@@ -422,7 +422,7 @@ class I18nTest extends TestCase
         $this->assertNull(I18n::translate('test'));
     }
 
-    public function testTranslations()
+    public function testTranslations(): void
     {
         $this->assertSame([], I18n::translations());
 

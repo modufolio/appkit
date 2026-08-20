@@ -105,6 +105,8 @@ class DiskManager
 
     /**
      * Create a disk instance with array configuration.
+     *
+     * @param array<string, mixed> $config
      */
     public static function createDisk(string $name, array $config): DiskInterface
     {

@@ -70,7 +70,7 @@ final class Validator
         return $value;
     }
 
-    public static function validateLength($length)
+    public static function validateLength(int|string|null $length): int|string|null
     {
         if (!$length) {
             return $length;
@@ -87,7 +87,7 @@ final class Validator
         return $result;
     }
 
-    public static function validatePrecision($precision)
+    public static function validatePrecision(int|string|null $precision): int|string|null
     {
         if (!$precision) {
             return $precision;
@@ -104,7 +104,7 @@ final class Validator
         return $result;
     }
 
-    public static function validateScale($scale)
+    public static function validateScale(int|string|null $scale): int|string|null
     {
         if (!$scale) {
             return $scale;
@@ -121,7 +121,7 @@ final class Validator
         return $result;
     }
 
-    public static function validateBoolean($value)
+    public static function validateBoolean(mixed $value): bool
     {
         if ('yes' == $value) {
             return true;
@@ -162,13 +162,16 @@ final class Validator
 
     public static function validateEmailAddress(?string $email): string
     {
-        if (!filter_var($email, \FILTER_VALIDATE_EMAIL)) {
+        if (null === $email || !filter_var($email, \FILTER_VALIDATE_EMAIL)) {
             throw new RuntimeCommandException(\sprintf('"%s" is not a valid email address.', $email));
         }
 
         return $email;
     }
 
+    /**
+     * @param list<string> $entities
+     */
     public static function existsOrNull(?string $className = null, array $entities = []): ?string
     {
         if (null !== $className) {
@@ -197,9 +200,12 @@ final class Validator
         return $className;
     }
 
+    /**
+     * @param list<string> $entities
+     */
     public static function entityExists(?string $className = null, array $entities = []): string
     {
-        self::notBlank($className);
+        $className = self::notBlank($className);
 
         if (empty($entities)) {
             throw new RuntimeCommandException('There are no registered entities; please create an entity before using this command.');
@@ -216,7 +222,7 @@ final class Validator
         return $className;
     }
 
-    public static function classDoesNotExist($className): string
+    public static function classDoesNotExist(string $className): string
     {
         self::notBlank($className);
 
@@ -227,7 +233,7 @@ final class Validator
         return $className;
     }
 
-    public static function classIsUserInterface($userClassName): string
+    public static function classIsUserInterface(string $userClassName): string
     {
         self::classExists($userClassName);
 
@@ -238,7 +244,7 @@ final class Validator
         return $userClassName;
     }
 
-    public static function classIsBackedEnum($backedEnum): string
+    public static function classIsBackedEnum(string $backedEnum): string
     {
         self::classExists($backedEnum);
 

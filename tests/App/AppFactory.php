@@ -27,6 +27,24 @@ class AppFactory
         return $baseDir.'/tests/fixtures/config';
     }
 
+    /**
+     * Writable runtime directory for the test app.
+     *
+     * Under ParaTest each worker gets its own subdirectory, keyed by the
+     * TEST_TOKEN it exports, so sessions and Doctrine proxies written by one
+     * worker can never be read or unlinked by another.
+     */
+    public static function varDir(string $baseDir): string
+    {
+        $token = getenv('TEST_TOKEN');
+
+        if (false === $token || '' === $token) {
+            return $baseDir.'/var';
+        }
+
+        return $baseDir.'/var/test/'.preg_replace('/[^A-Za-z0-9_-]/', '', (string) $token);
+    }
+
     public static function create(string $baseDir, ?string $env = null): App
     {
         // Allow the test User class to be unserialized from session-stored tokens.
@@ -65,6 +83,7 @@ class AppFactory
             repositories: F::load($configDir.'/repositories.php', []),
         );
 
+        $app->setVarDir(self::varDir($baseDir));
         $app->configureSecurity($securityConfigurator)->boot();
 
         // JsonApiController isn't in config/controllers.php, so its

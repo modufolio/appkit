@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modufolio\Appkit\Core;
 
 use Doctrine\ORM\EntityManagerInterface;
+use Modufolio\Appkit\DependencyInjection\ParameterAccessorInterface;
 use Modufolio\Appkit\Resolver\ParameterResolverInterface;
 use Modufolio\Appkit\Security\Csrf\CsrfTokenManagerInterface;
 use Modufolio\Appkit\Security\RoleHierarchy;
@@ -32,7 +33,7 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
  * @copyright Modufolio
  * @license   https://opensource.org/licenses/MIT
  */
-interface AppInterface extends ContainerInterface, RequestHandlerInterface, ResetInterface
+interface AppInterface extends ContainerInterface, RequestHandlerInterface, ResetInterface, ParameterAccessorInterface
 {
     // ============================================================================
     // ENVIRONMENT & CONFIGURATION
@@ -40,6 +41,9 @@ interface AppInterface extends ContainerInterface, RequestHandlerInterface, Rese
 
     public function environment(): Environment;
 
+    /**
+     * @return array<mixed>|bool|string|int|float|null
+     */
     public function getParameter(string $name): array|bool|string|int|float|null;
 
     public function hasParameter(string $name): bool;
@@ -111,6 +115,9 @@ interface AppInterface extends ContainerInterface, RequestHandlerInterface, Rese
     // ROUTING
     // ============================================================================
 
+    /**
+     * @param array<string, mixed> $parameters
+     */
     public function generateUrl(
         string $name,
         array $parameters = [],

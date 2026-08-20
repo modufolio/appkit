@@ -16,7 +16,10 @@ use Modufolio\Appkit\Util\TemplateComponentGenerator;
  */
 class Generator
 {
+    /** @var array<string, array<string, mixed>> */
     private array $pendingOperations = [];
+
+    /** @var list<string> */
     private array $generatedFiles = [];
 
     public function __construct(
@@ -39,6 +42,8 @@ class Generator
      * @param string $templateName Template name in Resources/skeleton to use
      * @param array  $variables    Array of variables to pass to the template
      *
+     * @param array<string, mixed> $variables
+     *
      * @return string The path where the file will be created
      *
      * @throws \Exception
@@ -46,6 +51,10 @@ class Generator
     public function generateClass(string $className, string $templateName, array $variables = []): string
     {
         if (\array_key_exists('class_data', $variables) && $variables['class_data'] instanceof ClassData) {
+            if (null === $this->templateComponentGenerator) {
+                throw new \LogicException('A TemplateComponentGenerator is required to generate a class from class_data.');
+            }
+
             $classData = $this->templateComponentGenerator->configureClass($variables['class_data']);
             $className = $classData->getFullClassName();
         }
@@ -68,6 +77,8 @@ class Generator
 
     /**
      * Generate a normal file from a template.
+     *
+     * @param array<string, mixed> $variables
      *
      * @return void
      *
@@ -198,6 +209,9 @@ class Generator
         return $this->namespacePrefix;
     }
 
+    /**
+     * @param array<string, mixed> $parameters
+     */
     public function generateController(string $controllerClassName, string $controllerTemplatePath, array $parameters = []): string
     {
         return $this->generateClass(
@@ -212,6 +226,8 @@ class Generator
 
     /**
      * Generate a template file.
+     *
+     * @param array<string, mixed> $variables
      *
      * @return void
      *
@@ -228,6 +244,8 @@ class Generator
 
     /**
      * Get the full path of each file created by the Generator.
+     *
+     * @return list<string>
      */
     public function getGeneratedFiles(): array
     {
@@ -235,6 +253,8 @@ class Generator
     }
 
     /**
+     * @param array<string, mixed> $variables
+     *
      * @throws \Exception
      */
     private function addOperation(string $targetPath, string $templateName, array $variables): void

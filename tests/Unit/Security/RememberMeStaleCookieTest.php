@@ -69,7 +69,7 @@ class RememberMeStaleCookieTest extends AppTestCase
     /** @return list<string> */
     private function errorFlashes(): array
     {
-        return $this->app()->session()->getFlashBag()->peek('error');
+        return array_values($this->app()->session()->getFlashBag()->peek('error'));
     }
 
     public function testStaleCookieDoesNotFlashAFailedLogin(): void
@@ -184,7 +184,7 @@ class RememberMeStaleCookieTest extends AppTestCase
         $last = end($rememberMeHeaders);
         $this->assertStringNotContainsString(
             'REMEMBERME=deleted',
-            $last,
+            (string) $last,
             'The freshly issued cookie must win over the expiry of the stale one',
         );
     }

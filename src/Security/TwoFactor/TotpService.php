@@ -37,8 +37,10 @@ class TotpService implements TwoFactorServiceInterface
     public function __construct(
         private EntityManagerInterface $entityManager,
         private UserTotpSecretRepositoryInterface $totpSecretRepository,
+        /** @var class-string<UserTotpSecretInterface> */
         private string $twoFactorEntityClass,
         private ClockInterface $clock,
+        /** @var non-empty-string */
         private string $issuer = 'Appkit',
     ) {
     }
@@ -57,7 +59,7 @@ class TotpService implements TwoFactorServiceInterface
 
         // Create TOTP instance
         $totp = TOTP::generate();
-        $totp->setLabel($user->getEmail());
+        $totp->setLabel(self::requireNonEmpty($user->getEmail(), 'user e-mail'));
         $totp->setIssuer($this->issuer);
 
         // Create or update TOTP secret entity
@@ -83,8 +85,8 @@ class TotpService implements TwoFactorServiceInterface
      */
     public function getProvisioningUri(#[\SensitiveParameter] UserTotpSecretInterface $totpSecret): string
     {
-        $totp = TOTP::createFromSecret($totpSecret->getSecret());
-        $totp->setLabel($totpSecret->getUser()->getEmail());
+        $totp = TOTP::createFromSecret(self::requireNonEmpty($totpSecret->getSecret(), 'TOTP secret'));
+        $totp->setLabel(self::requireNonEmpty($totpSecret->getUser()->getEmail(), 'user e-mail'));
         $totp->setIssuer($this->issuer);
 
         return $totp->getProvisioningUri();
@@ -124,7 +126,7 @@ class TotpService implements TwoFactorServiceInterface
         $this->guardLockout($totpSecret, $now);
 
         $code = trim($code);
-        $totp = TOTP::createFromSecret($totpSecret->getSecret());
+        $totp = TOTP::createFromSecret(self::requireNonEmpty($totpSecret->getSecret(), 'TOTP secret'));
 
         $matchedStep = $this->matchStep($totp, $code, $now);
 
@@ -199,6 +201,11 @@ class TotpService implements TwoFactorServiceInterface
         }
 
         $period = $totp->getPeriod();
+
+        if ($period < 1) {
+            throw new \LogicException('TOTP period must be a positive number of seconds.');
+        }
+
         $currentStep = intdiv($now, $period);
 
         for ($offset = -self::LEEWAY_PERIODS; $offset <= self::LEEWAY_PERIODS; ++$offset) {
@@ -317,6 +324,8 @@ class TotpService implements TwoFactorServiceInterface
 
     /**
      * Generate random backup codes.
+     *
+     * @return list<string>
      */
     private function generateBackupCodes(): array
     {
@@ -367,5 +376,17 @@ class TotpService implements TwoFactorServiceInterface
     public function getTotpSecret(UserInterface $user): ?TwoFactorSecret
     {
         return $this->getTwoFactorSecret($user);
+    }
+
+    /**
+     * @return non-empty-string
+     */
+    private static function requireNonEmpty(string $value, string $what): string
+    {
+        if ('' === $value) {
+            throw new \InvalidArgumentException(sprintf('The %s must not be empty.', $what));
+        }
+
+        return $value;
     }
 }

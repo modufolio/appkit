@@ -6,6 +6,7 @@ namespace Modufolio\Appkit\Console;
 
 final class InputConfiguration
 {
+    /** @var list<string> */
     private array $nonInteractiveArguments = [];
 
     /**
@@ -17,6 +18,9 @@ final class InputConfiguration
         $this->nonInteractiveArguments[] = $argumentName;
     }
 
+    /**
+     * @return list<string>
+     */
     public function getNonInteractiveArguments(): array
     {
         return $this->nonInteractiveArguments;

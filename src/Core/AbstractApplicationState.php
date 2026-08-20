@@ -27,15 +27,18 @@ abstract class AbstractApplicationState implements ApplicationStateInterface
     protected ServerRequestInterface $request;
     protected string $baseUrl;
     protected string $baseDir;
+    protected string $varDir;
 
     protected ?FlashBagAwareSessionInterface $session = null;
     protected ?SessionStorageInterface $sessionStorage = null;
     protected ?TokenStorageInterface $tokenStorage = null;
 
+    /** @var array<string, string|null> keyed by path */
     protected array $firewallNameCache = [];
 
     /** @var array<string, string|null> keyed by method+host+ip+path */
     protected array $firewallRequestCache = [];
+    /** @var array<string, array<string, mixed>> */
     protected array $firewallConfig = [];
 
     /**
@@ -44,20 +47,25 @@ abstract class AbstractApplicationState implements ApplicationStateInterface
     protected string $sessionCookieName = 'PHPSESSID';
 
     // Request-scoped instance cache (controllers and request-specific services)
+    /** @var array<string, object> */
     protected array $requestInstances = [];
 
     /**
-     * @param ServerRequestInterface $request        The current HTTP request
-     * @param string                 $baseDir        Application base directory (used for var/sessions, etc.)
-     * @param array                  $firewallConfig Optional firewall configuration
+     * @param ServerRequestInterface              $request        The current HTTP request
+     * @param string                              $baseDir        Application base directory
+     * @param array<string, array<string, mixed>> $firewallConfig Optional firewall configuration
+     * @param string|null                         $varDir         Writable runtime directory (sessions, caches).
+     *                                                            Defaults to $baseDir/var.
      */
     public function __construct(
         ServerRequestInterface $request,
         string $baseDir,
         array $firewallConfig = [],
+        ?string $varDir = null,
     ) {
         $this->request = $request;
         $this->baseDir = $baseDir;
+        $this->varDir = $varDir ?? $baseDir.'/var';
         $this->baseUrl = $this->calculateBaseUrl($request);
         $this->firewallConfig = $firewallConfig;
     }
@@ -65,6 +73,11 @@ abstract class AbstractApplicationState implements ApplicationStateInterface
     public function getBaseDir(): string
     {
         return $this->baseDir;
+    }
+
+    public function getVarDir(): string
+    {
+        return $this->varDir;
     }
 
     // -----------------------------------------------------------------
@@ -314,6 +327,9 @@ abstract class AbstractApplicationState implements ApplicationStateInterface
         return RequestMatcher::matchesPrefix($pattern, $path);
     }
 
+    /**
+     * @param array<string, array<string, mixed>> $config
+     */
     public function setFirewallConfig(array $config): self
     {
         $this->firewallConfig = $config;
@@ -323,6 +339,9 @@ abstract class AbstractApplicationState implements ApplicationStateInterface
         return $this;
     }
 
+    /**
+     * @return array<string, array<string, mixed>>
+     */
     public function getFirewallConfig(): array
     {
         return $this->firewallConfig;

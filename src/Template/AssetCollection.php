@@ -16,11 +16,16 @@ namespace Modufolio\Appkit\Template;
  */
 class AssetCollection
 {
+    /** @var array<string, array<string, mixed>> */
     protected array $css = [];
+
+    /** @var array<string, array<string, mixed>> */
     protected array $js = [];
 
     /**
      * Add CSS file(s) to the collection.
+     *
+     * @param array<string, mixed> $options
      */
     public function addCss(string $url, array $options = []): void
     {
@@ -29,6 +34,8 @@ class AssetCollection
 
     /**
      * Add JavaScript file(s) to the collection.
+     *
+     * @param array<string, mixed> $options
      */
     public function addJs(string $url, array $options = []): void
     {
@@ -37,6 +44,8 @@ class AssetCollection
 
     /**
      * Get all CSS files.
+     *
+     * @return array<string, array<string, mixed>>
      */
     public function getCss(): array
     {
@@ -45,6 +54,8 @@ class AssetCollection
 
     /**
      * Get all JavaScript files.
+     *
+     * @return array<string, array<string, mixed>>
      */
     public function getJs(): array
     {

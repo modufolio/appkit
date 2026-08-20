@@ -52,10 +52,10 @@ final class SecurityConfigurator
     /** @var array<string, array<string, mixed>> */
     public array $firewalls = [];
 
-    /** @var array<int, array<string, mixed>> */
+    /** @var list<array<string, mixed>> */
     public array $accessControlRules = [];
 
-    /** @var array<string, array<int, string>> */
+    /** @var array<string, list<string>> */
     public array $roleHierarchyConfig = [];
 
     public ?RoleHierarchy $roleHierarchy = null;
@@ -153,7 +153,7 @@ final class SecurityConfigurator
     /**
      * Configure role hierarchy.
      *
-     * @param array<string, array<int, string>> $hierarchy
+     * @param array<string, list<string>> $hierarchy
      */
     public function roleHierarchy(array $hierarchy): self
     {
@@ -191,7 +191,7 @@ final class SecurityConfigurator
         return $this->firewalls;
     }
 
-    /** @return array<int, array<string, mixed>> */
+    /** @return list<array<string, mixed>> */
     public function getAccessControlRules(): array
     {
         return $this->accessControlRules;

@@ -12,6 +12,7 @@ use Symfony\Component\Routing\RouteCollection;
 
 class FlatFileRouteLoader extends Loader
 {
+    /** @var list<string> */
     private array $ignore = [
         '.',
         '..',
@@ -33,7 +34,7 @@ class FlatFileRouteLoader extends Loader
         parent::__construct();
     }
 
-    public function load(mixed $resource, ?string $type = null): ?RouteCollection
+    public function load(mixed $resource, ?string $type = null): RouteCollection
     {
         $dir = $this->locator->locate($resource);
         $collection = new RouteCollection();
@@ -59,12 +60,12 @@ class FlatFileRouteLoader extends Loader
             }
 
             // Strip numeric prefix for slug
-            $slug = preg_replace('/^\d+'.preg_quote('_', '/').'/', '', $item);
+            $slug = preg_replace('/^\d+'.preg_quote('_', '/').'/', '', $item) ?? $item;
             $urlPath = $parentPath ? $parentPath.'/'.$slug : $slug;
             $urlPath = $urlPath === $this->homeFolder ? '' : $urlPath;
 
             // Find any .txt content file in the folder
-            $contentFiles = glob($root.'/*.'.$this->fileExtension);
+            $contentFiles = glob($root.'/*.'.$this->fileExtension) ?: [];
             foreach ($contentFiles as $contentFilePath) {
                 $contentFileName = basename($contentFilePath, '.'.$this->fileExtension);
 

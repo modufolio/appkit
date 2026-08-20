@@ -66,9 +66,9 @@ final class Str
     public static function asTwigVariable(string $value): string
     {
         $value = trim($value);
-        $value = preg_replace('/[^a-zA-Z0-9_]/', '_', $value);
-        $value = preg_replace('/(?<=\\w)([A-Z])/', '_$1', $value);
-        $value = preg_replace('/_{2,}/', '_', $value);
+        $value = preg_replace('/[^a-zA-Z0-9_]/', '_', $value) ?? $value;
+        $value = preg_replace('/(?<=\\w)([A-Z])/', '_$1', $value) ?? $value;
+        $value = preg_replace('/_{2,}/', '_', $value) ?? $value;
 
         return strtolower($value);
     }
@@ -218,7 +218,7 @@ final class Str
      *
      * @return bool
      */
-    public static function isValidPhpVariableName($name)
+    public static function isValidPhpVariableName(string $name): bool
     {
         return (bool) preg_match('/^[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*$/', $name, $matches);
     }
@@ -237,7 +237,7 @@ final class Str
 
     public static function asHumanWords(string $variableName): string
     {
-        return str_replace('  ', ' ', ucfirst(trim(implode(' ', preg_split('/(?=[A-Z])/', $variableName)))));
+        return str_replace('  ', ' ', ucfirst(trim(implode(' ', preg_split('/(?=[A-Z])/', $variableName) ?: []))));
     }
 
     private static function pluralize(string $word): string

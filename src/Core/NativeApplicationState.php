@@ -31,7 +31,7 @@ final class NativeApplicationState extends AbstractApplicationState
 
         // Create session handler
         $handler = new NativeFileSessionHandler(
-            $this->baseDir.'/var/sessions'
+            $this->varDir.'/sessions'
         );
 
         $cookies = $this->request->getCookieParams();
@@ -41,7 +41,7 @@ final class NativeApplicationState extends AbstractApplicationState
         $cookieSecure = Env::instance()->getBool('COOKIE_SECURE', false);
 
         $this->sessionStorage = new NativeSessionStorage([
-            'save_path' => $this->baseDir.'/var/sessions',
+            'save_path' => $this->varDir.'/sessions',
             'cookie_httponly' => true,
             'cookie_samesite' => 'Lax',
             'cookie_secure' => $cookieSecure,

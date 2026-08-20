@@ -175,6 +175,9 @@ class MapRequestPayloadResolverTest extends TestCase
         $this->assertArrayNotHasKey('result', $result);
     }
 
+    /**
+     * @param array<string, mixed> $parsedBody
+     */
     private function createRequest(array $parsedBody): ServerRequestInterface
     {
         return (new ServerRequest(method: 'POST', uri: new Uri('/')))

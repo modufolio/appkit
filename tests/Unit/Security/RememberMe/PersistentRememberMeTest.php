@@ -76,7 +76,7 @@ class PersistentRememberMeTest extends TestCase
         // Extract the rotated cookie value from the Set-Cookie header.
         $this->assertMatchesRegularExpression('/REMEMBERME=([^;]+)/', $header, 'rotated cookie present');
         preg_match('/REMEMBERME=([^;]+)/', $header, $m);
-        $cookie2 = $m[1];
+        $cookie2 = $m[1] ?? self::fail('rotated cookie value missing');
         $this->assertNotSame($cookie1, $cookie2, 'value must change on use');
 
         // The rotated cookie authenticates.
@@ -158,7 +158,7 @@ class PersistentRememberMeTest extends TestCase
         $this->assertSame('hash1', $loaded->tokenValue);
 
         $provider->updateExistingToken('s1', 'hash2', 2000);
-        $this->assertSame('hash2', $provider->loadTokenBySeries('s1')->tokenValue);
+        $this->assertSame('hash2', $provider->loadTokenBySeries('s1')?->tokenValue);
 
         $provider->createNewToken(new PersistentToken(userIdentifier: 'a@example.com', series: 's2', tokenValue: 'hashX', lastUsed: 1000));
         $provider->deleteTokensByUserIdentifier('a@example.com');

@@ -152,6 +152,9 @@ class ApplicationStateReDoSSecurityTest extends AppTestCase
     // Prefix-Based Pattern Tests
     // ================================================================
 
+    /**
+     * @param array<string, mixed> $firewallConfig
+     */
     private function createApplicationState(array $firewallConfig): ApplicationStateInterface
     {
         $request = new ServerRequest('GET', '/test');

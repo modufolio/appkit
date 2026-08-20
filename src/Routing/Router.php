@@ -42,10 +42,13 @@ class Router implements RouterInterface, ResetInterface
      * Static cache for compiled routes. Cleared in reset() to prevent memory leaks
      * in long-running workers.
      *
-     * @var array<string, array>|null
+     * @var array<string, array<string, mixed>>|null
      */
     private static ?array $routeCache = [];
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function __construct(
         private readonly LoaderInterface $routeLoader,
         private readonly mixed $routeResource,
@@ -71,6 +74,8 @@ class Router implements RouterInterface, ResetInterface
     }
 
     /**
+     * @return array<string, mixed>
+     *
      * @throws \Exception
      */
     public function match(ServerRequestInterface $request): array
@@ -81,6 +86,8 @@ class Router implements RouterInterface, ResetInterface
     }
 
     /**
+     * @return array<string, mixed>
+     *
      * @throws \Exception
      */
     public function matchPath(string $pathinfo): array
@@ -89,6 +96,8 @@ class Router implements RouterInterface, ResetInterface
     }
 
     /**
+     * @param array<string, mixed> $parameters
+     *
      * @throws \Exception
      */
     public function generateUrl(
@@ -145,7 +154,7 @@ class Router implements RouterInterface, ResetInterface
      *
      * @throws \Exception
      */
-    private function getMatcher(): UrlMatcherInterface|RequestMatcherInterface
+    private function getMatcher(): UrlMatcherInterface
     {
         if (isset($this->matcher)) {
             return $this->matcher;
@@ -211,7 +220,7 @@ class Router implements RouterInterface, ResetInterface
             $this->setContext(new RequestContext());
         }
 
-        $this->context
+        $this->getContext()
             ->setMethod($request->getMethod())
             ->setHost($host)
             ->setScheme($scheme)
@@ -276,6 +285,8 @@ class Router implements RouterInterface, ResetInterface
 
     /**
      * Get compiled routes from cache file.
+     *
+     * @return array<string, mixed>
      */
     private static function getCompiledRoutes(string $path): array
     {

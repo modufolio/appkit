@@ -121,6 +121,8 @@ class BasicAuthenticator extends AbstractAuthenticator
     }
 
     /**
+     * @return array{string, string}
+     *
      * @throws AuthenticationException
      */
     private function extractCredentials(ServerRequestInterface $request): array

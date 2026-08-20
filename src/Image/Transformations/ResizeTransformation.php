@@ -60,6 +60,9 @@ class ResizeTransformation implements Transformation
         return 'resize';
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function config(): array
     {
         return array_filter([

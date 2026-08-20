@@ -7,6 +7,7 @@ use Psr\Http\Message\ResponseInterface;
 
 class TestResponse
 {
+    /** @var array<string, mixed> */
     private ?array $jsonData = null;
     private bool $jsonParsed = false;
 
@@ -81,6 +82,9 @@ class TestResponse
     // JSON Response Handling
     // ----------------------------
 
+    /**
+     * @return array<string, mixed>
+     */
     public function jsonData(): array
     {
         if (!$this->jsonParsed) {
@@ -148,7 +152,7 @@ class TestResponse
         return $this;
     }
 
-    public function whereProp(string $key, $expected): self
+    public function whereProp(string $key, mixed $expected): self
     {
         $data = $this->jsonData();
         $props = $data['props'] ?? [];
@@ -158,7 +162,7 @@ class TestResponse
         return $this;
     }
 
-    public function propEquals(string $key, $expected): self
+    public function propEquals(string $key, mixed $expected): self
     {
         return $this->whereProp($key, $expected);
     }
@@ -167,7 +171,10 @@ class TestResponse
     // Utility Methods
     // ----------------------------
 
-    protected function arrayGet(array $array, string $key, $default = null)
+    /**
+     * @param array<string, mixed> $array
+     */
+    protected function arrayGet(array $array, string $key, mixed $default = null): mixed
     {
         if (empty($key)) {
             return $array;

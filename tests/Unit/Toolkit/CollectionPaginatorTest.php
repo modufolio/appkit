@@ -11,7 +11,7 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(Collection::class)]
 class CollectionPaginatorTest extends TestCase
 {
-    public function testSlice()
+    public function testSlice(): void
     {
         $collection = new Collection([
             'one' => 'eins',
@@ -25,7 +25,7 @@ class CollectionPaginatorTest extends TestCase
         $this->assertSame('vier', $collection->slice(2, 2)->last());
     }
 
-    public function testSliceNotReally()
+    public function testSliceNotReally(): void
     {
         $collection = new Collection([
             'one' => 'eins',
@@ -38,7 +38,7 @@ class CollectionPaginatorTest extends TestCase
         $this->assertSame($collection, $collection->slice());
     }
 
-    public function testLimit()
+    public function testLimit(): void
     {
         $collection = new Collection([
             'one' => 'eins',
@@ -52,7 +52,7 @@ class CollectionPaginatorTest extends TestCase
         $this->assertSame('fünf', $collection->limit(99)->last());
     }
 
-    public function testOffset()
+    public function testOffset(): void
     {
         $collection = new Collection([
             'one' => 'eins',
@@ -67,7 +67,7 @@ class CollectionPaginatorTest extends TestCase
         $this->assertNull($collection->offset(99)->first());
     }
 
-    public function testPaginate()
+    public function testPaginate(): void
     {
         $collection = new Collection([
             'one' => 'eins',
@@ -88,10 +88,10 @@ class CollectionPaginatorTest extends TestCase
             'page' => 3,
         ])->first());
 
-        $this->assertSame(3, $collection->pagination()->page());
+        $this->assertSame(3, $collection->pagination()?->page());
     }
 
-    public function testChunk()
+    public function testChunk(): void
     {
         $collection = new Collection([
             'one' => 'eins',

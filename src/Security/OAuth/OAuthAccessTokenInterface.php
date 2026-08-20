@@ -32,7 +32,7 @@ interface OAuthAccessTokenInterface
     public function setGrantType(string $grantType): void;
 
     /**
-     * @return string[]
+     * @return list<string>
      */
     public function getScopes(): array;
 

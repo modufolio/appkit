@@ -36,6 +36,19 @@ abstract class BaseRelation
         return $this->targetPropertyName;
     }
 
+    /**
+     * The target property name, for relations where the inverse side is mapped
+     * and the name is therefore always present.
+     */
+    public function requireTargetPropertyName(): string
+    {
+        if (null === $this->targetPropertyName) {
+            throw new \LogicException('This relation has no mapped target property.');
+        }
+
+        return $this->targetPropertyName;
+    }
+
     public function isSelfReferencing(): bool
     {
         return $this->isSelfReferencing;

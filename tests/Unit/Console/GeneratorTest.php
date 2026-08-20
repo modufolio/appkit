@@ -20,6 +20,7 @@ use Symfony\Component\Filesystem\Filesystem;
 #[CoversClass(Generator::class)]
 class GeneratorTest extends TestCase
 {
+    /** @var non-empty-string */
     private string $rootDir;
 
     protected function setUp(): void
@@ -54,6 +55,9 @@ class GeneratorTest extends TestCase
         return new Generator($fileManager, 'App\\', null, $templateComponentGenerator);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     private function entityTemplateVariables(): array
     {
         return [
@@ -142,7 +146,7 @@ class GeneratorTest extends TestCase
 
         $this->assertStringContainsString(
             'path: config/thing.txt',
-            file_get_contents($this->rootDir.'/config/thing.txt')
+            (string) file_get_contents($this->rootDir.'/config/thing.txt')
         );
     }
 
@@ -214,7 +218,7 @@ class GeneratorTest extends TestCase
 
         $this->assertStringContainsString(
             'class: DemoController',
-            file_get_contents($this->rootDir.'/src/Controller/DemoController.php')
+            (string) file_get_contents($this->rootDir.'/src/Controller/DemoController.php')
         );
     }
 

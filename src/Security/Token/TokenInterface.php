@@ -46,10 +46,13 @@ interface TokenInterface extends \Stringable
      */
     public function eraseCredentials(): void;
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getAttributes(): array;
 
     /**
-     * @param array $attributes The token attributes
+     * @param array<string, mixed> $attributes The token attributes
      */
     public function setAttributes(array $attributes): void;
 
@@ -69,6 +72,8 @@ interface TokenInterface extends \Stringable
 
     /**
      * Restores the object state from an array given by __serialize().
+     *
+     * @param array<int|string, mixed> $data
      */
     public function __unserialize(array $data): void;
 }

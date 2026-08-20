@@ -27,7 +27,7 @@ final class ExampleDatabaseTest extends TestCase
         // Ensure a clean state before each test
         $this->createTestSchema();
 
-        $this->debugStack->resetQueries();
+        $this->debugStack()->resetQueries();
         $this->resetTracking();
         $this->cleanupTables = ['users', 'posts'];
     }
@@ -69,14 +69,14 @@ final class ExampleDatabaseTest extends TestCase
     public function testBasicCrudOperations(): void
     {
         // Insert a user
-        $this->connection->insert('users', [
+        $this->connection()->insert('users', [
             'name' => 'John Doe',
             'email' => 'john@example.com',
             'created_at' => date('Y-m-d H:i:s'),
         ]);
 
         // Insert a post
-        $this->connection->insert('posts', [
+        $this->connection()->insert('posts', [
             'user_id' => 1,
             'title' => 'My First Post',
             'content' => 'This is the content',
@@ -84,8 +84,11 @@ final class ExampleDatabaseTest extends TestCase
         ]);
 
         // Query the data
-        $user = $this->connection->fetchAssociative('SELECT * FROM users WHERE id = ?', [1]);
-        $post = $this->connection->fetchAssociative('SELECT * FROM posts WHERE user_id = ?', [1]);
+        $user = $this->connection()->fetchAssociative('SELECT * FROM users WHERE id = ?', [1]);
+        $post = $this->connection()->fetchAssociative('SELECT * FROM posts WHERE user_id = ?', [1]);
+
+        $this->assertNotFalse($user);
+        $this->assertNotFalse($post);
 
         // Basic assertions
         $this->assertEquals('John Doe', $user['name']);
@@ -123,24 +126,24 @@ final class ExampleDatabaseTest extends TestCase
     public function testQueryCountingByType(): void
     {
         // Perform various operations
-        $this->connection->insert('users', [
+        $this->connection()->insert('users', [
             'name' => 'Alice',
             'email' => 'alice@example.com',
             'created_at' => date('Y-m-d H:i:s'),
         ]);
 
-        $this->connection->insert('users', [
+        $this->connection()->insert('users', [
             'name' => 'Bob',
             'email' => 'bob@example.com',
             'created_at' => date('Y-m-d H:i:s'),
         ]);
 
-        $this->connection->executeStatement('UPDATE users SET name = ? WHERE email = ?', [
+        $this->connection()->executeStatement('UPDATE users SET name = ? WHERE email = ?', [
             'Alice Smith',
             'alice@example.com',
         ]);
 
-        $this->connection->fetchAllAssociative('SELECT * FROM users');
+        $this->connection()->fetchAllAssociative('SELECT * FROM users');
 
         // Assert query counts by type
         $this->assertQueryCount(2, 'INSERT');
@@ -156,13 +159,13 @@ final class ExampleDatabaseTest extends TestCase
     public function testTableNotQueried(): void
     {
         // Only query users table
-        $this->connection->insert('users', [
+        $this->connection()->insert('users', [
             'name' => 'David',
             'email' => 'david@example.com',
             'created_at' => date('Y-m-d H:i:s'),
         ]);
 
-        $this->connection->fetchAllAssociative('SELECT * FROM users');
+        $this->connection()->fetchAllAssociative('SELECT * FROM users');
 
         // Assert posts table was never queried
         $this->assertTableNotQueried('posts');
@@ -181,7 +184,7 @@ final class ExampleDatabaseTest extends TestCase
         // Set a very lenient threshold for this test
         $this->setSlowQueryThreshold(10.0);
 
-        $this->connection->insert('users', [
+        $this->connection()->insert('users', [
             'name' => 'Eve',
             'email' => 'eve@example.com',
             'created_at' => date('Y-m-d H:i:s'),
@@ -202,22 +205,22 @@ final class ExampleDatabaseTest extends TestCase
     public function testQueryLogFiltering(): void
     {
         // Perform various operations
-        $this->connection->insert('users', [
+        $this->connection()->insert('users', [
             'name' => 'Frank',
             'email' => 'frank@example.com',
             'created_at' => date('Y-m-d H:i:s'),
         ]);
 
-        $id = $this->connection->lastInsertId();
+        $id = $this->connection()->lastInsertId();
 
-        $this->connection->insert('posts', [
+        $this->connection()->insert('posts', [
             'user_id' => $id,
             'title' => 'Test Post',
             'content' => 'Content',
             'created_at' => date('Y-m-d H:i:s'),
         ]);
 
-        $this->connection->fetchAllAssociative('SELECT * FROM users');
+        $this->connection()->fetchAllAssociative('SELECT * FROM users');
 
         // Get all INSERT queries
         $insertQueries = $this->getQueryLog('INSERT');
@@ -239,7 +242,7 @@ final class ExampleDatabaseTest extends TestCase
      */
     public function testDebugStackAccess(): void
     {
-        $this->connection->insert('users', [
+        $this->connection()->insert('users', [
             'name' => 'Grace',
             'email' => 'grace@example.com',
             'created_at' => date('Y-m-d H:i:s'),
@@ -272,14 +275,14 @@ final class ExampleDatabaseTest extends TestCase
     {
         // Perform some operations
         for ($i = 1; $i <= 5; ++$i) {
-            $this->connection->insert('users', [
+            $this->connection()->insert('users', [
                 'name' => "User {$i}",
                 'email' => "user{$i}@example.com",
                 'created_at' => date('Y-m-d H:i:s'),
             ]);
         }
 
-        $this->connection->fetchAllAssociative('SELECT * FROM users');
+        $this->connection()->fetchAllAssociative('SELECT * FROM users');
 
         // Get performance report
         $report = $this->getPerformanceReport();
@@ -302,7 +305,7 @@ final class ExampleDatabaseTest extends TestCase
     public function testDatabaseAssertions(): void
     {
         // Insert test data
-        $this->connection->insert('users', [
+        $this->connection()->insert('users', [
             'name' => 'Henry',
             'email' => 'henry@example.com',
             'created_at' => date('Y-m-d H:i:s'),
@@ -319,7 +322,7 @@ final class ExampleDatabaseTest extends TestCase
         $this->assertDatabaseCount('users', 1);
 
         // Insert more data
-        $this->connection->insert('users', [
+        $this->connection()->insert('users', [
             'name' => 'Iris',
             'email' => 'iris@example.com',
             'created_at' => date('Y-m-d H:i:s'),

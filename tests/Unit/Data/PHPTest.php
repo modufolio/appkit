@@ -18,7 +18,7 @@ class PHPTest extends TestCase
         $expected = __DIR__.'/fixtures/php/expected.php';
         $result = PHP::encode(include $input);
 
-        $this->assertSame(trim(file_get_contents($expected)), $result);
+        $this->assertSame(trim((string) file_get_contents($expected)), $result);
 
         // scalar values
         $this->assertSame("'test'", PHP::encode('test'));

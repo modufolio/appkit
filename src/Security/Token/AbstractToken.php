@@ -10,7 +10,10 @@ use Modufolio\Appkit\Security\User\UserInterface;
 abstract class AbstractToken implements TokenInterface
 {
     private ?UserInterface $user = null;
+    /** @var list<string> */
     private array $roleNames = [];
+
+    /** @var array<string, mixed> */
     private array $attributes = [];
 
     /**
@@ -67,17 +70,28 @@ abstract class AbstractToken implements TokenInterface
         return [$this->user, true, null, $this->attributes, $this->roleNames];
     }
 
+    /**
+     * @param array<int|string, mixed> $data
+     */
     public function __unserialize(array $data): void
     {
-        [$user, , , $this->attributes, $this->roleNames] = $data;
+        [$user, , , $attributes, $roleNames] = $data;
+        $this->attributes = is_array($attributes) ? $attributes : [];
+        $this->roleNames = is_array($roleNames) ? array_values(array_map(strval(...), $roleNames)) : [];
         $this->user = \is_string($user) ? new InMemoryUser($user, '', $this->roleNames, false) : $user;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getAttributes(): array
     {
         return $this->attributes;
     }
 
+    /**
+     * @param array<string, mixed> $attributes
+     */
     public function setAttributes(array $attributes): void
     {
         $this->attributes = $attributes;

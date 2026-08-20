@@ -11,6 +11,7 @@ use PHPUnit\Framework\TestCase;
 
 class InMemoryImageJobRepository implements ImageJobRepositoryInterface
 {
+    /** @var array<string, mixed> */
     public array $jobs = [];
 
     public function saveJob(string $mediaRoot, string $thumbName, array $options): void

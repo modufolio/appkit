@@ -43,7 +43,7 @@ class TwoFactorControllerTest extends AppTestCase
         // Wire our $debugStack to the ORM connection's debug stack so that
         // query assertions (assertTableQueried, assertQueryCount, etc.) reflect
         // queries executed through the EntityManager.
-        $driver = $this->connection->getDriver();
+        $driver = $this->connection()->getDriver();
         if ($driver instanceof \Modufolio\Appkit\Doctrine\Middleware\Debug\Driver) {
             $this->debugStack = $driver->getDebugStack();
         }
@@ -315,8 +315,8 @@ class TwoFactorControllerTest extends AppTestCase
         // Enable 2FA for the user directly via the service
         $totpService = $this->app()->totpService();
         $secret = $totpService->generateSecret($user);
-        $totp = TOTP::createFromSecret($secret->getSecret());
-        $totpService->enableTwoFactor($secret, $totp->at($clock->now()->getTimestamp()));
+        $totp = $this->totpFor($secret->getSecret());
+        $totpService->enableTwoFactor($secret, $totp->at(max(0, $clock->now()->getTimestamp())));
 
         // Seed a fresh 2FA token in session
         $this->seedTwoFactorToken($user);
@@ -328,7 +328,7 @@ class TwoFactorControllerTest extends AppTestCase
         // The enable step was consumed by the replay guard, so advance the clock
         // one TOTP period: the login code now lands on a later, unconsumed step.
         $clock->sleep($totp->getPeriod());
-        $loginCode = $totp->at($clock->now()->getTimestamp());
+        $loginCode = $totp->at(max(0, $clock->now()->getTimestamp()));
 
         $response = $this->request('POST', '/2fa', [
             '_csrf_token' => $csrfToken,
@@ -341,7 +341,7 @@ class TwoFactorControllerTest extends AppTestCase
         $token = $this->app()->tokenStorage()->getToken();
         $this->assertNotNull($token);
         $this->assertInstanceOf(UsernamePasswordToken::class, $token);
-        $this->assertSame('johndoe@example.com', $token->getUser()->getUserIdentifier());
+        $this->assertSame('johndoe@example.com', $token->getUser()?->getUserIdentifier());
     }
 
     public function testSuccessfulTwoFactorRegeneratesSessionId(): void
@@ -354,8 +354,8 @@ class TwoFactorControllerTest extends AppTestCase
 
         $totpService = $this->app()->totpService();
         $secret = $totpService->generateSecret($user);
-        $totp = TOTP::createFromSecret($secret->getSecret());
-        $totpService->enableTwoFactor($secret, $totp->at($clock->now()->getTimestamp()));
+        $totp = $this->totpFor($secret->getSecret());
+        $totpService->enableTwoFactor($secret, $totp->at(max(0, $clock->now()->getTimestamp())));
 
         $this->seedTwoFactorToken($user);
 
@@ -365,7 +365,7 @@ class TwoFactorControllerTest extends AppTestCase
         $sessionIdBefore = $this->app()->session()->getId();
 
         $clock->sleep($totp->getPeriod());
-        $loginCode = $totp->at($clock->now()->getTimestamp());
+        $loginCode = $totp->at(max(0, $clock->now()->getTimestamp()));
 
         $response = $this->request('POST', '/2fa', [
             '_csrf_token' => $csrfToken,
@@ -431,6 +431,7 @@ class TwoFactorControllerTest extends AppTestCase
         self::assertInstanceOf(UserTotpSecret::class, $secret);
 
         // Get a backup code from the plain backup codes stored after enable
+        $this->assertNotNull($secret->plainBackupCodes);
         $backupCode = $secret->plainBackupCodes[0];
 
         $this->seedTwoFactorToken($user);
@@ -557,6 +558,7 @@ class TwoFactorControllerTest extends AppTestCase
         $this->assertNotNull($token, 'Not authenticated.');
 
         $user = $token->getUser();
+        $this->assertNotNull($user);
         $secret = $this->app()->totpService()->getTotpSecret($user);
         $this->assertNotNull($secret, 'No TOTP secret found for user.');
 
@@ -568,8 +570,17 @@ class TwoFactorControllerTest extends AppTestCase
      */
     private function generateValidCode(string $base32Secret): string
     {
-        $totp = TOTP::createFromSecret($base32Secret);
+        $totp = $this->totpFor($base32Secret);
 
         return $totp->now();
+    }
+
+    private function totpFor(string $base32Secret): TOTP
+    {
+        if ('' === $base32Secret) {
+            self::fail('TOTP secret must not be empty');
+        }
+
+        return TOTP::createFromSecret($base32Secret);
     }
 }

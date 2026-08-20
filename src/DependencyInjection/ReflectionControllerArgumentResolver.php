@@ -6,13 +6,18 @@ namespace Modufolio\Appkit\DependencyInjection;
 
 final class ReflectionControllerArgumentResolver implements ControllerArgumentResolverInterface
 {
-    private $container;
+    private ParameterAccessorInterface $container;
 
-    public function __construct($container)
+    public function __construct(ParameterAccessorInterface $container)
     {
         $this->container = $container;
     }
 
+    /**
+     * @param class-string $controllerClass
+     *
+     * @return list<mixed>
+     */
     public function resolveArguments(string $controllerClass): array
     {
         $refClass = new \ReflectionClass($controllerClass);

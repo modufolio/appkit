@@ -54,8 +54,7 @@ class FlatFileRouteLoaderTest extends TestCase
     {
         $routes = $this->loader->load('fixtures', 'flat_file');
 
-        $homeRoute = $routes->get('home');
-        $this->assertNotNull($homeRoute);
+        $homeRoute = $this->route($routes, 'home');
         $this->assertInstanceOf(Route::class, $homeRoute);
         $this->assertSame('/', $homeRoute->getPath());
     }
@@ -64,8 +63,7 @@ class FlatFileRouteLoaderTest extends TestCase
     {
         $routes = $this->loader->load('fixtures', 'flat_file');
 
-        $aboutRoute = $routes->get('about');
-        $this->assertNotNull($aboutRoute);
+        $aboutRoute = $this->route($routes, 'about');
         $this->assertSame('/about', $aboutRoute->getPath());
     }
 
@@ -73,8 +71,7 @@ class FlatFileRouteLoaderTest extends TestCase
     {
         $routes = $this->loader->load('fixtures', 'flat_file');
 
-        $blogRoute = $routes->get('blog');
-        $this->assertNotNull($blogRoute);
+        $blogRoute = $this->route($routes, 'blog');
         $this->assertSame('/blog', $blogRoute->getPath());
     }
 
@@ -82,8 +79,7 @@ class FlatFileRouteLoaderTest extends TestCase
     {
         $routes = $this->loader->load('fixtures', 'flat_file');
 
-        $postsRoute = $routes->get('blog_posts');
-        $this->assertNotNull($postsRoute);
+        $postsRoute = $this->route($routes, 'blog_posts');
         $this->assertSame('/blog/posts', $postsRoute->getPath());
     }
 
@@ -145,7 +141,7 @@ class FlatFileRouteLoaderTest extends TestCase
     {
         $routes = $this->loader->load('fixtures', 'flat_file');
 
-        $homeRoute = $routes->get('home');
+        $homeRoute = $this->route($routes, 'home');
         $this->assertSame('home', $homeRoute->getDefault('templateName'));
         $this->assertNull($homeRoute->getDefault('parent'));
         $this->assertStringEndsWith('1_home/home.txt', $homeRoute->getDefault('contentFile'));
@@ -155,7 +151,7 @@ class FlatFileRouteLoaderTest extends TestCase
     {
         $routes = $this->loader->load('fixtures', 'flat_file');
 
-        $aboutRoute = $routes->get('about');
+        $aboutRoute = $this->route($routes, 'about');
         $this->assertSame('about', $aboutRoute->getDefault('templateName'));
         $this->assertNull($aboutRoute->getDefault('parent'));
         $this->assertStringEndsWith('2_about/about.txt', $aboutRoute->getDefault('contentFile'));
@@ -165,7 +161,7 @@ class FlatFileRouteLoaderTest extends TestCase
     {
         $routes = $this->loader->load('fixtures', 'flat_file');
 
-        $postsRoute = $routes->get('blog_posts');
+        $postsRoute = $this->route($routes, 'blog_posts');
         $this->assertSame('blog', $postsRoute->getDefault('parent'));
     }
 
@@ -174,7 +170,7 @@ class FlatFileRouteLoaderTest extends TestCase
         $routes = $this->loader->load('fixtures', 'flat_file');
 
         foreach (['home', 'about', 'blog'] as $routeName) {
-            $route = $routes->get($routeName);
+            $route = $this->route($routes, $routeName);
             $this->assertNull($route->getDefault('parent'), "Route '$routeName' should have null parent");
         }
     }
@@ -183,7 +179,7 @@ class FlatFileRouteLoaderTest extends TestCase
     {
         $routes = $this->loader->load('fixtures', 'flat_file');
 
-        $postsRoute = $routes->get('blog_posts');
+        $postsRoute = $this->route($routes, 'blog_posts');
         $this->assertSame('posts', $postsRoute->getDefault('templateName'));
         $this->assertStringEndsWith('1_posts/posts.txt', $postsRoute->getDefault('contentFile'));
     }
@@ -215,15 +211,20 @@ class FlatFileRouteLoaderTest extends TestCase
     // Content file data assertions
     // -------------------------------------------------------------------------
 
+    /**
+     * @return array<string, mixed>
+     */
     private function parseContentFile(string $contentFile): array
     {
         return Txt::decode(file_get_contents($contentFile));
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     private function routeData(RouteCollection $routes, string $routeName): array
     {
-        $route = $routes->get($routeName);
-        $this->assertNotNull($route, "Route '$routeName' not found");
+        $route = $this->route($routes, $routeName);
 
         return $this->parseContentFile($route->getDefault('contentFile'));
     }
@@ -327,12 +328,22 @@ class FlatFileRouteLoaderTest extends TestCase
         $routes = $loader->load('fixtures', 'flat_file');
 
         // With homeFolder='about', the 2_about directory maps to '/' with name 'home'
-        $homeRoute = $routes->get('home');
-        $this->assertNotNull($homeRoute);
+        $homeRoute = $this->route($routes, 'home');
         $this->assertSame('/', $homeRoute->getPath());
         $this->assertSame('about', $homeRoute->getDefault('templateName'));
 
         // No route named 'about' should exist
         $this->assertNull($routes->get('about'));
+    }
+
+    private function route(RouteCollection $routes, string $name): Route
+    {
+        $route = $routes->get($name);
+
+        if (null === $route) {
+            self::fail(sprintf('Route "%s" was not registered.', $name));
+        }
+
+        return $route;
     }
 }

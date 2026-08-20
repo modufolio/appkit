@@ -44,6 +44,9 @@ class IsGrantedAttributeTest extends AppTestCase
         $this->createUser('auditor@example.com', ['ROLE_AUDITOR']);
     }
 
+    /**
+     * @param list<string> $roles
+     */
     private function createUser(string $email, array $roles): void
     {
         $em = $this->app()->entityManager();

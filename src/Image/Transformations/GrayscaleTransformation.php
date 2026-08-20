@@ -42,6 +42,9 @@ class GrayscaleTransformation implements Transformation
         return 'grayscale';
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function config(): array
     {
         return [];

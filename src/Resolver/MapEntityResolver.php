@@ -24,6 +24,8 @@ class MapEntityResolver implements AttributeResolverInterface
      * Resolves the entity for the given parameter using the MapEntity attribute.
      * Throws a 404 if the entity is not found and the parameter is not nullable.
      *
+     * @param array<string, mixed>      $providedParameters
+     *
      * @throws \LogicException           if the attribute or parameter is invalid
      * @throws ResourceNotFoundException if the entity is not found and the parameter is not nullable
      */
@@ -41,6 +43,8 @@ class MapEntityResolver implements AttributeResolverInterface
     }
 
     /**
+     * @param array<string, mixed>      $providedParameters
+     *
      * @throws \LogicException           if the parameter type is not a valid class or no criteria can be built
      * @throws ResourceNotFoundException if the entity is not found and the parameter is not nullable
      */
@@ -90,6 +94,8 @@ class MapEntityResolver implements AttributeResolverInterface
     }
 
     /**
+     * @return class-string
+     *
      * @throws \LogicException if the parameter does not have a valid class type hint
      */
     private function entityClassFromType(\ReflectionParameter $parameter): string
@@ -100,6 +106,12 @@ class MapEntityResolver implements AttributeResolverInterface
             throw new \LogicException(sprintf('Parameter "%s" must have a valid class type hint or an explicit MapEntity class.', $parameter->getName()));
         }
 
-        return $type->getName();
+        $name = $type->getName();
+
+        if (!class_exists($name) && !interface_exists($name)) {
+            throw new \LogicException(sprintf('Parameter "%s" type hint "%s" is not a loadable class.', $parameter->getName(), $name));
+        }
+
+        return $name;
     }
 }

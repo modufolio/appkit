@@ -17,7 +17,7 @@ class ExifTest extends TestCase
 {
     public const FIXTURES = __DIR__.'/fixtures';
 
-    protected function _exif($filename = 'cat.jpg'): Exif
+    protected function _exif(string $filename = 'cat.jpg'): Exif
     {
         $image = new Image(static::FIXTURES.'/image/'.$filename);
 
@@ -32,7 +32,7 @@ class ExifTest extends TestCase
 
         $this->assertSame([
             'FileName' => 'cat.jpg',
-            'FileDateTime' => exif_read_data(static::FIXTURES.'/image/cat.jpg')['FileDateTime'],
+            'FileDateTime' => (exif_read_data(static::FIXTURES.'/image/cat.jpg') ?: [])['FileDateTime'],
             'FileSize' => filesize(static::FIXTURES.'/image/cat.jpg'),
             'FileType' => 2,
             'MimeType' => 'image/jpeg',
@@ -67,7 +67,7 @@ class ExifTest extends TestCase
     public function testTimestamp(): void
     {
         $exif = $this->_exif();
-        $this->assertSame((string) exif_read_data(static::FIXTURES.'/image/cat.jpg')['FileDateTime'], $exif->timestamp());
+        $this->assertSame((string) (exif_read_data(static::FIXTURES.'/image/cat.jpg') ?: [])['FileDateTime'], $exif->timestamp());
     }
 
     public function testExposure(): void

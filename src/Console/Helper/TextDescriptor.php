@@ -87,6 +87,9 @@ class TextDescriptor extends Descriptor
         $table->render();
     }
 
+    /**
+     * @param array<string, mixed> $config
+     */
     private function formatRouterConfig(array $config): string
     {
         if (!$config) {
@@ -127,7 +130,9 @@ class TextDescriptor extends Descriptor
             }
         } catch (\ReflectionException) {
             if (\is_array($controller)) {
-                $controller = implode('::', $controller);
+                $controller = implode('::', array_map(strval(...), $controller));
+            } elseif (!\is_string($controller)) {
+                return $anchorText;
             }
 
             $id = $controller;
@@ -185,6 +190,9 @@ class TextDescriptor extends Descriptor
         throw new \InvalidArgumentException('Callable is not describable.');
     }
 
+    /**
+     * @param array<string, mixed> $options
+     */
     private function writeText(string $content, array $options = []): void
     {
         $this->write(

@@ -6,6 +6,12 @@ namespace Modufolio\Appkit\Resolver;
 
 class AssociativeArrayResolver implements ParameterResolverInterface
 {
+    /**
+     * @param array<string, mixed> $providedParameters
+     * @param array<string, mixed> $resolvedParameters
+     *
+     * @return array<string, mixed>
+     */
     public function getParameters(
         \ReflectionFunctionAbstract $reflection,
         array $providedParameters,

@@ -16,6 +16,7 @@ class InMemoryOAuthAccessToken implements OAuthAccessTokenInterface
     private string $token = '';
     private string $clientId = '';
     private string $grantType = '';
+    /** @var list<string> */
     private array $scopes = [];
     private \DateTimeImmutable $expiresAt;
     private ?string $refreshToken = null;
@@ -77,6 +78,9 @@ class InMemoryOAuthAccessToken implements OAuthAccessTokenInterface
         return $this->scopes;
     }
 
+    /**
+     * @param list<string> $scopes
+     */
     public function setScopes(array $scopes): void
     {
         $this->scopes = $scopes;

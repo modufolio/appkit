@@ -21,10 +21,16 @@ use Symfony\Component\Validator\Exception\ValidationFailedException;
 
 final class ExceptionHandler implements ExceptionHandlerInterface
 {
-    /** @var array<class-string<\Throwable>, callable(\Throwable, ServerRequestInterface): array> */
+    /**
+     * Each entry only ever receives the exception class it is keyed by, which is
+     * narrower than \Throwable — a per-key relationship the type system cannot
+     * express, so the stored signature stays unconstrained.
+     *
+     * @var array<class-string<\Throwable>, callable>
+     */
     private array $handlers = [];
 
-    /** @var array<string, callable(array): ResponseInterface> */
+    /** @var array<string, callable(array<string, mixed>): ResponseInterface> */
     private array $formatters = [];
 
     /** @var array<class-string<\Throwable>, bool> */
@@ -48,7 +54,7 @@ final class ExceptionHandler implements ExceptionHandlerInterface
      * @template T of \Throwable
      *
      * @param class-string<T>                            $exceptionClass
-     * @param callable(T, ServerRequestInterface): array $handler
+     * @param callable(T, ServerRequestInterface): array<string, mixed> $handler
      */
     public function registerException(string $exceptionClass, callable $handler, bool $loggable = false): void
     {
@@ -56,6 +62,9 @@ final class ExceptionHandler implements ExceptionHandlerInterface
         $this->loggable[$exceptionClass] = $loggable;
     }
 
+    /**
+     * @param callable(array<string, mixed>): ResponseInterface $formatter
+     */
     public function registerFormatter(string $mimeType, callable $formatter): void
     {
         $this->formatters[$mimeType] = $formatter;
@@ -132,6 +141,9 @@ final class ExceptionHandler implements ExceptionHandlerInterface
         return null;
     }
 
+    /**
+     * @param array<string, mixed> $data
+     */
     private function logException(\Throwable $e, array $data, ?string $matchedClass): void
     {
         $status = $data['status'] ?? 500;
@@ -189,6 +201,9 @@ final class ExceptionHandler implements ExceptionHandlerInterface
         return $best instanceof BaseAccept ? $best->getValue() : 'application/vnd.api+json'; // default to JSON:API
     }
 
+    /**
+     * @param array<string, mixed> $data
+     */
     private function format(array $data, string $mimeType): ResponseInterface
     {
         if (!isset($this->formatters[$mimeType])) {
@@ -198,6 +213,9 @@ final class ExceptionHandler implements ExceptionHandlerInterface
         return $this->formatters[$mimeType]($data);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     private function defaultData(\Throwable $e): array
     {
         // Only show detailed error messages in development/test environments

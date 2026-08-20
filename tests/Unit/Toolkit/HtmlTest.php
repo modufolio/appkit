@@ -25,6 +25,9 @@ class HtmlTest extends TestCase
         $this->assertSame($expected, Html::attr($input, $value));
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public static function attrProvider(): array
     {
         return [
@@ -156,6 +159,9 @@ class HtmlTest extends TestCase
         $this->assertSame($expected, Html::value($input));
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public static function valueProvider(): array
     {
         return [

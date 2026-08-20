@@ -17,7 +17,7 @@ class PaginationTest extends TestCase
         Pagination::$validate = true;
     }
 
-    public function testDefaults()
+    public function testDefaults(): void
     {
         $pagination = new Pagination();
 
@@ -26,7 +26,7 @@ class PaginationTest extends TestCase
         $this->assertSame(20, $pagination->limit());
     }
 
-    public function testConstructWithProps()
+    public function testConstructWithProps(): void
     {
         $pagination = new Pagination([
             'page' => 2,
@@ -39,7 +39,7 @@ class PaginationTest extends TestCase
         $this->assertSame(42, $pagination->total());
     }
 
-    public function testConstructWithInvalidPage()
+    public function testConstructWithInvalidPage(): void
     {
         $this->expectException(\Exception::class);
         $this->expectExceptionMessage('Pagination page 5 does not exist, expected 1-2');
@@ -51,7 +51,7 @@ class PaginationTest extends TestCase
         ]);
     }
 
-    public function testConstructWithoutValidation()
+    public function testConstructWithoutValidation(): void
     {
         Pagination::$validate = false;
 
@@ -72,7 +72,7 @@ class PaginationTest extends TestCase
         $this->assertSame(1, $pagination->page());
     }
 
-    public function testConstructWithInvalidLimit()
+    public function testConstructWithInvalidLimit(): void
     {
         $this->expectException(\Exception::class);
         $this->expectExceptionMessage('Invalid pagination limit: 0');
@@ -80,7 +80,7 @@ class PaginationTest extends TestCase
         new Pagination(['limit' => 0]);
     }
 
-    public function testConstructWithInvalidTotal()
+    public function testConstructWithInvalidTotal(): void
     {
         $this->expectException(\Exception::class);
         $this->expectExceptionMessage('Invalid total number of items: -1');
@@ -88,7 +88,7 @@ class PaginationTest extends TestCase
         new Pagination(['total' => -1]);
     }
 
-    public function testConstructWithNonNumericPage()
+    public function testConstructWithNonNumericPage(): void
     {
         $this->expectException(\Exception::class);
         $this->expectExceptionMessage('Invalid page number: foo');
@@ -96,7 +96,7 @@ class PaginationTest extends TestCase
         new Pagination(['page' => 'foo']);
     }
 
-    public function testConstructWithNegativePage()
+    public function testConstructWithNegativePage(): void
     {
         $this->expectException(\Exception::class);
         $this->expectExceptionMessage('Invalid page number: -1');
@@ -104,7 +104,7 @@ class PaginationTest extends TestCase
         new Pagination(['page' => '-1']);
     }
 
-    public function testClone()
+    public function testClone(): void
     {
         $pagination = new Pagination([
             'page' => 2,
@@ -119,7 +119,7 @@ class PaginationTest extends TestCase
         $this->assertSame(42, $clone->total());
     }
 
-    public function testForWithPaginationObject()
+    public function testForWithPaginationObject(): void
     {
         $collection = new Collection(['a', 'b', 'c']);
         $pagination = new Pagination(['total' => 3]);
@@ -127,7 +127,7 @@ class PaginationTest extends TestCase
         $this->assertSame($pagination, Pagination::for($collection, $pagination));
     }
 
-    public function testForWithOptionsArray()
+    public function testForWithOptionsArray(): void
     {
         $collection = new Collection(['a', 'b', 'c']);
         $pagination = Pagination::for($collection, [
@@ -140,7 +140,7 @@ class PaginationTest extends TestCase
         $this->assertSame(3, $pagination->total());
     }
 
-    public function testForWithLimit()
+    public function testForWithLimit(): void
     {
         $collection = new Collection(['a', 'b', 'c']);
         $pagination = Pagination::for($collection, 2);
@@ -150,7 +150,7 @@ class PaginationTest extends TestCase
         $this->assertSame(3, $pagination->total());
     }
 
-    public function testForWithLimitAndPage()
+    public function testForWithLimitAndPage(): void
     {
         $collection = new Collection(['a', 'b', 'c']);
         $pagination = Pagination::for($collection, 2, 2);
@@ -159,7 +159,7 @@ class PaginationTest extends TestCase
         $this->assertSame(2, $pagination->page());
     }
 
-    public function testForWithLimitAndOptions()
+    public function testForWithLimitAndOptions(): void
     {
         $collection = new Collection(['a', 'b', 'c']);
         $pagination = Pagination::for($collection, 2, ['page' => 2]);
@@ -168,7 +168,7 @@ class PaginationTest extends TestCase
         $this->assertSame(2, $pagination->page());
     }
 
-    public function testStartAndEnd()
+    public function testStartAndEnd(): void
     {
         $pagination = new Pagination([
             'page' => 2,
@@ -190,7 +190,7 @@ class PaginationTest extends TestCase
         $this->assertSame(42, $pagination->end());
     }
 
-    public function testPages()
+    public function testPages(): void
     {
         $pagination = new Pagination();
         $this->assertSame(0, $pagination->pages());
@@ -199,7 +199,7 @@ class PaginationTest extends TestCase
         $this->assertSame(5, $pagination->pages());
     }
 
-    public function testFirstAndLastPage()
+    public function testFirstAndLastPage(): void
     {
         $pagination = new Pagination();
         $this->assertSame(0, $pagination->firstPage());
@@ -210,7 +210,7 @@ class PaginationTest extends TestCase
         $this->assertSame(5, $pagination->lastPage());
     }
 
-    public function testOffset()
+    public function testOffset(): void
     {
         $pagination = new Pagination([
             'page' => 3,
@@ -221,7 +221,7 @@ class PaginationTest extends TestCase
         $this->assertSame(20, $pagination->offset());
     }
 
-    public function testHasPage()
+    public function testHasPage(): void
     {
         $pagination = new Pagination(['limit' => 10, 'total' => 42]);
 
@@ -231,7 +231,7 @@ class PaginationTest extends TestCase
         $this->assertTrue($pagination->hasPage(5));
     }
 
-    public function testHasPages()
+    public function testHasPages(): void
     {
         $pagination = new Pagination(['limit' => 10, 'total' => 5]);
         $this->assertFalse($pagination->hasPages());
@@ -240,7 +240,7 @@ class PaginationTest extends TestCase
         $this->assertTrue($pagination->hasPages());
     }
 
-    public function testPrevPage()
+    public function testPrevPage(): void
     {
         $pagination = new Pagination(['limit' => 10, 'total' => 42]);
         $this->assertFalse($pagination->hasPrevPage());
@@ -251,7 +251,7 @@ class PaginationTest extends TestCase
         $this->assertSame(2, $pagination->prevPage());
     }
 
-    public function testNextPage()
+    public function testNextPage(): void
     {
         $pagination = new Pagination(['limit' => 10, 'total' => 42]);
         $this->assertTrue($pagination->hasNextPage());
@@ -262,7 +262,7 @@ class PaginationTest extends TestCase
         $this->assertNull($pagination->nextPage());
     }
 
-    public function testIsFirstAndLastPage()
+    public function testIsFirstAndLastPage(): void
     {
         $pagination = new Pagination(['limit' => 10, 'total' => 42]);
         $this->assertTrue($pagination->isFirstPage());
@@ -273,14 +273,14 @@ class PaginationTest extends TestCase
         $this->assertTrue($pagination->isLastPage());
     }
 
-    public function testRangeWithFewPages()
+    public function testRangeWithFewPages(): void
     {
         $pagination = new Pagination(['limit' => 10, 'total' => 30]);
 
         $this->assertSame([1, 2, 3], $pagination->range());
     }
 
-    public function testRange()
+    public function testRange(): void
     {
         // middle of the range
         $pagination = new Pagination(['page' => 5, 'limit' => 10, 'total' => 100]);
@@ -299,7 +299,7 @@ class PaginationTest extends TestCase
         $this->assertSame([4, 5, 6, 7], $pagination->range(4));
     }
 
-    public function testRangeStartAndEnd()
+    public function testRangeStartAndEnd(): void
     {
         $pagination = new Pagination(['page' => 5, 'limit' => 10, 'total' => 100]);
 
@@ -307,7 +307,7 @@ class PaginationTest extends TestCase
         $this->assertSame(7, $pagination->rangeEnd());
     }
 
-    public function testToArray()
+    public function testToArray(): void
     {
         $pagination = new Pagination([
             'page' => 2,

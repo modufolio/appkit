@@ -22,6 +22,9 @@ class JsonJobStorage implements JobStorageInterface
         $this->jobsSubdir = ltrim($jobsSubdir, '/');
     }
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function saveJob(
         string $mediaRoot,
         string $thumbName,
@@ -36,6 +39,9 @@ class JsonJobStorage implements JobStorageInterface
         }
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function loadJob(string $mediaRoot, string $thumbName): ?array
     {
         $jobFile = $this->getJobPath($mediaRoot, $thumbName);
@@ -46,6 +52,11 @@ class JsonJobStorage implements JobStorageInterface
             }
 
             $content = file_get_contents($jobFile);
+
+            if (false === $content) {
+                return null;
+            }
+
             $data = json_decode($content, true);
 
             return is_array($data) ? $data : null;

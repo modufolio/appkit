@@ -54,6 +54,16 @@ final class TokenUnserializer
 
     private static bool $frozen = false;
 
+    /**
+     * Sentinel code marking an ErrorException this class raised from its own
+     * unserialize() call, so the catch below can tell it apart from an
+     * ErrorException bubbling up out of a token's __unserialize().
+     */
+    private const UNSERIALIZE_ERROR_CODE = 0x544F4B;
+
+    /**
+     * @param class-string ...$classes
+     */
     public static function register(string ...$classes): void
     {
         foreach ($classes as $class) {
@@ -84,8 +94,30 @@ final class TokenUnserializer
         self::$frozen = false;
     }
 
-    public static function create(#[\SensitiveParameter] string $serializedToken): mixed
+    public static function create(#[\SensitiveParameter] string $serializedToken): ?TokenInterface
     {
+        // Malformed input is expected here, not exceptional: the serialized
+        // token comes from a session record or a cookie, both attacker-
+        // controllable. unserialize() signals a truncated or corrupted payload
+        // with an E_WARNING and a false return rather than an exception, so
+        // a plain catch never sees it, and the warning reaches the error log
+        // (and the test output) for a condition that is fully handled.
+        //
+        // Only diagnostics raised by our own unserialize() call are converted
+        // — those carry this file as their origin. A warning raised inside a
+        // token's or user's __wakeup()/__unserialize() belongs to that class's
+        // file and is handed to the previous handler untouched, so real
+        // problems in those methods stay loud.
+        $previousHandler = set_error_handler(
+            static function (int $type, string $message, string $file, int $line, array $context = []) use (&$previousHandler): bool {
+                if (__FILE__ === $file && !in_array($type, [\E_DEPRECATED, \E_USER_DEPRECATED], true)) {
+                    throw new \ErrorException($message, self::UNSERIALIZE_ERROR_CODE, $type, $file, $line);
+                }
+
+                return $previousHandler ? (bool) $previousHandler($type, $message, $file, $line, $context) : false;
+            }
+        );
+
         try {
             $token = unserialize($serializedToken, [
                 'allowed_classes' => [
@@ -93,8 +125,16 @@ final class TokenUnserializer
                     ...self::$registered,
                 ],
             ]);
+        } catch (\ErrorException $e) {
+            if (self::UNSERIALIZE_ERROR_CODE !== $e->getCode()) {
+                throw $e;
+            }
+
+            return null;
         } catch (\Throwable) {
             return null;
+        } finally {
+            restore_error_handler();
         }
 
         if (false === $token || null === $token) {

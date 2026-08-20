@@ -20,7 +20,7 @@ class CollectionFilterTest extends TestCase
         ]);
     }
 
-    public function testFilterWithCallback()
+    public function testFilterWithCallback(): void
     {
         $collection = $this->_collection();
         $result = $collection->filter(fn ($item) => 'red' === $item['color']);
@@ -29,7 +29,7 @@ class CollectionFilterTest extends TestCase
         $this->assertCount(3, $collection);
     }
 
-    public function testFilterWithArrayOfFilters()
+    public function testFilterWithArrayOfFilters(): void
     {
         $result = $this->_collection()->filter([
             ['color', 'red'],
@@ -39,21 +39,21 @@ class CollectionFilterTest extends TestCase
         $this->assertSame(['three'], $result->keys());
     }
 
-    public function testFilterWithDefaultOperator()
+    public function testFilterWithDefaultOperator(): void
     {
         $result = $this->_collection()->filter('color', 'green');
 
         $this->assertSame(['two'], $result->keys());
     }
 
-    public function testFilterWithOperator()
+    public function testFilterWithOperator(): void
     {
         $result = $this->_collection()->filter('color', '==', 'red');
 
         $this->assertSame(['one', 'three'], $result->keys());
     }
 
-    public function testFilterWithStringableTest()
+    public function testFilterWithStringableTest(): void
     {
         $test = new class {
             public function __toString(): string
@@ -67,7 +67,7 @@ class CollectionFilterTest extends TestCase
         $this->assertSame(['one', 'three'], $result->keys());
     }
 
-    public function testFilterWithSplit()
+    public function testFilterWithSplit(): void
     {
         $collection = new Collection([
             'one' => ['tags' => 'a, b'],
@@ -80,7 +80,7 @@ class CollectionFilterTest extends TestCase
         $this->assertSame(['one', 'two'], $result->keys());
     }
 
-    public function testFilterWithValidatorArray()
+    public function testFilterWithValidatorArray(): void
     {
         Collection::$filters['contains?'] = [
             'validator' => fn ($value, $test) => str_contains($value, $test),
@@ -94,7 +94,7 @@ class CollectionFilterTest extends TestCase
         }
     }
 
-    public function testFilterWithValidatorArrayAndSplit()
+    public function testFilterWithValidatorArrayAndSplit(): void
     {
         Collection::$filters['all?'] = [
             'validator' => fn ($value, $test) => str_contains($value, $test),
@@ -123,10 +123,13 @@ class CollectionFilterTest extends TestCase
         }
     }
 
-    public function testFilterMatchesNone()
+    public function testFilterMatchesNone(): void
     {
         $collection = new class extends Collection {
-            public function matchesNone(callable $validator, array $values, $test): bool
+            /**
+             * @param list<string> $values
+             */
+            public function matchesNone(callable $validator, array $values, mixed $test): bool
             {
                 return $this->filterMatchesNone($validator, $values, $test);
             }
@@ -138,14 +141,14 @@ class CollectionFilterTest extends TestCase
         $this->assertFalse($collection->matchesNone($validator, ['a', 'b'], 'a'));
     }
 
-    public function testFilterBy()
+    public function testFilterBy(): void
     {
         $result = $this->_collection()->filterBy('color', 'red');
 
         $this->assertSame(['one', 'three'], $result->keys());
     }
 
-    public function testGroup()
+    public function testGroup(): void
     {
         $groups = $this->_collection()->group('color');
 
@@ -154,7 +157,7 @@ class CollectionFilterTest extends TestCase
         $this->assertSame(['two'], $groups->get('green')->keys());
     }
 
-    public function testGroupCaseSensitivity()
+    public function testGroupCaseSensitivity(): void
     {
         $collection = new Collection([
             'one' => ['color' => 'Red'],
@@ -175,14 +178,14 @@ class CollectionFilterTest extends TestCase
         $this->assertSame(['one'], $groups->get('Red')->keys());
     }
 
-    public function testGroupWithCallback()
+    public function testGroupWithCallback(): void
     {
         $groups = $this->_collection()->group(fn ($item) => $item['color']);
 
         $this->assertSame(['one', 'three'], $groups->get('red')->keys());
     }
 
-    public function testGroupWithStringableValue()
+    public function testGroupWithStringableValue(): void
     {
         $value = new class {
             public function __toString(): string
@@ -196,7 +199,7 @@ class CollectionFilterTest extends TestCase
         $this->assertSame(['one', 'two', 'three'], $groups->get('group')->keys());
     }
 
-    public function testGroupWithInvalidValue()
+    public function testGroupWithInvalidValue(): void
     {
         $this->expectException(\Exception::class);
         $this->expectExceptionMessage('Invalid grouping value for key: one');
@@ -204,7 +207,7 @@ class CollectionFilterTest extends TestCase
         $this->_collection()->group(fn ($item) => null);
     }
 
-    public function testGroupWithArrayValue()
+    public function testGroupWithArrayValue(): void
     {
         $this->expectException(\Exception::class);
         $this->expectExceptionMessage('You cannot group by arrays or objects');
@@ -212,7 +215,7 @@ class CollectionFilterTest extends TestCase
         $this->_collection()->group(fn ($item) => ['a']);
     }
 
-    public function testGroupWithObjectValue()
+    public function testGroupWithObjectValue(): void
     {
         $this->expectException(\Exception::class);
         $this->expectExceptionMessage('You cannot group by arrays or objects');
@@ -220,7 +223,7 @@ class CollectionFilterTest extends TestCase
         $this->_collection()->group(fn ($item) => new \stdClass());
     }
 
-    public function testGroupWithInvalidField()
+    public function testGroupWithInvalidField(): void
     {
         $this->expectException(\Exception::class);
         $this->expectExceptionMessage('Can only group by string values or by providing a callback function');
@@ -228,14 +231,14 @@ class CollectionFilterTest extends TestCase
         $this->_collection()->group(1);
     }
 
-    public function testGroupBy()
+    public function testGroupBy(): void
     {
         $groups = $this->_collection()->groupBy('color');
 
         $this->assertSame(['one', 'three'], $groups->get('red')->keys());
     }
 
-    public function testQuery()
+    public function testQuery(): void
     {
         $collection = new Collection([
             'one' => ['name' => 'Bastian', 'color' => 'red'],
@@ -264,7 +267,7 @@ class CollectionFilterTest extends TestCase
         $this->assertSame(['three', 'one'], $result->keys());
     }
 
-    public function testQueryWithSortArray()
+    public function testQueryWithSortArray(): void
     {
         $result = $this->_collection()->query([
             'sort' => ['name', 'asc'],
@@ -273,7 +276,7 @@ class CollectionFilterTest extends TestCase
         $this->assertSame(['one', 'three', 'two'], $result->keys());
     }
 
-    public function testQueryWithSortComma()
+    public function testQueryWithSortComma(): void
     {
         $result = $this->_collection()->query([
             'sortBy' => 'color asc, name desc',
@@ -283,17 +286,17 @@ class CollectionFilterTest extends TestCase
         $this->assertEqualsCanonicalizing(['one', 'two', 'three'], $result->keys());
     }
 
-    public function testQueryWithPagination()
+    public function testQueryWithPagination(): void
     {
         $result = $this->_collection()->query([
             'paginate' => 2,
         ]);
 
         $this->assertCount(2, $result);
-        $this->assertSame(2, $result->pagination()->limit());
+        $this->assertSame(2, $result->pagination()?->limit());
     }
 
-    public function testWhen()
+    public function testWhen(): void
     {
         $collection = $this->_collection();
 

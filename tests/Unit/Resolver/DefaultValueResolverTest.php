@@ -34,6 +34,11 @@ class DefaultValueController
 #[CoversClass(DefaultValueResolver::class)]
 class DefaultValueResolverTest extends TestCase
 {
+    /**
+     * @param array<string, mixed> $resolved
+     *
+     * @return array<string, mixed>
+     */
     private function resolve(string $method, array $resolved): array
     {
         $reflection = new \ReflectionMethod(DefaultValueController::class, $method);

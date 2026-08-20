@@ -71,7 +71,7 @@ final readonly class ValidationResult
             // e.g., "[email]" becomes "email"
             $field = trim($violation->getPropertyPath(), '[]');
 
-            $errors[$field][] = $message;
+            $errors[$field][] = (string) $message;
         }
 
         return $errors;
@@ -97,7 +97,7 @@ final readonly class ValidationResult
         $messages = [];
 
         foreach ($this->violations as $violation) {
-            $messages[] = $violation->getMessage();
+            $messages[] = (string) $violation->getMessage();
         }
 
         return $messages;

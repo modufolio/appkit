@@ -49,6 +49,9 @@ class SharpenTransformation implements Transformation
         return 'sharpen';
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function config(): array
     {
         return ['amount' => $this->amount];

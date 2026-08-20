@@ -16,9 +16,13 @@ use Psr\Http\Message\ServerRequestInterface;
 
 class ApiKeyAuthenticator extends AbstractAuthenticator
 {
+    /** @var array<string, mixed> */
     private array $options;
     private ?string $lastApiKey = null;
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function __construct(
         private UserProviderInterface $userProvider,
         array $options = [],

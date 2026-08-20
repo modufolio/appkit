@@ -28,7 +28,7 @@ interface UserInterface
      * and populated in any number of different ways when the user object
      * is created.
      *
-     * @return string[]
+     * @return list<string>
      */
     public function getRoles(): array;
 

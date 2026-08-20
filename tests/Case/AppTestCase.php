@@ -137,6 +137,10 @@ abstract class AppTestCase extends BaseTestCase
     // HTTP method helpers
     // ----------------------------
 
+    /**
+     * @param array<string, string> $headers
+     * @param array<string, mixed> $query
+     */
     protected function get(string $uri, array $query = [], array $headers = []): TestResponse
     {
         if ($query) {
@@ -146,26 +150,45 @@ abstract class AppTestCase extends BaseTestCase
         return $this->request('GET', $uri, [], null, $headers);
     }
 
+    /**
+     * @param array<string, mixed> $data
+     * @param array<string, string> $headers
+     */
     protected function post(string $uri, array $data = [], array $headers = []): TestResponse
     {
         return $this->request('POST', $uri, $data, null, $headers);
     }
 
+    /**
+     * @param array<string, mixed> $data
+     * @param array<string, string> $headers
+     */
     protected function put(string $uri, array $data = [], array $headers = []): TestResponse
     {
         return $this->request('PUT', $uri, $data, null, $headers);
     }
 
+    /**
+     * @param array<string, mixed> $data
+     * @param array<string, string> $headers
+     */
     protected function patch(string $uri, array $data = [], array $headers = []): TestResponse
     {
         return $this->request('PATCH', $uri, $data, null, $headers);
     }
 
+    /**
+     * @param array<string, mixed> $data
+     * @param array<string, string> $headers
+     */
     protected function delete(string $uri, array $data = [], array $headers = []): TestResponse
     {
         return $this->request('DELETE', $uri, $data, null, $headers);
     }
 
+    /**
+     * @param array<string, mixed> $data
+     */
     protected function form(string $uri, array $data = []): TestResponse
     {
         return $this->request('POST', $uri, $data, null, [
@@ -176,6 +199,10 @@ abstract class AppTestCase extends BaseTestCase
         ]);
     }
 
+    /**
+     * @param array<string, mixed> $data
+     * @param array<string, string> $headers
+     */
     protected function json(string $method, string $uri, array $data = [], array $headers = []): TestResponse
     {
         $headers['Content-Type'] ??= 'application/json';
@@ -185,6 +212,9 @@ abstract class AppTestCase extends BaseTestCase
 
     /**
      * Create and dispatch a PSR-7 compliant request to the application.
+     *
+     * @param array<string, mixed> $data
+     * @param array<string, string> $headers
      *
      * @throws \JsonException
      */
@@ -326,6 +356,8 @@ abstract class AppTestCase extends BaseTestCase
     /**
      * Decode a request body by content type, mirroring ServerRequestCreator's
      * treatment of php://input in production.
+     *
+     * @return array<string, mixed>|null
      */
     private function parseBodyLikeSapi(?string $contentType, string $contents): ?array
     {
@@ -335,9 +367,15 @@ abstract class AppTestCase extends BaseTestCase
 
                 return is_array($decoded) ? $decoded : [];
             case 'application/x-www-form-urlencoded':
+                $parsed = [];
                 parse_str($contents, $parsed);
 
-                return $parsed;
+                $normalised = [];
+                foreach ($parsed as $key => $value) {
+                    $normalised[(string) $key] = $value;
+                }
+
+                return $normalised;
             default:
                 return null;
         }
@@ -345,6 +383,8 @@ abstract class AppTestCase extends BaseTestCase
 
     /**
      * Prepare body as PSR-7 compliant stream.
+     *
+     * @param array<string, mixed> $data
      *
      * @throws \JsonException
      */

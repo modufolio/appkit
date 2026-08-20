@@ -32,8 +32,14 @@ interface TwoFactorSecret
 
     public function setConfirmed(bool $confirmed): void;
 
+    /**
+     * @param list<string>|null $backupCodes
+     */
     public function setBackupCodes(?array $backupCodes): void;
 
+    /**
+     * @param list<string>|null $backupCodes
+     */
     public function setPlainBackupCodes(?array $backupCodes): void;
 
     /**
@@ -92,6 +98,8 @@ interface TwoFactorSecret
 
     /**
      * Get all backup codes (hashed).
+     *
+     * @return list<string>|null
      */
     public function getBackupCodes(): ?array;
 

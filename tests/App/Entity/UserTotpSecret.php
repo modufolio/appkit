@@ -93,9 +93,11 @@ class UserTotpSecret implements UserTotpSecretInterface
      * Backup codes for account recovery (JSON array)
      * Hashed codes that can be used once each if user loses access to authenticator.
      */
+    /** @var list<string>|null */
     #[ORM\Column(name: 'backup_codes', type: 'json', nullable: true)]
     private ?array $backupCodes = null;
 
+    /** @var list<string>|null */
     public ?array $plainBackupCodes = null;
 
     public function getId(): ?int
@@ -236,8 +238,9 @@ class UserTotpSecret implements UserTotpSecretInterface
 
         foreach ($this->backupCodes as $index => $hashedCode) {
             if (password_verify($code, $hashedCode)) {
-                unset($this->backupCodes[$index]);
-                $this->backupCodes = array_values($this->backupCodes);
+                $remaining = $this->backupCodes;
+                unset($remaining[$index]);
+                $this->backupCodes = array_values($remaining);
 
                 return;
             }

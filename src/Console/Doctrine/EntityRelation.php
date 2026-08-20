@@ -11,8 +11,8 @@ final class EntityRelation
     public const MANY_TO_MANY = 'ManyToMany';
     public const ONE_TO_ONE = 'OneToOne';
 
-    private $owningProperty;
-    private $inverseProperty;
+    private ?string $owningProperty = null;
+    private ?string $inverseProperty = null;
     private bool $isNullable = false;
     private bool $isSelfReferencing = false;
     private bool $orphanRemoval = false;
@@ -58,6 +58,9 @@ final class EntityRelation
         $this->orphanRemoval = $orphanRemoval;
     }
 
+    /**
+     * @return list<string>
+     */
     public static function getValidRelationTypes(): array
     {
         return [
@@ -72,7 +75,7 @@ final class EntityRelation
     {
         return match ($this->getType()) {
             self::MANY_TO_ONE => (new RelationManyToOne(
-                propertyName: $this->owningProperty,
+                propertyName: $this->getOwningProperty(),
                 targetClassName: $this->inverseClass,
                 targetPropertyName: $this->inverseProperty,
                 isSelfReferencing: $this->isSelfReferencing,
@@ -81,7 +84,7 @@ final class EntityRelation
                 isNullable: $this->isNullable,
             )),
             self::MANY_TO_MANY => (new RelationManyToMany(
-                propertyName: $this->owningProperty,
+                propertyName: $this->getOwningProperty(),
                 targetClassName: $this->inverseClass,
                 targetPropertyName: $this->inverseProperty,
                 isSelfReferencing: $this->isSelfReferencing,
@@ -89,7 +92,7 @@ final class EntityRelation
                 isOwning: true,
             )),
             self::ONE_TO_ONE => (new RelationOneToOne(
-                propertyName: $this->owningProperty,
+                propertyName: $this->getOwningProperty(),
                 targetClassName: $this->inverseClass,
                 targetPropertyName: $this->inverseProperty,
                 isSelfReferencing: $this->isSelfReferencing,
@@ -105,20 +108,20 @@ final class EntityRelation
     {
         return match ($this->getType()) {
             self::MANY_TO_ONE => (new RelationOneToMany(
-                propertyName: $this->inverseProperty,
+                propertyName: $this->getInverseProperty(),
                 targetClassName: $this->owningClass,
                 targetPropertyName: $this->owningProperty,
                 isSelfReferencing: $this->isSelfReferencing,
                 orphanRemoval: $this->orphanRemoval,
             )),
             self::MANY_TO_MANY => (new RelationManyToMany(
-                propertyName: $this->inverseProperty,
+                propertyName: $this->getInverseProperty(),
                 targetClassName: $this->owningClass,
                 targetPropertyName: $this->owningProperty,
                 isSelfReferencing: $this->isSelfReferencing
             )),
             self::ONE_TO_ONE => (new RelationOneToOne(
-                propertyName: $this->inverseProperty,
+                propertyName: $this->getInverseProperty(),
                 targetClassName: $this->owningClass,
                 targetPropertyName: $this->owningProperty,
                 isSelfReferencing: $this->isSelfReferencing,
@@ -145,11 +148,19 @@ final class EntityRelation
 
     public function getOwningProperty(): string
     {
+        if (null === $this->owningProperty) {
+            throw new \LogicException('The owning property has not been set on this relation.');
+        }
+
         return $this->owningProperty;
     }
 
     public function getInverseProperty(): string
     {
+        if (null === $this->inverseProperty) {
+            throw new \LogicException('The inverse property has not been set on this relation.');
+        }
+
         return $this->inverseProperty;
     }
 
@@ -175,5 +186,51 @@ final class EntityRelation
         }
 
         $this->mapInverseRelation = $mapInverseRelation;
+    }
+
+    public function getOwningManyToOne(): RelationManyToOne
+    {
+        return $this->assertRelation($this->getOwningRelation(), RelationManyToOne::class);
+    }
+
+    public function getOwningManyToMany(): RelationManyToMany
+    {
+        return $this->assertRelation($this->getOwningRelation(), RelationManyToMany::class);
+    }
+
+    public function getOwningOneToOne(): RelationOneToOne
+    {
+        return $this->assertRelation($this->getOwningRelation(), RelationOneToOne::class);
+    }
+
+    public function getInverseOneToMany(): RelationOneToMany
+    {
+        return $this->assertRelation($this->getInverseRelation(), RelationOneToMany::class);
+    }
+
+    public function getInverseManyToMany(): RelationManyToMany
+    {
+        return $this->assertRelation($this->getInverseRelation(), RelationManyToMany::class);
+    }
+
+    public function getInverseOneToOne(): RelationOneToOne
+    {
+        return $this->assertRelation($this->getInverseRelation(), RelationOneToOne::class);
+    }
+
+    /**
+     * @template T of object
+     *
+     * @param class-string<T> $expected
+     *
+     * @return T
+     */
+    private function assertRelation(object $relation, string $expected): object
+    {
+        if (!$relation instanceof $expected) {
+            throw new \LogicException(sprintf('Expected a "%s" for relation type "%s", got "%s".', $expected, $this->getType(), $relation::class));
+        }
+
+        return $relation;
     }
 }

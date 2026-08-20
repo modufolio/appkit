@@ -36,6 +36,9 @@ class InvokableController
 #[CoversClass(\Modufolio\Appkit\Console\Helper\Descriptor::class)]
 class TextDescriptorTest extends TestCase
 {
+    /**
+     * @param array<string, mixed> $options
+     */
     private function describe(mixed $object, array $options = [], ?TextDescriptor $descriptor = null): string
     {
         $output = new BufferedOutput();

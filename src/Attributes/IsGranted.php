@@ -5,14 +5,17 @@ namespace Modufolio\Appkit\Attributes;
 #[\Attribute(\Attribute::TARGET_CLASS | \Attribute::TARGET_METHOD | \Attribute::IS_REPEATABLE)]
 class IsGranted
 {
-    /** @var string[] */
+    /** @var list<string> */
+    public readonly array $roles;
+
+    /** @var list<string> */
     public readonly array $methods;
 
     /**
-     * @param string|string[] $roles   roles or trust-level attributes; holding any one of them satisfies this attribute
-     * @param string|string[] $methods HTTP methods this check applies to; an empty array applies it to every method
+     * @param string|list<string> $roles   roles or trust-level attributes; holding any one of them satisfies this attribute
+     * @param string|list<string> $methods HTTP methods this check applies to; an empty array applies it to every method
      */
-    public function __construct(public string|array $roles, array|string $methods = [])
+    public function __construct(string|array $roles, array|string $methods = [])
     {
         $this->roles = (array) $roles;
 
@@ -24,6 +27,6 @@ class IsGranted
             $methods[] = 'HEAD';
         }
 
-        $this->methods = array_values($methods);
+        $this->methods = $methods;
     }
 }

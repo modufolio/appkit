@@ -113,7 +113,13 @@ class TotpServiceTest extends AppTestCase
     {
         $now = Clock::get()->now()->getTimestamp();
 
-        return TOTP::createFromSecret($secret->getSecret())->at($now);
+        $secretValue = $secret->getSecret();
+
+        if ('' === $secretValue) {
+            self::fail('TOTP secret must not be empty');
+        }
+
+        return TOTP::createFromSecret($secretValue)->at(max(0, $now));
     }
 
     private function fixtureUser(): User

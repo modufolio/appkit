@@ -159,6 +159,7 @@ class StrTest extends TestCase
     public function testDate(): void
     {
         $time = mktime(1, 1, 1, 1, 29, 2020);
+        $this->assertNotFalse($time);
 
         // default `date` handler
         $this->assertSame($time, Str::date($time));
@@ -401,6 +402,7 @@ class StrTest extends TestCase
 
         $matches = Str::matchAll($longText, '/"(.*)" and (.*).$/m');
 
+        $this->assertNotNull($matches);
         $this->assertSame(['one', 'two', 'three'], $matches[1]);
         $this->assertSame(['something else to match', 'another thing to match', 'yet another match'], $matches[2]);
         $this->assertNull(Str::matchAll($longText, '/(miao)/'));
@@ -435,17 +437,17 @@ class StrTest extends TestCase
         // choose a high length for a high probability of occurrence of a character of any type
         $length = 200;
 
-        $this->assertMatchesRegularExpression('/^[[:alnum:]]+$/', Str::random());
+        $this->assertMatchesRegularExpression('/^[[:alnum:]]+$/', (string) Str::random());
         $this->assertIsString(Str::random());
-        $this->assertSame($length, strlen(Str::random($length)));
+        $this->assertSame($length, strlen((string) Str::random($length)));
 
-        $this->assertMatchesRegularExpression('/^[[:alpha:]]+$/', Str::random($length, 'alpha'));
+        $this->assertMatchesRegularExpression('/^[[:alpha:]]+$/', (string) Str::random($length, 'alpha'));
 
-        $this->assertMatchesRegularExpression('/^[[:upper:]]+$/', Str::random($length, 'alphaUpper'));
+        $this->assertMatchesRegularExpression('/^[[:upper:]]+$/', (string) Str::random($length, 'alphaUpper'));
 
-        $this->assertMatchesRegularExpression('/^[[:lower:]]+$/', Str::random($length, 'alphaLower'));
+        $this->assertMatchesRegularExpression('/^[[:lower:]]+$/', (string) Str::random($length, 'alphaLower'));
 
-        $this->assertMatchesRegularExpression('/^[[:digit:]]+$/', Str::random($length, 'num'));
+        $this->assertMatchesRegularExpression('/^[[:digit:]]+$/', (string) Str::random($length, 'num'));
 
         $this->assertFalse(Str::random($length, 'something invalid'));
     }
@@ -1031,12 +1033,12 @@ EOT;
         $this->assertSame(implode('', range('a', 'z')), Str::pool('alphaLower', false));
         $this->assertSame(range('A', 'Z'), Str::pool('alphaUpper'));
         $this->assertSame('!@#$%^&*()-_=+', Str::pool('special', false));
-        $this->assertCount(52, Str::pool('alpha'));
-        $this->assertCount(62, Str::pool('alphaNum'));
+        $this->assertCount(52, (array) Str::pool('alpha'));
+        $this->assertCount(62, (array) Str::pool('alphaNum'));
         $this->assertSame([], Str::pool('unknown-pool'));
 
         // array of pools
-        $this->assertCount(36, Str::pool(['alphaLower', 'num']));
+        $this->assertCount(36, (array) Str::pool(['alphaLower', 'num']));
     }
 
     public function testRemove(): void

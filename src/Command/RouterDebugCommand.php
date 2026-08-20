@@ -89,6 +89,9 @@ EOF
         return 0;
     }
 
+    /**
+     * @return list<string>
+     */
     private function findRouteNameContaining(string $name, RouteCollection $routes): array
     {
         $foundRoutesNames = [];
@@ -131,6 +134,9 @@ EOF
     }
 
     /** @return string[] */
+    /**
+     * @return list<string>
+     */
     private function getAvailableFormatOptions(): array
     {
         return ['txt'];

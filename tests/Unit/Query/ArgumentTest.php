@@ -11,7 +11,7 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(Argument::class)]
 class ArgumentTest extends TestCase
 {
-    public function testFactory()
+    public function testFactory(): void
     {
         // strings
         $argument = Argument::factory(" ' 23 '  ");
@@ -60,7 +60,7 @@ class ArgumentTest extends TestCase
         $this->assertSame('foo', $argument->value);
     }
 
-    public function testResolve()
+    public function testResolve(): void
     {
         // strings
         $argument = Argument::factory(" ' 23 '  ")->resolve();
@@ -75,7 +75,7 @@ class ArgumentTest extends TestCase
         $this->assertSame('bar', $argument);
     }
 
-    public function testWithClosure()
+    public function testWithClosure(): void
     {
         $argument = Argument::factory('() => site.children');
         $this->assertInstanceOf(\Closure::class, $argument->value);

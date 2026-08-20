@@ -20,8 +20,12 @@ class Disk implements DiskInterface
     private string $name;
     private string $root;
     private string $url;
+    /** @var array<string, mixed> */
     private array $config;
 
+    /**
+     * @param array<string, mixed> $config
+     */
     public function __construct(
         string $name,
         string $root,
@@ -49,6 +53,9 @@ class Disk implements DiskInterface
         return $this->url;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function config(): array
     {
         return $this->config;

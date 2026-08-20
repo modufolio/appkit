@@ -41,6 +41,9 @@ class RememberMeToken extends AbstractToken
         return [null, $this->firewallName, $this->secret, parent::__serialize()];
     }
 
+    /**
+     * @param array<int|string, mixed> $data
+     */
     public function __unserialize(array $data): void
     {
         // Block gadget-chain "trampolines": a forged payload placing an object

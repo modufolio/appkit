@@ -70,6 +70,8 @@ trait DatabaseTestConfiguration
 
     /**
      * Get default test fixtures.
+     *
+     * @return array<string, mixed>
      */
     protected function getDefaultFixtures(): array
     {
@@ -132,6 +134,8 @@ trait DatabaseTestConfiguration
 
     /**
      * Generate test data dynamically.
+     *
+     * @return list<array<string, mixed>>
      */
     protected function generateTestUsers(int $count): array
     {

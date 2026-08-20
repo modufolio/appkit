@@ -59,6 +59,8 @@ class FlatFileController extends AbstractController
     /**
      * Get the microcontroller closure for this page
      * Looks for a PHP file with controllers alongside the content file.
+     *
+     * @param array<string, mixed> $data
      */
     private function getMicrocontroller(string $contentFile, array $data): \Closure
     {
@@ -102,6 +104,8 @@ class FlatFileController extends AbstractController
 
     /**
      * Parse a Kirby-style flat file using the Txt data handler.
+     *
+     * @return array<string, mixed>
      */
     private function parseContentFile(string $filepath): array
     {

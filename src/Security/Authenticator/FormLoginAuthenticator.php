@@ -41,8 +41,12 @@ class FormLoginAuthenticator extends AbstractAuthenticator
      */
     private const MAX_USERNAME_LENGTH = 4096;
 
+    /** @var array<string, mixed> */
     private array $options;
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function __construct(
         private UserProviderInterface $userProvider,
         private CsrfTokenManagerInterface $csrfTokenManager,
@@ -189,6 +193,8 @@ class FormLoginAuthenticator extends AbstractAuthenticator
     }
 
     /**
+     * @return array{string, string}
+     *
      * @throws AuthenticationException
      */
     private function extractCredentials(ServerRequestInterface $request): array

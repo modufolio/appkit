@@ -27,6 +27,9 @@ class AppContainerAccessTest extends AppTestCase
         $this->assertTrue($this->container->has($serviceId));
     }
 
+    /**
+     * @return list<array<int, mixed>>
+     */
     public static function availableServices(): array
     {
         return [

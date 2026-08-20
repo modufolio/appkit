@@ -32,12 +32,15 @@ class OAuthService implements OAuthServiceInterface
     public function __construct(
         private EntityManagerInterface $entityManager,
         private OAuthAccessTokenRepositoryInterface $tokenRepository,
+        /** @var class-string<OAuthAccessTokenInterface> */
         private string $accessTokenEntityClass,
     ) {
     }
 
     /**
      * Create an access token with optional refresh token.
+     *
+     * @param list<string> $scopes
      */
     public function createAccessToken(
         UserInterface $user,
@@ -188,6 +191,8 @@ class OAuthService implements OAuthServiceInterface
 
     /**
      * Generate a cryptographically secure random token.
+     *
+     * @param int<1, max> $length
      */
     private function generateRandomToken(int $length = 64): string
     {
@@ -196,6 +201,8 @@ class OAuthService implements OAuthServiceInterface
 
     /**
      * Format token response for OAuth 2.1.
+     *
+     * @return array<string, mixed>
      */
     public function formatTokenResponse(#[\SensitiveParameter] OAuthAccessTokenInterface $token): array
     {

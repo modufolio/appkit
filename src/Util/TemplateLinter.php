@@ -33,6 +33,9 @@ final class TemplateLinter
         $this->setConfig();
     }
 
+    /**
+     * @param list<string> $templateFilePaths
+     */
     public function lintFiles(array $templateFilePaths): void
     {
         $phpFiles = [];
@@ -48,6 +51,9 @@ final class TemplateLinter
         $this->lintPhpTemplate($phpFiles);
     }
 
+    /**
+     * @param string|list<string> $templateFilePath
+     */
     public function lintPhpTemplate(string|array $templateFilePath): void
     {
         if (\is_string($templateFilePath)) {

@@ -71,13 +71,25 @@ abstract class Kernel implements AppInterface
 
     // Core
     public string $baseDir;
+    protected ?string $varDir = null;
     public LoaderInterface $routeLoader;
     protected LoggerInterface $logger;
+    /** @var array<string, \Closure> */
     protected array $authenticators = [];
+
+    /** @var array<class-string, array<int|string, mixed>> */
     protected array $controllers = [];
+
+    /** @var array<string, \Closure> */
     protected array $factories = [];
+
+    /** @var array<string, string> */
     protected array $fileMap = [];
+
+    /** @var array<string, object> */
     protected array $instances = [];
+
+    /** @var array<class-string, class-string>|null */
     protected ?array $repositories = null;
 
     // Lazily instantiated dependencies
@@ -91,11 +103,15 @@ abstract class Kernel implements AppInterface
     protected ?SerializerInterface $serializer = null;
     protected ?ValidatorInterface $validator = null;
     protected ParameterBag $parameterBag;
+    /** @var array<class-string, \Closure> */
     protected array $interfaceMap = [];
     private ?ContainerInterface $fallbackContainer = null;
 
     // Security components
+    /** @var array<string, array<string, mixed>> */
     protected array $firewallConfig = [];
+
+    /** @var list<array<string, mixed>>|null */
     public ?array $accessControlRules = null;
     public ?RoleHierarchy $roleHierarchy = null;
     protected bool $denyUnmatchedAccess = false;
@@ -106,6 +122,7 @@ abstract class Kernel implements AppInterface
     public DebugStack $debugStack;
 
     // Router configuration
+    /** @var array<string, mixed> */
     protected array $routerOptions = [];
     protected mixed $routeResource = null;
 
@@ -117,7 +134,7 @@ abstract class Kernel implements AppInterface
         $this->interfaceMap = require $this->fileMap['interfaces'];
 
         $this->setRouterOptions([
-            'cache_dir' => $this->environment()->isProd() ? $this->baseDir.'/var/cache/router' : null,
+            'cache_dir' => $this->environment()->isProd() ? $this->varDir().'/cache/router' : null,
             'debug' => $this->environment()->isDev(),
             'resource_type' => null,
             'strict_requirements' => true,
@@ -190,6 +207,11 @@ abstract class Kernel implements AppInterface
         }
 
         [$class, $method] = $controller;
+
+        if (!is_string($class) || !is_string($method)) {
+            throw new \InvalidArgumentException('One of the routes does not have a valid controller definition. Expected format: [ClassName, methodName].');
+        }
+
         $classObject = $this->getController($class);
 
         if (!method_exists($classObject, $method)) {
@@ -204,7 +226,7 @@ abstract class Kernel implements AppInterface
             ...$parameters,
         ], []);
 
-        return call_user_func_array([$classObject, $method], $arg);
+        return $classObject->{$method}(...array_values($arg));
     }
 
     /**
@@ -232,7 +254,7 @@ abstract class Kernel implements AppInterface
                 ]
             );
 
-            $this->state = new NativeApplicationState($request, $this->baseDir, $this->firewallConfig);
+            $this->state = new NativeApplicationState($request, $this->baseDir, $this->firewallConfig, $this->varDir());
         }
 
         return $this;
@@ -240,27 +262,36 @@ abstract class Kernel implements AppInterface
 
     public function getController(string $id): object
     {
+        if (!class_exists($id)) {
+            throw new \InvalidArgumentException(sprintf('Controller class "%s" does not exist.', $id));
+        }
+
         // Check request-scoped cache first
-        if ($this->state->hasRequestInstance($id)) {
-            return $this->state->getRequestInstance($id);
+        if ($this->state()->hasRequestInstance($id)) {
+            return $this->state()->getRequestInstance($id);
         }
 
         $namedDependencies = $this->getControllerDependencies($id);
 
         if ([] === $namedDependencies) {
             $controller = $this->instantiateController($id);
-            $this->state->setRequestInstance($id, $controller);
+            $this->state()->setRequestInstance($id, $controller);
 
             return $controller;
         }
 
         $resolved = $this->resolveDependencies($namedDependencies);
         $controller = $this->instantiateController($id, $resolved);
-        $this->state->setRequestInstance($id, $controller);
+        $this->state()->setRequestInstance($id, $controller);
 
         return $controller;
     }
 
+    /**
+     * @param class-string $id
+     *
+     * @return array<int|string, mixed>
+     */
     protected function getControllerDependencies(string $id): array
     {
         if (!isset($this->controllers[$id])) {
@@ -272,6 +303,11 @@ abstract class Kernel implements AppInterface
         return $this->controllers[$id];
     }
 
+    /**
+     * @param array<int|string, mixed> $namedDependencies
+     *
+     * @return array<int|string, mixed>
+     */
     protected function resolveDependencies(array $namedDependencies): array
     {
         $resolved = [];
@@ -309,6 +345,9 @@ abstract class Kernel implements AppInterface
         return $dep;
     }
 
+    /**
+     * @param array<int|string, mixed> $resolved
+     */
     protected function instantiateController(string $id, array $resolved = []): object
     {
         $controller = new $id(...$resolved);
@@ -327,6 +366,26 @@ abstract class Kernel implements AppInterface
     public function emitter(): EmitterInterface
     {
         return $this->emitter ??= new Emitter();
+    }
+
+    /**
+     * The writable runtime directory. Defaults to $baseDir/var.
+     */
+    public function varDir(): string
+    {
+        return $this->varDir ??= $this->baseDir.'/var';
+    }
+
+    /**
+     * Point sessions, caches and proxies at a different writable directory.
+     *
+     * Must be called before the first request is handled.
+     */
+    public function setVarDir(string $varDir): static
+    {
+        $this->varDir = rtrim($varDir, '/');
+
+        return $this;
     }
 
     public function environment(): Environment
@@ -348,7 +407,8 @@ abstract class Kernel implements AppInterface
                 $closure = require $this->fileMap['doctrine'];
                 $closure($configurator);
             },
-            debugStack: $this->debugStack
+            debugStack: $this->debugStack,
+            varDir: $this->varDir(),
         );
     }
 
@@ -427,6 +487,8 @@ abstract class Kernel implements AppInterface
     }
 
     /**
+     * @param array<string, true> $resolving
+     *
      * @throws NotFoundException
      * @throws Exception
      */
@@ -509,6 +571,8 @@ abstract class Kernel implements AppInterface
     }
 
     /**
+     * @return array<class-string, class-string>
+     *
      * @throws Exception
      */
     public function repositories(): array
@@ -517,6 +581,8 @@ abstract class Kernel implements AppInterface
     }
 
     /**
+     * @return array<class-string, class-string>
+     *
      * @throws Exception
      */
     protected function getRepositoriesAndEntities(): array
@@ -553,6 +619,9 @@ abstract class Kernel implements AppInterface
     // CONFIGURATION
     // ============================================================================
 
+    /**
+     * @param array<string, mixed> $config
+     */
     public function configureFirewall(array $config): self
     {
         $this->assertValidFirewallConfig($config['firewalls'] ?? []);
@@ -620,6 +689,9 @@ abstract class Kernel implements AppInterface
         );
     }
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function setRouterOptions(array $options): void
     {
         $defaultOptions = [
@@ -647,6 +719,9 @@ abstract class Kernel implements AppInterface
     // UTILITIES
     // ============================================================================
 
+    /**
+     * @return array<string, \Closure>
+     */
     public function authenticators(): array
     {
         return $this->authenticators;
@@ -687,6 +762,9 @@ abstract class Kernel implements AppInterface
         return $this->state->getFirewallNameForRequest($request);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getFirewallConfig(string $firewallName): array
     {
         return $this->firewallConfig[$firewallName] ?? [];
@@ -740,6 +818,9 @@ abstract class Kernel implements AppInterface
         return $this->parameterBag;
     }
 
+    /**
+     * @return array<mixed>|bool|string|int|float|null
+     */
     public function getParameter(string $name): array|bool|string|int|float|null
     {
         return $this->parameterBag->get($name);
@@ -750,6 +831,9 @@ abstract class Kernel implements AppInterface
         return $this->parameterBag->has($name);
     }
 
+    /**
+     * @param array<mixed>|bool|string|int|float|null $value
+     */
     public function setParameter(string $name, array|bool|string|int|float|null $value): void
     {
         $this->parameterBag->set($name, $value);
@@ -757,6 +841,8 @@ abstract class Kernel implements AppInterface
 
     /**
      * Generate URL from route name and parameters.
+     *
+     * @param array<string, mixed> $parameters
      */
     public function generateUrl(string $name, array $parameters = [], int $referenceType = UrlGeneratorInterface::ABSOLUTE_PATH): string
     {
@@ -790,14 +876,28 @@ abstract class Kernel implements AppInterface
         return $this->state;
     }
 
+    /**
+     * Request-scoped state, which only exists once a request is being handled.
+     *
+     * @throws \LogicException when called outside a request
+     */
+    protected function state(): ApplicationStateInterface
+    {
+        if (null === $this->state) {
+            throw new \LogicException('No request-scoped state is available. Call handle() or initializeConsoleState() first.');
+        }
+
+        return $this->state;
+    }
+
     public function request(): ServerRequestInterface
     {
-        return $this->state->getRequest();
+        return $this->state()->getRequest();
     }
 
     public function setRequest(ServerRequestInterface $request): self
     {
-        $this->state->setRequest($request);
+        $this->state()->setRequest($request);
 
         return $this;
     }

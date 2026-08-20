@@ -60,7 +60,7 @@ class DataTest extends TestCase
     }
 
     #[DataProvider('handlerProvider')]
-    public function testEncodeDecode($handler): void
+    public function testEncodeDecode(string $handler): void
     {
         $data = [
             'name' => 'Homer Simpson',
@@ -74,7 +74,7 @@ class DataTest extends TestCase
     }
 
     #[DataProvider('handlerProvider')]
-    public function testDecodeInvalid1($handler): void
+    public function testDecodeInvalid1(string $handler): void
     {
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('Invalid '.strtoupper($handler).' data; please pass a string');
@@ -82,7 +82,7 @@ class DataTest extends TestCase
     }
 
     #[DataProvider('handlerProvider')]
-    public function testDecodeInvalid2($handler): void
+    public function testDecodeInvalid2(string $handler): void
     {
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('Invalid '.strtoupper($handler).' data; please pass a string');
@@ -90,13 +90,16 @@ class DataTest extends TestCase
     }
 
     #[DataProvider('handlerProvider')]
-    public function testDecodeInvalid3($handler): void
+    public function testDecodeInvalid3(string $handler): void
     {
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('Invalid '.strtoupper($handler).' data; please pass a string');
         Data::decode(true, $handler);
     }
 
+    /**
+     * @return list<array<int, mixed>>
+     */
     public static function handlerProvider(): array
     {
         $handlers = array_filter(
@@ -104,7 +107,7 @@ class DataTest extends TestCase
             static fn ($handler) => 'php' !== $handler
         );
 
-        return array_map(static fn ($handler) => [$handler], $handlers);
+        return array_values(array_map(static fn ($handler) => [$handler], $handlers));
     }
 
     public function testReadWrite(): void

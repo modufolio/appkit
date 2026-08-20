@@ -20,6 +20,7 @@ use Psr\Http\Message\ServerRequestInterface;
 
 class RememberMeAuthenticator extends AbstractAuthenticator
 {
+    /** @var array<string, mixed> */
     private array $options;
 
     /**
@@ -30,6 +31,9 @@ class RememberMeAuthenticator extends AbstractAuthenticator
      */
     private ?string $pendingCookieHeader = null;
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function __construct(
         private UserProviderInterface $userProvider,
         array $options = [],
@@ -102,7 +106,7 @@ class RememberMeAuthenticator extends AbstractAuthenticator
         }
 
         if (null !== $this->tokenProvider) {
-            return $this->authenticatePersistent($cookieData);
+            return $this->authenticatePersistent($cookieData, $this->tokenProvider);
         }
 
         $parts = explode(':', $cookieData, 3);
@@ -141,7 +145,7 @@ class RememberMeAuthenticator extends AbstractAuthenticator
      *
      * @throws AuthenticationException
      */
-    private function authenticatePersistent(string $cookieData): UserInterface
+    private function authenticatePersistent(string $cookieData, RememberMeTokenProviderInterface $tokenProvider): UserInterface
     {
         $parts = explode(':', $cookieData, 2);
         if (2 !== count($parts) || '' === $parts[0] || '' === $parts[1]) {
@@ -150,20 +154,20 @@ class RememberMeAuthenticator extends AbstractAuthenticator
 
         [$series, $value] = $parts;
 
-        $token = $this->tokenProvider->loadTokenBySeries($series);
+        $token = $tokenProvider->loadTokenBySeries($series);
         if (null === $token) {
             throw new AuthenticationException('Remember me token not found.');
         }
 
         if (!hash_equals($token->tokenValue, $this->hashValue($value))) {
             // Theft: known series, wrong value. Revoke everything for this user.
-            $this->tokenProvider->deleteTokensByUserIdentifier($token->userIdentifier);
+            $tokenProvider->deleteTokensByUserIdentifier($token->userIdentifier);
 
             throw new CookieTheftException('Remember me cookie theft detected.');
         }
 
         if ($token->lastUsed + (int) $this->options['cookie_lifetime'] < time()) {
-            $this->tokenProvider->deleteTokenBySeries($series);
+            $tokenProvider->deleteTokenBySeries($series);
 
             throw new AuthenticationException('Remember me cookie has expired.');
         }
@@ -171,14 +175,14 @@ class RememberMeAuthenticator extends AbstractAuthenticator
         try {
             $user = $this->userProvider->loadUserByIdentifier($token->userIdentifier);
         } catch (UserNotFoundException $e) {
-            $this->tokenProvider->deleteTokenBySeries($series);
+            $tokenProvider->deleteTokenBySeries($series);
 
             throw new AuthenticationException('User not found for remember me cookie.', 0, $e);
         }
 
         // Rotate the value on every use so a replayed copy is detectable.
         $newValue = $this->randomValue();
-        $this->tokenProvider->updateExistingToken($series, $this->hashValue($newValue), time());
+        $tokenProvider->updateExistingToken($series, $this->hashValue($newValue), time());
         $this->pendingCookieHeader = $this->buildSetCookieHeader($this->encodeCookie($series, $newValue));
 
         return $user;
@@ -252,6 +256,9 @@ class RememberMeAuthenticator extends AbstractAuthenticator
         return base64_encode($series.':'.$value);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getCookieOptions(): array
     {
         return [

@@ -9,5 +9,10 @@ namespace Modufolio\Appkit\Image;
  */
 interface DarkroomInterface
 {
+    /**
+     * @param array<string, mixed> $options
+     *
+     * @return array<string, mixed>
+     */
     public function process(string $file, array $options = []): array;
 }

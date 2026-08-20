@@ -16,9 +16,16 @@ namespace Modufolio\Appkit\Template;
  */
 class View
 {
+    /** @var list<string> */
     protected array $viewPaths = [];
+
+    /** @var array<string, mixed> */
     protected array $data = [];
 
+    /**
+     * @param list<string>         $viewPaths
+     * @param array<string, mixed> $data
+     */
     public function __construct(array $viewPaths = [], array $data = [])
     {
         $this->viewPaths = $viewPaths;
@@ -80,6 +87,8 @@ class View
     /**
      * Render a view (snippet).
      *
+     * @param array<string, mixed> $data
+     *
      * @throws \Throwable
      */
     public function render(string $name, array $data = []): ?string
@@ -92,6 +101,8 @@ class View
         extract($mergedData, EXTR_SKIP);
         include $file;
 
-        return ob_get_clean();
+        $output = ob_get_clean();
+
+        return false === $output ? '' : $output;
     }
 }

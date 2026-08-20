@@ -16,7 +16,7 @@ class ArrayRouteLoader extends Loader
         parent::__construct();
     }
 
-    public function load($resource, $type = null): RouteCollection
+    public function load(mixed $resource, ?string $type = null): RouteCollection
     {
         // Locate the file using FileLocator
         $filePath = $this->fileLocator->locate($resource);
@@ -45,7 +45,7 @@ class ArrayRouteLoader extends Loader
         return $routes;
     }
 
-    public function supports($resource, $type = null): bool
+    public function supports(mixed $resource, ?string $type = null): bool
     {
         return 'array' === $type;
     }

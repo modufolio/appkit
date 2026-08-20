@@ -6,6 +6,12 @@ namespace Modufolio\Appkit\Resolver;
 
 class TypeHintResolver implements ParameterResolverInterface
 {
+    /**
+     * @param array<string, mixed> $providedParameters
+     * @param array<string, mixed> $resolvedParameters
+     *
+     * @return array<string, mixed>
+     */
     public function getParameters(
         \Reflector $reflection,
         array $providedParameters,
@@ -35,7 +41,13 @@ class TypeHintResolver implements ParameterResolverInterface
 
             $parameterClass = $parameterType->getName();
             if ('self' === $parameterClass) {
-                $parameterClass = $parameter->getDeclaringClass()->getName();
+                $declaringClass = $parameter->getDeclaringClass();
+
+                if (null === $declaringClass) {
+                    continue;
+                }
+
+                $parameterClass = $declaringClass->getName();
             }
 
             if (array_key_exists($parameterClass, $providedParameters)) {

@@ -158,7 +158,7 @@ class TwoFactorController
 
         return Response::json([
             'csrf_token' => $csrfToken->getValue(),
-            'email' => $token->getUser()->getUserIdentifier(),
+            'email' => $token->getUser()?->getUserIdentifier(),
         ]);
     }
 
@@ -189,6 +189,7 @@ class TwoFactorController
         }
 
         $parsedBody = $request->getParsedBody();
+        $parsedBody = is_array($parsedBody) ? $parsedBody : [];
         $csrfToken = $parsedBody['_csrf_token'] ?? null;
 
         if (!$this->csrfTokenManager->validateToken('2fa_verify', $csrfToken)) {

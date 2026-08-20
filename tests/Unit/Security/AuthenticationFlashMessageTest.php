@@ -38,7 +38,7 @@ class AuthenticationFlashMessageTest extends AppTestCase
     /** @return list<string> */
     private function errorFlashes(): array
     {
-        return $this->app()->session()->getFlashBag()->peek('error');
+        return array_values($this->app()->session()->getFlashBag()->peek('error'));
     }
 
     private function attemptLogin(string $email, string $password, ?string $csrf = null): void

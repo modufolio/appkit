@@ -23,6 +23,10 @@ class GdLib extends Darkroom
 {
     /**
      * Processes the image with the SimpleImage library.
+     *
+     * @param array<string, mixed> $options
+     *
+     * @return array<string, mixed>
      */
     public function process(string $file, array $options = []): array
     {
@@ -46,6 +50,8 @@ class GdLib extends Darkroom
     /**
      * Activates the autoOrient option in SimpleImage
      * unless this is deactivated.
+     *
+     * @param array<string, mixed> $options
      */
     protected function autoOrient(SimpleImage $image, array $options): SimpleImage
     {
@@ -58,6 +64,8 @@ class GdLib extends Darkroom
 
     /**
      * Wrapper around SimpleImage's resize and crop methods.
+     *
+     * @param array<string, mixed> $options
      */
     protected function resize(SimpleImage $image, array $options): SimpleImage
     {
@@ -98,6 +106,8 @@ class GdLib extends Darkroom
 
     /**
      * Applies the correct blur settings for SimpleImage.
+     *
+     * @param array<string, mixed> $options
      */
     protected function blur(SimpleImage $image, array $options): SimpleImage
     {
@@ -110,6 +120,8 @@ class GdLib extends Darkroom
 
     /**
      * Applies grayscale conversion if activated in the options.
+     *
+     * @param array<string, mixed> $options
      */
     protected function grayscale(SimpleImage $image, array $options): SimpleImage
     {
@@ -122,6 +134,8 @@ class GdLib extends Darkroom
 
     /**
      * Applies sharpening if activated in the options.
+     *
+     * @param array<string, mixed> $options
      */
     protected function sharpen(SimpleImage $image, array $options): SimpleImage
     {
@@ -134,6 +148,8 @@ class GdLib extends Darkroom
 
     /**
      * Returns mime type based on `format` option.
+     *
+     * @param array<string, mixed> $options
      */
     protected function mime(array $options): ?string
     {

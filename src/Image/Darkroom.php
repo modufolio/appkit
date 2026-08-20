@@ -11,6 +11,9 @@ namespace Modufolio\Appkit\Image;
  */
 abstract class Darkroom implements DarkroomInterface
 {
+    /**
+     * @param array<string, mixed> $settings
+     */
     public function __construct(
         protected array $settings = [],
     ) {
@@ -19,6 +22,8 @@ abstract class Darkroom implements DarkroomInterface
 
     /**
      * Returns the default thumb settings.
+     *
+     * @return array<string, mixed>
      */
     protected function defaults(): array
     {
@@ -39,6 +44,10 @@ abstract class Darkroom implements DarkroomInterface
 
     /**
      * Normalizes all thumb options.
+     *
+     * @param array<string, mixed> $options
+     *
+     * @return array<string, mixed>
      */
     protected function options(array $options = []): array
     {
@@ -80,6 +89,10 @@ abstract class Darkroom implements DarkroomInterface
      * Calculates the dimensions of the final thumb based
      * on the given options and returns a full array with
      * all the final options to be used for the image generator.
+     *
+     * @param array<string, mixed> $options
+     *
+     * @return array<string, mixed>
      */
     public function preprocess(string $file, array $options = []): array
     {
@@ -108,5 +121,10 @@ abstract class Darkroom implements DarkroomInterface
         return $options;
     }
 
+    /**
+     * @param array<string, mixed> $options
+     *
+     * @return array<string, mixed>
+     */
     abstract public function process(string $file, array $options = []): array;
 }

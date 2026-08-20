@@ -55,7 +55,7 @@ final class MakeEntity extends AbstractMaker
             ->addArgument('name', InputArgument::OPTIONAL, \sprintf('Class name of the entity to create or update (e.g. <fg=yellow>%s</>)', Str::asClassName(Str::getRandomTerm())))
             ->addOption('regenerate', null, InputOption::VALUE_NONE, 'Instead of adding new fields, simply generate the methods (e.g. getter/setter) for existing fields')
             ->addOption('overwrite', null, InputOption::VALUE_NONE, 'Overwrite any existing getter/setter methods')
-            ->setHelp(file_get_contents(__DIR__.'/../Resources/help/MakeEntity.txt'))
+            ->setHelp(file_get_contents(__DIR__.'/../Resources/help/MakeEntity.txt') ?: '')
         ;
 
         $inputConfig->setArgumentAsNonInteractive('name');
@@ -133,12 +133,18 @@ final class MakeEntity extends AbstractMaker
             ]);
         }
 
-        $currentFields = $this->getPropertyNames($entityClassDetails->getFullName());
+        $entityFullName = $entityClassDetails->getFullName();
+
+        if (!class_exists($entityFullName)) {
+            throw new \RuntimeException(\sprintf('Entity class "%s" could not be loaded.', $entityFullName));
+        }
+
+        $currentFields = $this->getPropertyNames($entityFullName);
         $manipulator = $this->createClassManipulator($entityPath, $io, $overwrite);
 
         $isFirstField = true;
         while (true) {
-            $newField = $this->askForNextField($io, $currentFields, $entityClassDetails->getFullName(), $isFirstField);
+            $newField = $this->askForNextField($io, $currentFields, $entityFullName, $isFirstField);
             $isFirstField = false;
 
             if (null === $newField) {
@@ -166,10 +172,10 @@ final class MakeEntity extends AbstractMaker
                     case EntityRelation::MANY_TO_ONE:
                         if ($newField->getOwningClass() === $entityClassDetails->getFullName()) {
                             // THIS class will receive the ManyToOne
-                            $manipulator->addManyToOneRelation($newField->getOwningRelation());
+                            $manipulator->addManyToOneRelation($newField->getOwningManyToOne());
 
                             if ($newField->getMapInverseRelation()) {
-                                $otherManipulator->addOneToManyRelation($newField->getInverseRelation());
+                                $otherManipulator->addOneToManyRelation($newField->getInverseOneToMany());
                             }
                         } else {
                             // the new field being added to THIS entity is the inverse
@@ -178,25 +184,25 @@ final class MakeEntity extends AbstractMaker
                             $otherManipulator = $this->createClassManipulator($otherManipulatorFilename, $io, $overwrite);
 
                             // The *other* class will receive the ManyToOne
-                            $otherManipulator->addManyToOneRelation($newField->getOwningRelation());
+                            $otherManipulator->addManyToOneRelation($newField->getOwningManyToOne());
                             if (!$newField->getMapInverseRelation()) {
                                 throw new \Exception('Somehow a OneToMany relationship is being created, but the inverse side will not be mapped?');
                             }
-                            $manipulator->addOneToManyRelation($newField->getInverseRelation());
+                            $manipulator->addOneToManyRelation($newField->getInverseOneToMany());
                         }
 
                         break;
                     case EntityRelation::MANY_TO_MANY:
-                        $manipulator->addManyToManyRelation($newField->getOwningRelation());
+                        $manipulator->addManyToManyRelation($newField->getOwningManyToMany());
                         if ($newField->getMapInverseRelation()) {
-                            $otherManipulator->addManyToManyRelation($newField->getInverseRelation());
+                            $otherManipulator->addManyToManyRelation($newField->getInverseManyToMany());
                         }
 
                         break;
                     case EntityRelation::ONE_TO_ONE:
-                        $manipulator->addOneToOneRelation($newField->getOwningRelation());
+                        $manipulator->addOneToOneRelation($newField->getOwningOneToOne());
                         if ($newField->getMapInverseRelation()) {
-                            $otherManipulator->addOneToOneRelation($newField->getInverseRelation());
+                            $otherManipulator->addOneToOneRelation($newField->getInverseOneToOne());
                         }
 
                         break;
@@ -229,7 +235,10 @@ final class MakeEntity extends AbstractMaker
         ]);
     }
 
-    /** @param string[] $fields */
+    /**
+     * @param string[]     $fields
+     * @param class-string $entityClass
+     */
     private function askForNextField(ConsoleStyle $io, array $fields, string $entityClass, bool $isFirstField): EntityRelation|ClassProperty|null
     {
         $io->writeln('');
@@ -450,6 +459,9 @@ final class MakeEntity extends AbstractMaker
         return $question;
     }
 
+    /**
+     * @param class-string $generatedEntityClass
+     */
     private function askRelationDetails(ConsoleStyle $io, string $generatedEntityClass, string $type, string $newFieldName): EntityRelation
     {
         // ask the targetEntity
@@ -463,8 +475,10 @@ final class MakeEntity extends AbstractMaker
             // in the Entity namespace versus just checking the full class
             // name to avoid issues with classes like "Directory" that exist
             // in PHP's core.
-            if (class_exists($this->getEntityNamespace().'\\'.$answeredEntityClass)) {
-                $targetEntityClass = $this->getEntityNamespace().'\\'.$answeredEntityClass;
+            $namespacedEntityClass = $this->getEntityNamespace().'\\'.$answeredEntityClass;
+
+            if (class_exists($namespacedEntityClass)) {
+                $targetEntityClass = $namespacedEntityClass;
             } elseif (class_exists($answeredEntityClass)) {
                 $targetEntityClass = $answeredEntityClass;
             } else {
@@ -752,6 +766,10 @@ final class MakeEntity extends AbstractMaker
 
     private function getPathOfClass(string $class): string
     {
+        if (!class_exists($class)) {
+            throw new \InvalidArgumentException(\sprintf('Class "%s" does not exist.', $class));
+        }
+
         return (new ClassDetails($class))->getPath();
     }
 

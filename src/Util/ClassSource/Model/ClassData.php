@@ -25,6 +25,9 @@ final class ClassData
     ) {
     }
 
+    /**
+     * @param array<string|int, string> $useStatements
+     */
     public static function create(string $class, ?string $suffix = null, ?string $extendsClass = null, bool $isEntity = false, array $useStatements = []): self
     {
         $className = Str::getShortClassName($class);
@@ -97,6 +100,9 @@ final class ClassData
         return $this;
     }
 
+    /**
+     * @param array<string|int, string>|string $useStatement
+     */
     public function addUseStatement(array|string $useStatement): self
     {
         $this->useStatementGenerator->addUseStatement($useStatement);

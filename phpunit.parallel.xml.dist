@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/11.5/phpunit.xsd"
+         stopOnFailure="false"
+         bootstrap="bootstrap.php"
+         colors="true"
+         stderr="true"
+         displayDetailsOnPhpunitDeprecations="true"
+         displayDetailsOnTestsThatTriggerWarnings="true"
+         displayDetailsOnSkippedTests="true"
+         cacheDirectory=".phpunit.cache.par"
+>
+
+  <testsuites>
+    <testsuite name="Classes">
+      <directory>./tests</directory>
+    </testsuite>
+  </testsuites>
+  <php>
+    <ini name="memory_limit" value="2048M"/>
+    <ini name="opcache.enable" value="0"/>
+    <server name="APP_ENV" value="test" force="true"/>
+  </php>
+  <source>
+    <include>
+      <directory>./src</directory>
+    </include>
+  </source>
+</phpunit>

@@ -21,10 +21,17 @@ class FileManager
         private Filesystem $fs,
         private AutoloaderUtil $autoloaderUtil,
         private MakerFileLinkFormatter $makerFileLinkFormatter,
+        /** @var non-empty-string */
         private string $rootDirectory,
         private ?string $twigDefaultPath = null,
     ) {
-        $this->rootDirectory = rtrim($this->realPath($this->normalizeSlashes($rootDirectory)), '/');
+        $root = rtrim($this->realPath($this->normalizeSlashes($rootDirectory)), '/');
+
+        if ('' === $root) {
+            throw new \InvalidArgumentException('The root directory must not resolve to an empty path.');
+        }
+
+        $this->rootDirectory = $root;
         $this->twigDefaultPath = $twigDefaultPath ? rtrim($this->relativizePath($twigDefaultPath), '/') : null;
     }
 
@@ -33,13 +40,18 @@ class FileManager
         $this->io = $io;
     }
 
+    /**
+     * @param array<string, mixed> $parameters
+     */
     public function parseTemplate(string $templatePath, array $parameters): string
     {
         ob_start();
         extract($parameters, \EXTR_SKIP);
         include $templatePath;
 
-        return ob_get_clean();
+        $output = ob_get_clean();
+
+        return false === $output ? '' : $output;
     }
 
     public function dumpFile(string $filename, string $content): void
@@ -63,7 +75,7 @@ class FileManager
         ));
     }
 
-    public function fileExists($path): bool
+    public function fileExists(string $path): bool
     {
         return file_exists($this->absolutizePath($path));
     }
@@ -99,7 +111,13 @@ class FileManager
             throw new \InvalidArgumentException(\sprintf('Cannot find file "%s"', $path));
         }
 
-        return file_get_contents($this->absolutizePath($path));
+        $contents = file_get_contents($this->absolutizePath($path));
+
+        if (false === $contents) {
+            throw new \RuntimeException(\sprintf('Cannot read file "%s"', $path));
+        }
+
+        return $contents;
     }
 
     public function isPathInVendor(string $path): bool
@@ -110,7 +128,7 @@ class FileManager
         );
     }
 
-    public function absolutizePath($path): string
+    public function absolutizePath(string $path): string
     {
         if (str_starts_with($path, '/')) {
             return $path;

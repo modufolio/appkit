@@ -19,6 +19,9 @@ class Camera implements \Stringable
     protected ?string $make;
     protected ?string $model;
 
+    /**
+     * @param array<string, mixed> $exif
+     */
     public function __construct(array $exif)
     {
         $this->make = $exif['Make'] ?? null;
@@ -43,6 +46,8 @@ class Camera implements \Stringable
 
     /**
      * Converts the object into a nicely readable array.
+     *
+     * @return array<string, mixed>
      */
     public function toArray(): array
     {

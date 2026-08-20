@@ -23,6 +23,9 @@ class PublicAccessTest extends AppTestCase
         $this->loadFixtures();
     }
 
+    /**
+     * @param list<string> $publicMethods
+     */
     private function configureSecurity(?array $publicMethods = null): void
     {
         $security = new SecurityConfigurator();

@@ -44,6 +44,9 @@ class MapQueryParameterController
     {
     }
 
+    /**
+     * @param array<string, mixed> $tags
+     */
     public function array(#[MapQueryParameter] array $tags): void
     {
     }
@@ -60,6 +63,9 @@ class MapQueryParameterController
 #[CoversClass(MapQueryParameterResolver::class)]
 class MapQueryParameterResolverTest extends TestCase
 {
+    /**
+     * @param array<string, mixed> $query
+     */
     private function resolveArgument(string $method, array $query): mixed
     {
         $request = (new ServerRequest(method: 'GET', uri: new Uri('/?'.http_build_query($query))))

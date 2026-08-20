@@ -50,7 +50,7 @@ class PhpCompatUtilTest extends TestCase
         self::assertSame(\PHP_VERSION, $result);
     }
 
-    private function mockFileManager(string $json): MockObject|FileManager
+    private function mockFileManager(string $json): FileManager
     {
         $mockFileManager = $this->createMock(FileManager::class);
         $mockFileManager

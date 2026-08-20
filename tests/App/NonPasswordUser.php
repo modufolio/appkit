@@ -13,6 +13,9 @@ use Modufolio\Appkit\Security\User\UserInterface;
  */
 class NonPasswordUser implements UserInterface
 {
+    /**
+     * @param list<string> $roles
+     */
     public function __construct(
         private string $identifier,
         private array $roles = ['ROLE_USER'],

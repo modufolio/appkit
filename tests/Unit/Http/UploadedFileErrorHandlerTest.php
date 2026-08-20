@@ -287,6 +287,7 @@ class UploadedFileErrorHandlerTest extends TestCase
             $handler->saveTo($tmpDir);
 
             $savedPath = $handler->getStoredFilePath();
+            $this->assertNotNull($savedPath);
             $this->assertFileExists($savedPath);
             $this->assertEquals('test content', file_get_contents($savedPath));
         } finally {
@@ -311,6 +312,7 @@ class UploadedFileErrorHandlerTest extends TestCase
             $handler->saveTo($tmpDir, 'custom.txt');
 
             $savedPath = $handler->getStoredFilePath();
+            $this->assertNotNull($savedPath);
             $this->assertStringEndsWith('custom.txt', $savedPath);
             $this->assertFileExists($savedPath);
         } finally {
@@ -431,6 +433,7 @@ class UploadedFileErrorHandlerTest extends TestCase
             $handler->saveTo($tmpDir, 'saved.txt');
 
             $path = $handler->getStoredFilePath();
+            $this->assertNotNull($path);
             $this->assertStringContainsString('saved.txt', $path);
         } finally {
             // Cleanup

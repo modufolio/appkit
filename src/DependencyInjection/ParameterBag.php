@@ -6,12 +6,18 @@ namespace Modufolio\Appkit\DependencyInjection;
 
 class ParameterBag
 {
+    /** @var array<string, mixed> */
     private array $parameters = [];
+
+    /** @var array<string, mixed> */
     private array $resolved = [];
 
     /** @var array<string, true> parameter keys currently being resolved, for cycle detection */
     private array $resolving = [];
 
+    /**
+     * @param array<string, mixed> $parameters
+     */
     public function __construct(array $parameters = [])
     {
         $this->add($parameters);
@@ -23,6 +29,9 @@ class ParameterBag
         $this->resolved = [];
     }
 
+    /**
+     * @param array<string, mixed> $parameters
+     */
     public function add(array $parameters): void
     {
         foreach ($parameters as $key => $value) {
@@ -30,6 +39,9 @@ class ParameterBag
         }
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function all(): array
     {
         return $this->parameters;

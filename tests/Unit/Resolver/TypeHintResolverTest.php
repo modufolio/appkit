@@ -119,6 +119,9 @@ class TypeHintResolverTest extends TestCase
     {
         // Arrange
         $testClass = new class {
+            /**
+             * @param mixed $param
+             */
             public function method($param): void
             {
             }
@@ -133,9 +136,4 @@ class TypeHintResolverTest extends TestCase
         // Assert
         $this->assertEmpty($result);
     }
-}
-
-// Helper class for testing
-class TestDependency
-{
 }

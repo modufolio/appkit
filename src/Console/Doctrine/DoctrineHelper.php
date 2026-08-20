@@ -8,6 +8,7 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Mapping\ClassMetadata as OrmClassMetadata;
 use Doctrine\Persistence\Mapping\ClassMetadata;
 use Modufolio\Appkit\Util\ClassNameDetails;
 use Symfony\Component\Uid\Ulid;
@@ -32,13 +33,16 @@ final class DoctrineHelper
         return $this->entityNamespace;
     }
 
+    /**
+     * @return list<string>
+     */
     public function getEntitiesForAutocomplete(): array
     {
         $entities = [];
 
         $allMetadata = $this->getMetadata();
 
-        foreach (array_keys($allMetadata) as $classname) {
+        foreach (array_keys(is_array($allMetadata) ? $allMetadata : []) as $classname) {
             $entityClassDetails = new ClassNameDetails($classname, $this->entityNamespace);
             $entities[] = $entityClassDetails->getRelativeName();
         }
@@ -48,6 +52,9 @@ final class DoctrineHelper
         return $entities;
     }
 
+    /**
+     * @return array<class-string, OrmClassMetadata<object>>|OrmClassMetadata<object>
+     */
     public function getMetadata(?string $classOrNamespace = null): array|ClassMetadata
     {
         $metadata = [];
@@ -66,6 +73,9 @@ final class DoctrineHelper
         return $metadata;
     }
 
+    /**
+     * @param class-string $className
+     */
     public function getPotentialTableName(string $className): string
     {
         $namingStrategy = $this->entityManager->getConfiguration()->getNamingStrategy();

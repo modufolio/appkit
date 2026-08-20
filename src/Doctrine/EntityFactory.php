@@ -13,8 +13,12 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 final class EntityFactory
 {
+    /** @var array<class-string, array<string, mixed>> */
     private array $config = [];
 
+    /**
+     * @param array<string, mixed> $resolverArgs
+     */
     public function __construct(
         private EntityManagerInterface $entityManager,
         private DenormalizerInterface $serializer,
@@ -24,6 +28,9 @@ final class EntityFactory
         $this->resolverArgs['faker'] = Factory::create();
     }
 
+    /**
+     * @param array<class-string, array<string, mixed>> $config
+     */
     public function loadConfig(array $config): self
     {
         $this->config = $config;
@@ -31,6 +38,10 @@ final class EntityFactory
         return $this;
     }
 
+    /**
+     * @param class-string         $className
+     * @param array<string, mixed> $attributes
+     */
     public function create(string $className, array $attributes = []): self
     {
         if (!$this->has($className)) {
@@ -51,6 +62,12 @@ final class EntityFactory
         return $this;
     }
 
+    /**
+     * @param class-string         $className
+     * @param array<string, mixed> $data
+     *
+     * @return array<string, mixed>
+     */
     private function resolveRelations(string $className, array $data): array
     {
         $metadata = $this->entityManager->getClassMetadata($className);
@@ -68,6 +85,10 @@ final class EntityFactory
         return $data;
     }
 
+    /**
+     * @param class-string                                     $className
+     * @param array<string, mixed>|callable(int): array<string, mixed> $attributes
+     */
     public function createMany(string $className, int $count, array|callable $attributes = []): self
     {
         for ($i = 0; $i < $count; ++$i) {
@@ -90,6 +111,11 @@ final class EntityFactory
         return $this;
     }
 
+    /**
+     * @param class-string $className
+     *
+     * @return array<string, mixed>
+     */
     private function resolveDefaults(string $className): array
     {
         $config = $this->config[$className] ?? [];
@@ -98,6 +124,9 @@ final class EntityFactory
         return A::apply($fields, ...$this->getResolverArgs());
     }
 
+    /**
+     * @return list<mixed>
+     */
     private function getResolverArgs(): array
     {
         return array_values($this->resolverArgs);
@@ -112,6 +141,9 @@ final class EntityFactory
         }
     }
 
+    /**
+     * @param array<string, mixed> $args
+     */
     public function withResolverArgs(array $args): self
     {
         $this->resolverArgs = array_merge($this->resolverArgs, $args);

@@ -86,11 +86,17 @@ trait AppSecurity
             if (null === $token) {
                 return $this->logout($firewallName);
             }
+            $user = $token->getUser();
+
+            if (null === $user) {
+                return $this->logout($firewallName);
+            }
+
             try {
                 $userChecker = $this->get(UserCheckerInterface::class);
                 assert($userChecker instanceof UserCheckerInterface);
-                $userChecker->checkPreAuth($token->getUser());
-                $userChecker->checkPostAuth($token->getUser());
+                $userChecker->checkPreAuth($user);
+                $userChecker->checkPostAuth($user);
             } catch (AuthenticationException) {
                 return $this->logout($firewallName);
             }
@@ -306,6 +312,8 @@ trait AppSecurity
      * Logout MUST be POST to be safe from cross-site request forgery
      * (e.g. <img src="/logout"> or third-party links would otherwise log
      * the user out without their consent).
+     * @param array<string, mixed> $config
+     *
      */
     private function isLogoutRequest(ServerRequestInterface $request, array $config): bool
     {
@@ -331,6 +339,8 @@ trait AppSecurity
      *
      * Both prove the same thing: same-origin JavaScript or markup with
      * access to the user's session minted the request.
+     *
+     * @param array<string, mixed> $config
      *
      * @throws AuthenticationException when no valid token is presented
      */
@@ -389,6 +399,8 @@ trait AppSecurity
      *           ? $tokens->validateToken('contact_form', $body['contact']['_token'])
      *           : null;
      *   },
+     *
+     * @param array<string, mixed> $config
      *
      * @return ResponseInterface|null a 403 response when the token is missing or
      *                                invalid, or null when the request may proceed
@@ -520,6 +532,8 @@ trait AppSecurity
 
     /**
      * Check if the current request is for an entry point page (login, 2FA).
+     * @param array<string, mixed> $config
+     *
      */
     private function isEntryPointPage(ServerRequestInterface $request, array $config): bool
     {
@@ -570,6 +584,9 @@ trait AppSecurity
      *
      * See docs/security.md § "Authentication failure behaviour".
      *
+     * @param array<string, mixed> $config
+     * @param list<string> $reissueCookies Set-Cookie headers re-issuing rotated
+     *                                    remember-me cookies
      * @param list<string> $staleCookies Filled with Set-Cookie headers that
      *                                   expire remember-me cookies invalidated
      *                                   by this attempt; the caller attaches
@@ -664,6 +681,8 @@ trait AppSecurity
 
     /**
      * Handle redirect to entry point (login page) when authentication fails.
+     * @param array<string, mixed> $config
+     *
      */
     private function handleEntryPointRedirect(array $config, bool $stateless): ResponseInterface
     {
@@ -709,6 +728,8 @@ trait AppSecurity
      * interactive login opted in via the configured parameter (default
      * `_remember_me`). A no-op when the firewall has no remember-me authenticator
      * or the opt-in parameter is absent, so ordinary logins are unaffected.
+     * @param array<string, mixed> $config
+     *
      */
     private function issueRememberMeCookie(
         ServerRequestInterface $request,
@@ -755,6 +776,8 @@ trait AppSecurity
     /**
      * Instantiate the firewall's configured remember-me authenticators.
      *
+     * @param array<string, mixed> $config
+     *
      * @return list<RememberMeAuthenticator>
      */
     private function rememberMeAuthenticators(array $config): array
@@ -800,6 +823,8 @@ trait AppSecurity
 
     /**
      * Enforces access control based on #[IsGranted] roles in route defaults.
+     *
+     * @param array<string, mixed> $parameters
      *
      * @see AccessDecisionEngine::enforceRoleGroups()
      *

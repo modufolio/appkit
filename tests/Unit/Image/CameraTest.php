@@ -11,6 +11,9 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(Camera::class)]
 class CameraTest extends TestCase
 {
+    /**
+     * @return array<string, mixed>
+     */
     protected function _exif(): array
     {
         return [

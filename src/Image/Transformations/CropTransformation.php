@@ -60,6 +60,9 @@ class CropTransformation implements Transformation
         return 'crop';
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function config(): array
     {
         return [

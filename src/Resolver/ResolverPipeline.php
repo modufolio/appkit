@@ -6,6 +6,7 @@ namespace Modufolio\Appkit\Resolver;
 
 class ResolverPipeline implements ParameterResolverInterface
 {
+    /** @var list<ParameterResolverInterface> */
     private array $resolvers = [];
 
     public function addResolver(ParameterResolverInterface $resolver): self
@@ -15,6 +16,12 @@ class ResolverPipeline implements ParameterResolverInterface
         return $this;
     }
 
+    /**
+     * @param array<string, mixed> $providedParameters
+     * @param array<string, mixed> $resolvedParameters
+     *
+     * @return array<string, mixed>
+     */
     public function getParameters(
         \ReflectionFunctionAbstract $reflection,
         array $providedParameters,

@@ -290,7 +290,7 @@ class FTest extends TestCase
         F::write($file, 'test');
 
         $this->assertSame(filemtime($file), F::modified($file));
-        $this->assertSame(date('Y', filemtime($file)), F::modified($file, 'Y'));
+        $this->assertSame(date('Y', filemtime($file) ?: null), F::modified($file, 'Y'));
         $this->assertFalse(F::modified($this->tmp.'/does-not-exist.txt'));
     }
 

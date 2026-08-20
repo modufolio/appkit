@@ -18,7 +18,7 @@ use Modufolio\Appkit\Toolkit\Str;
  * @copyright Bastian Allgeier
  * @license   https://opensource.org/licenses/MIT
  */
-final class Argument
+final class Argument implements Resolvable
 {
     public function __construct(
         public mixed $value,
@@ -104,6 +104,8 @@ final class Argument
     /**
      * Return the argument value and
      * resolves nested objects to scaler types.
+     *
+     * @param array<string, mixed>|object $data
      */
     public function resolve(array|object $data = []): mixed
     {
@@ -116,7 +118,7 @@ final class Argument
             return static fn () => static::factory($query)->resolve($data);
         }
 
-        if (true === is_object($this->value)) {
+        if ($this->value instanceof Resolvable) {
             return $this->value->resolve($data);
         }
 

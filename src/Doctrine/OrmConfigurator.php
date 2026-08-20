@@ -11,11 +11,13 @@ use Psr\Cache\CacheItemPoolInterface;
 
 final class OrmConfigurator
 {
+    /** @var array<string, mixed> */
     public array $connectionParams = [];
     public DbalConfiguration $dbalConfig;
     public OrmConfiguration $ormConfig;
     /** @var string[] */
     public array $entityPaths = [];
+    /** @var list<EventSubscriber> */
     private array $subscribers = [];
     public ?CacheItemPoolInterface $metadataCache = null;
     public ?CacheItemPoolInterface $queryCache = null;
@@ -32,6 +34,9 @@ final class OrmConfigurator
         }
     }
 
+    /**
+     * @param array<string, mixed> $params
+     */
     public function connection(array $params): self
     {
         $this->connectionParams = $params;
@@ -56,6 +61,9 @@ final class OrmConfigurator
         return $this;
     }
 
+    /**
+     * @param class-string<\Doctrine\ORM\Query\Filter\SQLFilter> $class
+     */
     public function addFilter(string $name, string $class): self
     {
         $this->ormConfig->addFilter($name, $class);
@@ -63,6 +71,9 @@ final class OrmConfigurator
         return $this;
     }
 
+    /**
+     * @param list<\Doctrine\DBAL\Driver\Middleware> $middlewares
+     */
     public function middlewares(array $middlewares): self
     {
         $this->dbalConfig->setMiddlewares($middlewares);

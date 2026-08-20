@@ -49,6 +49,9 @@ class QualityTransformation implements Transformation
         return 'quality';
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function config(): array
     {
         return ['quality' => $this->quality];

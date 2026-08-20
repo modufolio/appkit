@@ -28,6 +28,9 @@ final class TemplateComponentGeneratorTest extends TestCase
         );
     }
 
+    /**
+     * @param list<string> $methods
+     */
     #[DataProvider('routeMethodDataProvider')]
     public function testRouteMethods(string $expected, array $methods): void
     {

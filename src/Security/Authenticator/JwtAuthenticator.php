@@ -23,8 +23,11 @@ class JwtAuthenticator extends AbstractAuthenticator
     private const SUPPORTED_ALGORITHMS = ['HS256', 'HS384', 'HS512', 'RS256', 'RS384', 'RS512', 'ES256', 'ES384', 'EdDSA'];
     private const HMAC_ALGORITHMS = ['HS256', 'HS384', 'HS512'];
 
+    /** @var array<string, mixed> */
     private array $options;
     private LoggerInterface $logger;
+
+    /** @var array<string, mixed> */
     private array $lastPayload = [];
 
     /**
@@ -39,6 +42,8 @@ class JwtAuthenticator extends AbstractAuthenticator
      *   - token_prefix        scheme prefix (default 'Bearer')
      *   - user_identifier_claim   claim used to look up the user (default 'sub')
      *   - require_exp         reject tokens without an 'exp' claim (default true)
+     *
+     * @param array<string, mixed> $options
      */
     public function __construct(
         private UserProviderInterface $userProvider,
@@ -149,6 +154,8 @@ class JwtAuthenticator extends AbstractAuthenticator
     }
 
     /**
+     * @return array<string, mixed>
+     *
      * @throws AuthenticationException
      */
     private function extractAndValidateToken(ServerRequestInterface $request): array
@@ -199,6 +206,8 @@ class JwtAuthenticator extends AbstractAuthenticator
      * Enforce iss / aud claims when configured. Tokens from other services
      * or other audiences are rejected even if their signature is valid.
      *
+     * @param array<string, mixed> $payload
+     *
      * @throws AuthenticationException
      */
     private function validateClaims(array $payload, string $clientIp): void
@@ -241,6 +250,8 @@ class JwtAuthenticator extends AbstractAuthenticator
      * Generate a JWT token for a user. Uses signing_key (the private key for
      * asymmetric algos). For production issuance consider extracting this into
      * a dedicated JwtIssuer service.
+     *
+     * @param array<string, mixed> $customClaims
      */
     public function generateToken(UserInterface $user, array $customClaims = [], ?int $expiresIn = 3600): string
     {

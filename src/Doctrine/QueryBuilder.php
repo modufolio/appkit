@@ -37,7 +37,10 @@ final class QueryBuilder
         return $this;
     }
 
-    public function select(...$columns): self
+    /**
+     * @param string|array<string, string> ...$columns
+     */
+    public function select(string|array ...$columns): self
     {
         if (empty($columns)) {
             $this->queryBuilder->select('*');
@@ -58,6 +61,9 @@ final class QueryBuilder
         return $this;
     }
 
+    /**
+     * @param list<mixed> $bindings
+     */
     public function selectRaw(string $expression, array $bindings = []): self
     {
         $this->queryBuilder->addSelect($expression);
@@ -90,6 +96,9 @@ final class QueryBuilder
         return $this;
     }
 
+    /**
+     * @param list<mixed> $values
+     */
     public function whereIn(string $column, array $values): self
     {
         $params = [];
@@ -103,6 +112,9 @@ final class QueryBuilder
         return $this;
     }
 
+    /**
+     * @param list<mixed> $values
+     */
     public function whereNotIn(string $column, array $values): self
     {
         $params = [];
@@ -146,6 +158,9 @@ final class QueryBuilder
         return $this;
     }
 
+    /**
+     * @param list<mixed> $bindings
+     */
     public function whereRaw(string $expression, array $bindings = []): self
     {
         $this->queryBuilder->andWhere($expression);
@@ -163,7 +178,7 @@ final class QueryBuilder
     public function join(string $table, string $first, string $operator, string $second, ?string $alias = null): self
     {
         $alias ??= $table;
-        $this->queryBuilder->innerJoin($this->alias, $table, $alias, "{$first} {$operator} {$second}");
+        $this->queryBuilder->innerJoin($this->requireAlias(), $table, $alias, "{$first} {$operator} {$second}");
 
         return $this;
     }
@@ -171,7 +186,7 @@ final class QueryBuilder
     public function leftJoin(string $table, string $first, string $operator, string $second, ?string $alias = null): self
     {
         $alias ??= $table;
-        $this->queryBuilder->leftJoin($this->alias, $table, $alias, "{$first} {$operator} {$second}");
+        $this->queryBuilder->leftJoin($this->requireAlias(), $table, $alias, "{$first} {$operator} {$second}");
 
         return $this;
     }
@@ -179,7 +194,7 @@ final class QueryBuilder
     public function rightJoin(string $table, string $first, string $operator, string $second, ?string $alias = null): self
     {
         $alias ??= $table;
-        $this->queryBuilder->rightJoin($this->alias, $table, $alias, "{$first} {$operator} {$second}");
+        $this->queryBuilder->rightJoin($this->requireAlias(), $table, $alias, "{$first} {$operator} {$second}");
 
         return $this;
     }
@@ -226,6 +241,9 @@ final class QueryBuilder
     // CRUD Operations
     // ────────────────────────────────────────────────────────────────────────────────
 
+    /**
+     * @param array<string, mixed> $values
+     */
     public function insert(array $values): int
     {
         $this->queryBuilder->insert($this->table);
@@ -236,10 +254,12 @@ final class QueryBuilder
             $this->queryBuilder->setParameter($param, $value);
         }
 
-        return $this->queryBuilder->executeStatement();
+        return (int) $this->queryBuilder->executeStatement();
     }
 
     /**
+     * @param array<string, mixed> $values
+     *
      * @throws Exception
      */
     public function update(array $values): int
@@ -252,7 +272,7 @@ final class QueryBuilder
             $this->queryBuilder->setParameter($param, $value);
         }
 
-        return $this->queryBuilder->executeStatement();
+        return (int) $this->queryBuilder->executeStatement();
     }
 
     /**
@@ -262,7 +282,7 @@ final class QueryBuilder
     {
         $this->queryBuilder->delete($this->table);
 
-        return $this->queryBuilder->executeStatement();
+        return (int) $this->queryBuilder->executeStatement();
     }
 
     // ────────────────────────────────────────────────────────────────────────────────
@@ -270,6 +290,8 @@ final class QueryBuilder
     // ────────────────────────────────────────────────────────────────────────────────
 
     /**
+     * @return list<array<string, mixed>>
+     *
      * @throws Exception
      */
     public function get(): array
@@ -277,6 +299,9 @@ final class QueryBuilder
         return $this->queryBuilder->executeQuery()->fetchAllAssociative();
     }
 
+    /**
+     * @return array<string, mixed>|null
+     */
     public function first(): ?array
     {
         $result = $this->limit(1)->get();
@@ -304,6 +329,8 @@ final class QueryBuilder
     }
 
     /**
+     * @return list<mixed>
+     *
      * @throws Exception
      */
     public function fetchColumn(string $column): array
@@ -346,5 +373,17 @@ final class QueryBuilder
     private function newParamName(): string
     {
         return 'p'.count($this->queryBuilder->getParameters());
+    }
+
+    /**
+     * The alias set by from(), which every join needs as its left-hand side.
+     */
+    private function requireAlias(): string
+    {
+        if (null === $this->alias) {
+            throw new \LogicException('Call from() before adding a join.');
+        }
+
+        return $this->alias;
     }
 }

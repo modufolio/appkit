@@ -17,7 +17,7 @@ abstract class AbstractMaker implements MakerInterface
     /**
      * @return void
      */
-    public function interact(InputInterface $input, ConsoleStyle $io, Command $command)
+    public function interact(InputInterface $input, ConsoleStyle $io, Command $command): void
     {
     }
 

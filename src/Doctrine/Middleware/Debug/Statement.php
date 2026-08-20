@@ -11,8 +11,10 @@ use Doctrine\DBAL\ParameterType;
 
 final class Statement extends AbstractStatementMiddleware
 {
+    /** @var array<int|string, mixed> */
     private array $params = [];
 
+    /** @var array<int|string, ParameterType|int|string|null> */
     private array $types = [];
 
     public function __construct(

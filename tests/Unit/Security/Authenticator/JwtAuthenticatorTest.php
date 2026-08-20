@@ -31,6 +31,9 @@ class JwtAuthenticatorTest extends AppTestCase
         $this->logger = new TestLogger();
     }
 
+    /**
+     * @param array<string, mixed> $options
+     */
     private function createAuthenticator(array $options = []): JwtAuthenticator
     {
         return new JwtAuthenticator(
@@ -40,6 +43,9 @@ class JwtAuthenticatorTest extends AppTestCase
         );
     }
 
+    /**
+     * @param array<string, mixed> $claims
+     */
     private function generateToken(array $claims = [], ?int $expiresIn = 3600, ?string $key = null, string $algo = 'HS256'): string
     {
         $now = time();
@@ -294,7 +300,7 @@ class JwtAuthenticatorTest extends AppTestCase
         $token = $auth->createToken($user, 'api');
 
         $this->assertInstanceOf(JwtToken::class, $token);
-        $this->assertSame('user@example.com', $token->getUser()->getUserIdentifier());
+        $this->assertSame('user@example.com', $token->getUser()?->getUserIdentifier());
         $this->assertSame('api', $token->getFirewallName());
         $this->assertSame(['ROLE_USER'], $token->getRoles());
         $this->assertSame([], $token->getPayload());

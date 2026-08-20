@@ -11,40 +11,40 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(Query::class)]
 class QueryTest extends TestCase
 {
-    public function testFactory()
+    public function testFactory(): void
     {
         $query = Query::factory(' user.me ');
         $this->assertSame('user.me', $query->query);
     }
 
-    public function testIntercept()
+    public function testIntercept(): void
     {
         $query = new Query('kirby');
         $this->assertSame('foo', $query->intercept('foo'));
     }
 
-    public function testResolve()
+    public function testResolve(): void
     {
         $query = new Query("user.self.likes(['(', ')']).self.drink");
         $data = ['user' => new TestUser()];
         $this->assertSame(['gin', 'tonic', 'cucumber'], $query->resolve($data));
     }
 
-    public function testResolveWithEmptyQuery()
+    public function testResolveWithEmptyQuery(): void
     {
         $query = new Query('');
         $data = ['foo' => 'bar'];
         $this->assertSame($data, $query->resolve($data));
     }
 
-    public function testResolveWithComparisonExpresion()
+    public function testResolveWithComparisonExpresion(): void
     {
         $query = new Query('user.nothing ?? (user.nothing ?? user.isYello(false)) ? user.says("error") : (user.nothing ?? user.says("success"))');
         $data = ['user' => new TestUser()];
         $this->assertSame('success', $query->resolve($data));
     }
 
-    public function testResolveWithExactArrayMatch()
+    public function testResolveWithExactArrayMatch(): void
     {
         $query = new Query('user');
         $this->assertSame('homer', $query->resolve(['user' => 'homer']));
@@ -56,7 +56,7 @@ class QueryTest extends TestCase
         $this->assertSame('homer', $query->resolve(['user.callback' => fn () => 'homer']));
     }
 
-    public function testResolveWithClosureArgument()
+    public function testResolveWithClosureArgument(): void
     {
         $query = new Query('foo.bar(() => foo.homer)');
         $data = [

@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Modufolio\Appkit\Console\Doctrine;
 
 use Doctrine\ORM\Mapping\ClassMetadata;
-use Doctrine\ORM\Mapping\EmbeddedClassMapping;
+use Doctrine\ORM\Mapping\ManyToManyAssociationMapping;
+use Doctrine\ORM\Mapping\ManyToOneAssociationMapping;
+use Doctrine\ORM\Mapping\OneToManyAssociationMapping;
 use Modufolio\Appkit\Console\FileManager;
 use Modufolio\Appkit\Console\Generator;
 use Modufolio\Appkit\Exception\RuntimeCommandException;
@@ -64,8 +66,7 @@ final class EntityRegenerator
                     continue;
                 }
 
-                /** @legacy - Remove conditional when ORM 2.x is no longer supported. */
-                $className = ($mapping instanceof EmbeddedClassMapping) ? $mapping->class : $mapping['class'];
+                $className = $mapping->class;
 
                 $embeddedClasses[$fieldName] = $this->getPathOfClass($className);
 
@@ -103,12 +104,11 @@ final class EntityRegenerator
                     continue;
                 }
 
-                match ($mapping['type']) {
-                    ClassMetadata::MANY_TO_ONE => $manipulator->addManyToOneRelation(RelationManyToOne::createFromObject($mapping)),
-                    ClassMetadata::ONE_TO_MANY => $manipulator->addOneToManyRelation(RelationOneToMany::createFromObject($mapping)),
-                    ClassMetadata::MANY_TO_MANY => $manipulator->addManyToManyRelation(RelationManyToMany::createFromObject($mapping)),
-                    ClassMetadata::ONE_TO_ONE => $manipulator->addOneToOneRelation(RelationOneToOne::createFromObject($mapping)),
-                    default => throw new \Exception('Unknown association type.'),
+                match (true) {
+                    $mapping instanceof ManyToOneAssociationMapping => $manipulator->addManyToOneRelation(RelationManyToOne::createFromObject($mapping)),
+                    $mapping instanceof OneToManyAssociationMapping => $manipulator->addOneToManyRelation(RelationOneToMany::createFromObject($mapping)),
+                    $mapping instanceof ManyToManyAssociationMapping => $manipulator->addManyToManyRelation(RelationManyToMany::createFromObject($mapping)),
+                    default => $manipulator->addOneToOneRelation(RelationOneToOne::createFromObject($mapping)),
                 };
             }
         }
@@ -121,6 +121,9 @@ final class EntityRegenerator
         }
     }
 
+    /**
+     * @param ClassMetadata<object> $metadata
+     */
     private function generateClass(ClassMetadata $metadata): string
     {
         $path = $this->generator->generateClass(
@@ -146,13 +149,24 @@ final class EntityRegenerator
     }
 
     /**
+     * @param class-string $class
+     *
      * @throws \ReflectionException
      */
     private function getPathOfClass(string $class): string
     {
-        return (new \ReflectionClass($class))->getFileName();
+        $file = (new \ReflectionClass($class))->getFileName();
+
+        if (false === $file) {
+            throw new \RuntimeException(\sprintf('Class "%s" is not defined in a file.', $class));
+        }
+
+        return $file;
     }
 
+    /**
+     * @param ClassMetadata<object> $metadata
+     */
     private function generateRepository(ClassMetadata $metadata): void
     {
         if (!$metadata->customRepositoryClassName) {
@@ -172,6 +186,11 @@ final class EntityRegenerator
         $this->generator->writeChanges();
     }
 
+    /**
+     * @param ClassMetadata<object> $classMetadata
+     *
+     * @return list<string>
+     */
     private function getMappedFieldsInEntity(ClassMetadata $classMetadata): array
     {
         $classReflection = $classMetadata->reflClass;
@@ -181,6 +200,10 @@ final class EntityRegenerator
             ...array_keys($classMetadata->associationMappings),
             ...array_keys($classMetadata->embeddedClasses),
         ];
+
+        if (null === $classReflection) {
+            throw new \RuntimeException(\sprintf('Entity "%s" has no reflection class available.', $classMetadata->getName()));
+        }
 
         // exclude traits
         $traitProperties = [];
@@ -194,7 +217,7 @@ final class EntityRegenerator
         $targetFields = array_diff($targetFields, $traitProperties);
 
         // exclude inherited properties
-        return array_filter($targetFields, static fn ($field) => $classReflection->hasProperty($field)
-            && $classReflection->getProperty($field)->getDeclaringClass()->getName() === $classReflection->getName());
+        return array_values(array_filter($targetFields, static fn ($field) => $classReflection->hasProperty($field)
+            && $classReflection->getProperty($field)->getDeclaringClass()->getName() === $classReflection->getName()));
     }
 }

@@ -9,6 +9,9 @@ use Modufolio\Appkit\Security\TwoFactor\UserTotpSecretInterface;
 use Modufolio\Appkit\Security\TwoFactor\UserTotpSecretRepositoryInterface;
 use Modufolio\Appkit\Security\User\UserInterface;
 
+/**
+ * @extends EntityRepository<UserTotpSecretInterface&object>
+ */
 class UserTotpSecretRepository extends EntityRepository implements UserTotpSecretRepositoryInterface
 {
     /**

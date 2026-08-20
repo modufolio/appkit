@@ -11,7 +11,7 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(Collection::class)]
 class CollectionGetterTest extends TestCase
 {
-    public function testGetMagic()
+    public function testGetMagic(): void
     {
         $collection = new Collection([
             'one' => 'eins',
@@ -22,7 +22,7 @@ class CollectionGetterTest extends TestCase
         $this->assertNull($collection->three);
     }
 
-    public function testGet()
+    public function testGet(): void
     {
         $collection = new Collection([
             'one' => 'eins',
@@ -34,7 +34,7 @@ class CollectionGetterTest extends TestCase
         $this->assertSame('default', $collection->get('three', 'default'));
     }
 
-    public function testMagicMethods()
+    public function testMagicMethods(): void
     {
         $collection = new Collection([
             'one' => 'eins',
@@ -46,7 +46,7 @@ class CollectionGetterTest extends TestCase
         $this->assertNull($collection->three());
     }
 
-    public function testGetAttribute()
+    public function testGetAttribute(): void
     {
         $collection = new Collection([
             'one' => 'eins',

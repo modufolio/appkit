@@ -75,7 +75,7 @@ class LoginTest extends AppTestCase
         $session->set('probe', 'fixed');
         $session->save();
 
-        $sessionDir = $this->app()->getState()->getBaseDir().'/var/sessions';
+        $sessionDir = $this->app()->getState()?->getVarDir().'/sessions';
         $oldFile = $sessionDir.'/sess_'.$idBefore;
         $this->assertFileExists($oldFile, 'pre-login session file should exist before login');
 

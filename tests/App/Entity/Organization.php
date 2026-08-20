@@ -28,7 +28,7 @@ class Organization implements JsonApiResource
     #[Assert\Type(Account::class)]
     #[ORM\ManyToOne(targetEntity: Account::class, inversedBy: 'organizations')]
     #[ORM\JoinColumn(nullable: false)]
-    private Account $account;
+    private ?Account $account = null;
 
     #[Assert\NotBlank]
     #[Assert\Length(max: 100)]

@@ -22,6 +22,7 @@ class FocusTest extends TestCase
 
         $options['crop'] = '0%, 0%';
         $focus = Focus::coords(...$options);
+        $this->assertNotNull($focus);
         $this->assertSame(0, $focus['x1']);
         $this->assertSame(800, $focus['x2']);
         $this->assertSame(0, $focus['y1']);
@@ -29,6 +30,7 @@ class FocusTest extends TestCase
 
         $options['crop'] = '100%, 0%';
         $focus = Focus::coords(...$options);
+        $this->assertNotNull($focus);
         $this->assertSame(400, $focus['x1']);
         $this->assertSame(1200, $focus['x2']);
         $this->assertSame(0, $focus['y1']);
@@ -36,6 +38,7 @@ class FocusTest extends TestCase
 
         $options['crop'] = '0%, 100%';
         $focus = Focus::coords(...$options);
+        $this->assertNotNull($focus);
         $this->assertSame(0, $focus['x1']);
         $this->assertSame(800, $focus['x2']);
         $this->assertSame(0, $focus['y1']);
@@ -43,6 +46,7 @@ class FocusTest extends TestCase
 
         $options['crop'] = '100%, 100%';
         $focus = Focus::coords(...$options);
+        $this->assertNotNull($focus);
         $this->assertSame(400, $focus['x1']);
         $this->assertSame(1200, $focus['x2']);
         $this->assertSame(0, $focus['y1']);
@@ -50,6 +54,7 @@ class FocusTest extends TestCase
 
         $options['crop'] = '50%, 50%';
         $focus = Focus::coords(...$options);
+        $this->assertNotNull($focus);
         $this->assertSame(200, $focus['x1']);
         $this->assertSame(1000, $focus['x2']);
         $this->assertSame(0, $focus['y1']);
@@ -64,6 +69,7 @@ class FocusTest extends TestCase
 
         $options['crop'] = '0%, 0%';
         $focus = Focus::coords(...$options);
+        $this->assertNotNull($focus);
         $this->assertSame(0, $focus['x1']);
         $this->assertSame(700, $focus['x2']);
         $this->assertSame(0, $focus['y1']);
@@ -71,6 +77,7 @@ class FocusTest extends TestCase
 
         $options['crop'] = '100%, 0%';
         $focus = Focus::coords(...$options);
+        $this->assertNotNull($focus);
         $this->assertSame(0, $focus['x1']);
         $this->assertSame(700, $focus['x2']);
         $this->assertSame(0, $focus['y1']);
@@ -78,6 +85,7 @@ class FocusTest extends TestCase
 
         $options['crop'] = '0%, 100%';
         $focus = Focus::coords(...$options);
+        $this->assertNotNull($focus);
         $this->assertSame(0, $focus['x1']);
         $this->assertSame(700, $focus['x2']);
         $this->assertSame(587, $focus['y1']);
@@ -85,6 +93,7 @@ class FocusTest extends TestCase
 
         $options['crop'] = '100%, 100%';
         $focus = Focus::coords(...$options);
+        $this->assertNotNull($focus);
         $this->assertSame(0, $focus['x1']);
         $this->assertSame(700, $focus['x2']);
         $this->assertSame(587, $focus['y1']);
@@ -92,6 +101,7 @@ class FocusTest extends TestCase
 
         $options['crop'] = '50%, 50%';
         $focus = Focus::coords(...$options);
+        $this->assertNotNull($focus);
         $this->assertSame(0, $focus['x1']);
         $this->assertSame(700, $focus['x2']);
         $this->assertSame(293, $focus['y1']);

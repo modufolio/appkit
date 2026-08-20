@@ -24,10 +24,12 @@ namespace Modufolio\Appkit\Query;
  * @copyright Bastian Allgeier
  * @license   https://opensource.org/licenses/MIT
  */
-final class Query
+final class Query implements Resolvable
 {
     /**
      * Default data entries.
+     *
+     * @var array<string, \Closure>
      */
     public static array $entries = [];
 
@@ -62,6 +64,8 @@ final class Query
     /**
      * Returns the query result if anything
      * can be found, otherwise returns null.
+     *
+     * @param array<string, mixed>|object $data
      */
     public function resolve(array|object $data = []): mixed
     {

@@ -128,6 +128,7 @@ class TokenSerializationTest extends TestCase
 
         $this->assertInstanceOf($expectedClass, $token);
         $this->assertSame($identifier, $token->getUserIdentifier());
+        $this->assertTrue(method_exists($token, 'getFirewallName'));
         $this->assertSame('main', $token->getFirewallName());
     }
 

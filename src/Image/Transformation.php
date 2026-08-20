@@ -31,6 +31,8 @@ interface Transformation
 
     /**
      * Get the configuration for this transformation.
+     *
+     * @return array<string, mixed>
      */
     public function config(): array;
 }

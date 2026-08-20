@@ -78,7 +78,8 @@ final class Segment
      * Automatically resolves the segment depending on the
      * segment position and the type of the base.
      *
-     * @param mixed $base Current value of the query chain
+     * @param mixed                        $base Current value of the query chain
+     * @param array<string, mixed>|object  $data
      */
     public function resolve(mixed $base = null, array|object $data = []): mixed
     {
@@ -104,6 +105,10 @@ final class Segment
 
     /**
      * Resolves segment by calling the corresponding array key.
+     */
+    /**
+     * @param array<string, mixed> $array
+     * @param list<mixed>          $args
      */
     private function resolveArray(array $array, array $args): mixed
     {
@@ -156,6 +161,9 @@ final class Segment
     /**
      * Resolves segment by calling the method/
      * accessing the property on the base object.
+     */
+    /**
+     * @param list<mixed> $args
      */
     private function resolveObject(object $object, array $args): mixed
     {

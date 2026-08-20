@@ -24,10 +24,12 @@ use Negotiation\Accept;
 use Negotiation\Negotiator;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Symfony\Component\Validator\ConstraintViolationListInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 class JsonApiController
 {
+    /** @var array<string, array<string, mixed>> */
     private readonly array $config;
     private readonly JsonApiUrlParser $parser;
     private readonly FilterRegistry $filterRegistry;
@@ -81,7 +83,7 @@ class JsonApiController
     public function handle(ServerRequestInterface $request, string $entityClass, string $operation, ?int $id = null, ?string $relationship = null): ResponseInterface
     {
         // Validate entity class is configured
-        if (!isset($this->config[$entityClass])) {
+        if (!isset($this->config[$entityClass]) || !class_exists($entityClass)) {
             return $this->errorResponse(
                 "Entity class '{$entityClass}' is not configured for JSON:API",
                 400
@@ -280,6 +282,9 @@ class JsonApiController
         }
     }
 
+    /**
+     * @param class-string $entityClass
+     */
     private function update(ServerRequestInterface $request, string $entityClass, ?int $id): ResponseInterface
     {
         try {
@@ -325,6 +330,9 @@ class JsonApiController
         }
     }
 
+    /**
+     * @param class-string $entityClass
+     */
     private function delete(string $entityClass, ?int $id): ResponseInterface
     {
         try {
@@ -351,8 +359,15 @@ class JsonApiController
         }
     }
 
+    /**
+     * @param class-string $entityClass
+     */
     private function related(ServerRequestInterface $request, string $entityClass, ?int $id, ?string $relationship): ResponseInterface
     {
+        if (null === $relationship) {
+            return $this->errorResponse('No relationship specified', 400);
+        }
+
         try {
             $entity = $this->em->getRepository($entityClass)->find($id);
 
@@ -414,7 +429,11 @@ class JsonApiController
 
             // Handle single relationships
             if ($relatedData) {
-                $relatedClass = get_class($relatedData);
+                if (!is_object($relatedData)) {
+                    return $this->errorResponse('Invalid relationship data', 500);
+                }
+
+                $relatedClass = $relatedData::class;
                 $resourceKey = $this->config[$relatedClass]['resource_key'] ?? Str::snake(class_basename($relatedClass));
 
                 $document = new JsonApiDocument();
@@ -432,6 +451,9 @@ class JsonApiController
         }
     }
 
+    /**
+     * @param array<string, mixed> $item
+     */
     private function createResourceObject(array $item, string $resourceKey): ResourceObject
     {
         $id = (string) ($item['id'] ?? '');
@@ -501,8 +523,8 @@ class JsonApiController
                 $relatedData = $entity->$getterMethod();
 
                 // Handle single relationships
-                if ($relatedData && !$relatedData instanceof Collection) {
-                    $relatedClass = get_class($relatedData);
+                if (is_object($relatedData) && !$relatedData instanceof Collection) {
+                    $relatedClass = $relatedData::class;
                     $relatedResourceKey = $this->config[$relatedClass]['resource_key'] ?? Str::snake($this->getClassBasename($relatedClass));
                     $relatedId = method_exists($relatedData, 'getId') ? (string) $relatedData->getId() : null;
 
@@ -532,6 +554,9 @@ class JsonApiController
         return $resource;
     }
 
+    /**
+     * @param array<string, mixed> $data
+     */
     private function populateEntity(object $entity, array $data, string $entityClass): void
     {
         $metadata = $this->em->getClassMetadata($entityClass);
@@ -586,7 +611,7 @@ class JsonApiController
         }
     }
 
-    private function validationErrorResponse($violations): ResponseInterface
+    private function validationErrorResponse(ConstraintViolationListInterface $violations): ResponseInterface
     {
         $document = new JsonApiDocument();
         $errors = [];
@@ -723,6 +748,9 @@ class JsonApiController
      *
      * @return array<string, string|null>
      */
+    /**
+     * @return array<string, string>
+     */
     private function buildPaginationLinks(string $baseUrl, string $queryString, int $currentPage, int $lastPage, int $perPage): array
     {
         $buildUrl = function (int $page) use ($baseUrl, $queryString, $perPage): string {
@@ -740,13 +768,21 @@ class JsonApiController
             return $baseUrl.'?'.implode('&', $params);
         };
 
-        return [
+        $links = [
             'self' => $buildUrl($currentPage),
             'first' => $buildUrl(1),
             'last' => $buildUrl($lastPage),
-            'prev' => $currentPage > 1 ? $buildUrl($currentPage - 1) : null,
-            'next' => $currentPage < $lastPage ? $buildUrl($currentPage + 1) : null,
         ];
+
+        if ($currentPage > 1) {
+            $links['prev'] = $buildUrl($currentPage - 1);
+        }
+
+        if ($currentPage < $lastPage) {
+            $links['next'] = $buildUrl($currentPage + 1);
+        }
+
+        return $links;
     }
 
     /**

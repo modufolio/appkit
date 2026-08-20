@@ -8,10 +8,19 @@ use Modufolio\Appkit\Form\ValidationResult;
 
 class AttributeParameterResolver implements ParameterResolverInterface
 {
+    /**
+     * @param list<AttributeResolverInterface> $attributeResolvers
+     */
     public function __construct(private array $attributeResolvers = [])
     {
     }
 
+    /**
+     * @param array<string, mixed> $providedParameters
+     * @param array<string, mixed> $resolvedParameters
+     *
+     * @return array<string, mixed>
+     */
     public function getParameters(
         \ReflectionFunctionAbstract $reflection,
         array $providedParameters,

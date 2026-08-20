@@ -11,7 +11,7 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(Collection::class)]
 class CollectionConverterTest extends TestCase
 {
-    public function testToArray()
+    public function testToArray(): void
     {
         $array = [
             'one' => 'eins',
@@ -21,7 +21,7 @@ class CollectionConverterTest extends TestCase
         $this->assertSame($array, $collection->toArray());
     }
 
-    public function testToArrayMap()
+    public function testToArrayMap(): void
     {
         $collection = new Collection([
             'one' => 'eins',
@@ -35,7 +35,7 @@ class CollectionConverterTest extends TestCase
         }));
     }
 
-    public function testToJson()
+    public function testToJson(): void
     {
         $collection = new Collection([
             'one' => 'eins',
@@ -44,7 +44,7 @@ class CollectionConverterTest extends TestCase
         $this->assertSame('{"one":"eins","two":"zwei"}', $collection->toJson());
     }
 
-    public function testToString()
+    public function testToString(): void
     {
         $collection = new Collection([
             'one' => 'eins',

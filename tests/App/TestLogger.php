@@ -12,8 +12,12 @@ use Psr\Log\AbstractLogger;
 class TestLogger extends AbstractLogger
 {
     /** @var list<array{level: string, message: string, context: array}> */
+    /** @var list<array<string, mixed>> */
     public array $records = [];
 
+    /**
+     * @param array<string, mixed> $context
+     */
     public function log($level, string|\Stringable $message, array $context = []): void
     {
         $this->records[] = [

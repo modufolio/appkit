@@ -18,6 +18,7 @@ use Symfony\Component\Filesystem\Filesystem;
 #[CoversClass(FileManager::class)]
 class FileManagerTest extends TestCase
 {
+    /** @var non-empty-string */
     private string $rootDir;
 
     protected function setUp(): void

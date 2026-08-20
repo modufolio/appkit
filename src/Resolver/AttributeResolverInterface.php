@@ -8,5 +8,8 @@ interface AttributeResolverInterface
 {
     public function supports(\ReflectionParameter $parameter): bool;
 
-    public function resolve(\ReflectionParameter $parameter, array $providedParameters);
+    /**
+     * @param array<string, mixed> $providedParameters
+     */
+    public function resolve(\ReflectionParameter $parameter, array $providedParameters): mixed;
 }

@@ -59,8 +59,7 @@ class JsonApiRouteLoaderTest extends TestCase
         $routes = $this->loader->load('config/json_api.php', 'json_api');
 
         // Account index route
-        $indexRoute = $routes->get('api_account_index');
-        $this->assertNotNull($indexRoute);
+        $indexRoute = $this->route($routes, 'api_account_index');
         $this->assertInstanceOf(Route::class, $indexRoute);
         $this->assertSame('/api/account', $indexRoute->getPath());
         $this->assertSame(['GET'], $indexRoute->getMethods());
@@ -68,29 +67,25 @@ class JsonApiRouteLoaderTest extends TestCase
         $this->assertSame('index', $indexRoute->getDefault('operation'));
 
         // Account show route
-        $showRoute = $routes->get('api_account_show');
-        $this->assertNotNull($showRoute);
+        $showRoute = $this->route($routes, 'api_account_show');
         $this->assertSame('/api/account/{id}', $showRoute->getPath());
         $this->assertSame(['GET'], $showRoute->getMethods());
         $this->assertSame('show', $showRoute->getDefault('operation'));
 
         // Account create route
-        $createRoute = $routes->get('api_account_create');
-        $this->assertNotNull($createRoute);
+        $createRoute = $this->route($routes, 'api_account_create');
         $this->assertSame('/api/account', $createRoute->getPath());
         $this->assertSame(['POST'], $createRoute->getMethods());
         $this->assertSame('create', $createRoute->getDefault('operation'));
 
         // Account update route
-        $updateRoute = $routes->get('api_account_update');
-        $this->assertNotNull($updateRoute);
+        $updateRoute = $this->route($routes, 'api_account_update');
         $this->assertSame('/api/account/{id}', $updateRoute->getPath());
         $this->assertSame(['PATCH', 'PUT'], $updateRoute->getMethods());
         $this->assertSame('update', $updateRoute->getDefault('operation'));
 
         // Account delete route
-        $deleteRoute = $routes->get('api_account_delete');
-        $this->assertNotNull($deleteRoute);
+        $deleteRoute = $this->route($routes, 'api_account_delete');
         $this->assertSame('/api/account/{id}', $deleteRoute->getPath());
         $this->assertSame(['DELETE'], $deleteRoute->getMethods());
         $this->assertSame('delete', $deleteRoute->getDefault('operation'));
@@ -101,16 +96,14 @@ class JsonApiRouteLoaderTest extends TestCase
         $routes = $this->loader->load('config/json_api.php', 'json_api');
 
         // Account related organizations
-        $orgRoute = $routes->get('api_account_related_organizations');
-        $this->assertNotNull($orgRoute);
+        $orgRoute = $this->route($routes, 'api_account_related_organizations');
         $this->assertSame('/api/account/{id}/organizations', $orgRoute->getPath());
         $this->assertSame(['GET'], $orgRoute->getMethods());
         $this->assertSame('related', $orgRoute->getDefault('operation'));
         $this->assertSame('organizations', $orgRoute->getDefault('relationship'));
 
         // Account related contacts
-        $contactRoute = $routes->get('api_account_related_contacts');
-        $this->assertNotNull($contactRoute);
+        $contactRoute = $this->route($routes, 'api_account_related_contacts');
         $this->assertSame('/api/account/{id}/contacts', $contactRoute->getPath());
         $this->assertSame('contacts', $contactRoute->getDefault('relationship'));
     }
@@ -120,14 +113,12 @@ class JsonApiRouteLoaderTest extends TestCase
         $routes = $this->loader->load('config/json_api.php', 'json_api');
 
         // Contact index route
-        $indexRoute = $routes->get('api_contact_index');
-        $this->assertNotNull($indexRoute);
+        $indexRoute = $this->route($routes, 'api_contact_index');
         $this->assertSame('/api/contact', $indexRoute->getPath());
         $this->assertSame(Contact::class, $indexRoute->getDefault('entityClass'));
 
         // Contact show route
-        $showRoute = $routes->get('api_contact_show');
-        $this->assertNotNull($showRoute);
+        $showRoute = $this->route($routes, 'api_contact_show');
         $this->assertSame('/api/contact/{id}', $showRoute->getPath());
 
         // Contact create, update, delete routes
@@ -141,14 +132,12 @@ class JsonApiRouteLoaderTest extends TestCase
         $routes = $this->loader->load('config/json_api.php', 'json_api');
 
         // Contact related account
-        $accountRoute = $routes->get('api_contact_related_account');
-        $this->assertNotNull($accountRoute);
+        $accountRoute = $this->route($routes, 'api_contact_related_account');
         $this->assertSame('/api/contact/{id}/account', $accountRoute->getPath());
         $this->assertSame('account', $accountRoute->getDefault('relationship'));
 
         // Contact related organization
-        $orgRoute = $routes->get('api_contact_related_organization');
-        $this->assertNotNull($orgRoute);
+        $orgRoute = $this->route($routes, 'api_contact_related_organization');
         $this->assertSame('/api/contact/{id}/organization', $orgRoute->getPath());
         $this->assertSame('organization', $orgRoute->getDefault('relationship'));
     }
@@ -158,8 +147,7 @@ class JsonApiRouteLoaderTest extends TestCase
         $routes = $this->loader->load('config/json_api.php', 'json_api');
 
         // Organization index route
-        $indexRoute = $routes->get('api_organization_index');
-        $this->assertNotNull($indexRoute);
+        $indexRoute = $this->route($routes, 'api_organization_index');
         $this->assertSame('/api/organization', $indexRoute->getPath());
         $this->assertSame(Organization::class, $indexRoute->getDefault('entityClass'));
 
@@ -177,14 +165,12 @@ class JsonApiRouteLoaderTest extends TestCase
         $routes = $this->loader->load('config/json_api.php', 'json_api');
 
         // Organization related account
-        $accountRoute = $routes->get('api_organization_related_account');
-        $this->assertNotNull($accountRoute);
+        $accountRoute = $this->route($routes, 'api_organization_related_account');
         $this->assertSame('/api/organization/{id}/account', $accountRoute->getPath());
         $this->assertSame('account', $accountRoute->getDefault('relationship'));
 
         // Organization related contacts
-        $contactRoute = $routes->get('api_organization_related_contacts');
-        $this->assertNotNull($contactRoute);
+        $contactRoute = $this->route($routes, 'api_organization_related_contacts');
         $this->assertSame('/api/organization/{id}/contacts', $contactRoute->getPath());
         $this->assertSame('contacts', $contactRoute->getDefault('relationship'));
     }
@@ -195,7 +181,7 @@ class JsonApiRouteLoaderTest extends TestCase
 
         // Ids may be numeric or uuids; the resource layer resolves them.
         foreach (['show', 'update', 'delete'] as $op) {
-            $route = $routes->get("api_account_{$op}");
+            $route = $this->route($routes, "api_account_{$op}");
             $this->assertNull($route->getRequirement('id'));
         }
     }
@@ -249,7 +235,7 @@ class JsonApiRouteLoaderTest extends TestCase
 
         $routes = $loader->load('config/json_api.php', 'json_api');
 
-        $indexRoute = $routes->get('api_account_index');
+        $indexRoute = $this->route($routes, 'api_account_index');
         $this->assertSame('/v1/api/account', $indexRoute->getPath());
     }
 
@@ -257,7 +243,7 @@ class JsonApiRouteLoaderTest extends TestCase
     {
         $routes = $this->loader->load('config/json_api.php', 'json_api');
 
-        $relationshipRoute = $routes->get('api_account_related_organizations');
+        $relationshipRoute = $this->route($routes, 'api_account_related_organizations');
         $this->assertNull($relationshipRoute->getRequirement('id'));
     }
 
@@ -277,7 +263,7 @@ class JsonApiRouteLoaderTest extends TestCase
         $routes = $this->loader->load('config/json_api.php', 'json_api');
 
         // Relationship routes should only support GET
-        $relationshipRoute = $routes->get('api_account_related_organizations');
+        $relationshipRoute = $this->route($routes, 'api_account_related_organizations');
         $this->assertSame(['GET'], $relationshipRoute->getMethods());
     }
 
@@ -285,7 +271,7 @@ class JsonApiRouteLoaderTest extends TestCase
     {
         $routes = $this->loader->load('config/json_api.php', 'json_api');
 
-        $createRoute = $routes->get('api_account_create');
+        $createRoute = $this->route($routes, 'api_account_create');
         $this->assertSame(['POST'], $createRoute->getMethods());
     }
 
@@ -293,7 +279,7 @@ class JsonApiRouteLoaderTest extends TestCase
     {
         $routes = $this->loader->load('config/json_api.php', 'json_api');
 
-        $updateRoute = $routes->get('api_account_update');
+        $updateRoute = $this->route($routes, 'api_account_update');
         $this->assertSame(['PATCH', 'PUT'], $updateRoute->getMethods());
     }
 
@@ -301,7 +287,7 @@ class JsonApiRouteLoaderTest extends TestCase
     {
         $routes = $this->loader->load('config/json_api.php', 'json_api');
 
-        $indexRoute = $routes->get('api_account_index');
+        $indexRoute = $this->route($routes, 'api_account_index');
         $this->assertSame('/api/account', $indexRoute->getPath());
         $this->assertStringNotContainsString('{id}', $indexRoute->getPath());
     }
@@ -310,7 +296,7 @@ class JsonApiRouteLoaderTest extends TestCase
     {
         $routes = $this->loader->load('config/json_api.php', 'json_api');
 
-        $createRoute = $routes->get('api_account_create');
+        $createRoute = $this->route($routes, 'api_account_create');
         $this->assertSame('/api/account', $createRoute->getPath());
         $this->assertStringNotContainsString('{id}', $createRoute->getPath());
     }
@@ -319,7 +305,7 @@ class JsonApiRouteLoaderTest extends TestCase
     {
         $routes = $this->loader->load('config/json_api.php', 'json_api');
 
-        $showRoute = $routes->get('api_account_show');
+        $showRoute = $this->route($routes, 'api_account_show');
         $this->assertStringContainsString('{id}', $showRoute->getPath());
     }
 
@@ -327,7 +313,7 @@ class JsonApiRouteLoaderTest extends TestCase
     {
         $routes = $this->loader->load('config/json_api.php', 'json_api');
 
-        $updateRoute = $routes->get('api_account_update');
+        $updateRoute = $this->route($routes, 'api_account_update');
         $this->assertStringContainsString('{id}', $updateRoute->getPath());
     }
 
@@ -335,7 +321,7 @@ class JsonApiRouteLoaderTest extends TestCase
     {
         $routes = $this->loader->load('config/json_api.php', 'json_api');
 
-        $deleteRoute = $routes->get('api_account_delete');
+        $deleteRoute = $this->route($routes, 'api_account_delete');
         $this->assertStringContainsString('{id}', $deleteRoute->getPath());
     }
 
@@ -373,5 +359,16 @@ class JsonApiRouteLoaderTest extends TestCase
 
         // Routes should still be created
         $this->assertGreaterThan(0, count($routes));
+    }
+
+    private function route(RouteCollection $routes, string $name): Route
+    {
+        $route = $routes->get($name);
+
+        if (null === $route) {
+            self::fail(sprintf('Route "%s" was not registered.', $name));
+        }
+
+        return $route;
     }
 }

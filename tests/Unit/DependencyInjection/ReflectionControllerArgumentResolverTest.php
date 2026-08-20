@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modufolio\Appkit\Tests\Unit\DependencyInjection;
 
+use Modufolio\Appkit\DependencyInjection\ParameterAccessorInterface;
 use Modufolio\Appkit\DependencyInjection\ReflectionControllerArgumentResolver;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
@@ -54,10 +55,14 @@ class ControllerWithMultipleDeps
     }
 }
 
-class MockContainer
+class MockContainer implements ParameterAccessorInterface
 {
+    /** @var array<string, mixed> */
     private array $parameters = [];
 
+    /**
+     * @param array<string, mixed> $parameters
+     */
     public function __construct(array $parameters = [])
     {
         $this->parameters = $parameters;

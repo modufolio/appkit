@@ -114,21 +114,25 @@ class ImageProcessor
 
     /**
      * Get list of transformation names in pipeline.
+     *
+     * @return list<string>
      */
     public function getTransformationNames(): array
     {
-        return array_map(static fn (Transformation $t) => $t->name(), $this->transformations);
+        return array_values(array_map(static fn (Transformation $t) => $t->name(), $this->transformations));
     }
 
     /**
      * Get all transformation configurations.
+     *
+     * @return list<array<string, mixed>>
      */
     public function getConfigurations(): array
     {
-        return array_map(static fn (Transformation $t) => [
+        return array_values(array_map(static fn (Transformation $t) => [
             'name' => $t->name(),
             'config' => $t->config(),
-        ], $this->transformations);
+        ], $this->transformations));
     }
 
     /**

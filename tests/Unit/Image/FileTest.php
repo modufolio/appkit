@@ -98,7 +98,7 @@ class FileTest extends TestCase
         $mediaRoot = $file->mediaRoot();
 
         $this->assertStringStartsWith('/media/images/avatars/', $mediaRoot);
-        $this->assertStringEndsWith(basename($this->testFile), $mediaRoot);
+        $this->assertStringEndsWith(basename($this->testFile) ?: 'x', $mediaRoot);
     }
 
     public function testFileMediaUrl(): void
@@ -107,7 +107,7 @@ class FileTest extends TestCase
         $mediaUrl = $file->mediaUrl();
 
         $this->assertStringStartsWith('/media/images/avatars/', $mediaUrl);
-        $this->assertStringEndsWith(basename($this->testFile), $mediaUrl);
+        $this->assertStringEndsWith(basename($this->testFile) ?: 'x', $mediaUrl);
     }
 
     public function testFileThrowsExceptionForNonexistentFile(): void

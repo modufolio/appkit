@@ -27,6 +27,9 @@ class OAuthAuthenticatorTest extends AppTestCase
         $this->logger = new TestLogger();
     }
 
+    /**
+     * @param array<string, mixed> $options
+     */
     private function createAuthenticator(array $options = []): OAuthAuthenticator
     {
         return new OAuthAuthenticator(
@@ -48,6 +51,8 @@ class OAuthAuthenticatorTest extends AppTestCase
 
     /**
      * Create an access token via the in-memory service and return the plain token string.
+     *
+     * @param list<string> $scopes
      */
     private function issueAccessToken(array $scopes = ['read'], string $clientId = 'test-client'): string
     {
@@ -58,7 +63,7 @@ class OAuthAuthenticatorTest extends AppTestCase
             $scopes,
         );
 
-        return $tokenEntity->getPlainAccessToken();
+        return $tokenEntity->getPlainAccessToken() ?? self::fail('No plain access token was issued.');
     }
 
     // ---- Constructor ----
@@ -253,7 +258,7 @@ class OAuthAuthenticatorTest extends AppTestCase
         $token = $auth->createToken($this->user, 'api');
 
         $this->assertInstanceOf(OAuthToken::class, $token);
-        $this->assertSame('oauth-user@example.com', $token->getUser()->getUserIdentifier());
+        $this->assertSame('oauth-user@example.com', $token->getUser()?->getUserIdentifier());
         $this->assertSame('api', $token->getFirewallName());
         $this->assertSame(['ROLE_USER'], $token->getRoles());
     }

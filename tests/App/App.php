@@ -23,6 +23,7 @@ use Modufolio\Appkit\Security\BruteForce\BruteForceProtectionInterface;
 use Modufolio\Appkit\Security\Csrf\CsrfTokenManager;
 use Modufolio\Appkit\Security\Csrf\CsrfTokenManagerInterface;
 use Modufolio\Appkit\Security\TwoFactor\TotpService;
+use Modufolio\Appkit\Security\TwoFactor\UserTotpSecretRepositoryInterface;
 use Modufolio\Appkit\Security\User\UserProviderInterface;
 use Modufolio\Appkit\Tests\App\Entity\UserTotpSecret;
 use Modufolio\Appkit\Tests\App\Repository\UserTotpSecretRepository;
@@ -60,6 +61,14 @@ class App extends Kernel
     private ?BruteForceProtectionInterface $bruteForceProtection = null;
     private ?TotpService $totpServiceInstance = null;
 
+    /**
+     * @param array<string, mixed>                          $authenticators
+     * @param array<class-string, array<int|string, mixed>> $controllers
+     * @param array<string, \Closure>                       $factories
+     * @param array<string, string>                         $fileMap
+     * @param array<string, object>                         $instances
+     * @param array<class-string, class-string>             $repositories
+     */
     public function __construct(
         string $baseDir,
         LoaderInterface $routeLoader,
@@ -88,7 +97,7 @@ class App extends Kernel
         $this->state?->reset();
 
         // Create fresh application state for this request
-        $this->state = new NativeApplicationState($request, $this->baseDir, $this->firewallConfig);
+        $this->state = new NativeApplicationState($request, $this->baseDir, $this->firewallConfig, $this->varDir());
 
         try {
             $response = $this->handleAuthentication($request);
@@ -108,7 +117,13 @@ class App extends Kernel
      */
     public function userProvider(): UserProviderInterface
     {
-        return $this->userProvider ??= $this->getRepository($this->userProviderClass);
+        $provider = $this->getRepository($this->userProviderClass);
+
+        if (!$provider instanceof UserProviderInterface) {
+            throw new \LogicException(sprintf('Repository "%s" must implement %s.', $this->userProviderClass, UserProviderInterface::class));
+        }
+
+        return $this->userProvider ??= $provider;
     }
 
     /**
@@ -152,7 +167,7 @@ class App extends Kernel
                 ]
             );
 
-            $this->state = new NativeApplicationState($request, $this->baseDir, $this->firewallConfig);
+            $this->state = new NativeApplicationState($request, $this->baseDir, $this->firewallConfig, $this->varDir());
         }
 
         return $this;
@@ -165,7 +180,7 @@ class App extends Kernel
     {
         return $this->totpServiceInstance ??= new TotpService(
             $this->entityManager(),
-            $this->getRepository(UserTotpSecretRepository::class),
+            $this->totpSecretRepository(),
             UserTotpSecret::class,
             new Clock(),
             'Appkit Test',
@@ -251,5 +266,16 @@ class App extends Kernel
         return $this->validator ??= Validation::createValidatorBuilder()
             ->enableAttributeMapping()
             ->getValidator();
+    }
+
+    private function totpSecretRepository(): UserTotpSecretRepositoryInterface
+    {
+        $repository = $this->getRepository(UserTotpSecretRepository::class);
+
+        if (!$repository instanceof UserTotpSecretRepositoryInterface) {
+            throw new \LogicException(sprintf('Repository "%s" must implement %s.', UserTotpSecretRepository::class, UserTotpSecretRepositoryInterface::class));
+        }
+
+        return $repository;
     }
 }

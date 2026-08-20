@@ -27,15 +27,15 @@ interface MakerInterface
      * By default, all arguments will be asked interactively. If you want
      * to avoid that, use the $inputConfig->setArgumentAsNonInteractive() method.
      */
-    public function configureCommand(Command $command, InputConfiguration $inputConfig);
+    public function configureCommand(Command $command, InputConfiguration $inputConfig): void;
 
     /**
      * If necessary, you can use this method to interactively ask the user for input.
      */
-    public function interact(InputInterface $input, ConsoleStyle $io, Command $command);
+    public function interact(InputInterface $input, ConsoleStyle $io, Command $command): void;
 
     /**
      * Called after normal code generation: allows you to do anything.
      */
-    public function generate(InputInterface $input, ConsoleStyle $io, Generator $generator);
+    public function generate(InputInterface $input, ConsoleStyle $io, Generator $generator): void;
 }

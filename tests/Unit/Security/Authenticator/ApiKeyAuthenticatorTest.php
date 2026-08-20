@@ -14,6 +14,7 @@ use Modufolio\Psr7\Http\Uri;
 class ApiKeyAuthenticatorTest extends AppTestCase
 {
     private InMemoryUserProvider $userProvider;
+    /** @var array<string, mixed> */
     private array $apiKeys = [
         'valid-api-key-123' => 'user1@example.com',
         'another-valid-key' => 'user2@example.com',
@@ -284,7 +285,7 @@ class ApiKeyAuthenticatorTest extends AppTestCase
         $token = $authenticator->createToken($user, 'main');
 
         $this->assertInstanceOf(ApiKeyToken::class, $token);
-        $this->assertSame('user1@example.com', $token->getUser()->getUserIdentifier());
+        $this->assertSame('user1@example.com', $token->getUser()?->getUserIdentifier());
         $this->assertEquals('main', $token->getFirewallName());
         $this->assertEquals(['ROLE_USER'], $token->getRoles());
     }

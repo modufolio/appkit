@@ -67,6 +67,8 @@ class AuthenticationException extends RuntimeException
      * </code>
      *
      * @see __serialize()
+     *
+     * @param array<int|string, mixed> $data
      */
     public function __unserialize(array $data): void
     {
@@ -83,6 +85,8 @@ class AuthenticationException extends RuntimeException
 
     /**
      * Message data to be used by the translation component.
+     *
+     * @return array<string, mixed>
      */
     public function getMessageData(): array
     {

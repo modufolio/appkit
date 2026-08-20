@@ -83,6 +83,8 @@ final class AccessRule
     }
 
     /**
+     * @param array<string, mixed> $rule
+     *
      * @return list<string>
      */
     private static function stringList(array $rule, string $key, string $path): array

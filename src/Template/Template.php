@@ -22,17 +22,29 @@ use Psr\Http\Message\ServerRequestInterface;
  */
 class Template implements \Stringable
 {
+    /** @var list<string> */
     protected array $templatePaths = [];
+
+    /** @var list<string> */
     protected array $layoutPaths = [];
     protected string $name;
+
+    /** @var array<string, mixed> */
     protected array $data = [];
     protected ?string $layout = null;
+
+    /** @var array<string, string> */
     protected array $sections = [];
     protected ?string $currentSection = null;
     protected ?ServerRequestInterface $request = null;
     protected ?string $baseUrl = null;
     protected AssetCollection $assets;
 
+    /**
+     * @param list<string>         $templatePaths
+     * @param list<string>         $layoutPaths
+     * @param array<string, mixed> $data
+     */
     public function __construct(
         string $name,
         array $templatePaths = [],
@@ -133,6 +145,8 @@ class Template implements \Stringable
     /**
      * Resolve the template or layout file.
      *
+     * @param list<string> $paths
+     *
      * @throws \RuntimeException
      */
     protected function resolveFile(string $name, array $paths): string
@@ -150,6 +164,8 @@ class Template implements \Stringable
     /**
      * Securely resolve a template/snippet/layout name to a file inside one of
      * the configured roots.
+     *
+     * @param list<string> $paths
      *
      * @return string|null Absolute path on success, null if not found or unsafe
      */
@@ -230,15 +246,16 @@ class Template implements \Stringable
             throw new \RuntimeException('No section is currently being captured.');
         }
 
-        $this->sections[$this->currentSection] = ob_get_clean();
+        $output = ob_get_clean();
+        $this->sections[$this->currentSection] = false === $output ? '' : $output;
         $this->currentSection = null;
     }
 
     /**
      * Collect CSS file(s) for later rendering.
      *
-     * @param string|array $url     Single URL or array of URLs
-     * @param array|null   $options Additional HTML attributes (e.g., ['media' => 'print'])
+     * @param string|list<string>        $url     Single URL or array of URLs
+     * @param array<string, mixed>|null  $options Additional HTML attributes (e.g., ['media' => 'print'])
      */
     public function css(string|array $url, ?array $options = null): void
     {
@@ -250,8 +267,8 @@ class Template implements \Stringable
     /**
      * Collect JavaScript file(s) for later rendering.
      *
-     * @param string|array    $url     Single URL or array of URLs
-     * @param array|bool|null $options HTML attributes or boolean for async
+     * @param string|list<string>             $url     Single URL or array of URLs
+     * @param array<string, mixed>|bool|null  $options HTML attributes or boolean for async
      */
     public function js(string|array $url, array|bool|null $options = null): void
     {
@@ -350,6 +367,8 @@ class Template implements \Stringable
      *
      * Snippets have access to $this (cloned Template instance) for nested snippet calls.
      * Cloning prevents snippets from accidentally modifying parent template state.
+     *
+     * @param array<string, mixed> $data
      */
     public function snippet(string $name, array $data = []): ?string
     {
@@ -370,6 +389,8 @@ class Template implements \Stringable
     /**
      * Internal method to render a snippet file with $this context.
      *
+     * @param list<string> $snippetPaths
+     *
      * @internal
      */
     protected function renderSnippet(string $name, array $snippetPaths): ?string
@@ -387,7 +408,9 @@ class Template implements \Stringable
             // Include in this context so $this is available in the snippet
             include $file;
 
-            return ob_get_clean();
+            $output = ob_get_clean();
+
+            return false === $output ? '' : $output;
         }
 
         throw new \RuntimeException("Snippet '{$name}.php' not found in: ".implode(', ', $snippetPaths));
@@ -404,7 +427,7 @@ class Template implements \Stringable
     /**
      * Render the template.
      *
-     * @param array $data Additional data to merge
+     * @param array<string, mixed> $data Additional data to merge
      *
      * @throws \Throwable
      */
@@ -438,6 +461,7 @@ class Template implements \Stringable
 
         // Capture content from our buffer
         $content = ob_get_clean();
+        $content = false === $content ? '' : $content;
 
         // Paranoid buffer cleanup: close any nested buffers that weren't closed
         // This prevents buffer corruption in RoadRunner workers if templates misbehave

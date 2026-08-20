@@ -19,6 +19,8 @@ class Focus
 {
     /**
      * Generates crop coordinates based on focal point.
+     *
+     * @return array{x1: int, y1: int, x2: int, y2: int, width: int, height: int}
      */
     public static function coords(
         string $crop,
@@ -82,6 +84,8 @@ class Focus
     /**
      * Transforms the focal point's string value (from content field)
      * to a [x, y] array (values 0.0-1.0).
+     *
+     * @return array{float, float}
      */
     public static function parse(string $value): array
     {
@@ -94,7 +98,7 @@ class Focus
 
         preg_match_all("/(\d{1,3}\.?\d*)[%|,|\s]*/", $value, $points);
 
-        return A::map(
+        $coords = A::map(
             $points[1],
             static function ($point) {
                 $point = (float) $point;
@@ -103,6 +107,8 @@ class Focus
                 return round($point, 3);
             }
         );
+
+        return [(float) ($coords[0] ?? 0.5), (float) ($coords[1] ?? 0.5)];
     }
 
     /**

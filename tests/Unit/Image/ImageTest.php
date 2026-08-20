@@ -15,7 +15,7 @@ class ImageTest extends TestCase
 {
     public const FIXTURES = __DIR__.'/fixtures';
 
-    protected function _image($file = 'cat.jpg'): Image
+    protected function _image(string $file = 'cat.jpg'): Image
     {
         return new Image(static::FIXTURES.'/image/'.$file);
     }

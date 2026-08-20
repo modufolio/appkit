@@ -26,11 +26,17 @@ use Symfony\Component\Routing\Exception\MethodNotAllowedException;
 #[CoversClass(AccessDecisionEngine::class)]
 class AccessDecisionEngineTest extends TestCase
 {
+    /**
+     * @param array<string, mixed> $serverParams
+     */
     private function request(string $path, string $method = 'GET', array $serverParams = []): ServerRequest
     {
         return new ServerRequest($method, $path, [], null, '1.1', $serverParams);
     }
 
+    /**
+     * @param list<string> $roles
+     */
     private function token(array $roles = ['ROLE_USER']): UsernamePasswordToken
     {
         return new UsernamePasswordToken(new InMemoryUser('johndoe', 'secret', $roles), 'main', $roles);
@@ -236,6 +242,9 @@ class AccessDecisionEngineTest extends TestCase
     // Trust-level attributes (IS_AUTHENTICATED_FULLY / IS_IMPERSONATOR)
     // -----------------------------------------------------------------
 
+    /**
+     * @param list<string> $roles
+     */
     private function rememberMeToken(array $roles = ['ROLE_USER']): RememberMeToken
     {
         return new RememberMeToken(new InMemoryUser('johndoe', 'secret', $roles), 'main', 'secret', $roles);

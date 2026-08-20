@@ -38,6 +38,13 @@ interface ApplicationStateInterface extends ResetInterface
     public function getBaseDir(): string;
 
     /**
+     * Get the writable runtime directory (sessions, caches, proxies).
+     *
+     * Defaults to the base directory's var/ folder.
+     */
+    public function getVarDir(): string;
+
+    /**
      * Replace the current request with a new one.
      *
      * Recalculates base URL and clears firewall cache.
@@ -108,11 +115,15 @@ interface ApplicationStateInterface extends ResetInterface
 
     /**
      * Set the firewall configuration.
+     *
+     * @param array<string, array<string, mixed>> $config
      */
     public function setFirewallConfig(array $config): self;
 
     /**
      * Get the firewall configuration.
+     *
+     * @return array<string, array<string, mixed>>
      */
     public function getFirewallConfig(): array;
 

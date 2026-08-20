@@ -25,6 +25,9 @@ use PHPUnit\Framework\TestCase;
  */
 class FirewallRestrictionMatchingTest extends TestCase
 {
+    /**
+     * @param array<string, mixed> $firewallConfig
+     */
     private function createApplicationState(array $firewallConfig): ApplicationStateInterface
     {
         $request = new ServerRequest('GET', '/test');

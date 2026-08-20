@@ -11,9 +11,9 @@ use PHPUnit\Framework\TestCase;
 
 class MyObj
 {
-    public $homer = 'simpson';
+    public string $homer = 'simpson';
 
-    public function foo(int $count)
+    public function foo(int $count): string
     {
         return $count.'bar';
     }
@@ -21,7 +21,10 @@ class MyObj
 
 class MyCallObj
 {
-    public function __call($name, $args)
+    /**
+     * @param list<mixed> $args
+     */
+    public function __call(string $name, array $args): string
     {
         return $args[0].'bar';
     }
@@ -29,86 +32,18 @@ class MyCallObj
 
 class MyGetObj
 {
-    public function __get($name)
+    public function __get(string $name): string
     {
         return 'simpson';
-    }
-}
-
-class TestUser
-{
-    public function username()
-    {
-        return 'homer';
-    }
-
-    public function profiles(): array
-    {
-        return [
-            'mastodon' => '@homer',
-        ];
-    }
-
-    public function says(...$message)
-    {
-        return implode(' : ', $message);
-    }
-
-    public function age(int $years)
-    {
-        return $years;
-    }
-
-    public function isYello(bool $answer)
-    {
-        return $answer;
-    }
-
-    public function brainDump($dump)
-    {
-        return $dump;
-    }
-
-    public function array(...$args)
-    {
-        return ['args' => $args];
-    }
-
-    public function check($needle1, $needle2, $array)
-    {
-        return in_array($needle1, $array) && in_array($needle2, $array);
-    }
-
-    public function drink(): array
-    {
-        return ['gin', 'tonic', 'cucumber'];
-    }
-
-    public function self()
-    {
-        return $this;
-    }
-
-    public function likes(array $arguments)
-    {
-        foreach ($arguments as $arg) {
-            if (false === in_array($arg, ['(', ')', ',', ']', '['])) {
-                throw new \Exception();
-            }
-        }
-
-        return $this;
-    }
-
-    public function nothing()
-    {
-        return null;
     }
 }
 
 #[CoversClass(Segment::class)]
 class SegmentTest extends TestCase
 {
+    /**
+     * @return list<array<int, mixed>>
+     */
     public static function scalarProvider(): array
     {
         return [
@@ -122,7 +57,7 @@ class SegmentTest extends TestCase
     }
 
     #[DataProvider('scalarProvider')]
-    public function testErrorWithScalars($scalar, $label)
+    public function testErrorWithScalars(mixed $scalar, string $label): void
     {
         $this->expectException(\BadMethodCallException::class);
         $this->expectExceptionMessage('Access to method "foo" on '.$label);
@@ -130,7 +65,7 @@ class SegmentTest extends TestCase
         Segment::error($scalar, 'foo', 'method');
     }
 
-    public function testErrorWithObject()
+    public function testErrorWithObject(): void
     {
         $this->expectException(\BadMethodCallException::class);
         $this->expectExceptionMessage('Access to non-existing method "foo" on object');
@@ -138,7 +73,7 @@ class SegmentTest extends TestCase
         Segment::error(new \stdClass(), 'foo', 'method');
     }
 
-    public function testFactory()
+    public function testFactory(): void
     {
         $segment = Segment::factory('foo');
         $this->assertSame('foo', $segment->method);
@@ -146,14 +81,16 @@ class SegmentTest extends TestCase
 
         $segment = Segment::factory('foo(1, 2)');
         $this->assertSame('foo', $segment->method);
+        $this->assertNotNull($segment->arguments);
         $this->assertCount(2, $segment->arguments);
 
         $segment = Segment::factory('foo(1, bar(2))');
         $this->assertSame('foo', $segment->method);
+        $this->assertNotNull($segment->arguments);
         $this->assertCount(2, $segment->arguments);
     }
 
-    public function testResolveFirst()
+    public function testResolveFirst(): void
     {
         // without parameters
         $segment = Segment::factory('foo');
@@ -164,7 +101,7 @@ class SegmentTest extends TestCase
         $this->assertSame('2bar', $segment->resolve(null, ['foo' => fn (int $a, string $b) => $a.$b]));
     }
 
-    public function testResolveFirstWithDataObject()
+    public function testResolveFirstWithDataObject(): void
     {
         $obj = new \stdClass();
         $obj->foo = 'bar';
@@ -172,21 +109,21 @@ class SegmentTest extends TestCase
         $this->assertSame('bar', $segment->resolve(null, $obj));
     }
 
-    public function testResolveArray()
+    public function testResolveArray(): void
     {
         $segment = Segment::factory('foo', 1);
         $data = ['foo' => $expected = [1, 2]];
         $this->assertSame($expected, $segment->resolve($data));
     }
 
-    public function testResolveArrayClosure()
+    public function testResolveArrayClosure(): void
     {
         $segment = Segment::factory('foo', 0);
         $data = ['foo' => fn () => 'bar'];
         $this->assertSame('bar', $segment->resolve(null, $data));
     }
 
-    public function testResolveArrayInvalidKey()
+    public function testResolveArrayInvalidKey(): void
     {
         $this->expectException(\BadMethodCallException::class);
         $this->expectExceptionMessage('Access to non-existing property "foo" on array');
@@ -195,7 +132,7 @@ class SegmentTest extends TestCase
         $segment->resolve(['bar' => 2]);
     }
 
-    public function testResolveObject()
+    public function testResolveObject(): void
     {
         $obj = new MyObj();
         $segment = Segment::factory('foo(2)', 1);
@@ -214,7 +151,7 @@ class SegmentTest extends TestCase
         $this->assertSame('simpson', $segment->resolve($obj));
     }
 
-    public function testResolveObjectInvalid()
+    public function testResolveObjectInvalid(): void
     {
         $this->expectException(\BadMethodCallException::class);
         $this->expectExceptionMessage('Access to method/property "foo" on string');
@@ -223,7 +160,7 @@ class SegmentTest extends TestCase
         $segment->resolve('bar');
     }
 
-    public function testResolveObjectInvalidMethod()
+    public function testResolveObjectInvalidMethod(): void
     {
         $this->expectException(\BadMethodCallException::class);
         $this->expectExceptionMessage('Access to non-existing method/property "notfound" on object');

@@ -17,8 +17,11 @@ use Modufolio\Appkit\Toolkit\A;
  * @copyright Bastian Allgeier
  * @license   https://opensource.org/licenses/MIT
  */
-final class Expression
+final class Expression implements Resolvable
 {
+    /**
+     * @param list<string|Resolvable> $parts
+     */
     public function __construct(
         public array $parts,
     ) {
@@ -48,7 +51,7 @@ final class Expression
                     : Argument::factory($part)
         );
 
-        return new static(parts: $parts);
+        return new static(parts: array_values($parts));
     }
 
     /**
@@ -56,22 +59,28 @@ final class Expression
      * of expressions and operators.
      *
      * @internal
+     *
+     * @return list<string>
      */
     public static function parse(string $string): array
     {
         // split by multiples of `?` and `:`, but not inside skip groups
         // (parantheses, quotes etc.)
-        return preg_split(
+        $parts = preg_split(
             '/\s+([\?\:]+)\s+|'.Arguments::OUTSIDE.'/',
             trim($string),
             flags: PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY
         );
+
+        return false === $parts ? [] : $parts;
     }
 
     /**
      * Resolves the expression by evaluating
      * the supported comparisons and consecutively
      * resolving the resulting query/argument.
+     *
+     * @param array<string, mixed>|object $data
      */
     public function resolve(array|object $data = []): mixed
     {
@@ -96,7 +105,7 @@ final class Expression
                     return $base;
                 }
 
-                return $this->parts[$index + 1]->resolve($data);
+                return $this->operand($index + 1, $data);
             }
 
             // `a ? b : c`
@@ -107,15 +116,32 @@ final class Expression
                 }
 
                 if (false != $base) {
-                    return $this->parts[$index + 1]->resolve($data);
+                    return $this->operand($index + 1, $data);
                 }
 
-                return $this->parts[$index + 3]->resolve($data);
+                return $this->operand($index + 3, $data);
             }
 
-            $base = $part->resolve($data);
+            $base = $this->operand($index, $data);
         }
 
         return $base;
+    }
+
+    /**
+     * Resolves the expression part at $index, rejecting operator tokens that
+     * only appear there when the expression is malformed (e.g. `a ? : b`).
+     *
+     * @param array<string, mixed>|object $data
+     */
+    private function operand(int $index, array|object $data): mixed
+    {
+        $part = $this->parts[$index] ?? null;
+
+        if (!$part instanceof Resolvable) {
+            throw new \LogicException('Query: Malformed expression; expected a value.');
+        }
+
+        return $part->resolve($data);
     }
 }

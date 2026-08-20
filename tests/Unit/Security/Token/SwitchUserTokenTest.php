@@ -13,6 +13,9 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(SwitchUserToken::class)]
 class SwitchUserTokenTest extends TestCase
 {
+    /**
+     * @param list<string> $roles
+     */
     private function createToken(array $roles = ['ROLE_USER']): SwitchUserToken
     {
         $admin = new InMemoryUser('admin@example.com', 'secret', ['ROLE_ADMIN']);
@@ -27,7 +30,7 @@ class SwitchUserTokenTest extends TestCase
     {
         $token = $this->createToken();
 
-        $this->assertSame('admin@example.com', $token->getOriginalToken()->getUser()->getUserIdentifier());
+        $this->assertSame('admin@example.com', $token->getOriginalToken()->getUser()?->getUserIdentifier());
     }
 
     public function testGetFirewallName(): void
@@ -74,7 +77,7 @@ class SwitchUserTokenTest extends TestCase
         $this->assertSame(['ROLE_USER'], $restored->getRoleNames());
         $this->assertSame(
             'admin@example.com',
-            $restored->getOriginalToken()->getUser()->getUserIdentifier()
+            $restored->getOriginalToken()->getUser()?->getUserIdentifier()
         );
     }
 }

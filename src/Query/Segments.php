@@ -18,8 +18,11 @@ use Modufolio\Appkit\Toolkit\Collection;
  * @copyright Bastian Allgeier
  * @license   https://opensource.org/licenses/MIT
  */
-final class Segments extends Collection
+final class Segments extends Collection implements Resolvable
 {
+    /**
+     * @param array<int|string, mixed> $data
+     */
     public function __construct(
         array $data = [],
         protected ?Query $parent = null,
@@ -60,14 +63,18 @@ final class Segments extends Collection
      * array of segments as well as conenctors (`.` or `?.`).
      *
      * @internal
+     *
+     * @return list<string>
      */
     public static function parse(string $string): array
     {
-        return preg_split(
+        $segments = preg_split(
             '/(\??\.)|(\(([^()]+|(?2))*+\))(*SKIP)(*FAIL)/',
             trim($string),
             flags: PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY
         );
+
+        return false === $segments ? [] : $segments;
     }
 
     /**
@@ -76,7 +83,10 @@ final class Segments extends Collection
      * all previous segment calls, returning gracefully at
      * `?.` when current value is `null`.
      */
-    public function resolve(array|object $data = [])
+    /**
+     * @param array<string, mixed>|object $data
+     */
+    public function resolve(array|object $data = []): mixed
     {
         $value = null;
 

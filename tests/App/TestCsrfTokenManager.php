@@ -59,7 +59,8 @@ class TestCsrfTokenManager implements CsrfTokenManagerInterface
             return true;
         }
 
-        return isset($this->tokens[$tokenId])
+        return null !== $tokenValue
+            && isset($this->tokens[$tokenId])
             && hash_equals($this->tokens[$tokenId], $tokenValue);
     }
 

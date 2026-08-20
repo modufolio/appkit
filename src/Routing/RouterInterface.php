@@ -20,7 +20,7 @@ interface RouterInterface
      *
      * @param ServerRequestInterface $request The request to match
      *
-     * @return array the matched route parameters including _controller, _route, etc
+     * @return array<string, mixed> the matched route parameters including _controller, _route, etc
      *
      * @throws ResourceNotFoundException
      */
@@ -31,7 +31,7 @@ interface RouterInterface
      *
      * @param string $pathinfo The path to match
      *
-     * @return array The matched route parameters
+     * @return array<string, mixed> The matched route parameters
      *
      * @throws ResourceNotFoundException
      */
@@ -41,7 +41,7 @@ interface RouterInterface
      * Generate a URL from route name and parameters.
      *
      * @param string $name          Route name
-     * @param array  $parameters    Route parameters
+     * @param array<string, mixed> $parameters Route parameters
      * @param int    $referenceType Type of reference (absolute path, absolute URL, etc.)
      *
      * @return string The generated URL

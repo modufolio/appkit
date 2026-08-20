@@ -20,6 +20,9 @@ class CustomFilename implements \Stringable
     protected string $extension;
     protected string $name;
 
+    /**
+     * @param array<string, mixed> $attributes
+     */
     public function __construct(protected string $filename, protected string $template, protected array $attributes = [])
     {
         // Validate template for path traversal
@@ -43,6 +46,9 @@ class CustomFilename implements \Stringable
         return $this->toString();
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function attributesToArray(): array
     {
         $array = [
@@ -108,6 +114,9 @@ class CustomFilename implements \Stringable
         return $this->sanitizeString($crop);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function dimensions(): array
     {
         if (empty($this->attributes['width']) && empty($this->attributes['height'])) {

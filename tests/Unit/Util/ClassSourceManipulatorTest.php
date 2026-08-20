@@ -20,6 +20,9 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(ClassSourceManipulator::class)]
 class ClassSourceManipulatorTest extends TestCase
 {
+    /**
+     * @param array<string, mixed> $commentLines
+     */
     #[DataProvider('getAddPropertyTests')]
     public function testAddProperty(string $sourceFilename, $propertyName, array $commentLines, $expectedSourceFilename): void
     {
@@ -66,6 +69,9 @@ class ClassSourceManipulatorTest extends TestCase
         ];
     }
 
+    /**
+     * @param array<string, mixed> $commentLines
+     */
     #[DataProvider('getAddGetterTests')]
     public function testAddGetter(string $sourceFilename, string $propertyName, string $type, array $commentLines, $expectedSourceFilename): void
     {
@@ -132,6 +138,9 @@ class ClassSourceManipulatorTest extends TestCase
         ];
     }
 
+    /**
+     * @param array<string, mixed> $commentLines
+     */
     #[DataProvider('getAddSetterTests')]
     public function testAddSetter(string $sourceFilename, string $propertyName, ?string $type, bool $isNullable, array $commentLines, $expectedSourceFilename): void
     {
@@ -195,6 +204,9 @@ class ClassSourceManipulatorTest extends TestCase
         ];
     }
 
+    /**
+     * @param array<string, mixed> $attributeOptions
+     */
     #[DataProvider('getAttributeClassTests')]
     public function testAddAttributeToClass(string $sourceFilename, string $expectedSourceFilename, string $attributeClass, array $attributeOptions): void
     {

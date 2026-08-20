@@ -7,8 +7,13 @@ use Modufolio\Appkit\Security\User\UserInterface;
 class JwtToken extends AbstractToken
 {
     private string $firewallName;
+    /** @var array<string, mixed> */
     private array $payload;
 
+    /**
+     * @param array<string, mixed> $payload
+     * @param list<string>         $roles
+     */
     public function __construct(UserInterface $user, string $firewallName, array $payload = [], array $roles = [])
     {
         parent::__construct($roles);
@@ -27,6 +32,9 @@ class JwtToken extends AbstractToken
         return $this->firewallName;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getPayload(): array
     {
         return $this->payload;
@@ -37,6 +45,9 @@ class JwtToken extends AbstractToken
         return [null, $this->firewallName, $this->payload, parent::__serialize()];
     }
 
+    /**
+     * @param array<int|string, mixed> $data
+     */
     public function __unserialize(array $data): void
     {
         // Block gadget-chain "trampolines": a forged payload placing an object

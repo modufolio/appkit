@@ -32,6 +32,9 @@ class ImageVariantTest extends TestCase
         }
     }
 
+    /**
+     * @param array<string, mixed> $overrides
+     */
     private function variant(array $overrides = []): ImageVariant
     {
         return new ImageVariant($overrides + [

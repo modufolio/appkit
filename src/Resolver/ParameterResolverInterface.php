@@ -15,8 +15,10 @@ interface ParameterResolverInterface
      * in `$resolvedParameters`. That allows to chain multiple ParameterResolver.
      *
      * @param \ReflectionFunctionAbstract $reflection         reflection object for the callable
-     * @param array                       $providedParameters parameters provided by the caller
-     * @param array                       $resolvedParameters parameters resolved (indexed by parameter position)
+     * @param array<string, mixed>        $providedParameters parameters provided by the caller
+     * @param array<string, mixed>        $resolvedParameters parameters resolved (keyed by parameter name)
+     *
+     * @return array<string, mixed>
      */
     public function getParameters(
         \ReflectionFunctionAbstract $reflection,

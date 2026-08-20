@@ -49,6 +49,9 @@ class BlurTransformation implements Transformation
         return 'blur';
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function config(): array
     {
         return ['intensity' => $this->intensity];

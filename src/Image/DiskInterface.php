@@ -33,6 +33,8 @@ interface DiskInterface
 
     /**
      * Get disk configuration as array.
+     *
+     * @return array<string, mixed>
      */
     public function config(): array;
 }

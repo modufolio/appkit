@@ -19,9 +19,15 @@ class FallbackContainerTest extends AppTestCase
         $this->container = clone $this->app();
     }
 
+    /**
+     * @param array<string, mixed> $services
+     */
     private function fallbackWith(array $services): ContainerInterface
     {
         return new class($services) implements ContainerInterface {
+            /**
+             * @param array<string, mixed> $services
+             */
             public function __construct(private array $services)
             {
             }

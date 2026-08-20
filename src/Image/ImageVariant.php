@@ -13,10 +13,13 @@ class ImageVariant
 {
     protected string $root;
     protected string $url;
+    /** @var array<string, mixed> */
     protected array $modifications;
     protected FileInterface $original;
 
     /**
+     * @param array<string, mixed> $props
+     *
      * @throws \InvalidArgumentException
      */
     public function __construct(array $props)
@@ -52,6 +55,9 @@ class ImageVariant
         return pathinfo($this->filename(), PATHINFO_FILENAME);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function modifications(): array
     {
         return $this->modifications;
@@ -67,6 +73,9 @@ class ImageVariant
         return file_exists($this->root);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function toArray(): array
     {
         return [

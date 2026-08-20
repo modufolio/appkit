@@ -13,6 +13,7 @@ class DoctrineOrmPagination
     protected int $total = 0;
     protected int $limit = 20;
     private int $lastPage;
+    /** @var Paginator<mixed> */
     private Paginator $items;
     protected Query $query;
 
@@ -51,6 +52,9 @@ class DoctrineOrmPagination
         return $this->limit;
     }
 
+    /**
+     * @return array<int, mixed>
+     */
     public function getResults(): array
     {
         return iterator_to_array($this->items);
@@ -126,6 +130,9 @@ class DoctrineOrmPagination
         return $this->page === $this->lastPage;
     }
 
+    /**
+     * @return list<int|float>
+     */
     public function range(int $range = 5): array
     {
         if (0 === $this->total) {
@@ -142,6 +149,9 @@ class DoctrineOrmPagination
         return range($start, $end);
     }
 
+    /**
+     * @return Paginator<mixed>
+     */
     public function items(): Paginator
     {
         return $this->items;

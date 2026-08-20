@@ -39,6 +39,10 @@ class JsonApiRouteLoader extends Loader
         $routes = new RouteCollection();
 
         foreach ($jsonApiConfig as $entityClass => $entityConfig) {
+            if (!class_exists($entityClass)) {
+                throw new \InvalidArgumentException(sprintf('Configured JSON:API entity class "%s" does not exist.', $entityClass));
+            }
+
             // Config sanity checks (existence, resource_key presence) are dev-only
             // conveniences and stay behind the debug flag.
             if ($this->debug) {
@@ -116,6 +120,11 @@ class JsonApiRouteLoader extends Loader
         return 'json_api' === $type;
     }
 
+    /**
+     * @param list<string>         $methods
+     * @param array<string, string> $requirements
+     * @param array<string, mixed>  $defaults
+     */
     private function createRoute(
         string $path,
         array $methods,
@@ -140,6 +149,8 @@ class JsonApiRouteLoader extends Loader
      * Validate the entity configuration.
      *
      * These are developer-facing sanity checks, so they only run when debug = true.
+     *
+     * @param array<string, mixed> $entityConfig
      */
     private function validateEntityConfig(string $entityClass, array $entityConfig): void
     {
@@ -176,6 +187,9 @@ class JsonApiRouteLoader extends Loader
 
     /**
      * @throws \ReflectionException
+     */
+    /**
+     * @param class-string $entityClass
      */
     private function extractResourceKey(string $entityClass): string
     {

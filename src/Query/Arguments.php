@@ -18,7 +18,7 @@ use Modufolio\Appkit\Toolkit\Collection;
  * @copyright Bastian Allgeier
  * @license   https://opensource.org/licenses/MIT
  */
-final class Arguments extends Collection
+final class Arguments extends Collection implements Resolvable
 {
     // skip all matches inside of parantheses
     public const NO_PNTH = '\([^)]+\)(*SKIP)(*FAIL)';
@@ -41,7 +41,7 @@ final class Arguments extends Collection
     {
         $arguments = A::map(
             // split by comma, but not inside skip groups
-            preg_split('!,|'.self::OUTSIDE.'!', $arguments),
+            preg_split('!,|'.self::OUTSIDE.'!', $arguments) ?: [],
             static fn ($argument) => Argument::factory($argument)
         );
 
@@ -51,12 +51,16 @@ final class Arguments extends Collection
     /**
      * Resolve each argument, so that they can
      * passed together to the actual method call.
+     *
+     * @param array<string, mixed>|object $data
+        *
+     * @return list<mixed>
      */
     public function resolve(array|object $data = []): array
     {
-        return A::map(
+        return array_values(A::map(
             $this->data,
             static fn ($argument) => $argument->resolve($data)
-        );
+        ));
     }
 }

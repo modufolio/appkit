@@ -22,6 +22,7 @@ class Image extends File
     protected ?Dimensions $dimensions = null;
     protected ?string $url = null;
 
+    /** @var list<string> */
     public static array $resizableTypes = [
         'jpg',
         'jpeg',
@@ -30,6 +31,7 @@ class Image extends File
         'webp',
     ];
 
+    /** @var list<string> */
     public static array $viewableTypes = [
         'avif',
         'jpg',
@@ -43,6 +45,7 @@ class Image extends File
     /**
      * Validation rules to be used for `::match()`.
      */
+    /** @var array<string, array{string, string}> */
     public static array $validations = [
         'maxsize' => ['size',   'max'],
         'minsize' => ['size',   'min'],
@@ -97,10 +100,12 @@ class Image extends File
 
     /**
      * Returns the PHP imagesize array.
+     *
+     * @return array<int|string, mixed>
      */
     public function imagesize(): array
     {
-        return getimagesize($this->root());
+        return getimagesize($this->root()) ?: [];
     }
 
     /**
@@ -171,7 +176,7 @@ class Image extends File
 
         // Verify actual MIME type matches expected MIME types
         if (!in_array($mime, $validMimeTypes[$extension])) {
-            throw ImageException::mimeTypeMismatch($this->root(), $extension, $mime);
+            throw ImageException::mimeTypeMismatch($this->root(), $extension, $mime ?? 'unknown');
         }
 
         return true;
@@ -188,7 +193,9 @@ class Image extends File
 
     public function modified(): int
     {
-        return filemtime($this->root());
+        $modified = filemtime($this->root());
+
+        return false === $modified ? 0 : $modified;
     }
 
     /**
@@ -212,6 +219,8 @@ class Image extends File
      * Converts the object to an array.
      *
      * @param bool $includeLocation Whether to include GPS location data from EXIF (privacy-sensitive)
+     *
+     * @return array<string, mixed>
      */
     public function toArray(bool $includeLocation = false): array
     {

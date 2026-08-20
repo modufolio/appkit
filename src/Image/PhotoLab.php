@@ -140,6 +140,8 @@ class PhotoLab
 
     /**
      * Generate srcset for responsive images.
+     *
+     * @param array<int|string, mixed>|string|null $sizes
      */
     public function srcset(array|string|null $sizes = null): ?string
     {
@@ -162,7 +164,7 @@ class PhotoLab
             }
 
             $variant = $this->resize((int) $width);
-            if ($variant) {
+            if ($variant instanceof ImageVariant) {
                 $set[] = $variant->url().' '.$condition;
             }
         }

@@ -28,6 +28,9 @@ class StorageTest extends TestCase
         rmdir($this->tmp);
     }
 
+    /**
+     * @param array<int|string, mixed> $data
+     */
     protected function storage(array $data = []): Storage
     {
         $file = $this->tmp.'/storage.php';

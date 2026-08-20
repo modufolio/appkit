@@ -139,6 +139,7 @@ class TemplateTest extends TestCase
     public function testSnippetRendering(): void
     {
         $output = $this->template->snippet('button', ['text' => 'Submit']);
+        $this->assertNotNull($output);
 
         $this->assertStringContainsString('<button>Submit</button>', $output);
     }
@@ -149,6 +150,7 @@ class TemplateTest extends TestCase
             'title' => 'My Card',
             'buttonText' => 'Learn More',
         ]);
+        $this->assertNotNull($output);
 
         // Should contain the card wrapper
         $this->assertStringContainsString('<div class="card">', $output);
@@ -207,6 +209,7 @@ class TemplateTest extends TestCase
             'template' => 'malicious-override',
             'file' => '/etc/passwd',
         ]);
+        $this->assertNotNull($output);
 
         // Should still render the correct class name
         $this->assertStringContainsString('Template', $output);

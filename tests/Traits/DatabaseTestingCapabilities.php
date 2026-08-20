@@ -53,6 +53,7 @@ trait DatabaseTestingCapabilities
 
     // Query tracking
     /** @var array<int, array{sql: string, params: ?array, type: string, duration: float, timestamp: float}> */
+    /** @var list<array<string, mixed>> */
     protected array $queryLog = [];
 
     /** @var array<string, int> */
@@ -60,19 +61,24 @@ trait DatabaseTestingCapabilities
 
     // Performance tracking
     protected float $totalQueryTime = 0.0;
+    /** @var list<array<string, mixed>> */
     protected array $slowQueries = [];
     protected float $slowQueryThreshold = 1.0; // seconds
 
     // Transaction tracking
     protected int $transactionLevel = 0;
     protected bool $inTransaction = false;
+    /** @var list<array<string, mixed>> */
     protected array $transactionLog = [];
 
     // Test data fixtures
+    /** @var array<string, mixed> */
     protected array $fixtures = [];
+    /** @var list<string> */
     protected array $cleanupTables = [];
 
     // Database state
+    /** @var array<string, mixed> */
     protected ?array $databaseSnapshot = null;
     protected bool $autoSnapshot = false;
 
@@ -123,8 +129,8 @@ trait DatabaseTestingCapabilities
     #[After]
     final protected function disconnect(): void
     {
-        while ($this->connection->isTransactionActive()) {
-            $this->connection->rollBack();
+        while ($this->connection()->isTransactionActive()) {
+            $this->connection()->rollBack();
         }
 
         if ($this->isConnectionReusable) {
@@ -136,7 +142,7 @@ trait DatabaseTestingCapabilities
             self::$sharedConnection = null;
         }
 
-        $this->connection->close();
+        $this->connection()->close();
         unset($this->connection); // @phpstan-ignore unset.possiblyHookedProperty
 
         $this->isConnectionReusable = true;
@@ -222,7 +228,7 @@ trait DatabaseTestingCapabilities
         $this->resetTracking();
 
         // Process all queries from debug stack
-        foreach ($this->debugStack->getQueries() as $query) {
+        foreach ($this->debugStack()->getQueries() as $query) {
             $this->processQuery($query);
         }
     }
@@ -313,6 +319,8 @@ trait DatabaseTestingCapabilities
 
     /**
      * Extract table names from SQL.
+     *
+     * @return list<string>
      */
     protected function extractTableNames(string $sql): array
     {
@@ -331,7 +339,7 @@ trait DatabaseTestingCapabilities
             }
         }
 
-        return array_unique($tables);
+        return array_values(array_unique($tables));
     }
 
     /**
@@ -348,11 +356,13 @@ trait DatabaseTestingCapabilities
 
     /**
      * @throws Exception
+     *
+     * @param array<string, mixed> $data
      */
     protected function loadFixtureData(string $table, array $data): void
     {
         foreach ($data as $row) {
-            $this->connection->insert($table, $row);
+            $this->connection()->insert($table, $row);
         }
 
         $this->cleanupTables[] = $table;
@@ -363,11 +373,11 @@ trait DatabaseTestingCapabilities
      */
     protected function truncateTables(): void
     {
-        $platform = $this->connection->getDatabasePlatform();
+        $platform = $this->connection()->getDatabasePlatform();
 
         $this->withForeignKeysDisabled(function () use ($platform): void {
             foreach (array_reverse($this->cleanupTables) as $table) {
-                $this->connection->executeStatement($platform->getTruncateTableSQL($table));
+                $this->connection()->executeStatement($platform->getTruncateTableSQL($table));
             }
         });
 
@@ -382,18 +392,18 @@ trait DatabaseTestingCapabilities
      */
     private function withForeignKeysDisabled(callable $callback): void
     {
-        $platform = $this->connection->getDatabasePlatform();
+        $platform = $this->connection()->getDatabasePlatform();
         $isSqlite = $platform instanceof \Doctrine\DBAL\Platforms\SQLitePlatform;
 
         [$off, $on] = $isSqlite
             ? ['PRAGMA foreign_keys = OFF', 'PRAGMA foreign_keys = ON']
             : ['SET FOREIGN_KEY_CHECKS = 0', 'SET FOREIGN_KEY_CHECKS = 1'];
 
-        $this->connection->executeStatement($off);
+        $this->connection()->executeStatement($off);
         try {
             $callback();
         } finally {
-            $this->connection->executeStatement($on);
+            $this->connection()->executeStatement($on);
         }
     }
 
@@ -405,10 +415,10 @@ trait DatabaseTestingCapabilities
     protected function createDatabaseSnapshot(): void
     {
         $this->databaseSnapshot = [];
-        $tables = $this->connection->createSchemaManager()->listTableNames();
+        $tables = $this->connection()->createSchemaManager()->listTableNames();
 
         foreach ($tables as $table) {
-            $this->databaseSnapshot[$table] = $this->connection
+            $this->databaseSnapshot[$table] = $this->connection()
                 ->executeQuery("SELECT * FROM {$table}")
                 ->fetchAllAssociative();
         }
@@ -423,13 +433,13 @@ trait DatabaseTestingCapabilities
             return;
         }
 
-        $platform = $this->connection->getDatabasePlatform();
+        $platform = $this->connection()->getDatabasePlatform();
 
         $this->withForeignKeysDisabled(function () use ($platform): void {
-            foreach ($this->databaseSnapshot as $table => $data) {
-                $this->connection->executeStatement($platform->getTruncateTableSQL($table));
+            foreach ($this->databaseSnapshot ?? [] as $table => $data) {
+                $this->connection()->executeStatement($platform->getTruncateTableSQL($table));
                 foreach ($data as $row) {
-                    $this->connection->insert($table, $row);
+                    $this->connection()->insert($table, $row);
                 }
             }
         });
@@ -480,7 +490,7 @@ trait DatabaseTestingCapabilities
     {
         $queries = $this->getDebugQueries();
 
-        return array_filter($queries, fn (Query $q) => preg_match($pattern, $q->sql));
+        return array_filter($queries, fn (Query $q) => 1 === preg_match($pattern, $q->sql));
     }
 
     /**
@@ -577,7 +587,7 @@ trait DatabaseTestingCapabilities
 
         $matchingQueries = array_filter(
             $this->queryLog,
-            fn ($query) => preg_match($pattern, $query['sql'])
+            fn (array $query) => 1 === preg_match($pattern, (string) $query['sql'])
         );
 
         if (null !== $times) {
@@ -608,7 +618,7 @@ trait DatabaseTestingCapabilities
 
         $matchingQueries = array_filter(
             $this->queryLog,
-            fn ($query) => preg_match($pattern, $query['sql'])
+            fn (array $query) => 1 === preg_match($pattern, (string) $query['sql'])
         );
 
         $this->assertEmpty(
@@ -630,7 +640,7 @@ trait DatabaseTestingCapabilities
 
         $matchingQueries = array_filter(
             $this->queryLog,
-            fn ($query) => preg_match($pattern, $query['sql'])
+            fn (array $query) => 1 === preg_match($pattern, (string) $query['sql'])
         );
 
         foreach ($matchingQueries as $query) {
@@ -713,6 +723,8 @@ trait DatabaseTestingCapabilities
 
     /**
      * Performance analysis.
+     *
+     * @return array<string, mixed>
      */
     public function getPerformanceReport(): array
     {
@@ -735,6 +747,8 @@ trait DatabaseTestingCapabilities
 
     /**
      * Get query log with optional filtering.
+     *
+     * @return list<array<string, mixed>>
      */
     public function getQueryLog(?string $type = null, ?string $table = null): array
     {
@@ -765,6 +779,8 @@ trait DatabaseTestingCapabilities
 
     /**
      * Set test fixtures.
+     *
+     * @param array<string, mixed> $fixtures
      */
     public function withFixtures(array $fixtures): self
     {
@@ -801,8 +817,8 @@ trait DatabaseTestingCapabilities
     protected function createTestSchema(): void
     {
         $schema = $this->getTestSchema();
-        $platform = $this->connection->getDatabasePlatform();
-        $schemaManager = $this->connection->createSchemaManager();
+        $platform = $this->connection()->getDatabasePlatform();
+        $schemaManager = $this->connection()->createSchemaManager();
 
         // Get the list of tables defined in the schema
         $schemaTables = $schema->getTables();
@@ -821,7 +837,7 @@ trait DatabaseTestingCapabilities
         if (!$tablesExist) {
             $queries = $schema->toSql($platform);
             foreach ($queries as $query) {
-                $this->connection->executeStatement($query);
+                $this->connection()->executeStatement($query);
             }
         }
     }
@@ -832,10 +848,12 @@ trait DatabaseTestingCapabilities
      * Assert database state matches expected data.
      *
      * @throws Exception
+     *
+     * @param array<string, mixed> $criteria
      */
     protected function assertDatabaseHas(string $table, array $criteria): void
     {
-        $qb = $this->connection->createQueryBuilder();
+        $qb = $this->connection()->createQueryBuilder();
         $qb->select('COUNT(*)')
             ->from($table);
 
@@ -861,10 +879,12 @@ trait DatabaseTestingCapabilities
      * Assert database state does not match criteria.
      *
      * @throws Exception
+     *
+     * @param array<string, mixed> $criteria
      */
     protected function assertDatabaseMissing(string $table, array $criteria): void
     {
-        $qb = $this->connection->createQueryBuilder();
+        $qb = $this->connection()->createQueryBuilder();
         $qb->select('COUNT(*)')
             ->from($table);
 
@@ -888,10 +908,12 @@ trait DatabaseTestingCapabilities
 
     /**
      * Assert exact row count in table.
+     *
+     * @param array<string, mixed> $criteria
      */
     protected function assertDatabaseCount(string $table, int $expected, ?array $criteria = null): void
     {
-        $qb = $this->connection->createQueryBuilder();
+        $qb = $this->connection()->createQueryBuilder();
         $qb->select('COUNT(*)')
             ->from($table);
 
@@ -921,11 +943,13 @@ trait DatabaseTestingCapabilities
      * Seed database with custom data.
      *
      * @throws Exception
+     *
+     * @param list<array<string, mixed>> $data
      */
     protected function seed(string $table, array $data): void
     {
         foreach ($data as $row) {
-            $this->connection->insert($table, $row);
+            $this->connection()->insert($table, $row);
         }
     }
 
@@ -936,11 +960,11 @@ trait DatabaseTestingCapabilities
      */
     protected function truncate(string ...$tables): void
     {
-        $platform = $this->connection->getDatabasePlatform();
+        $platform = $this->connection()->getDatabasePlatform();
 
         $this->withForeignKeysDisabled(function () use ($platform, $tables): void {
             foreach ($tables as $table) {
-                $this->connection->executeStatement($platform->getTruncateTableSQL($table));
+                $this->connection()->executeStatement($platform->getTruncateTableSQL($table));
             }
         });
     }
@@ -949,20 +973,26 @@ trait DatabaseTestingCapabilities
      * Execute raw SQL for testing.
      *
      * @throws Exception
+     *
+     * @param array<string, mixed> $params
      */
     protected function executeSql(string $sql, array $params = []): void
     {
-        $this->connection->executeStatement($sql, $params);
+        $this->connection()->executeStatement($sql, $params);
     }
 
     /**
      * Fetch data for assertions.
      *
      * @throws Exception
+     *
+     * @param array<string, mixed> $criteria
+     *
+     * @return array<string, mixed>
      */
     protected function fetchFromDatabase(string $table, array $criteria = []): ?array
     {
-        $qb = $this->connection->createQueryBuilder();
+        $qb = $this->connection()->createQueryBuilder();
         $qb->select('*')
             ->from($table);
 
@@ -981,20 +1011,44 @@ trait DatabaseTestingCapabilities
      */
     protected function dropTestSchema(): void
     {
-        $schemaManager = $this->connection->createSchemaManager();
+        $schemaManager = $this->connection()->createSchemaManager();
         $schema = $schemaManager->introspectSchema();
 
         // Drop all tables in reverse order to handle foreign keys
         $tables = $schema->getTables();
 
         // Disable foreign key checks
-        // $this->connection->executeStatement('SET FOREIGN_KEY_CHECKS = 0');
+        // $this->connection()->executeStatement('SET FOREIGN_KEY_CHECKS = 0');
 
         foreach (array_reverse($tables) as $table) {
-            $this->connection->executeStatement("DROP TABLE IF EXISTS {$table->getObjectName()->toString()}");
+            $this->connection()->executeStatement("DROP TABLE IF EXISTS {$table->getObjectName()->toString()}");
         }
 
         // Re-enable foreign key checks
-        // $this->connection->executeStatement('SET FOREIGN_KEY_CHECKS = 1');
+        // $this->connection()->executeStatement('SET FOREIGN_KEY_CHECKS = 1');
+    }
+
+    /**
+     * The DBAL connection, which exists once the database test harness has booted.
+     */
+    protected function connection(): Connection
+    {
+        if (null === $this->connection) {
+            throw new \LogicException('The database connection is not available; did setUp() run?');
+        }
+
+        return $this->connection;
+    }
+
+    /**
+     * The query debug stack, which exists once the database test harness has booted.
+     */
+    protected function debugStack(): DebugStack
+    {
+        if (null === $this->debugStack) {
+            throw new \LogicException('The debug stack is not available; did setUp() run?');
+        }
+
+        return $this->debugStack;
     }
 }

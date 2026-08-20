@@ -105,11 +105,15 @@ interface UserTotpSecretInterface extends TwoFactorSecret
 
     /**
      * Get all backup codes.
+     *
+     * @return list<string>|null
      */
     public function getBackupCodes(): ?array;
 
     /**
      * Set backup codes.
+     *
+     * @param list<string>|null $backupCodes
      */
     public function setBackupCodes(?array $backupCodes): void;
 

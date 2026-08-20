@@ -270,7 +270,7 @@ final class Dimensions implements \Stringable
         $content = file_get_contents($root);
         $height = 0;
         $width = 0;
-        $xml = simplexml_load_string($content);
+        $xml = false === $content ? false : simplexml_load_string($content);
 
         if (false !== $xml) {
             $attr = $xml->attributes();
@@ -381,6 +381,8 @@ final class Dimensions implements \Stringable
     /**
      * Resize and crop.
      *
+     * @param array<string, mixed> $options
+     *
      * @return $this
      */
     public function thumb(array $options = []): static
@@ -400,6 +402,8 @@ final class Dimensions implements \Stringable
     /**
      * Converts the dimensions object
      * to a plain PHP array.
+     *
+     * @return array<string, mixed>
      */
     public function toArray(): array
     {

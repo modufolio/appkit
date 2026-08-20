@@ -21,7 +21,7 @@ class QueryBuilderTest extends TestCase
         // Ensure a clean state before each test
         $this->createTestSchema();
 
-        $this->debugStack->resetQueries();
+        $this->debugStack()->resetQueries();
         $this->resetTracking();
         $this->cleanupTables = ['users', 'posts'];
     }
@@ -67,7 +67,7 @@ class QueryBuilderTest extends TestCase
     {
         // Arrange
         $this->seedUsers();
-        $qb = new QueryBuilder($this->connection);
+        $qb = new QueryBuilder($this->connection());
 
         // Act
         $results = $qb->from('users')->select()->get();
@@ -82,7 +82,7 @@ class QueryBuilderTest extends TestCase
     {
         // Arrange
         $this->seedUsers();
-        $qb = new QueryBuilder($this->connection);
+        $qb = new QueryBuilder($this->connection());
 
         // Act
         $results = $qb->from('users')->select('id', 'name', 'email')->get();
@@ -98,7 +98,7 @@ class QueryBuilderTest extends TestCase
     {
         // Arrange
         $this->seedUsers();
-        $qb = new QueryBuilder($this->connection);
+        $qb = new QueryBuilder($this->connection());
 
         // Act
         $results = $qb->from('users')->select(['name' => 'user_name'], 'email')->get();
@@ -112,7 +112,7 @@ class QueryBuilderTest extends TestCase
     {
         // Arrange
         $this->seedUsers();
-        $qb = new QueryBuilder($this->connection);
+        $qb = new QueryBuilder($this->connection());
 
         // Act
         $results = $qb->from('users')
@@ -131,7 +131,7 @@ class QueryBuilderTest extends TestCase
     {
         // Arrange
         $this->seedUsers();
-        $qb = new QueryBuilder($this->connection);
+        $qb = new QueryBuilder($this->connection());
 
         // Act
         $results = $qb->from('users')
@@ -148,7 +148,7 @@ class QueryBuilderTest extends TestCase
     {
         // Arrange
         $this->seedUsers();
-        $qb = new QueryBuilder($this->connection);
+        $qb = new QueryBuilder($this->connection());
 
         // Act
         $results = $qb->from('users')
@@ -164,7 +164,7 @@ class QueryBuilderTest extends TestCase
     {
         // Arrange
         $this->seedUsers();
-        $qb = new QueryBuilder($this->connection);
+        $qb = new QueryBuilder($this->connection());
 
         // Act
         $results = $qb->from('users')
@@ -181,7 +181,7 @@ class QueryBuilderTest extends TestCase
     {
         // Arrange
         $this->seedUsers();
-        $qb = new QueryBuilder($this->connection);
+        $qb = new QueryBuilder($this->connection());
 
         // Act
         $results = $qb->from('users')
@@ -197,7 +197,7 @@ class QueryBuilderTest extends TestCase
     {
         // Arrange
         $this->seedUsers();
-        $qb = new QueryBuilder($this->connection);
+        $qb = new QueryBuilder($this->connection());
 
         // Act
         $results = $qb->from('users')
@@ -218,7 +218,7 @@ class QueryBuilderTest extends TestCase
         $this->seed('users', [
             ['name' => 'Test User', 'email' => 'test@example.com', 'status' => 'active', 'age' => null, 'created_at' => date('Y-m-d H:i:s')],
         ]);
-        $qb = new QueryBuilder($this->connection);
+        $qb = new QueryBuilder($this->connection());
 
         // Act
         $results = $qb->from('users')
@@ -234,7 +234,7 @@ class QueryBuilderTest extends TestCase
     {
         // Arrange
         $this->seedUsers();
-        $qb = new QueryBuilder($this->connection);
+        $qb = new QueryBuilder($this->connection());
 
         // Act
         $results = $qb->from('users')
@@ -250,7 +250,7 @@ class QueryBuilderTest extends TestCase
     {
         // Arrange
         $this->seedUsers();
-        $qb = new QueryBuilder($this->connection);
+        $qb = new QueryBuilder($this->connection());
 
         // Act
         $results = $qb->from('users')
@@ -269,7 +269,7 @@ class QueryBuilderTest extends TestCase
     {
         // Arrange
         $this->seedUsers();
-        $qb = new QueryBuilder($this->connection);
+        $qb = new QueryBuilder($this->connection());
 
         // Act
         $results = $qb->from('users')
@@ -289,7 +289,7 @@ class QueryBuilderTest extends TestCase
     {
         // Arrange
         $this->seedUsersAndPosts();
-        $qb = new QueryBuilder($this->connection);
+        $qb = new QueryBuilder($this->connection());
 
         // Act
         $results = $qb->from('users', 'u')
@@ -307,7 +307,7 @@ class QueryBuilderTest extends TestCase
     {
         // Arrange
         $this->seedUsersAndPosts();
-        $qb = new QueryBuilder($this->connection);
+        $qb = new QueryBuilder($this->connection());
 
         // Act
         $results = $qb->from('users', 'u')
@@ -327,7 +327,7 @@ class QueryBuilderTest extends TestCase
     {
         // Arrange
         $this->seedUsers();
-        $qb = new QueryBuilder($this->connection);
+        $qb = new QueryBuilder($this->connection());
 
         // Act
         $results = $qb->from('users')
@@ -344,7 +344,7 @@ class QueryBuilderTest extends TestCase
     {
         // Arrange
         $this->seedUsers();
-        $qb = new QueryBuilder($this->connection);
+        $qb = new QueryBuilder($this->connection());
 
         // Act
         $results = $qb->from('users')
@@ -360,7 +360,7 @@ class QueryBuilderTest extends TestCase
     {
         // Arrange
         $this->seedUsers();
-        $qb = new QueryBuilder($this->connection);
+        $qb = new QueryBuilder($this->connection());
 
         // Act
         $results = $qb->from('users')
@@ -376,7 +376,7 @@ class QueryBuilderTest extends TestCase
     {
         // Arrange
         $this->seedUsers();
-        $qb = new QueryBuilder($this->connection);
+        $qb = new QueryBuilder($this->connection());
 
         // Act
         $results = $qb->from('users')
@@ -394,7 +394,7 @@ class QueryBuilderTest extends TestCase
     {
         // Arrange
         $this->seedUsersAndPosts();
-        $qb = new QueryBuilder($this->connection);
+        $qb = new QueryBuilder($this->connection());
 
         // Act
         $results = $qb->from('posts', 'p')
@@ -413,7 +413,7 @@ class QueryBuilderTest extends TestCase
     public function testInsert(): void
     {
         // Arrange
-        $qb = new QueryBuilder($this->connection);
+        $qb = new QueryBuilder($this->connection());
 
         // Act
         $affectedRows = $qb->from('users')->insert([
@@ -433,8 +433,8 @@ class QueryBuilderTest extends TestCase
     public function testMultipleInserts(): void
     {
         // Arrange
-        $qb1 = new QueryBuilder($this->connection);
-        $qb2 = new QueryBuilder($this->connection);
+        $qb1 = new QueryBuilder($this->connection());
+        $qb2 = new QueryBuilder($this->connection());
 
         // Act
         $qb1->from('users')->insert([
@@ -466,7 +466,7 @@ class QueryBuilderTest extends TestCase
     {
         // Arrange
         $this->seedUsers();
-        $qb = new QueryBuilder($this->connection);
+        $qb = new QueryBuilder($this->connection());
 
         // Act
         $affectedRows = $qb->from('users')
@@ -486,7 +486,7 @@ class QueryBuilderTest extends TestCase
     {
         // Arrange
         $this->seedUsers();
-        $qb = new QueryBuilder($this->connection);
+        $qb = new QueryBuilder($this->connection());
 
         // Act
         $affectedRows = $qb->from('users')
@@ -506,7 +506,7 @@ class QueryBuilderTest extends TestCase
     {
         // Arrange
         $this->seedUsers();
-        $qb = new QueryBuilder($this->connection);
+        $qb = new QueryBuilder($this->connection());
 
         // Act
         $affectedRows = $qb->from('users')
@@ -524,7 +524,7 @@ class QueryBuilderTest extends TestCase
     {
         // Arrange
         $this->seedUsers();
-        $qb = new QueryBuilder($this->connection);
+        $qb = new QueryBuilder($this->connection());
 
         // Act
         $affectedRows = $qb->from('users')
@@ -544,7 +544,7 @@ class QueryBuilderTest extends TestCase
     {
         // Arrange
         $this->seedUsers();
-        $qb = new QueryBuilder($this->connection);
+        $qb = new QueryBuilder($this->connection());
 
         // Act
         $results = $qb->from('users')->select()->get();
@@ -557,7 +557,7 @@ class QueryBuilderTest extends TestCase
     {
         // Arrange
         $this->seedUsers();
-        $qb = new QueryBuilder($this->connection);
+        $qb = new QueryBuilder($this->connection());
 
         // Act
         $result = $qb->from('users')
@@ -574,7 +574,7 @@ class QueryBuilderTest extends TestCase
     {
         // Arrange
         $this->seedUsers();
-        $qb = new QueryBuilder($this->connection);
+        $qb = new QueryBuilder($this->connection());
 
         // Act
         $result = $qb->from('users')
@@ -590,7 +590,7 @@ class QueryBuilderTest extends TestCase
     {
         // Arrange
         $this->seedUsers();
-        $qb = new QueryBuilder($this->connection);
+        $qb = new QueryBuilder($this->connection());
 
         // Act
         $count = $qb->from('users')->count();
@@ -603,7 +603,7 @@ class QueryBuilderTest extends TestCase
     {
         // Arrange
         $this->seedUsers();
-        $qb = new QueryBuilder($this->connection);
+        $qb = new QueryBuilder($this->connection());
 
         // Act
         $count = $qb->from('users')
@@ -618,7 +618,7 @@ class QueryBuilderTest extends TestCase
     {
         // Arrange
         $this->seedUsers();
-        $qb = new QueryBuilder($this->connection);
+        $qb = new QueryBuilder($this->connection());
 
         // Act
         $emails = $qb->from('users')
@@ -639,7 +639,7 @@ class QueryBuilderTest extends TestCase
     {
         // Arrange
         $this->seedUsers();
-        $qb = new QueryBuilder($this->connection);
+        $qb = new QueryBuilder($this->connection());
 
         // Act
         $results = $qb->from('users')
@@ -659,7 +659,7 @@ class QueryBuilderTest extends TestCase
     {
         // Arrange
         $this->seedUsersAndPosts();
-        $qb = new QueryBuilder($this->connection);
+        $qb = new QueryBuilder($this->connection());
 
         // Act
         $results = $qb->from('users', 'u')
@@ -684,7 +684,7 @@ class QueryBuilderTest extends TestCase
     public function testToSql(): void
     {
         // Arrange
-        $qb = new QueryBuilder($this->connection);
+        $qb = new QueryBuilder($this->connection());
 
         // Act
         $sql = $qb->from('users')
@@ -701,7 +701,7 @@ class QueryBuilderTest extends TestCase
     public function testGetQueryBuilder(): void
     {
         // Arrange
-        $qb = new QueryBuilder($this->connection);
+        $qb = new QueryBuilder($this->connection());
 
         // Act
         $dbalQb = $qb->getQueryBuilder();
@@ -713,7 +713,7 @@ class QueryBuilderTest extends TestCase
     public function testExpr(): void
     {
         // Arrange
-        $qb = new QueryBuilder($this->connection);
+        $qb = new QueryBuilder($this->connection());
 
         // Act
         $expr = $qb->expr();
@@ -731,7 +731,7 @@ class QueryBuilderTest extends TestCase
         // Arrange
         $this->seedUsers();
         $this->setSlowQueryThreshold(0.1); // 100ms threshold
-        $qb = new QueryBuilder($this->connection);
+        $qb = new QueryBuilder($this->connection());
 
         // Act
         $qb->from('users')->select()->get();
@@ -744,7 +744,7 @@ class QueryBuilderTest extends TestCase
     {
         // Arrange
         $this->seedUsers();
-        $qb = new QueryBuilder($this->connection);
+        $qb = new QueryBuilder($this->connection());
 
         // Act
         $qb->from('users')->select()->get();
@@ -765,7 +765,7 @@ class QueryBuilderTest extends TestCase
     public function testInvalidOrderDirection(): void
     {
         // Arrange
-        $qb = new QueryBuilder($this->connection);
+        $qb = new QueryBuilder($this->connection());
 
         // Assert
         $this->expectException(\InvalidArgumentException::class);
@@ -779,7 +779,7 @@ class QueryBuilderTest extends TestCase
     {
         // Arrange
         $this->seedUsers();
-        $qb = new QueryBuilder($this->connection);
+        $qb = new QueryBuilder($this->connection());
 
         // Act
         $results = $qb->from('users')
@@ -827,7 +827,7 @@ class QueryBuilderTest extends TestCase
         $this->seedUsers();
 
         // Get user IDs
-        $users = $this->connection->createQueryBuilder()
+        $users = $this->connection()->createQueryBuilder()
             ->select('id', 'email')
             ->from('users')
             ->executeQuery()

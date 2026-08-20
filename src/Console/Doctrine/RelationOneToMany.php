@@ -11,12 +11,12 @@ final class RelationOneToMany extends BaseCollectionRelation
 {
     public function getTargetGetterMethodName(): string
     {
-        return 'get'.Str::asCamelCase($this->getTargetPropertyName());
+        return 'get'.Str::asCamelCase($this->requireTargetPropertyName());
     }
 
     public function getTargetSetterMethodName(): string
     {
-        return 'set'.Str::asCamelCase($this->getTargetPropertyName());
+        return 'set'.Str::asCamelCase($this->requireTargetPropertyName());
     }
 
     public function isMapInverseRelation(): bool

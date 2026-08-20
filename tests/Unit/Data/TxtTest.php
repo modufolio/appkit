@@ -13,7 +13,7 @@ class TxtTest extends TestCase
 {
     public const FIXTURES = __DIR__.'/fixtures';
 
-    public function testEncodeDecode()
+    public function testEncodeDecode(): void
     {
         $array = [
             'title' => 'Title',
@@ -36,7 +36,7 @@ class TxtTest extends TestCase
         $this->assertSame(['this is' => 'an array'], Txt::decode(['this is' => 'an array']));
     }
 
-    public function testEncodeDecodeMixedCase()
+    public function testEncodeDecodeMixedCase(): void
     {
         $array = [
             'title' => 'Title',
@@ -58,7 +58,7 @@ class TxtTest extends TestCase
         ], $result);
     }
 
-    public function testEncodeMissingValues()
+    public function testEncodeMissingValues(): void
     {
         $array = [
             'title' => 'Title',
@@ -74,7 +74,7 @@ class TxtTest extends TestCase
         );
     }
 
-    public function testEncodeMultiline()
+    public function testEncodeMultiline(): void
     {
         $array = [
             'title' => 'Title',
@@ -88,7 +88,7 @@ class TxtTest extends TestCase
         );
     }
 
-    public function testEncodeDecodeDivider()
+    public function testEncodeDecodeDivider(): void
     {
         $array = [
             'title' => 'Title',
@@ -105,7 +105,7 @@ class TxtTest extends TestCase
         $this->assertSame($array, Txt::decode($data));
     }
 
-    public function testEncodeArray()
+    public function testEncodeArray(): void
     {
         $array = [
             'title' => 'Title',
@@ -117,7 +117,7 @@ class TxtTest extends TestCase
         $this->assertSame(file_get_contents(static::FIXTURES.'/test.txt'), $data);
     }
 
-    public function testEncodeFloat()
+    public function testEncodeFloat(): void
     {
         $data = Txt::encode([
             'number' => (float) 3.2,
@@ -126,9 +126,9 @@ class TxtTest extends TestCase
         $this->assertSame('Number: 3.2', $data);
     }
 
-    public function testEncodeFloatWithLocaleSetting()
+    public function testEncodeFloatWithLocaleSetting(): void
     {
-        $currentLocale = setlocale(LC_ALL, null);
+        $currentLocale = setlocale(LC_ALL, null) ?: null;
         setlocale(LC_ALL, 'de_DE');
 
         $data = Txt::encode([
@@ -140,7 +140,7 @@ class TxtTest extends TestCase
         setlocale(LC_ALL, $currentLocale);
     }
 
-    public function testDecodeFile()
+    public function testDecodeFile(): void
     {
         $array = [
             'title_with_spaces' => 'Title',
@@ -151,7 +151,7 @@ class TxtTest extends TestCase
         $this->assertSame($array, $data);
     }
 
-    public function testDecodeBom1()
+    public function testDecodeBom1(): void
     {
         $string = "\xEF\xBB\xBFTitle: title field with BOM \xEF\xBB\xBF\n----\nText: text field";
         $array = [
@@ -162,7 +162,7 @@ class TxtTest extends TestCase
         $this->assertSame($array, Txt::decode($string));
     }
 
-    public function testDecodeBom2()
+    public function testDecodeBom2(): void
     {
         $string = "\xEF\xBB\xBFTitle: title field with BOM\n--\xEF\xBB\xBF--\nand more text\n----\nText: text field";
         $array = [
@@ -173,7 +173,7 @@ class TxtTest extends TestCase
         $this->assertSame($array, Txt::decode($string));
     }
 
-    public function testDecodeInvalid1()
+    public function testDecodeInvalid1(): void
     {
         // pass invalid object
         $this->expectException(\InvalidArgumentException::class);
@@ -181,7 +181,7 @@ class TxtTest extends TestCase
         Txt::decode(new \stdClass());
     }
 
-    public function testDecodeInvalid2()
+    public function testDecodeInvalid2(): void
     {
         // pass invalid int
         $this->expectException(\InvalidArgumentException::class);

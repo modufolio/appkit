@@ -13,6 +13,9 @@ use Symfony\Component\HttpFoundation\Session\SessionInterface;
 #[CoversClass(CsrfTokenManager::class)]
 class CsrfTokenManagerTest extends TestCase
 {
+    /**
+     * @param array<string, mixed> $sessionData
+     */
     private function createMockSession(array $sessionData = []): SessionInterface
     {
         $session = $this->createMock(SessionInterface::class);

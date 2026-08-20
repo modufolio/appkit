@@ -34,7 +34,7 @@ class MyServiceTest extends TestCase
     public function testDatabaseOperation(): void
     {
         // Execute your code
-        $this->connection->insert('users', [
+        $this->connection()->insert('users', [
             'id' => 1,
             'name' => 'John',
             'email' => 'john@example.com',
@@ -51,14 +51,14 @@ class MyServiceTest extends TestCase
      */
     public function testTransactionAssertionsTrackCommits(): void
     {
-        $this->connection->beginTransaction();
-        $this->connection->insert('users', [
+        $this->connection()->beginTransaction();
+        $this->connection()->insert('users', [
             'id' => 2,
             'name' => 'Jane',
             'email' => 'jane@example.com',
             'created_at' => (new \DateTime())->format('Y-m-d H:i:s'),
         ]);
-        $this->connection->commit();
+        $this->connection()->commit();
 
         $this->syncQueryTracking();
         $this->assertTransactionCommitted();
@@ -69,14 +69,14 @@ class MyServiceTest extends TestCase
      */
     public function testTransactionAssertionsTrackRollbacks(): void
     {
-        $this->connection->beginTransaction();
-        $this->connection->insert('users', [
+        $this->connection()->beginTransaction();
+        $this->connection()->insert('users', [
             'id' => 3,
             'name' => 'Joe',
             'email' => 'joe@example.com',
             'created_at' => (new \DateTime())->format('Y-m-d H:i:s'),
         ]);
-        $this->connection->rollBack();
+        $this->connection()->rollBack();
 
         $this->syncQueryTracking();
         $this->assertTransactionRolledBack();

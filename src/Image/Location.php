@@ -24,6 +24,8 @@ class Location implements \Stringable
      * Constructor.
      *
      * @param array $exif The entire exif array
+     *
+     * @param array<string, mixed> $exif
      */
     public function __construct(array $exif)
     {
@@ -62,6 +64,8 @@ class Location implements \Stringable
 
     /**
      * Converts the gps coordinates.
+     *
+     * @param list<mixed> $coord
      */
     protected function gps(array $coord, string $hemi): float
     {
@@ -91,6 +95,8 @@ class Location implements \Stringable
 
     /**
      * Converts the object into a nicely readable array.
+     *
+     * @return array<string, mixed>
      */
     public function toArray(): array
     {

@@ -11,6 +11,9 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(A::class)]
 class ATest extends TestCase
 {
+    /**
+     * @return array<string, mixed>
+     */
     protected function _array(): array
     {
         return [
@@ -20,7 +23,7 @@ class ATest extends TestCase
         ];
     }
 
-    public function testAppend()
+    public function testAppend(): void
     {
         // associative
         $one = ['a' => 'A', 'b' => 'B', 'c' => 'C'];
@@ -41,7 +44,7 @@ class ATest extends TestCase
         $this->assertSame(['a' => 'A', 'b' => 'B', 'c' => 'C', 'd', 'e', 'f'], $result);
     }
 
-    public function testApply()
+    public function testApply(): void
     {
         $array = [
             'level' => [
@@ -67,7 +70,7 @@ class ATest extends TestCase
         $this->assertSame($expected, A::apply($array, 'b', 'c'));
     }
 
-    public function testCount()
+    public function testCount(): void
     {
         $array = $this->_array();
 
@@ -76,7 +79,7 @@ class ATest extends TestCase
         $this->assertSame(0, A::count([]));
     }
 
-    public function testGetWithDotNotation()
+    public function testGetWithDotNotation(): void
     {
         $data = [
             'grand.ma' => $grandma = [
@@ -112,7 +115,7 @@ class ATest extends TestCase
         $this->assertSame('default', A::get($data, 'grand.ma.cousins.4.name', 'default'));
     }
 
-    public function testGetWithNonexistingOptions()
+    public function testGetWithNonexistingOptions(): void
     {
         $data = [
             // 'alexander.the.great' => 'should not be fetched',
@@ -123,7 +126,7 @@ class ATest extends TestCase
         $this->assertSame('not great yet', A::get($data, 'alexander'));
     }
 
-    public function testHas()
+    public function testHas(): void
     {
         $array = $this->_array();
 
@@ -133,7 +136,7 @@ class ATest extends TestCase
         $this->assertFalse(A::has($array, ['miao']));
     }
 
-    public function testMap()
+    public function testMap(): void
     {
         $array = [
             'Peter', 'Bob', 'Mary',
@@ -151,7 +154,7 @@ class ATest extends TestCase
         );
     }
 
-    public function testMapWithFunction()
+    public function testMapWithFunction(): void
     {
         $array = [' A ', 'B ', ' C'];
         $expected = ['A', 'B', 'C'];
@@ -159,7 +162,7 @@ class ATest extends TestCase
         $this->assertSame($expected, A::map($array, 'trim'));
     }
 
-    public function testMerge()
+    public function testMerge(): void
     {
         // simple non-associative arrays
         $a = ['a', 'b'];
@@ -213,7 +216,7 @@ class ATest extends TestCase
         $this->assertSame($expected, $result);
     }
 
-    public function testMergeMultiples()
+    public function testMergeMultiples(): void
     {
         // simple non-associative arrays
         $a = ['a', 'b'];
@@ -240,7 +243,7 @@ class ATest extends TestCase
         $this->assertSame($expected, $result);
     }
 
-    public function testMergeModes()
+    public function testMergeModes(): void
     {
         // simple non-associative arrays
         $a = [1 => 'a', 4 => 'b'];
@@ -282,7 +285,7 @@ class ATest extends TestCase
         $this->assertSame($expected, $result);
     }
 
-    public function testPluck()
+    public function testPluck(): void
     {
         $array = [
             ['id' => 1, 'username' => 'bastian'],
@@ -297,7 +300,7 @@ class ATest extends TestCase
         ], A::pluck($array, 'username'));
     }
 
-    public function testShuffle()
+    public function testShuffle(): void
     {
         $array = $this->_array();
         $shuffled = A::shuffle($array);
@@ -307,7 +310,7 @@ class ATest extends TestCase
         $this->assertSame($array['bird'], $shuffled['bird']);
     }
 
-    public function testReduce()
+    public function testReduce(): void
     {
         $array = $this->_array();
 
@@ -325,7 +328,7 @@ class ATest extends TestCase
         $this->assertSame(null, $reduced);
     }
 
-    public function testSlice()
+    public function testSlice(): void
     {
         $array = $this->_array();
 
@@ -336,7 +339,7 @@ class ATest extends TestCase
         $this->assertSame($array, A::slice($array, 0));
     }
 
-    public function testSum()
+    public function testSum(): void
     {
         $array = $this->_array();
 
@@ -346,17 +349,17 @@ class ATest extends TestCase
         $this->assertSame(6.0, A::sum([1.2, 2.4, 2.4]));
     }
 
-    public function testFirst()
+    public function testFirst(): void
     {
         $this->assertSame('miao', A::first($this->_array()));
     }
 
-    public function testLast()
+    public function testLast(): void
     {
         $this->assertSame('tweet', A::last($this->_array()));
     }
 
-    public function testRandom()
+    public function testRandom(): void
     {
         $array = $this->_array();
         $arrayKeys = array_flip(array_keys($array));
@@ -365,11 +368,11 @@ class ATest extends TestCase
         // Assert existence and correctness of keys
         $random1 = A::random($array, 1);
         $this->assertTrue(in_array(array_values($random1)[0], $array));
-        $this->assertTrue(array_key_exists(array_key_first($random1), $array));
+        $this->assertTrue(array_key_exists((string) array_key_first($random1), $array));
 
         // Assert order of keys in non-shuffled random
         $random2 = A::random($array, 2);
-        $this->assertTrue($arrayKeys[array_key_first($random2)] < $arrayKeys[array_key_last($random2)]);
+        $this->assertTrue($arrayKeys[(string) array_key_first($random2)] < $arrayKeys[(string) array_key_last($random2)]);
 
         // Assert count in completely shuffled array
         $random3 = A::random($array, 3, true);
@@ -381,7 +384,7 @@ class ATest extends TestCase
         }
     }
 
-    public function testFill()
+    public function testFill(): void
     {
         $array = [
             'miao',
@@ -420,7 +423,7 @@ class ATest extends TestCase
         $this->assertSame([1, 2, 3], A::fill([], 3, fn (int $i) => $i + 1));
     }
 
-    public function testMove()
+    public function testMove(): void
     {
         $input = [
             'a',
@@ -439,7 +442,7 @@ class ATest extends TestCase
         $this->assertSame(['b', 'a', 'c', 'd'], A::move($input, 1, 0));
     }
 
-    public function testMissing()
+    public function testMissing(): void
     {
         $required = ['cat', 'elephant'];
 
@@ -447,7 +450,7 @@ class ATest extends TestCase
         $this->assertSame([], A::missing($this->_array(), ['cat']));
     }
 
-    public function testNest()
+    public function testNest(): void
     {
         // simple example
         $input = [
@@ -620,14 +623,14 @@ class ATest extends TestCase
         $this->assertSame($expected, A::nest($input));
     }
 
-    public function testNestByKeys()
+    public function testNestByKeys(): void
     {
         $this->assertSame('test', A::nestByKeys('test', []));
         $this->assertSame(['a' => 'test'], A::nestByKeys('test', ['a']));
         $this->assertSame(['a' => ['b' => 'test']], A::nestByKeys('test', ['a', 'b']));
     }
 
-    public function testSort()
+    public function testSort(): void
     {
         $array = [
             ['id' => 1, 'username' => 'bastian'],
@@ -671,7 +674,7 @@ class ATest extends TestCase
         $this->assertSame(3, array_search('img12.png', array_column($natural, 'file')));
     }
 
-    public function testIsAssociative()
+    public function testIsAssociative(): void
     {
         $yes = $this->_array();
         $no = ['cat', 'dog', 'bird'];
@@ -680,7 +683,7 @@ class ATest extends TestCase
         $this->assertFalse(A::isAssociative($no));
     }
 
-    public function testAverage()
+    public function testAverage(): void
     {
         $array = [5, 2, 4, 7, 9.7];
 
@@ -690,7 +693,7 @@ class ATest extends TestCase
         $this->assertNull(A::average([]));
     }
 
-    public function testExtend()
+    public function testExtend(): void
     {
         // simple
         $a = $this->_array();
@@ -730,7 +733,7 @@ class ATest extends TestCase
         $this->assertSame($merged, A::extend($a, $b));
     }
 
-    public function testJoin()
+    public function testJoin(): void
     {
         $array = ['a', 'b', 'c'];
         $this->assertSame('a, b, c', A::join($array));
@@ -741,7 +744,7 @@ class ATest extends TestCase
         $this->assertSame('a/b/c', A::join('a/b/c'));
     }
 
-    public function testKeyBy()
+    public function testKeyBy(): void
     {
         $array = [
             ['id' => 1, 'username' => 'bastian'],
@@ -778,7 +781,7 @@ class ATest extends TestCase
         $this->assertSame($array_by_id, A::keyBy($array_by_cb, 'id'));
     }
 
-    public function testKeyByWithNonexistentKeys()
+    public function testKeyByWithNonexistentKeys(): void
     {
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('The "key by" argument must be a valid key or a callable');
@@ -792,7 +795,7 @@ class ATest extends TestCase
         A::keyBy($array, 'nonexistent');
     }
 
-    public function testUpdate()
+    public function testUpdate(): void
     {
         $array = $this->_array();
         $updated = [
@@ -811,7 +814,7 @@ class ATest extends TestCase
         );
     }
 
-    public function testWrap()
+    public function testWrap(): void
     {
         $result = A::wrap($expected = ['a', 'b']);
         $this->assertSame($expected, $result);
@@ -823,7 +826,7 @@ class ATest extends TestCase
         $this->assertSame([], $result);
     }
 
-    public function testFilter()
+    public function testFilter(): void
     {
         $associativeArray = $this->_array();
         $indexedArray = array_keys($associativeArray);
@@ -850,7 +853,7 @@ class ATest extends TestCase
         $this->assertSame([1 => 'dog', 2 => 'bird'], $result);
     }
 
-    public function testWithout()
+    public function testWithout(): void
     {
         $associativeArray = $this->_array();
         $indexedArray = [...array_keys($associativeArray), ...array_keys($associativeArray)];
@@ -903,7 +906,7 @@ class ATest extends TestCase
 
     public function testEndsWith(): void
     {
-        $this->assertSame(['test.jpg'], array_values(A::endsWith('.jpg', ['test.jpg', 'test.png'])));
+        $this->assertSame(['test.jpg'], array_values((array) A::endsWith('.jpg', ['test.jpg', 'test.png'])));
     }
 
     public function testGroupBy(): void
@@ -999,7 +1002,7 @@ class ATest extends TestCase
 
     public function testStartsWith(): void
     {
-        $this->assertSame(['apple'], array_values(A::startsWith('app', ['apple', 'banana'])));
+        $this->assertSame(['apple'], array_values((array) A::startsWith('app', ['apple', 'banana'])));
         $this->assertNull(A::startsWith('zzz', ['apple', 'banana']));
     }
 

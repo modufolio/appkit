@@ -30,8 +30,7 @@ class IsGrantedTest extends TestCase
     {
         $attribute = new IsGranted('ROLE_DEVELOPER');
 
-        $this->assertIsArray($attribute->roles);
-        $this->assertCount(1, $attribute->roles);
+        $this->assertSame(['ROLE_DEVELOPER'], $attribute->roles);
         $this->assertContains('ROLE_DEVELOPER', $attribute->roles);
     }
 
@@ -39,7 +38,6 @@ class IsGrantedTest extends TestCase
     {
         $attribute = new IsGranted(['ROLE_ADMIN']);
 
-        $this->assertIsArray($attribute->roles);
         $this->assertContains('ROLE_ADMIN', $attribute->roles);
     }
 

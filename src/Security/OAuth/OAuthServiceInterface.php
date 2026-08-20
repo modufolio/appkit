@@ -17,6 +17,8 @@ interface OAuthServiceInterface
 {
     /**
      * Create an access token with optional refresh token.
+     *
+     * @param list<string> $scopes
      */
     public function createAccessToken(
         UserInterface $user,
@@ -57,6 +59,8 @@ interface OAuthServiceInterface
 
     /**
      * Format a token entity into an OAuth 2.1 token response array.
+     *
+     * @return array<string, mixed>
      */
     public function formatTokenResponse(#[\SensitiveParameter] OAuthAccessTokenInterface $token): array;
 

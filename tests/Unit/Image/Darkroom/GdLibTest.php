@@ -71,7 +71,7 @@ class GdLibTest extends TestCase
         $result = $gd->process($file, ['width' => 100]);
 
         $this->assertSame(100, $result['width']);
-        $this->assertSame([100, 67], array_slice(getimagesize($file), 0, 2));
+        $this->assertSame([100, 67], array_slice(getimagesize($file) ?: [], 0, 2));
     }
 
     public function testProcessWithCenterCrop(): void
@@ -82,7 +82,7 @@ class GdLibTest extends TestCase
         $result = $gd->process($file, ['width' => 100, 'height' => 80, 'crop' => true]);
 
         $this->assertSame('center', $result['crop']);
-        $this->assertSame([100, 80], array_slice(getimagesize($file), 0, 2));
+        $this->assertSame([100, 80], array_slice(getimagesize($file) ?: [], 0, 2));
     }
 
     public function testProcessWithCropAnchor(): void
@@ -93,7 +93,7 @@ class GdLibTest extends TestCase
         $result = $gd->process($file, ['width' => 100, 'height' => 100, 'crop' => 'top left']);
 
         $this->assertSame('top left', $result['crop']);
-        $this->assertSame([100, 100], array_slice(getimagesize($file), 0, 2));
+        $this->assertSame([100, 100], array_slice(getimagesize($file) ?: [], 0, 2));
     }
 
     public function testProcessWithFocalPointCrop(): void
@@ -104,7 +104,7 @@ class GdLibTest extends TestCase
         $result = $gd->process($file, ['width' => 100, 'height' => 100, 'crop' => '30%,60%']);
 
         $this->assertSame('30%,60%', $result['crop']);
-        $this->assertSame([100, 100], array_slice(getimagesize($file), 0, 2));
+        $this->assertSame([100, 100], array_slice(getimagesize($file) ?: [], 0, 2));
     }
 
     public function testProcessWithBlur(): void
@@ -128,6 +128,7 @@ class GdLibTest extends TestCase
 
         // verify pixels are actually desaturated
         $image = imagecreatefromjpeg($file);
+        $this->assertNotFalse($image);
         $rgb = imagecolorat($image, 25, 20);
         $r = ($rgb >> 16) & 0xFF;
         $g = ($rgb >> 8) & 0xFF;

@@ -15,6 +15,9 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 class AppServiceAccessTest extends AppTestCase
 {
+    /**
+     * @param class-string $expectedClass
+     */
     #[DataProvider('serviceAccessProvider')]
     public function testAppServiceAccess(string $method, string $expectedClass): void
     {
@@ -25,6 +28,9 @@ class AppServiceAccessTest extends AppTestCase
         $this->assertInstanceOf($expectedClass, $service);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public static function serviceAccessProvider(): array
     {
         return [

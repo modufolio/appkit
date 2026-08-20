@@ -28,7 +28,13 @@ final class EntityClassGenerator
             'Repository'
         );
 
-        $tableName = $this->doctrineHelper->getPotentialTableName($entityClassDetails->getFullName());
+        $entityFullName = $entityClassDetails->getFullName();
+
+        if (!class_exists($entityFullName)) {
+            throw new \InvalidArgumentException(\sprintf('Entity class "%s" does not exist.', $entityFullName));
+        }
+
+        $tableName = $this->doctrineHelper->getPotentialTableName($entityFullName);
 
         $useStatements = new UseStatementGenerator([
             $repoClassDetails->getFullName(),

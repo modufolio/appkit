@@ -7,12 +7,15 @@ namespace Modufolio\Appkit\Util;
 final class ClassDetails
 {
     public function __construct(
+        /** @var class-string */
         private string $fullClassName,
     ) {
     }
 
     /**
      * Get list of property names except "id" for use in a make:form context.
+     *
+     * @return array<string, null>
      */
     public function getFormFields(): array
     {
@@ -28,6 +31,9 @@ final class ClassDetails
         return $fieldsWithTypes;
     }
 
+    /**
+     * @return list<string>
+     */
     private function getProperties(): array
     {
         $reflect = new \ReflectionClass($this->fullClassName);
@@ -44,7 +50,13 @@ final class ClassDetails
 
     public function getPath(): string
     {
-        return (new \ReflectionClass($this->fullClassName))->getFileName();
+        $file = (new \ReflectionClass($this->fullClassName))->getFileName();
+
+        if (false === $file) {
+            throw new \RuntimeException(sprintf('Class "%s" is not defined in a file.', $this->fullClassName));
+        }
+
+        return $file;
     }
 
     public function hasAttribute(string $attributeClassName): bool

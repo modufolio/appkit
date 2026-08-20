@@ -70,6 +70,9 @@ class SwitchUserToken extends AbstractToken
         return [$this->firewallName, $this->originalToken, parent::__serialize()];
     }
 
+    /**
+     * @param array<int|string, mixed> $data
+     */
     public function __unserialize(array $data): void
     {
         // Block gadget-chain "trampolines": a forged payload placing an object

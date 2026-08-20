@@ -15,6 +15,10 @@ class OAuthToken extends AbstractToken
 {
     private string $firewallName;
 
+    /**
+     * @param list<string> $scopes
+     * @param list<string> $roles
+     */
     public function __construct(
         UserInterface $user,
         string $firewallName,
@@ -36,6 +40,9 @@ class OAuthToken extends AbstractToken
         return $this->firewallName;
     }
 
+    /**
+     * @return list<string>
+     */
     public function getScopes(): array
     {
         return $this->scopes;

@@ -23,10 +23,16 @@ use Psr\Log\NullLogger;
  */
 class OAuthAuthenticator extends AbstractAuthenticator
 {
+    /** @var array<string, mixed> */
     private array $options;
     private LoggerInterface $logger;
+
+    /** @var list<string> */
     private array $lastScopes = [];
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function __construct(
         private OAuthServiceInterface $oauthService,
         array $options = [],

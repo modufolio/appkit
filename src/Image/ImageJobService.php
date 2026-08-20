@@ -27,6 +27,8 @@ class ImageJobService implements JobStorageInterface
      * Save a thumbnail generation job.
      *
      * @param string $mediaRoot The media root directory path for storing job info
+     *
+     * @param array<string, mixed> $options
      */
     public function saveJob(
         string $mediaRoot,
@@ -44,6 +46,8 @@ class ImageJobService implements JobStorageInterface
      * Load a job by thumbnail name.
      *
      * @param string $mediaRoot The media root directory path
+     *
+     * @return array<string, mixed>
      */
     public function loadJob(string $mediaRoot, string $thumbName): ?array
     {

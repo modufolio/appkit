@@ -23,7 +23,7 @@ class PHP extends Handler
      *
      * @param string $indent For internal use only
      */
-    public static function encode($data, string $indent = ''): string
+    public static function encode(mixed $data, string $indent = ''): string
     {
         switch (gettype($data)) {
             case 'array':
@@ -47,14 +47,18 @@ class PHP extends Handler
 
     /**
      * PHP strings shouldn't be decoded manually.
+     *
+     * @return array<string, mixed>
      */
-    public static function decode($string): array
+    public static function decode(mixed $string): array
     {
         throw new \BadMethodCallException('The PHP::decode() method is not implemented');
     }
 
     /**
      * Reads data from a file.
+     *
+     * @return array<string, mixed>
      *
      * @throws \Exception
      */
@@ -70,7 +74,7 @@ class PHP extends Handler
     /**
      * Creates a PHP file with the given data.
      */
-    public static function write(string $file, $data = []): bool
+    public static function write(string $file, mixed $data = []): bool
     {
         $php = static::encode($data);
         $php = "<?php\n\nreturn {$php};";

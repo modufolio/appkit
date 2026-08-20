@@ -206,6 +206,7 @@ class ImageProcessorTest extends TestCase
 
         $variant = $processor->process();
 
+        $this->assertInstanceOf(ImageVariant::class, $variant);
         $this->assertTrue($variant->exists());
         $this->assertFalse($this->jobStorage->jobExists($mediaRoot, 'test-image.png'));
     }
@@ -231,6 +232,7 @@ class ImageProcessorTest extends TestCase
         $mediaRoot = dirname($file->mediaRoot());
         $job = $this->jobStorage->loadJob($mediaRoot, 'test-image-300x200-q80.png');
 
+        $this->assertNotNull($job);
         $this->assertSame(300, $job['width']);
         $this->assertSame(80, $job['quality']);
         $this->assertSame('test-image.png', $job['filename']);
@@ -249,6 +251,7 @@ class ImageProcessorTest extends TestCase
 
         $variant = $processor->process();
 
+        $this->assertInstanceOf(ImageVariant::class, $variant);
         $this->assertSame('test-image-100x.png', $variant->filename());
         $this->assertFalse($this->jobStorage->jobExists($mediaRoot, 'test-image-100x.png'));
     }

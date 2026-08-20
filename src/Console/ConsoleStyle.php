@@ -21,12 +21,20 @@ final class ConsoleStyle extends SymfonyStyle
         parent::__construct($input, $output);
     }
 
-    public function success($message): void
+    /**
+     * @param string|list<string> $message
+     */
+    public function success(string|array $message): void
     {
-        $this->writeln('<fg=green;options=bold,underscore>OK</> '.$message);
+        foreach ((array) $message as $line) {
+            $this->writeln('<fg=green;options=bold,underscore>OK</> '.$line);
+        }
     }
 
-    public function comment($message): void
+    /**
+     * @param string|list<string> $message
+     */
+    public function comment(string|array $message): void
     {
         $this->text($message);
     }

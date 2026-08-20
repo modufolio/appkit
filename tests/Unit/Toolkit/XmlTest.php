@@ -14,6 +14,9 @@ class XmlTest extends TestCase
 {
     public const FIXTURES = __DIR__.'/fixtures/xml';
 
+    /**
+     * @param array<string, mixed> $input
+     */
     #[DataProvider('attrProvider')]
     public function testAttr(
         array $input,
@@ -23,6 +26,9 @@ class XmlTest extends TestCase
         $this->assertSame($expected, Xml::attr($input, $value));
     }
 
+    /**
+     * @return list<array<int, mixed>>
+     */
     public static function attrProvider(): array
     {
         return [
@@ -71,7 +77,7 @@ class XmlTest extends TestCase
             '@attributes' => ['type' => 'husband'],
             '@value' => 'Homer',
         ];
-        $this->assertSame($data, Xml::parse(file_get_contents(static::FIXTURES.'/contact.xml')));
+        $this->assertSame($data, Xml::parse((string) file_get_contents(static::FIXTURES.'/contact.xml')));
         $this->assertStringEqualsFile(static::FIXTURES.'/contact.xml', Xml::create($data, 'contact'));
 
         $data = [
@@ -91,7 +97,7 @@ class XmlTest extends TestCase
                 ],
             ],
         ];
-        $this->assertSame($data, Xml::parse(file_get_contents(static::FIXTURES.'/contacts.xml')));
+        $this->assertSame($data, Xml::parse((string) file_get_contents(static::FIXTURES.'/contacts.xml')));
         $this->assertStringEqualsFile(static::FIXTURES.'/contacts_nowrapper.xml', Xml::create($contacts, 'contact', false));
         $this->assertStringEqualsFile(static::FIXTURES.'/contacts.xml', Xml::create($data, 'contacts'));
 
@@ -126,7 +132,7 @@ class XmlTest extends TestCase
             ],
         ];
 
-        $this->assertSame($data, Xml::parse(file_get_contents(static::FIXTURES.'/simpsons.xml')));
+        $this->assertSame($data, Xml::parse((string) file_get_contents(static::FIXTURES.'/simpsons.xml')));
         $this->assertStringEqualsFile(static::FIXTURES.'/simpsons.xml', Xml::create($data, 'invalid'));
         $this->assertStringEqualsFile(static::FIXTURES.'/simpsons_4spaces.xml', Xml::create($data, 'invalid', true, '    '));
 
@@ -149,7 +155,7 @@ class XmlTest extends TestCase
 
     public function testParseRecursiveEntities(): void
     {
-        $xml = file_get_contents(static::FIXTURES.'/billion-laughs.xml');
+        $xml = (string) file_get_contents(static::FIXTURES.'/billion-laughs.xml');
         $this->assertNull(Xml::parse($xml));
     }
 
@@ -216,6 +222,9 @@ class XmlTest extends TestCase
         $this->assertSame($expected, Xml::value($input));
     }
 
+    /**
+     * @return list<array<int, mixed>>
+     */
     public static function valueProvider(): array
     {
         return [

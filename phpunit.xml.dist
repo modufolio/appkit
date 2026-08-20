@@ -5,6 +5,8 @@
          colors="true"
          stderr="true"
          displayDetailsOnPhpunitDeprecations="true"
+         displayDetailsOnTestsThatTriggerWarnings="true"
+         displayDetailsOnSkippedTests="true"
          cacheDirectory=".phpunit.cache"
 >
 

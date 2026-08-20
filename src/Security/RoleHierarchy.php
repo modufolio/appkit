@@ -70,7 +70,7 @@ class RoleHierarchy
         $sorted = $roles;
         sort($sorted, SORT_STRING);
 
-        return hash('xxh3', json_encode($sorted));
+        return hash('xxh3', json_encode($sorted, JSON_THROW_ON_ERROR));
     }
 
     /**

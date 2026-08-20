@@ -27,6 +27,9 @@ trait RequiresCommandTrait
         }
     }
 
+    /**
+     * @param list<string> $commands
+     */
     private function checkCommands(array $commands, ?string $message): void
     {
         foreach ($commands as $command) {

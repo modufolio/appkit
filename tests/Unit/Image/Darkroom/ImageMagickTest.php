@@ -133,11 +133,14 @@ class ImageMagickTest extends TestCase
         }
 
         // ensure that other metadata has been stripped
-        $meta = shell_exec('identify -verbose '.escapeshellarg($file));
+        $meta = (string) shell_exec('identify -verbose '.escapeshellarg($file));
         $this->assertStringNotContainsString('photoshop:CaptionWriter', $meta);
         $this->assertStringNotContainsString('GPS', $meta);
     }
 
+    /**
+     * @return list<array<int, mixed>>
+     */
     public static function keepColorProfileStripMetaProvider(): array
     {
         return [

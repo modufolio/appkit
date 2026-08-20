@@ -28,6 +28,8 @@ class Data
 {
     /**
      * Handler Type Aliases.
+     *
+     * @var array<string, string>
      */
     public static array $aliases = [
         'md' => 'txt',
@@ -38,6 +40,8 @@ class Data
 
     /**
      * All registered handlers.
+     *
+     * @var array<string, class-string<Handler>>
      */
     public static array $handlers = [
         'json' => Json::class,
@@ -76,6 +80,8 @@ class Data
     /**
      * Decodes data with the specified handler.
      *
+     * @return array<string, mixed>
+     *
      * @throws \Exception
      */
     public static function decode(mixed $string, string $type): array
@@ -98,6 +104,8 @@ class Data
      * the data handler is automatically chosen by
      * the extension if not specified.
      *
+     * @return array<string, mixed>
+     *
      * @throws \Exception
      */
     public static function read(string $file, ?string $type = null): array
@@ -109,6 +117,8 @@ class Data
      * Writes data to a file;
      * the data handler is automatically chosen by
      * the extension if not specified.
+     *
+     * @param array<string, mixed> $data
      *
      * @throws \Exception
      */

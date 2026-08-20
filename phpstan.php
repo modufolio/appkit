@@ -15,7 +15,7 @@ return [
         ],
     ],
     'parameters' => [
-        'level' => 5,
+        'level' => 8,
         'paths' => ['src', 'tests'],
         'excludePaths' => [
             'analyseAndScan' => [

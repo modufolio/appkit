@@ -9,6 +9,11 @@ use Symfony\Component\Routing\Route;
 
 class AttributeClassLoader extends \Symfony\Component\Routing\Loader\AttributeClassLoader
 {
+    /**
+     * @template T of object
+     *
+     * @param \ReflectionClass<T> $class
+     */
     protected function configureRoute(
         Route $route,
         \ReflectionClass $class,

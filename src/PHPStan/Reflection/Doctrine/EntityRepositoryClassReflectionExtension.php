@@ -116,7 +116,7 @@ final class EntityRepositoryClassReflectionExtension implements MethodsClassRefl
             return [];
         }
 
-        /* @var list<class-string> */
+        /** @var list<class-string> */
         return $entityClassType->getObjectClassNames();
     }
 }

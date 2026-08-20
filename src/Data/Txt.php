@@ -22,7 +22,7 @@ class Txt extends Handler
     /**
      * Converts an array to an encoded Kirby txt string.
      */
-    public static function encode($data): string
+    public static function encode(mixed $data): string
     {
         $result = [];
 
@@ -42,6 +42,9 @@ class Txt extends Handler
     /**
      * Helper for converting the value.
      */
+    /**
+     * @param array<int|string, mixed>|string|float $value
+     */
     protected static function encodeValue(array|string|float $value): string
     {
         // avoid problems with arrays
@@ -53,7 +56,7 @@ class Txt extends Handler
         }
 
         // escape accidental dividers within a field
-        return preg_replace('!(?<=\n|^)----!', '\\----', $value);
+        return preg_replace('!(?<=\n|^)----!', '\\----', $value) ?? $value;
     }
 
     /**
@@ -77,8 +80,10 @@ class Txt extends Handler
 
     /**
      * Parses a Kirby txt string and returns a multi-dimensional array.
+     *
+     * @return array<string, mixed>
      */
-    public static function decode($string): array
+    public static function decode(mixed $string): array
     {
         if (null === $string || '' === $string) {
             return [];
@@ -98,7 +103,7 @@ class Txt extends Handler
         }
 
         // explode all fields by the line separator
-        $fields = preg_split('!\n----\s*\n*!', $string);
+        $fields = preg_split('!\n----\s*\n*!', $string) ?: [];
 
         // start the data array
         $data = [];

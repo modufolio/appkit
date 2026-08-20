@@ -19,6 +19,7 @@ use Symfony\Component\HttpFoundation\Session\Storage\MetadataBag;
 class TestSession implements FlashBagAwareSessionInterface
 {
     private FlashBagInterface $flashBag;
+    /** @var array<string, mixed> */
     private array $attributes = [];
     private bool $started = false;
     private string $id;
@@ -121,11 +122,17 @@ class TestSession implements FlashBagAwareSessionInterface
         $this->attributes[$name] = $value;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function all(): array
     {
         return $this->attributes;
     }
 
+    /**
+     * @param array<string, mixed> $attributes
+     */
     public function replace(array $attributes): void
     {
         $this->attributes = $attributes;

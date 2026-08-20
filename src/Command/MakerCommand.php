@@ -60,7 +60,12 @@ final class MakerCommand extends Command
                 continue;
             }
 
-            $value = $this->io->ask($argument->getDescription(), $argument->getDefault(), Validator::notBlank(...));
+            $default = $argument->getDefault();
+            $value = $this->io->ask(
+                $argument->getDescription(),
+                null === $default ? null : (is_scalar($default) ? (string) $default : null),
+                Validator::notBlank(...)
+            );
             $input->setArgument($argument->getName(), $value);
         }
 

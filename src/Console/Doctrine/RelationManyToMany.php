@@ -12,14 +12,17 @@ final class RelationManyToMany extends BaseCollectionRelation
 {
     public function getTargetSetterMethodName(): string
     {
-        return 'add'.Str::asCamelCase(Str::pluralCamelCaseToSingular($this->getTargetPropertyName()));
+        return 'add'.Str::asCamelCase(Str::pluralCamelCaseToSingular($this->requireTargetPropertyName()));
     }
 
     public function getTargetRemoverMethodName(): string
     {
-        return 'remove'.Str::asCamelCase(Str::pluralCamelCaseToSingular($this->getTargetPropertyName()));
+        return 'remove'.Str::asCamelCase(Str::pluralCamelCaseToSingular($this->requireTargetPropertyName()));
     }
 
+    /**
+     * @param ManyToManyInverseSideMapping|ManyToManyOwningSideMapping|array<string, mixed> $mapping
+     */
     public static function createFromObject(ManyToManyInverseSideMapping|ManyToManyOwningSideMapping|array $mapping): self
     {
         // @legacy Remove conditional when ORM 2.x is no longer supported!

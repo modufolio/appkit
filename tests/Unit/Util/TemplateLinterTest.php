@@ -51,8 +51,8 @@ class TemplateLinterTest extends TestCase
         $linter = new TemplateLinter($this->fixerBinary, $this->config);
         $linter->lintFiles([$file, $this->tmp.'/ignored.txt']);
 
-        $this->assertNotSame($before, file_get_contents($file));
-        $this->assertStringContainsString('return [', file_get_contents($file));
+        $this->assertNotSame($before, (string) file_get_contents($file));
+        $this->assertStringContainsString('return [', (string) file_get_contents($file));
     }
 
     public function testLintPhpTemplateAcceptsSingleString(): void
@@ -62,7 +62,7 @@ class TemplateLinterTest extends TestCase
 
         (new TemplateLinter($this->fixerBinary, $this->config))->lintPhpTemplate($file);
 
-        $this->assertStringContainsString('$a = [', file_get_contents($file));
+        $this->assertStringContainsString('$a = [', (string) file_get_contents($file));
     }
 
     public function testWriteLinterMessageWithSystemFixer(): void
@@ -113,7 +113,7 @@ class TemplateLinterTest extends TestCase
         $linter = new TemplateLinter($this->fixerBinary, $this->config);
         $linter->lintPhpTemplate($file);
 
-        $this->assertStringContainsString('$a = [', file_get_contents($file));
+        $this->assertStringContainsString('$a = [', (string) file_get_contents($file));
 
         $output = new BufferedOutput();
         $linter->writeLinterMessage($output);

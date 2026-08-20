@@ -66,6 +66,9 @@ class RememberMeIssuanceTest extends AppTestCase
         return null;
     }
 
+    /**
+     * @param array<string, mixed> $extra
+     */
     private function attemptLogin(array $extra = []): ResponseInterface
     {
         $csrf = $this->app()->csrfTokenManager()->getToken('authenticate')->getValue();

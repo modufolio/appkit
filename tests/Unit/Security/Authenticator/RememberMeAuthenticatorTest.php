@@ -303,7 +303,7 @@ class RememberMeAuthenticatorTest extends AppTestCase
         $cookieData = base64_decode($cookieValue, true);
         $this->assertNotFalse($cookieData);
 
-        $parts = explode(':', $cookieData, 3);
+        $parts = explode(':', (string) $cookieData, 3);
         $this->assertCount(3, $parts);
 
         [$identifier, $expires, $hash] = $parts;
@@ -360,7 +360,7 @@ class RememberMeAuthenticatorTest extends AppTestCase
         $after = time() + $lifetime;
 
         $cookieData = base64_decode($cookieValue, true);
-        $parts = explode(':', $cookieData, 3);
+        $parts = explode(':', (string) $cookieData, 3);
         $expires = (int) $parts[1];
 
         $this->assertGreaterThanOrEqual($before, $expires);

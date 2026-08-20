@@ -15,6 +15,7 @@ use Modufolio\Appkit\Toolkit\A;
  */
 class Storage
 {
+    /** @var array<string, mixed> */
     public array $data = [];
 
     public function __construct(public string $filePath)
@@ -22,7 +23,10 @@ class Storage
         $this->data = PHP::read($this->filePath);
     }
 
-    public function insert($key, $value = null): Storage
+    /**
+     * @param string|array<string, mixed> $key
+     */
+    public function insert(string|array $key, mixed $value = null): Storage
     {
         if (!is_array($key)) {
             $this->data[$key] = $value;
@@ -45,13 +49,16 @@ class Storage
         return $this;
     }
 
+    /**
+     * @param string|list<string>|null $key
+     */
     public function get(array|string|null $key = null, mixed $default = null): mixed
     {
         if (null === $key) {
             return $this->data;
         }
 
-        $col = array_column($this->data, $key);
+        $col = is_string($key) ? array_column($this->data, $key) : [];
         if (count($col) > 0) {
             return $col;
         }
@@ -61,6 +68,8 @@ class Storage
 
     /**
      * Removes an item from the data array.
+     *
+     * @return array<string, mixed>
      */
     public function remove(?string $key = null): array
     {

@@ -11,6 +11,9 @@ abstract class Descriptor implements DescriptorInterface
 {
     protected OutputInterface $output;
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function describe(OutputInterface $output, mixed $object, array $options = []): void
     {
         $this->output = $output;
@@ -33,10 +36,19 @@ abstract class Descriptor implements DescriptorInterface
         $this->output->write($content, false, $decorated ? OutputInterface::OUTPUT_NORMAL : OutputInterface::OUTPUT_RAW);
     }
 
+    /**
+     * @param array<string, mixed> $options
+     */
     abstract protected function describeRouteCollection(RouteCollection $routes, array $options = []): void;
 
+    /**
+     * @param array<string, mixed> $options
+     */
     abstract protected function describeRoute(Route $route, array $options = []): void;
 
+    /**
+     * @param array<string, mixed> $options
+     */
     abstract protected function describeCallable(mixed $callable, array $options = []): void;
 
     protected function formatValue(mixed $value): string
@@ -53,7 +65,7 @@ abstract class Descriptor implements DescriptorInterface
             return $value;
         }
 
-        return preg_replace("/\n\s*/s", '', var_export($value, true));
+        return preg_replace("/\n\s*/s", '', var_export($value, true)) ?? '';
     }
 
     protected function formatParameter(mixed $value): string
@@ -73,7 +85,7 @@ abstract class Descriptor implements DescriptorInterface
         }
 
         if (\is_bool($value) || \is_array($value) || (null === $value)) {
-            $jsonString = json_encode($value);
+            $jsonString = json_encode($value, JSON_THROW_ON_ERROR);
 
             if (preg_match('/^(.{60})./us', $jsonString, $matches)) {
                 return $matches[1].'...';

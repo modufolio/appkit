@@ -25,7 +25,10 @@ class DirTest extends TestCase
         Dir::remove($this->moved);
     }
 
-    protected function create(array $items, ...$args)
+    /**
+     * @param array<string, mixed> $items
+     */
+    protected function create(array $items, mixed ...$args): string
     {
         foreach ($items as $item) {
             $root = $this->tmp.'/'.$item;

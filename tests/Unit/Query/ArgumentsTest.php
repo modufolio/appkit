@@ -11,7 +11,7 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(Arguments::class)]
 class ArgumentsTest extends TestCase
 {
-    public function testFactory()
+    public function testFactory(): void
     {
         $arguments = Arguments::factory('1, 2, 3');
         $this->assertCount(3, $arguments);
@@ -29,7 +29,7 @@ class ArgumentsTest extends TestCase
         $this->assertCount(3, $arguments);
     }
 
-    public function testResolve()
+    public function testResolve(): void
     {
         $arguments = Arguments::factory('1, 2.3, 3');
         $this->assertSame([1, 2.3, 3], $arguments->resolve());

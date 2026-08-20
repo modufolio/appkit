@@ -26,7 +26,13 @@ final class EntityManagerFactory implements ResetInterface
         private readonly Environment $environment,
         private readonly \Closure $configuratorFactory,
         private readonly ?DebugStack $debugStack = null,
+        private readonly ?string $varDir = null,
     ) {
+    }
+
+    private function varDir(): string
+    {
+        return $this->varDir ?? $this->baseDir.'/var';
     }
 
     public function get(): EntityManagerInterface
@@ -66,7 +72,7 @@ final class EntityManagerFactory implements ResetInterface
         ($this->configuratorFactory)($configurator);
 
         $defaultCache = $this->environment->isProd()
-            ? new FilesystemAdapter('doctrine', 0, $this->baseDir.'/var/cache')
+            ? new FilesystemAdapter('doctrine', 0, $this->varDir().'/cache')
             : new ArrayAdapter();
 
         $config = $configurator->ormConfig;
@@ -75,7 +81,7 @@ final class EntityManagerFactory implements ResetInterface
         if (null !== $configurator->resultCache) {
             $config->setResultCache($configurator->resultCache);
         }
-        $config->setProxyDir($this->baseDir.'/var/proxies');
+        $config->setProxyDir($this->varDir().'/proxies');
         $config->setProxyNamespace('DoctrineProxies');
         $config->setAutoGenerateProxyClasses(!$this->environment->isProd());
         $config->setMetadataDriverImpl(new AttributeDriver($configurator->entityPaths));

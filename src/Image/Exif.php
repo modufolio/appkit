@@ -19,6 +19,7 @@ class Exif
     /**
      * The raw exif array.
      */
+    /** @var array<string, mixed> */
     protected array $data = [];
 
     protected ?Camera $camera = null;
@@ -43,6 +44,8 @@ class Exif
 
     /**
      * Returns the raw data array from the parser.
+     *
+     * @return array<string, mixed>
      */
     public function data(): array
     {
@@ -96,6 +99,8 @@ class Exif
 
     /**
      * Read the exif data of the image object if possible.
+     *
+     * @return array<string, mixed>
      */
     protected function read(): array
     {
@@ -112,6 +117,8 @@ class Exif
 
     /**
      * Get all computed data.
+     *
+     * @return array<string, mixed>
      */
     protected function computed(): array
     {
@@ -147,6 +154,8 @@ class Exif
      * Converts the object into a nicely readable array.
      *
      * @param bool $includeLocation Whether to include GPS location data (privacy-sensitive)
+     *
+     * @return array<string, mixed>
      */
     public function toArray(bool $includeLocation = false): array
     {

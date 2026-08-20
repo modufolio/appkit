@@ -34,8 +34,13 @@ final class UseStatementGenerator implements \Stringable
         foreach ($this->classesToBeImported as $key => $class) {
             if (\is_array($class)) {
                 $aliasClass = key($class);
+
+                if (null === $aliasClass) {
+                    continue;
+                }
+
                 $aliases[$aliasClass] = $class[$aliasClass];
-                $class = $aliasClass;
+                $class = (string) $aliasClass;
             }
 
             $transformedClass = str_replace('\\', ' ', $class);

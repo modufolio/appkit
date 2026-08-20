@@ -15,6 +15,7 @@ class UploadedFileErrorHandler
 
     private ?string $storedFilePath = null;
 
+    /** @var list<string> */
     private array $errors = [];
 
     private bool $hasErrors = false;
@@ -62,7 +63,7 @@ class UploadedFileErrorHandler
     /**
      * Assert the file has a specific extension.
      *
-     * @param string|array $extension Extension or array of extensions
+     * @param string|list<string> $extension Extension or array of extensions
      * @param string|null  $message   Custom error message
      */
     public function hasExtension($extension, ?string $message = null): self
@@ -84,7 +85,7 @@ class UploadedFileErrorHandler
     /**
      * Assert the file has a specific mime type.
      *
-     * @param string|array $mimeType Mime type or array of mime types
+     * @param string|list<string> $mimeType Mime type or array of mime types
      * @param string|null  $message  Custom error message
      */
     public function hasMimeType($mimeType, ?string $message = null): self
@@ -154,7 +155,7 @@ class UploadedFileErrorHandler
             $this->addError($message ?? sprintf(
                 'File size must be at least %s. Got: %s.',
                 $this->formatBytes($size),
-                $this->formatBytes($this->file->getSize())
+                $this->formatBytes($this->file->getSize() ?? 0)
             ));
         }
 
@@ -268,6 +269,8 @@ class UploadedFileErrorHandler
 
     /**
      * Get all validation errors.
+     *
+     * @return list<string>
      */
     public function getErrors(): array
     {
@@ -318,7 +321,7 @@ class UploadedFileErrorHandler
 
         $bytes = max($bytes, 0);
         $pow = floor(($bytes ? log($bytes) : 0) / log(1024));
-        $pow = min($pow, count($units) - 1);
+        $pow = (int) min($pow, count($units) - 1);
 
         $bytes /= (1 << (10 * $pow));
 

@@ -89,7 +89,9 @@ class File implements FileInterface
      */
     public function mime(): ?string
     {
-        return Mime::type($this->root());
+        $mime = Mime::type($this->root());
+
+        return false === $mime ? null : $mime;
     }
 
     public function name(): string

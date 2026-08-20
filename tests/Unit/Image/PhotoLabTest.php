@@ -213,10 +213,12 @@ class PhotoLabTest extends TestCase
     public function testBlurWithRealImage(): void
     {
         $variant = $this->imageLab()->blur(5);
+        $this->assertInstanceOf(ImageVariant::class, $variant);
         $this->assertSame(['intensity' => 5], $variant->modifications());
 
         // boolean intensity falls back to 10 pixels
         $variant = $this->imageLab()->blur(true);
+        $this->assertInstanceOf(ImageVariant::class, $variant);
         $this->assertSame(['intensity' => 10], $variant->modifications());
     }
 
@@ -247,6 +249,7 @@ class PhotoLabTest extends TestCase
     {
         $variant = $this->imageLab()->sharpen();
 
+        $this->assertInstanceOf(ImageVariant::class, $variant);
         $this->assertSame(['amount' => 50], $variant->modifications());
     }
 
@@ -254,6 +257,7 @@ class PhotoLabTest extends TestCase
     {
         $srcset = $this->imageLab()->srcset([300, 600]);
 
+        $this->assertNotNull($srcset);
         $this->assertStringContainsString('photo-300x.png 300w', $srcset);
         $this->assertStringContainsString('photo-600x.png 600w', $srcset);
         $this->assertStringContainsString(', ', $srcset);
@@ -263,6 +267,7 @@ class PhotoLabTest extends TestCase
     {
         $srcset = $this->imageLab()->srcset([320 => '320w', 640 => '2x']);
 
+        $this->assertNotNull($srcset);
         $this->assertStringContainsString('photo-320x.png 320w', $srcset);
         $this->assertStringContainsString('photo-640x.png 2x', $srcset);
     }
@@ -273,6 +278,7 @@ class PhotoLabTest extends TestCase
             ['width' => 480, 'condition' => '480w'],
         ]);
 
+        $this->assertNotNull($srcset);
         $this->assertStringContainsString('photo-480x.png 480w', $srcset);
     }
 

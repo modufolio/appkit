@@ -14,6 +14,10 @@ use Modufolio\Appkit\Exception\RuntimeCommandException;
  */
 final class ClassProperty
 {
+    /**
+     * @param list<string>         $comments
+     * @param array<string, mixed> $options
+     */
     public function __construct(
         public string $propertyName,
         public string $type,
@@ -30,6 +34,9 @@ final class ClassProperty
     ) {
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getAttributes(): array
     {
         $attributes = [];
@@ -61,6 +68,9 @@ final class ClassProperty
         return $attributes;
     }
 
+    /**
+     * @param FieldMapping|array<string, mixed> $data
+     */
     public static function createFromObject(FieldMapping|array $data): self
     {
         if ($data instanceof FieldMapping) {

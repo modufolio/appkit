@@ -21,7 +21,8 @@ final class TemplateComponentGenerator
     }
 
     /**
-     * @param string|null $routePath passing an empty string/null will create a route attribute without the "path" argument
+     * @param string|null  $routePath passing an empty string/null will create a route attribute without the "path" argument
+     * @param list<string> $methods
      */
     public function generateRouteForControllerMethod(?string $routePath, string $routeName, array $methods = [], bool $indent = true, bool $trailingNewLine = true): string
     {
