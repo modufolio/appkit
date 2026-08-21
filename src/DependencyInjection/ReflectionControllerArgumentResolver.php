@@ -21,7 +21,7 @@ final class ReflectionControllerArgumentResolver implements ControllerArgumentRe
     /**
      * @param class-string $controllerClass
      *
-     * @return list<mixed>
+     * @return array<string, mixed> keyed by constructor parameter name
      */
     public function resolveArguments(string $controllerClass): array
     {
@@ -31,24 +31,30 @@ final class ReflectionControllerArgumentResolver implements ControllerArgumentRe
 
         if ($constructor) {
             foreach ($constructor->getParameters() as $param) {
+                // Key by parameter name so the container spreads the resolved
+                // services as named arguments. Reflection already yields them
+                // in signature order, but naming them keeps construction
+                // correct even when a caller reorders or omits an optional
+                // dependency. Hand-written config/controllers.php lists stay
+                // positional: a list with integer keys spreads positionally.
+                $name = $param->getName();
                 $type = $param->getType();
 
                 if ($param->isDefaultValueAvailable()) {
                     // Always prefer defaults
-                    $deps[] = $param->getDefaultValue();
+                    $deps[$name] = $param->getDefaultValue();
                 } elseif ($type instanceof \ReflectionNamedType && !$type->isBuiltin()) {
                     // Class type → service
-                    $deps[] = $type->getName();
+                    $deps[$name] = $type->getName();
                 } elseif ($type instanceof \ReflectionNamedType && 'string' === $type->getName()) {
-                    $paramName = $param->getName();
                     if ($type->allowsNull()) {
                         // ?string → %param% if available, else null
-                        $deps[] = $this->container->hasParameter($paramName)
-                            ? '%'.$paramName.'%'
+                        $deps[$name] = $this->container->hasParameter($name)
+                            ? '%'.$name.'%'
                             : null;
                     } else {
                         // strict string → required parameter
-                        $deps[] = '%'.$paramName.'%';
+                        $deps[$name] = '%'.$name.'%';
                     }
                 } else {
                     $typeName = $type instanceof \ReflectionNamedType ? $type->getName() : (string) $type;

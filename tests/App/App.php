@@ -143,6 +143,23 @@ class App extends Kernel
     }
 
     /**
+     * Register (or replace) one controller's dependency configuration.
+     *
+     * Only the given key is touched, so a test can wire its own fixture
+     * controller without disturbing the entries that came from
+     * tests/fixtures/config/controllers.php.
+     *
+     * @param class-string             $id
+     * @param array<int|string, mixed> $dependencies
+     */
+    public function withController(string $id, array $dependencies): self
+    {
+        $this->controllers[$id] = $dependencies;
+
+        return $this;
+    }
+
+    /**
      * @throws \RuntimeException if called outside test environment
      */
     public function initializeTestState(): self

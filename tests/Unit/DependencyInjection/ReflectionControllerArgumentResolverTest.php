@@ -95,7 +95,7 @@ class ReflectionControllerArgumentResolverTest extends TestCase
         $deps = $resolver->resolveArguments(ControllerWithDependency::class);
 
         $this->assertCount(1, $deps);
-        $this->assertSame(\stdClass::class, $deps[0]);
+        $this->assertSame(\stdClass::class, $deps['dependency']);
     }
 
     public function testResolveControllerWithStringParameter(): void
@@ -106,7 +106,7 @@ class ReflectionControllerArgumentResolverTest extends TestCase
         $deps = $resolver->resolveArguments(ControllerWithStringParam::class);
 
         $this->assertCount(1, $deps);
-        $this->assertSame('%apiKey%', $deps[0]);
+        $this->assertSame('%apiKey%', $deps['apiKey']);
     }
 
     public function testResolveControllerWithNullableString(): void
@@ -117,7 +117,7 @@ class ReflectionControllerArgumentResolverTest extends TestCase
         $deps = $resolver->resolveArguments(ControllerWithNullableString::class);
 
         $this->assertCount(1, $deps);
-        $this->assertNull($deps[0]);
+        $this->assertNull($deps['optionalConfig']);
     }
 
     public function testResolveControllerWithNullableStringWhenParameterExists(): void
@@ -129,7 +129,7 @@ class ReflectionControllerArgumentResolverTest extends TestCase
 
         $this->assertCount(1, $deps);
         // Nullable string with no default value still gets null, not the parameter
-        $this->assertNull($deps[0]);
+        $this->assertNull($deps['optionalConfig']);
     }
 
     public function testResolveControllerWithDefaultValue(): void
@@ -140,7 +140,7 @@ class ReflectionControllerArgumentResolverTest extends TestCase
         $deps = $resolver->resolveArguments(ControllerWithDefault::class);
 
         $this->assertCount(1, $deps);
-        $this->assertSame('30', $deps[0]);
+        $this->assertSame('30', $deps['timeout']);
     }
 
     public function testResolveControllerWithMultipleDependencies(): void
@@ -151,8 +151,13 @@ class ReflectionControllerArgumentResolverTest extends TestCase
         $deps = $resolver->resolveArguments(ControllerWithMultipleDeps::class);
 
         $this->assertCount(3, $deps);
-        $this->assertSame(\stdClass::class, $deps[0]);
-        $this->assertSame('%apiKey%', $deps[1]);
-        $this->assertSame(60, $deps[2]); // Default value for int with default
+        $this->assertSame(\stdClass::class, $deps['service']);
+        $this->assertSame('%apiKey%', $deps['apiKey']);
+        $this->assertSame(60, $deps['timeout']); // Default value for int with default
+
+        // Reflection still yields the parameters in signature order, so a
+        // positional spread of these values would land correctly too; the
+        // names make that independent of ordering.
+        $this->assertSame(['service', 'apiKey', 'timeout'], array_keys($deps));
     }
 }

@@ -42,6 +42,28 @@ class TestController
         return new Response(200, [], 'Public page');
     }
 
+    /**
+     * Route parameters ahead of optional ones, with the request first.
+     *
+     * The parameter resolvers key their results by name and fill them in
+     * resolver order — here the route params (`slug`, `page`) resolve before
+     * the request does. Spreading positionally would hand `$request` the
+     * string, so this signature is the regression guard for that.
+     */
+    public function ordered(
+        ServerRequestInterface $request,
+        string $slug,
+        string $page,
+        ?string $optional = null,
+    ): ResponseInterface {
+        return new Response(200, [], implode('|', [
+            get_debug_type($request),
+            $slug,
+            $page,
+            $optional ?? 'null',
+        ]));
+    }
+
     public function me(ServerRequestInterface $request): ResponseInterface
     {
         return Response::json(['status' => 'authenticated']);

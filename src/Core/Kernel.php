@@ -226,7 +226,12 @@ abstract class Kernel implements AppInterface
             ...$parameters,
         ], []);
 
-        return $classObject->{$method}(...array_values($arg));
+        // Spread by name, not by position: the resolvers key their results by
+        // parameter name and fill them in resolver order, which is not the
+        // order of the method signature. array_values() would hand a route
+        // parameter to the first argument whenever a resolver later in the
+        // pipeline supplied an earlier parameter.
+        return $classObject->{$method}(...$arg);
     }
 
     /**

@@ -31,6 +31,11 @@ return [
         'methods' => ['POST'],
         'controller' => [TestController::class, 'submit'],
     ],
+    'ordered_args' => [
+        'pattern' => '/ordered/{slug}/{page}',
+        'methods' => ['GET'],
+        'controller' => [TestController::class, 'ordered'],
+    ],
     'api_me' => [
         'pattern' => '/api/me',
         'methods' => ['GET'],

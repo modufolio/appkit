@@ -14,7 +14,11 @@ interface ControllerArgumentResolverInterface
     /**
      * @param class-string $controllerClass The controller class name
      *
-     * @return list<mixed> List of raw dependency descriptors (strings like %param%, class names, etc.)
+     * @return array<array-key, mixed> Raw dependency descriptors (strings like
+     *                                 %param%, class names, etc.). String keys
+     *                                 are constructor parameter names and are
+     *                                 spread as named arguments; a list is
+     *                                 spread positionally.
      */
     public function resolveArguments(string $controllerClass): array;
 }

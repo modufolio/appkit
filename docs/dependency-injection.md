@@ -12,7 +12,7 @@ Three config files control how services are resolved:
 
 ## Wiring a controller
 
-When a controller has constructor dependencies, list the interface or class names in `config/controllers.php`. The array order must match the constructor parameter order.
+When a controller has constructor dependencies, list the interface or class names in `config/controllers.php`. In a plain list the array order must match the constructor parameter order.
 
 ```php
 // config/controllers.php
@@ -29,6 +29,35 @@ return [
 ```
 
 AppKit resolves each interface via `config/interfaces.php` and passes the result to the constructor.
+
+### Naming the arguments
+
+Keying an entry by constructor parameter name passes the dependencies as named
+arguments, so their order in the file no longer matters:
+
+```php
+return [
+    PostController::class => [
+        'session' => SessionInterface::class,
+        'csrf'    => CsrfTokenManagerInterface::class,
+    ],
+];
+```
+
+Prefer this for anything with more than two dependencies. A positional list that
+drifts out of sync with the constructor fails *silently* when the mismatched
+parameters share a type — two strings in the wrong order are still two valid
+strings, and the mistake only surfaces as wrong behaviour at runtime. With named
+keys the arguments cannot be transposed, and a key that does not match any
+parameter raises `Unknown named parameter` at construction.
+
+Keys must match the parameter names exactly, without the `$`. Mixing the two
+styles in one entry is not supported — use either a plain list or an entry where
+every element is named.
+
+Controllers that are *not* listed in `config/controllers.php` are wired by
+reflection instead, which reads the parameter names straight from the
+constructor. Those are always passed by name.
 
 ## Available interfaces
 
