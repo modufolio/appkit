@@ -5,6 +5,78 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.0] - 2026-08-20
+
+### Upgrading
+
+- `DarkroomInterface` gained `preprocess(string $file, array $options = []): array`.
+  Drivers extending `Darkroom` inherit it and need no change. Only classes
+  implementing the interface directly must add the method. This lets a consumer
+  regenerating a variant from a stored job call `preprocess()` through the
+  interface instead of asserting a concrete driver.
+  (`src/Image/DarkroomInterface.php`)
+
+- `ApplicationStateInterface` gained `getVarDir(): string`. Classes extending
+  `AbstractApplicationState` inherit it and need no change. Only classes
+  implementing the interface directly must add the method — return the
+  directory your app writes sessions and caches to (`$baseDir.'/var'` matches
+  the previous hard-coded behaviour). (`src/Core/ApplicationStateInterface.php`,
+  `src/Core/AbstractApplicationState.php`)
+
+### Added
+
+- **A configurable writable runtime directory.** `baseDir` previously did
+  double duty as both the application root *and* the root of everything the
+  framework writes — sessions, Doctrine proxies, the router and metadata
+  caches were all hard-coded to `$baseDir/var`. `Kernel::varDir()` now
+  resolves that path and `Kernel::setVarDir()` overrides it, so an app
+  deployed with a read-only project root, or one running several processes
+  against a shared checkout, can point runtime state elsewhere. The default is
+  unchanged (`$baseDir/var`), so existing apps behave exactly as before.
+  (`src/Core/Kernel.php`, `src/Core/AbstractApplicationState.php`,
+  `src/Core/NativeApplicationState.php`, `src/Doctrine/EntityManagerFactory.php`)
+
+- **Parallel test runs via ParaTest.** `composer test:par` runs the suite
+  across worker processes using `phpunit.parallel.xml.dist`; `composer test`
+  stays serial and keeps `stopOnFailure` for debugging. Each worker scopes its
+  own `var/test/<TEST_TOKEN>` directory through the new `varDir`, so sessions
+  and proxies can't collide between workers. (`phpunit.parallel.xml.dist`,
+  `bootstrap.php`, `composer.json`)
+
+### Changed
+
+- **PHPStan now runs at level 8** (was level 5), with the type annotations and
+  null-handling that entails applied across `src/` and `tests/`. Most changes
+  are documentation-only (`@param`/`@return` array shapes, `@var` on
+  properties), but several genuine null-safety gaps in the console and
+  Doctrine maker code were tightened along the way. (`phpstan.php`)
+
+- **`AppInterface` extends `ParameterAccessorInterface`**, splitting parameter
+  access (`getParameter()`/`hasParameter()`/`setParameter()`) into its own
+  contract that services can depend on without pulling in the whole
+  application interface. (`src/Core/AppInterface.php`,
+  `src/DependencyInjection/ParameterAccessorInterface.php`)
+
+### Fixed
+
+- **A corrupted or truncated security token no longer emits a PHP warning.**
+  The serialized token reaching `TokenUnserializer::create()` comes from a
+  session record or a remember-me cookie — both attacker-controllable — and
+  `unserialize()` signals malformed input with an `E_WARNING` and a `false`
+  return rather than an exception, so the surrounding `catch` never saw it and
+  every garbage payload wrote to the error log. The warning is now converted
+  at the call site and drives the existing `null` path. Following Symfony's
+  `ContextListener::safelyUnserialize()`, only diagnostics originating in this
+  file are captured and the previous error handler is chained, so a warning
+  raised inside a token's own `__wakeup()`/`__unserialize()` still surfaces.
+  (`src/Security/TokenUnserializer.php`)
+
+- **Test suite fixtures and configuration.** `displayDetailsOnTestsThatTriggerWarnings`
+  and `displayDetailsOnSkippedTests` are enabled so warnings and skips name
+  themselves in the run output, and the missing
+  `onigiri-adobe-rgb-gps.jpg` ImageMagick fixture has been restored.
+  (`phpunit.xml.dist`, `tests/Unit/Image/fixtures/image/`)
+
 ## [0.9.0] - 2026-08-19
 
 ### Security
