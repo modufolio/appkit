@@ -9,6 +9,19 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    services:
+      # RedisBruteForceProtectionTest talks to a real server; without one the
+      # whole class skips itself and the lockout behaviour goes unverified.
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     strategy:
       fail-fast: false
       matrix:
@@ -23,7 +36,12 @@ jobs:
         with:
           php-version: ${{ matrix.php }}
           coverage: ${{ matrix.php == '8.4' && 'pcov' || 'none' }}
-          extensions: curl, dom, exif, fileinfo, gd, intl, libxml, pdo, pdo_sqlite, simplexml, sqlite3, zip
+          extensions: curl, dom, exif, fileinfo, gd, intl, libxml, pdo, pdo_sqlite, redis, simplexml, sqlite3, zip
+
+      # Ubuntu packages ImageMagick 6, which provides `convert` and `identify`
+      # but not `magick`. ImageMagickTest resolves whichever binary is present.
+      - name: Install ImageMagick
+        run: sudo apt-get update && sudo apt-get install -y imagemagick
 
       - name: Install dependencies
         run: composer update --no-interaction --prefer-dist --optimize-autoloader
