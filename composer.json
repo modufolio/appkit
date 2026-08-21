@@ -76,7 +76,13 @@
             "Modufolio\\Appkit\\Tests\\": "tests/"
         },
         "exclude-from-classmap": [
-            "tests/Unit/Util/fixtures/"
+            "tests/App/FlatFile/fixtures/",
+            "tests/Unit/Data/fixtures/",
+            "tests/Unit/Image/fixtures/",
+            "tests/Unit/Template/fixtures/",
+            "tests/Unit/Toolkit/fixtures/",
+            "tests/Unit/Util/fixtures/",
+            "tests/fixtures/"
         ]
     },
     "scripts": {

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Modufolio\Appkit\Tests\Unit\Unit\Image;
+namespace Modufolio\Appkit\Tests\Unit\Image;
 
 use Modufolio\Appkit\Image\Camera;
 use PHPUnit\Framework\Attributes\CoversClass;

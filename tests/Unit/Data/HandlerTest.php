@@ -9,8 +9,6 @@ use Modufolio\Appkit\Toolkit\F;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
-require_once __DIR__.'/mocks.php';
-
 #[CoversClass(Handler::class)]
 class HandlerTest extends TestCase
 {

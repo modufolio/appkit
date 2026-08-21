@@ -15,8 +15,6 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
-require_once __DIR__.'/mocks.php';
-
 #[CoversClass(Data::class)]
 class DataTest extends TestCase
 {
