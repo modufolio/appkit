@@ -47,7 +47,7 @@ class PHPTest extends TestCase
 
     public function testReadFileMissing(): void
     {
-        $file = __DIR__.'/tmp/does-not-exist.php';
+        $file = sys_get_temp_dir().'/appkit-does-not-exist-'.uniqid().'.php';
 
         $this->expectException('Exception');
         $this->expectExceptionMessage('The file "'.$file.'" does not exist');

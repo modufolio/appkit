@@ -14,6 +14,28 @@ require_once __DIR__.'/mocks.php';
 #[CoversClass(Handler::class)]
 class HandlerTest extends TestCase
 {
+    /**
+     * Per-test scratch directory. Tests must not share a fixed path: under
+     * ParaTest sibling workers run this class concurrently, and a shared file
+     * would have one worker unlink what another is asserting on.
+     */
+    protected string $tmp;
+
+    protected function setUp(): void
+    {
+        $this->tmp = sys_get_temp_dir().'/appkit-handler-'.uniqid();
+        mkdir($this->tmp, 0o777, true);
+    }
+
+    protected function tearDown(): void
+    {
+        foreach (glob($this->tmp.'/*') ?: [] as $file) {
+            unlink($file);
+        }
+
+        rmdir($this->tmp);
+    }
+
     public function testReadWrite(): void
     {
         $data = [
@@ -21,7 +43,7 @@ class HandlerTest extends TestCase
             'email' => 'homer@simpson.com',
         ];
 
-        $file = __DIR__.'/tmp/data.json';
+        $file = $this->tmp.'/data.json';
 
         // clean up first
         @unlink($file);
@@ -36,7 +58,7 @@ class HandlerTest extends TestCase
 
     public function testReadFileMissing(): void
     {
-        $file = __DIR__.'/tmp/does-not-exist.json';
+        $file = $this->tmp.'/does-not-exist.json';
 
         $this->expectException('Exception');
 

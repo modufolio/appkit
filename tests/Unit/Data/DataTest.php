@@ -20,6 +20,28 @@ require_once __DIR__.'/mocks.php';
 #[CoversClass(Data::class)]
 class DataTest extends TestCase
 {
+    /**
+     * Per-test scratch directory. Tests must not share a fixed path: under
+     * ParaTest sibling workers run this class concurrently, and a shared file
+     * would have one worker unlink what another is asserting on.
+     */
+    protected string $tmp;
+
+    protected function setUp(): void
+    {
+        $this->tmp = sys_get_temp_dir().'/appkit-data-'.uniqid();
+        mkdir($this->tmp, 0o777, true);
+    }
+
+    protected function tearDown(): void
+    {
+        foreach (glob($this->tmp.'/*') ?: [] as $file) {
+            unlink($file);
+        }
+
+        rmdir($this->tmp);
+    }
+
     public function testDefaultHandlers(): void
     {
         $this->assertInstanceOf(Json::class, Data::handler('json'));
@@ -117,7 +139,7 @@ class DataTest extends TestCase
             'email' => 'homer@simpson.com',
         ];
 
-        $file = __DIR__.'/tmp/data.json';
+        $file = $this->tmp.'/data.json';
 
         @unlink($file);
 
@@ -141,7 +163,7 @@ class DataTest extends TestCase
         $this->expectException(\Exception::class);
         $this->expectExceptionMessage('Missing handler for type: "foo"');
 
-        Data::read(__DIR__.'/tmp/data.foo');
+        Data::read($this->tmp.'/data.foo');
     }
 
     public function testWriteInvalid(): void
@@ -154,6 +176,6 @@ class DataTest extends TestCase
             'email' => 'homer@simpson.com',
         ];
 
-        Data::write(__DIR__.'/tmp/data.foo', $data);
+        Data::write($this->tmp.'/data.foo', $data);
     }
 }

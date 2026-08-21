@@ -83,3 +83,7 @@ public/test.json.php
 
 # Benchmark results
 benchmark-results-*/
+
+# Test scratch output (the directory is tracked, its contents are not)
+/tests/Unit/Data/tmp/*
+!/tests/Unit/Data/tmp/.gitkeep
