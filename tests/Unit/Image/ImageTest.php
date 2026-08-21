@@ -90,32 +90,18 @@ class ImageTest extends TestCase
 
     public function testIsResizable(): void
     {
-        $file = $this->_image();
-        $this->assertTrue($file->isResizable());
+        $this->assertTrue($this->_image()->isResizable());
 
-        // Skip HEIC test if fixture doesn't exist
-        $heicPath = static::FIXTURES.'/image/test.heic';
-        if (file_exists($heicPath)) {
-            $file = $this->_image('test.heic');
-            $this->assertFalse($file->isResizable());
-        } else {
-            $this->markTestSkipped('HEIC fixture file not available');
-        }
+        // HEIC is deliberately absent from Image::$resizableTypes — the
+        // darkroom drivers cannot process it — so the extension alone decides.
+        $this->assertFalse($this->_image('test.heic')->isResizable());
     }
 
     public function testIsViewable(): void
     {
-        $file = $this->_image();
-        $this->assertTrue($file->isResizable());
+        $this->assertTrue($this->_image()->isViewable());
 
-        // Skip HEIC test if fixture doesn't exist
-        $heicPath = static::FIXTURES.'/image/test.heic';
-        if (file_exists($heicPath)) {
-            $file = $this->_image('test.heic');
-            $this->assertFalse($file->isResizable());
-        } else {
-            $this->markTestSkipped('HEIC fixture file not available');
-        }
+        $this->assertFalse($this->_image('test.heic')->isViewable());
     }
 
     public function testOrientation(): void

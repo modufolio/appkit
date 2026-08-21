@@ -24,14 +24,32 @@ class ImageMagickTest extends TestCase
     /**
      * @throws \Exception
      */
+    /**
+     * The ImageMagick binary these tests drive.
+     *
+     * ImageMagick 7 ships `magick` (the framework default), 6 ships only
+     * `convert` — which is what Debian and Ubuntu package, so CI runs against
+     * it. Resolve whichever is present instead of hard-coding one, so the same
+     * assertions cover both.
+     */
+    private string $bin;
+
     public function setUp(): void
     {
-        $magickExists = !empty(trim((string) shell_exec('command -v magick')));
-        $convertExists = !empty(trim((string) shell_exec('command -v convert')));
+        $bin = null;
 
-        if (!$magickExists && !$convertExists) {
+        foreach (['magick', 'convert'] as $candidate) {
+            if ('' !== trim((string) shell_exec('command -v '.escapeshellarg($candidate)))) {
+                $bin = $candidate;
+                break;
+            }
+        }
+
+        if (null === $bin) {
             $this->markTestSkipped('ImageMagick is not installed');
         }
+
+        $this->bin = $bin;
 
         Dir::make(static::TMP);
     }
@@ -43,7 +61,7 @@ class ImageMagickTest extends TestCase
 
     public function testProcess(): void
     {
-        $im = new ImageMagick();
+        $im = new ImageMagick(['bin' => $this->bin]);
 
         copy(static::FIXTURES.'/cat.jpg', $file = static::TMP.'/cat.jpg');
 
@@ -59,7 +77,7 @@ class ImageMagickTest extends TestCase
             'scaleWidth' => 1.0,
             'sharpen' => null,
             'width' => 800,
-            'bin' => 'magick',
+            'bin' => $this->bin,
             'interlace' => false,
             'threads' => 1,
             'sourceWidth' => 800,
@@ -69,7 +87,7 @@ class ImageMagickTest extends TestCase
 
     public function testSharpen(): void
     {
-        $im = new ImageMagick();
+        $im = new ImageMagick(['bin' => $this->bin]);
 
         $method = new \ReflectionMethod(get_class($im), 'sharpen');
         $method->setAccessible(true);
@@ -83,7 +101,7 @@ class ImageMagickTest extends TestCase
 
     public function testSharpenWithoutValue(): void
     {
-        $im = new ImageMagick();
+        $im = new ImageMagick(['bin' => $this->bin]);
 
         $method = new \ReflectionMethod(get_class($im), 'sharpen');
         $method->setAccessible(true);
@@ -97,7 +115,7 @@ class ImageMagickTest extends TestCase
 
     public function testSaveWithFormat(): void
     {
-        $im = new ImageMagick(['format' => 'webp']);
+        $im = new ImageMagick(['bin' => $this->bin, 'format' => 'webp']);
 
         copy(static::FIXTURES.'/cat.jpg', $file = static::TMP.'/cat.jpg');
         $this->assertFalse(F::exists($webp = static::TMP.'/cat.webp'));
@@ -109,7 +127,7 @@ class ImageMagickTest extends TestCase
     public function testKeepColorProfileStripMeta(string $basename, bool $crop): void
     {
         $im = new ImageMagick([
-            'bin' => 'magick',
+            'bin' => $this->bin,
             'crop' => $crop,
             'width' => 250, // do some arbitrary transformation
         ]);
