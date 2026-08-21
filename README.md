@@ -1,5 +1,7 @@
 # Appkit
 
+[![CI](https://img.shields.io/github/actions/workflow/status/modufolio/appkit/ci.yml?branch=main&style=flat-square&label=CI)](https://github.com/modufolio/appkit/actions/workflows/ci.yml)
+[![PHPStan](https://img.shields.io/badge/PHPStan-level%208-brightgreen.svg?style=flat-square)](https://phpstan.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-brightgreen.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 [![codecov](https://img.shields.io/codecov/c/github/modufolio/appkit?token=RMUZV84J10&style=flat-square)](https://codecov.io/gh/modufolio/appkit)
 
