@@ -47,11 +47,24 @@ class CustomFilename implements \Stringable
     }
 
     /**
+     * The attribute tokens that make up the variant suffix, in the order they
+     * appear in the filename.
+     *
+     * Format spec (each token is omitted when the attribute is unset):
+     *
+     *   dimensions  {width}x{height}   either side may be empty  300x200, 100x
+     *   crop        crop | crop-{pos}  bare when centred         crop, crop-top-left
+     *   blur        blur{amount}                                 blur10
+     *   bw          bw                 flag, no value            bw
+     *   q           q{quality}                                   q80
+     *
+     * Joined with "-" and prefixed, e.g. "-300x200-crop-blur10-bw-q80".
+     *
      * @return array<string, mixed>
      */
     public function attributesToArray(): array
     {
-        $array = [
+        $attributes = [
             'dimensions' => implode('x', $this->dimensions()),
             'crop' => $this->crop(),
             'blur' => $this->blur(),
@@ -59,74 +72,95 @@ class CustomFilename implements \Stringable
             'q' => $this->quality(),
         ];
 
+        // An unset attribute reports false; dimensions report '' when neither
+        // side was given. Both mean "no token".
         return array_filter(
-            $array,
-            static fn ($item) => false !== $item && '' !== $item
+            $attributes,
+            static fn (mixed $value): bool => false !== $value && '' !== $value
         );
     }
 
     public function attributesToString(?string $prefix = null): string
     {
-        $array = $this->attributesToArray();
-        $result = [];
+        $tokens = [];
 
-        foreach ($array as $key => $value) {
-            if (true === $value) {
-                $value = '';
-            }
-
-            $result[] = match ($key) {
+        foreach ($this->attributesToArray() as $name => $value) {
+            $tokens[] = match ($name) {
+                // Already rendered as WxH by attributesToArray().
                 'dimensions' => $value,
-                'crop' => ('center' === $value) ? 'crop' : $key.'-'.$value,
-                default => $key.$value,
+                // A centred crop is the default, so it needs no position.
+                'crop' => 'center' === $value ? 'crop' : 'crop-'.$value,
+                // Boolean flags stand alone; the rest append their value.
+                default => true === $value ? $name : $name.$value,
             };
         }
 
-        $result = array_filter($result);
-        $attributes = implode('-', $result);
-
-        if (empty($attributes)) {
+        if ([] === $tokens) {
             return '';
         }
 
-        return $prefix.$attributes;
-    }
-
-    public function blur(): int|false
-    {
-        $value = $this->attributes['blur'] ?? false;
-
-        if (false === $value) {
-            return false;
-        }
-
-        return (int) $value;
-    }
-
-    public function crop(): string|false
-    {
-        $crop = $this->attributes['crop'] ?? false;
-
-        if (false === $crop) {
-            return false;
-        }
-
-        return $this->sanitizeString($crop);
+        return $prefix.implode('-', $tokens);
     }
 
     /**
+     * Read the first attribute that was supplied, falling back to false.
+     *
+     * Several attributes accept more than one spelling (grayscale/greyscale/bw),
+     * and every one of them treats "absent" the same way, so the lookup lives
+     * here instead of being repeated in each accessor.
+     */
+    protected function attribute(string ...$names): mixed
+    {
+        foreach ($names as $name) {
+            if (isset($this->attributes[$name])) {
+                return $this->attributes[$name];
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Blur radius, or false when no blur was requested.
+     *
+     * A bare `blur => true` means "blur by 1": the flag is kept numeric so the
+     * filename token stays well-formed.
+     */
+    public function blur(): int|false
+    {
+        $value = $this->attribute('blur');
+
+        return false === $value ? false : (int) $value;
+    }
+
+    /**
+     * Crop position as a slug, or false when the image is not cropped.
+     */
+    public function crop(): string|false
+    {
+        $value = $this->attribute('crop');
+
+        return false === $value ? false : $this->sanitizeString((string) $value);
+    }
+
+    /**
+     * Requested width and height, either of which may be null.
+     *
+     * Returns an empty array when neither was given, so callers can treat
+     * "no resize" as a missing token rather than an empty WxH pair.
+     *
      * @return array<string, mixed>
      */
     public function dimensions(): array
     {
-        if (empty($this->attributes['width']) && empty($this->attributes['height'])) {
+        $width = $this->attributes['width'] ?? null;
+        $height = $this->attributes['height'] ?? null;
+
+        if (empty($width) && empty($height)) {
             return [];
         }
 
-        return [
-            'width' => $this->attributes['width'] ?? null,
-            'height' => $this->attributes['height'] ?? null,
-        ];
+        return ['width' => $width, 'height' => $height];
     }
 
     public function extension(): string
@@ -134,11 +168,18 @@ class CustomFilename implements \Stringable
         return $this->extension;
     }
 
+    /**
+     * Whether the variant is black and white.
+     *
+     * Accepts either spelling plus the `bw` shorthand, and coerces loosely so
+     * string flags coming from a query string ("true", "1", "no") behave.
+     */
     public function grayscale(): bool
     {
-        $value = $this->attributes['grayscale'] ?? $this->attributes['greyscale'] ?? $this->attributes['bw'] ?? false;
-
-        return filter_var($value, FILTER_VALIDATE_BOOLEAN);
+        return filter_var(
+            $this->attribute('grayscale', 'greyscale', 'bw'),
+            FILTER_VALIDATE_BOOLEAN
+        );
     }
 
     public function name(): string
@@ -146,24 +187,33 @@ class CustomFilename implements \Stringable
         return $this->name;
     }
 
+    /**
+     * Compression quality, or false when unset.
+     *
+     * Unlike blur, a boolean carries no usable quality value — `quality => true`
+     * is meaningless — so both booleans collapse to false.
+     */
     public function quality(): int|false
     {
-        $value = $this->attributes['quality'] ?? false;
+        $value = $this->attribute('quality');
 
-        if (false === $value || true === $value) {
-            return false;
-        }
-
-        return (int) $value;
+        return is_bool($value) ? false : (int) $value;
     }
 
+    /**
+     * Normalise an extension for use in a filename.
+     *
+     * Lowercased, and the two spellings of the JPEG extension are folded to one
+     * so the same source never yields two differently-named variants.
+     */
     protected function sanitizeExtension(string $extension): string
     {
-        $extension = strtolower($extension);
-
-        return str_replace('jpeg', 'jpg', $extension);
+        return str_replace('jpeg', 'jpg', strtolower($extension));
     }
 
+    /**
+     * Reduce a name to something safe to place in a path.
+     */
     protected function sanitizeName(string $name): string
     {
         return $this->sanitizeString($name);
