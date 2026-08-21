@@ -16,6 +16,10 @@ use Modufolio\Appkit\Security\SecurityConfigurator;
  *
  * Keys not understood here are preserved in $extra for custom constraints
  * registered on the AccessDecisionEngine.
+ *
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 final class AccessRule
 {

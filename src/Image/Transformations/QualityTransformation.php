@@ -12,7 +12,9 @@ use Modufolio\Appkit\Image\Transformation;
 /**
  * Quality transformation for JPEG compression level.
  *
- * @license MIT
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 class QualityTransformation implements Transformation
 {

@@ -8,6 +8,10 @@ namespace Modufolio\Appkit\Security\TwoFactor;
  * Interface representing a Two-Factor Authentication Secret.
  *
  * Implementations should be immutable or use value object patterns
+ *
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 interface TwoFactorSecret
 {

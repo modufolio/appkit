@@ -12,7 +12,9 @@ use Modufolio\Appkit\Image\Transformation;
 /**
  * Crop transformation with configurable crop mode.
  *
- * @license MIT
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 class CropTransformation implements Transformation
 {

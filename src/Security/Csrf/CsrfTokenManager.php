@@ -13,6 +13,10 @@ use Symfony\Component\HttpFoundation\Session\SessionInterface;
  * Tokens are stored in session and validated against submitted values using timing-safe comparison.
  *
  * Based on Symfony Security CSRF component best practices.
+ *
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 class CsrfTokenManager implements CsrfTokenManagerInterface
 {

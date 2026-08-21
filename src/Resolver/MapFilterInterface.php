@@ -2,6 +2,11 @@
 
 namespace Modufolio\Appkit\Resolver;
 
+/**
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
+ */
 interface MapFilterInterface
 {
     /**

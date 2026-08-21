@@ -13,6 +13,10 @@ use Modufolio\Appkit\Security\User\UserInterface;
  * password but still needs to provide their second factor (TOTP/backup code).
  *
  * This token is NOT fully authenticated and should not grant access to protected resources.
+ *
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 class TwoFactorToken extends AbstractToken
 {

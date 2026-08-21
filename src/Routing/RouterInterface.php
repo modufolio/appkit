@@ -40,9 +40,9 @@ interface RouterInterface
     /**
      * Generate a URL from route name and parameters.
      *
-     * @param string $name          Route name
-     * @param array<string, mixed> $parameters Route parameters
-     * @param int    $referenceType Type of reference (absolute path, absolute URL, etc.)
+     * @param string               $name          Route name
+     * @param array<string, mixed> $parameters    Route parameters
+     * @param int                  $referenceType Type of reference (absolute path, absolute URL, etc.)
      *
      * @return string The generated URL
      */

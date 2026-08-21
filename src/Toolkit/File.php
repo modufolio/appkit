@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace Modufolio\Appkit\Toolkit;
 
+/**
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
+ */
 class File
 {
     private ?\SplFileObject $fileObject = null;

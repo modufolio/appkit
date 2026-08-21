@@ -16,6 +16,11 @@ use Modufolio\Appkit\Doctrine\Middleware\Debug\DebugStack;
 use Symfony\Component\Cache\Adapter\ArrayAdapter;
 use Symfony\Component\Cache\Adapter\FilesystemAdapter;
 
+/**
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
+ */
 final class EntityManagerFactory implements ResetInterface
 {
     private ?EntityManagerInterface $entityManager = null;

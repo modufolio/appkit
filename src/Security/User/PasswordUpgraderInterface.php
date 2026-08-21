@@ -10,6 +10,13 @@ namespace Modufolio\Appkit\Security\User;
  * After a successful login, an authenticator calls upgradePassword() when the
  * stored hash needs rehashing (e.g. cost parameters were raised or the
  * algorithm changed), so existing users are migrated transparently.
+ *
+ * @author    Nicolas Grekas <p@tchwork.com>
+ *
+ * @see       https://github.com/symfony/security-core
+ *
+ * @copyright Fabien Potencier <fabien@symfony.com>
+ * @license   https://opensource.org/licenses/MIT
  */
 interface PasswordUpgraderInterface
 {

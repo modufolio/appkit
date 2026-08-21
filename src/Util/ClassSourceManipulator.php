@@ -34,6 +34,11 @@ use PhpParser\Parser;
 use PhpParser\PhpVersion;
 
 /**
+ * @see       https://github.com/symfony/maker-bundle
+ *
+ * @copyright Fabien Potencier <fabien@symfony.com>
+ * @license   https://opensource.org/licenses/MIT
+ *
  * @internal
  */
 final class ClassSourceManipulator
@@ -915,9 +920,9 @@ final class ClassSourceManipulator
     /**
      * Builds a PHPParser attribute node.
      *
-     * @param string  $attributeClass  The attribute class which should be used for the attribute E.g. #[Column()]
-     * @param array<string, mixed> $options The named arguments for the attribute ($key = argument name, $value = argument value)
-     * @param ?string $attributePrefix If a prefix is provided, the node is built using the prefix. E.g. #[ORM\Column()]
+     * @param string               $attributeClass  The attribute class which should be used for the attribute E.g. #[Column()]
+     * @param array<string, mixed> $options         The named arguments for the attribute ($key = argument name, $value = argument value)
+     * @param ?string              $attributePrefix If a prefix is provided, the node is built using the prefix. E.g. #[ORM\Column()]
      */
     public function buildAttributeNode(string $attributeClass, array $options, ?string $attributePrefix = null): Node\Attribute
     {

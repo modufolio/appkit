@@ -7,6 +7,15 @@ namespace Modufolio\Appkit\Security\Token;
 use Modufolio\Appkit\Security\User\InMemoryUser;
 use Modufolio\Appkit\Security\User\UserInterface;
 
+/**
+ * @author    Fabien Potencier <fabien@symfony.com>
+ * @author    Johannes M. Schmitt <schmittjoh@gmail.com>
+ *
+ * @see       https://github.com/symfony/security-core
+ *
+ * @copyright Fabien Potencier <fabien@symfony.com>
+ * @license   https://opensource.org/licenses/MIT
+ */
 abstract class AbstractToken implements TokenInterface
 {
     private ?UserInterface $user = null;

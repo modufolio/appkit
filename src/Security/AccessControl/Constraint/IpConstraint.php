@@ -14,6 +14,10 @@ use Symfony\Component\HttpFoundation\IpUtils;
 
 /**
  * Restricts a rule to the client IPs (or CIDR ranges) in its `ips` list.
+ *
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 final class IpConstraint implements RuleConstraintInterface
 {

@@ -11,6 +11,15 @@ namespace Modufolio\Appkit\Doctrine\Middleware\Debug;
  * - Implements a circular buffer to limit query history
  * - Prevents unbounded memory growth in long-running RoadRunner workers
  * - Default limit of 100 queries provides sufficient debugging context
+ *
+ * @author    Filippo Tessarotto <zoeslam@gmail.com>
+ * @author    Maarten Thiebou
+ *
+ * @see       https://github.com/Slamdunk/dbal-debugstack-middleware
+ *
+ * @copyright Filippo Tessarotto
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 final class DebugStack
 {

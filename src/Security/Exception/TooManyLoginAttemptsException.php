@@ -7,6 +7,10 @@ namespace Modufolio\Appkit\Security\Exception;
 /**
  * Exception thrown when the brute-force throttle rejects a login attempt.
  * For SOC 2 compliance: CC6.1, CC6.7 - Brute-force mitigation.
+ *
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 class TooManyLoginAttemptsException extends AuthenticationException
 {

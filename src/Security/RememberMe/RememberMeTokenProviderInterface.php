@@ -11,6 +11,10 @@ namespace Modufolio\Appkit\Security\RememberMe;
  * signature cookie cannot provide. Provide an implementation to the
  * RememberMeAuthenticator via its `token_provider` option to opt in; without
  * one the authenticator stays in stateless-signature mode.
+ *
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 interface RememberMeTokenProviderInterface
 {

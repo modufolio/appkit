@@ -12,7 +12,9 @@ use Modufolio\Appkit\Image\Transformation;
 /**
  * Sharpen transformation with configurable intensity.
  *
- * @license MIT
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 class SharpenTransformation implements Transformation
 {

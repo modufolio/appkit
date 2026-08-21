@@ -7,6 +7,10 @@ namespace Modufolio\Appkit\Security\Exception;
 /**
  * Exception thrown when attempting to authenticate with a locked account
  * For SOC 2 compliance: CC6.1, CC6.7 - Security incident response.
+ *
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 class LockedAccountException extends AccountStatusException
 {

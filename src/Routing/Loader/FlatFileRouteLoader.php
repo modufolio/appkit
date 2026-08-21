@@ -10,6 +10,11 @@ use Symfony\Component\Config\Resource\DirectoryResource;
 use Symfony\Component\Routing\Route;
 use Symfony\Component\Routing\RouteCollection;
 
+/**
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
+ */
 class FlatFileRouteLoader extends Loader
 {
     /** @var list<string> */

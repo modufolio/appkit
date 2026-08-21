@@ -28,6 +28,10 @@ use Psr\Http\Message\ServerRequestInterface;
  *     }
  * }
  * ```
+ *
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 interface RuleConstraintInterface
 {

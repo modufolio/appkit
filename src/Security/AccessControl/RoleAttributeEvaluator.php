@@ -29,6 +29,10 @@ use Modufolio\Appkit\Security\User\UserInterface;
  *                                        → AuthenticationException (step up)
  *  - authenticated, sufficient trust, but the role is simply missing
  *                                        → AccessDeniedException (hard 403)
+ *
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 final class RoleAttributeEvaluator
 {

@@ -24,6 +24,15 @@ use Laminas\Escaper\Escaper;
  * which is cheaper than Kirby's per-call instantiation.
  *
  * @see https://docs.laminas.dev/laminas-escaper/
+ *
+ * @author    Bastian Allgeier <bastian@getkirby.com>
+ * @author    Maarten Thiebou
+ *
+ * @see      https://getkirby.com
+ *
+ * @copyright Bastian Allgeier GmbH
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 final class Escape
 {

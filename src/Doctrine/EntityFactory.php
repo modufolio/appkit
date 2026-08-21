@@ -11,6 +11,11 @@ use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
 use Symfony\Component\Validator\Exception\ValidationFailedException;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
+/**
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
+ */
 final class EntityFactory
 {
     /** @var array<class-string, array<string, mixed>> */
@@ -86,7 +91,7 @@ final class EntityFactory
     }
 
     /**
-     * @param class-string                                     $className
+     * @param class-string                                             $className
      * @param array<string, mixed>|callable(int): array<string, mixed> $attributes
      */
     public function createMany(string $className, int $count, array|callable $attributes = []): self

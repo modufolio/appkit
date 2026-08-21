@@ -4,6 +4,14 @@ namespace Modufolio\Appkit\Security\User;
 
 use Modufolio\Appkit\Security\Exception\UserNotFoundException;
 
+/**
+ * @author    Fabien Potencier <fabien@symfony.com>
+ *
+ * @see       https://github.com/symfony/security-core
+ *
+ * @copyright Fabien Potencier <fabien@symfony.com>
+ * @license   https://opensource.org/licenses/MIT
+ */
 interface UserProviderInterface
 {
     /**

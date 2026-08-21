@@ -10,6 +10,14 @@ use Modufolio\Appkit\Security\User\UserInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
+/**
+ * @author    Maarten Thiebou
+ *
+ * @see       https://github.com/symfony/security-http
+ *
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
+ */
 interface AuthenticatorInterface
 {
     public function supports(ServerRequestInterface $request): bool;

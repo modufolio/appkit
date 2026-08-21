@@ -14,6 +14,10 @@ namespace Modufolio\Appkit\Security\Exception;
  * a 401/403. Extends AuthenticationException only so any existing security
  * catch-all still treats it as a security concern if the redirect handling is
  * ever removed.
+ *
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 final class InsecureChannelException extends AuthenticationException
 {

@@ -254,8 +254,8 @@ class Template implements \Stringable
     /**
      * Collect CSS file(s) for later rendering.
      *
-     * @param string|list<string>        $url     Single URL or array of URLs
-     * @param array<string, mixed>|null  $options Additional HTML attributes (e.g., ['media' => 'print'])
+     * @param string|list<string>       $url     Single URL or array of URLs
+     * @param array<string, mixed>|null $options Additional HTML attributes (e.g., ['media' => 'print'])
      */
     public function css(string|array $url, ?array $options = null): void
     {
@@ -267,8 +267,8 @@ class Template implements \Stringable
     /**
      * Collect JavaScript file(s) for later rendering.
      *
-     * @param string|list<string>             $url     Single URL or array of URLs
-     * @param array<string, mixed>|bool|null  $options HTML attributes or boolean for async
+     * @param string|list<string>            $url     Single URL or array of URLs
+     * @param array<string, mixed>|bool|null $options HTML attributes or boolean for async
      */
     public function js(string|array $url, array|bool|null $options = null): void
     {

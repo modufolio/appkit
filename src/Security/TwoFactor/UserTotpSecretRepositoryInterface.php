@@ -10,6 +10,10 @@ use Modufolio\Appkit\Security\User\UserInterface;
  * Interface for TOTP Secret Repository.
  *
  * Provides contract for accessing and managing user TOTP secrets
+ *
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 interface UserTotpSecretRepositoryInterface
 {

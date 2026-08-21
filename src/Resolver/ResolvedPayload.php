@@ -6,6 +6,11 @@ namespace Modufolio\Appkit\Resolver;
 
 use Modufolio\Appkit\Form\ValidationResult;
 
+/**
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
+ */
 final readonly class ResolvedPayload
 {
     public function __construct(

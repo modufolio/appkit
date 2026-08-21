@@ -18,6 +18,10 @@ use Psr\Http\Message\ServerRequestInterface;
  * request over https is legitimate, so bouncing the user to an error page would
  * be wrong. The redirect is carried by InsecureChannelException and issued by
  * the exception handler.
+ *
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 final class ChannelConstraint implements RuleConstraintInterface
 {

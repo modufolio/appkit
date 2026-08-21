@@ -23,6 +23,10 @@ use PHPStan\Type\UnionType;
 /**
  * Reflection for a single magic findByX()/findOneByX()/countByX() method,
  * resolved via Doctrine's EntityRepository::__call().
+ *
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 final class MagicRepositoryMethodReflection implements MethodReflection
 {

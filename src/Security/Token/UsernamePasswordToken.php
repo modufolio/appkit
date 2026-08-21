@@ -4,6 +4,14 @@ namespace Modufolio\Appkit\Security\Token;
 
 use Modufolio\Appkit\Security\User\UserInterface;
 
+/**
+ * @author    Fabien Potencier <fabien@symfony.com>
+ *
+ * @see       https://github.com/symfony/security-core
+ *
+ * @copyright Fabien Potencier <fabien@symfony.com>
+ * @license   https://opensource.org/licenses/MIT
+ */
 class UsernamePasswordToken extends AbstractToken
 {
     private string $firewallName;

@@ -9,6 +9,10 @@ namespace Modufolio\Appkit\DependencyInjection;
  *
  * Kept separate from the full application contract so components that only
  * need to look parameters up can depend on the narrow interface.
+ *
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 interface ParameterAccessorInterface
 {

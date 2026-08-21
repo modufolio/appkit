@@ -34,6 +34,11 @@ use Symfony\Component\Console\Style\SymfonyStyle;
     name: 'security:validate',
     description: 'Validate the firewall and access-control configuration'
 )]
+/**
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
+ */
 final class SecurityValidateCommand extends Command
 {
     public function __construct(private readonly AppInterface $app)

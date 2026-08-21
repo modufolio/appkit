@@ -10,6 +10,10 @@ use Modufolio\Appkit\Security\User\UserInterface;
  * Interface for Two-Factor Authentication Services.
  *
  * Defines contract for 2FA implementations (TOTP, SMS, Email, etc.)
+ *
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 interface TwoFactorServiceInterface
 {

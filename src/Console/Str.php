@@ -8,8 +8,13 @@ use Doctrine\Inflector\Inflector;
 use Doctrine\Inflector\InflectorFactory;
 
 /**
- * @author Javier Eguiluz <javier.eguiluz@gmail.com>
- * @author Ryan Weaver <weaverryan@gmail.com>
+ * @author    Javier Eguiluz <javier.eguiluz@gmail.com>
+ * @author    Ryan Weaver <weaverryan@gmail.com>
+ *
+ * @see       https://github.com/symfony/maker-bundle
+ *
+ * @copyright Fabien Potencier <fabien@symfony.com>
+ * @license   https://opensource.org/licenses/MIT
  */
 final class Str
 {
@@ -215,8 +220,6 @@ final class Str
      * @see http://php.net/manual/en/language.variables.basics.php
      *
      * @param $name string
-     *
-     * @return bool
      */
     public static function isValidPhpVariableName(string $name): bool
     {

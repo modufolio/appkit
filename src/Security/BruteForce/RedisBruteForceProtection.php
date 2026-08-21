@@ -12,6 +12,10 @@ namespace Modufolio\Appkit\Security\BruteForce;
  *
  * Suitable for multi-server deployments and high-traffic applications.
  * Requires the Redis PHP extension (phpredis) or Predis library.
+ *
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 class RedisBruteForceProtection implements BruteForceProtectionInterface
 {

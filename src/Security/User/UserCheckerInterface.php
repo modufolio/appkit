@@ -9,6 +9,13 @@ use Modufolio\Appkit\Security\Exception\AccountStatusException;
 /**
  * Interface for checking user account status during authentication
  * For SOC 2 compliance: CC6.1 - Logical and Physical Access Controls.
+ *
+ * @author    Fabien Potencier <fabien@symfony.com>
+ *
+ * @see       https://github.com/symfony/security-core
+ *
+ * @copyright Fabien Potencier <fabien@symfony.com>
+ * @license   https://opensource.org/licenses/MIT
  */
 interface UserCheckerInterface
 {

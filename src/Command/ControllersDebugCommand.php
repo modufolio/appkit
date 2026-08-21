@@ -21,6 +21,11 @@ use Symfony\Component\Console\Style\SymfonyStyle;
     name: 'debug:controllers',
     description: 'Checks that every controller referenced by a route can be wired from the container'
 )]
+/**
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
+ */
 final class ControllersDebugCommand extends Command
 {
     public function __construct(

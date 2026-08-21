@@ -4,6 +4,16 @@ declare(strict_types=1);
 
 namespace Modufolio\Appkit\Resolver;
 
+/**
+ * @author    Matthieu Napoli
+ * @author    Maarten Thiebou
+ *
+ * @see       https://github.com/PHP-DI/Invoker
+ *
+ * @copyright Matthieu Napoli
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
+ */
 class TypeHintResolver implements ParameterResolverInterface
 {
     /**

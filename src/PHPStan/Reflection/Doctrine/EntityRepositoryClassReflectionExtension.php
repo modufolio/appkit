@@ -19,6 +19,10 @@ use PHPStan\Type\TypeCombinator;
  * repository methods (resolved at runtime via EntityRepository::__call()),
  * validating that X is a real field or association on the entity and giving
  * the call a correct return type.
+ *
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 final class EntityRepositoryClassReflectionExtension implements MethodsClassReflectionExtension
 {
@@ -116,7 +120,12 @@ final class EntityRepositoryClassReflectionExtension implements MethodsClassRefl
             return [];
         }
 
-        /** @var list<class-string> */
-        return $entityClassType->getObjectClassNames();
+        // getObjectClassNames() is typed as list<non-empty-string>; keep only the
+        // names that are really loadable classes so the declared list<class-string>
+        // holds without an inline @var override.
+        return array_values(array_filter(
+            $entityClassType->getObjectClassNames(),
+            static fn (string $class): bool => class_exists($class) || interface_exists($class),
+        ));
     }
 }

@@ -9,6 +9,13 @@ namespace Modufolio\Appkit\Security\Csrf;
  *
  * Represents a CSRF token with its identifier and value.
  * Immutable by design.
+ *
+ * @author    Bernhard Schussek <bschussek@gmail.com>
+ *
+ * @see       https://github.com/symfony/security-csrf
+ *
+ * @copyright Fabien Potencier <fabien@symfony.com>
+ * @license   https://opensource.org/licenses/MIT
  */
 class CsrfToken
 {

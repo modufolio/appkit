@@ -12,6 +12,10 @@ namespace Modufolio\Appkit\Core;
  * so implementations can pull exactly the services they need. Extending
  * AbstractController gives a ready-made implementation with the common
  * services; implement this interface directly to design your own subset.
+ *
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 interface AppAwareInterface
 {

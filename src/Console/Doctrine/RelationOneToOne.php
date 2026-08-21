@@ -8,6 +8,12 @@ use Doctrine\ORM\Mapping\OneToOneInverseSideMapping;
 use Doctrine\ORM\Mapping\OneToOneOwningSideMapping;
 use Modufolio\Appkit\Console\Str;
 
+/**
+ * @see       https://github.com/symfony/maker-bundle
+ *
+ * @copyright Fabien Potencier <fabien@symfony.com>
+ * @license   https://opensource.org/licenses/MIT
+ */
 final class RelationOneToOne extends BaseRelation
 {
     public function getTargetGetterMethodName(): string

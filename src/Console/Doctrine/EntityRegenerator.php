@@ -14,6 +14,12 @@ use Modufolio\Appkit\Exception\RuntimeCommandException;
 use Modufolio\Appkit\Util\ClassSource\Model\ClassProperty;
 use Modufolio\Appkit\Util\ClassSourceManipulator;
 
+/**
+ * @see       https://github.com/symfony/maker-bundle
+ *
+ * @copyright Fabien Potencier <fabien@symfony.com>
+ * @license   https://opensource.org/licenses/MIT
+ */
 final class EntityRegenerator
 {
     public function __construct(

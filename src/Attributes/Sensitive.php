@@ -20,6 +20,10 @@ namespace Modufolio\Appkit\Attributes;
  * - mask: Must be masked in UI/logs
  * - hash: One-way hash (passwords)
  * - none: Classification only, no protection required
+ *
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 #[\Attribute(\Attribute::TARGET_PROPERTY)]
 class Sensitive

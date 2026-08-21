@@ -9,6 +9,10 @@ namespace Modufolio\Appkit\Security\BruteForce;
  *
  * Provides rate limiting and account lockout functionality to prevent
  * brute force authentication attacks.
+ *
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 interface BruteForceProtectionInterface
 {

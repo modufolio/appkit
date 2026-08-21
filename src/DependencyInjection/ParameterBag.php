@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace Modufolio\Appkit\DependencyInjection;
 
+/**
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
+ */
 class ParameterBag
 {
     /** @var array<string, mixed> */

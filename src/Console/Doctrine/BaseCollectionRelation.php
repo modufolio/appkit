@@ -6,6 +6,12 @@ namespace Modufolio\Appkit\Console\Doctrine;
 
 use Modufolio\Appkit\Console\Str;
 
+/**
+ * @see       https://github.com/symfony/maker-bundle
+ *
+ * @copyright Fabien Potencier <fabien@symfony.com>
+ * @license   https://opensource.org/licenses/MIT
+ */
 abstract class BaseCollectionRelation extends BaseRelation
 {
     abstract public function getTargetSetterMethodName(): string;

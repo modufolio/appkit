@@ -8,6 +8,12 @@ use Doctrine\ORM\Mapping\ManyToManyInverseSideMapping;
 use Doctrine\ORM\Mapping\ManyToManyOwningSideMapping;
 use Modufolio\Appkit\Console\Str;
 
+/**
+ * @see       https://github.com/symfony/maker-bundle
+ *
+ * @copyright Fabien Potencier <fabien@symfony.com>
+ * @license   https://opensource.org/licenses/MIT
+ */
 final class RelationManyToMany extends BaseCollectionRelation
 {
     public function getTargetSetterMethodName(): string

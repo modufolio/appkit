@@ -21,7 +21,12 @@ use PHPStan\Type\VerbosityLevel;
  * {@see \Modufolio\Appkit\PHPStan\Reflection\Doctrine\EntityRepositoryClassReflectionExtension},
  * which makes PHPStan aware of those methods in the first place.
  *
+ * @author    Maarten Thiebou
+ *
  * @implements Rule<Node\Expr\MethodCall>
+ *
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 final class RepositoryMethodCallRule implements Rule
 {

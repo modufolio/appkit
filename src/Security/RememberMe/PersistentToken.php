@@ -14,6 +14,13 @@ namespace Modufolio\Appkit\Security\RememberMe;
  *
  * $tokenValue is the HASH of the value (never the raw value), so a leak of the
  * store does not yield usable cookies.
+ *
+ * @author    Maarten Thiebou
+ *
+ * @see       https://github.com/symfony/security-core
+ *
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 final class PersistentToken
 {

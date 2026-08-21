@@ -11,8 +11,13 @@ use Modufolio\Appkit\Util\PhpCompatUtil;
 use Modufolio\Appkit\Util\TemplateComponentGenerator;
 
 /**
- * @author Javier Eguiluz <javier.eguiluz@gmail.com>
- * @author Ryan Weaver <weaverryan@gmail.com>
+ * @author    Javier Eguiluz <javier.eguiluz@gmail.com>
+ * @author    Ryan Weaver <weaverryan@gmail.com>
+ *
+ * @see       https://github.com/symfony/maker-bundle
+ *
+ * @copyright Fabien Potencier <fabien@symfony.com>
+ * @license   https://opensource.org/licenses/MIT
  */
 class Generator
 {
@@ -38,10 +43,9 @@ class Generator
     /**
      * Generate a new file for a class from a template.
      *
-     * @param string $className    The fully-qualified class name
-     * @param string $templateName Template name in Resources/skeleton to use
-     * @param array  $variables    Array of variables to pass to the template
-     *
+     * @param string               $className    The fully-qualified class name
+     * @param string               $templateName Template name in Resources/skeleton to use
+     * @param array                $variables    Array of variables to pass to the template
      * @param array<string, mixed> $variables
      *
      * @return string The path where the file will be created

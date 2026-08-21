@@ -13,6 +13,10 @@ use Doctrine\Persistence\ObjectManager;
  * Boots a single {@see ObjectManager} from a user-supplied loader script (a
  * plain PHP file that `return`s an {@see ObjectManager} instance) and caches
  * metadata lookups by class name for the lifetime of the analysis run.
+ *
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 final class ObjectMetadataResolver
 {

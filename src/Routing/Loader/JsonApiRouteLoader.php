@@ -11,6 +11,11 @@ use Symfony\Component\Config\Loader\Loader;
 use Symfony\Component\Routing\Route;
 use Symfony\Component\Routing\RouteCollection;
 
+/**
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
+ */
 class JsonApiRouteLoader extends Loader
 {
     public function __construct(
@@ -121,7 +126,7 @@ class JsonApiRouteLoader extends Loader
     }
 
     /**
-     * @param list<string>         $methods
+     * @param list<string>          $methods
      * @param array<string, string> $requirements
      * @param array<string, mixed>  $defaults
      */

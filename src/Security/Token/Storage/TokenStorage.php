@@ -8,6 +8,15 @@ use Modufolio\Appkit\Core\ResetInterface;
 use Modufolio\Appkit\Security\Token\TokenInterface;
 use Modufolio\Appkit\Security\Token\TokenStorageInterface;
 
+/**
+ * @author    Fabien Potencier <fabien@symfony.com>
+ * @author    Johannes M. Schmitt <schmittjoh@gmail.com>
+ *
+ * @see       https://github.com/symfony/security-core
+ *
+ * @copyright Fabien Potencier <fabien@symfony.com>
+ * @license   https://opensource.org/licenses/MIT
+ */
 class TokenStorage implements TokenStorageInterface, ResetInterface
 {
     private ?TokenInterface $token = null;

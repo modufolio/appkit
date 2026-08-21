@@ -8,6 +8,13 @@ namespace Modufolio\Appkit\Security\RememberMe;
  * Non-persistent token provider — request-scoped only. Useful for tests and
  * single-process scenarios; use FileTokenProvider (or a database-backed one)
  * in production so tokens survive across requests.
+ *
+ * @author    Maarten Thiebou
+ *
+ * @see       https://github.com/symfony/security-core
+ *
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 final class InMemoryTokenProvider implements RememberMeTokenProviderInterface
 {

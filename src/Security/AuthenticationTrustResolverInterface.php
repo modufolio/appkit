@@ -4,6 +4,14 @@ namespace Modufolio\Appkit\Security;
 
 use Modufolio\Appkit\Security\Token\TokenInterface;
 
+/**
+ * @author    Maarten Thiebou
+ *
+ * @see       https://github.com/symfony/security-core
+ *
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
+ */
 interface AuthenticationTrustResolverInterface
 {
     /**

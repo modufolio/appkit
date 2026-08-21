@@ -7,6 +7,14 @@ namespace Modufolio\Appkit\Doctrine\Middleware\Debug;
 use Doctrine\DBAL\Driver as DriverInterface;
 use Doctrine\DBAL\Driver\Middleware\AbstractDriverMiddleware;
 
+/**
+ * @author    Filippo Tessarotto <zoeslam@gmail.com>
+ *
+ * @see       https://github.com/Slamdunk/dbal-debugstack-middleware
+ *
+ * @copyright Filippo Tessarotto
+ * @license   https://opensource.org/licenses/MIT
+ */
 final class Driver extends AbstractDriverMiddleware
 {
     public function __construct(

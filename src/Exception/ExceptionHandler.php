@@ -19,6 +19,11 @@ use Symfony\Component\Routing\Exception\MethodNotAllowedException;
 use Symfony\Component\Routing\Exception\ResourceNotFoundException;
 use Symfony\Component\Validator\Exception\ValidationFailedException;
 
+/**
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
+ */
 final class ExceptionHandler implements ExceptionHandlerInterface
 {
     /**
@@ -53,7 +58,7 @@ final class ExceptionHandler implements ExceptionHandlerInterface
     /**
      * @template T of \Throwable
      *
-     * @param class-string<T>                            $exceptionClass
+     * @param class-string<T>                                           $exceptionClass
      * @param callable(T, ServerRequestInterface): array<string, mixed> $handler
      */
     public function registerException(string $exceptionClass, callable $handler, bool $loggable = false): void

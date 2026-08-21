@@ -7,7 +7,12 @@ namespace Modufolio\Appkit\Util;
 use Composer\Autoload\ClassLoader;
 
 /**
- * @author Ryan Weaver <weaverryan@gmail.com>
+ * @author    Ryan Weaver <weaverryan@gmail.com>
+ *
+ * @see       https://github.com/symfony/maker-bundle
+ *
+ * @copyright Fabien Potencier <fabien@symfony.com>
+ * @license   https://opensource.org/licenses/MIT
  *
  * @internal
  */

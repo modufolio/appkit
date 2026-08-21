@@ -312,8 +312,8 @@ trait AppSecurity
      * Logout MUST be POST to be safe from cross-site request forgery
      * (e.g. <img src="/logout"> or third-party links would otherwise log
      * the user out without their consent).
-     * @param array<string, mixed> $config
      *
+     * @param array<string, mixed> $config
      */
     private function isLogoutRequest(ServerRequestInterface $request, array $config): bool
     {
@@ -532,8 +532,8 @@ trait AppSecurity
 
     /**
      * Check if the current request is for an entry point page (login, 2FA).
-     * @param array<string, mixed> $config
      *
+     * @param array<string, mixed> $config
      */
     private function isEntryPointPage(ServerRequestInterface $request, array $config): bool
     {
@@ -585,12 +585,12 @@ trait AppSecurity
      * See docs/security.md § "Authentication failure behaviour".
      *
      * @param array<string, mixed> $config
-     * @param list<string> $reissueCookies Set-Cookie headers re-issuing rotated
-     *                                    remember-me cookies
-     * @param list<string> $staleCookies Filled with Set-Cookie headers that
-     *                                   expire remember-me cookies invalidated
-     *                                   by this attempt; the caller attaches
-     *                                   them to whatever response it returns
+     * @param list<string>         $reissueCookies Set-Cookie headers re-issuing rotated
+     *                                             remember-me cookies
+     * @param list<string>         $staleCookies   Filled with Set-Cookie headers that
+     *                                             expire remember-me cookies invalidated
+     *                                             by this attempt; the caller attaches
+     *                                             them to whatever response it returns
      *
      * @throws \Exception
      */
@@ -681,8 +681,8 @@ trait AppSecurity
 
     /**
      * Handle redirect to entry point (login page) when authentication fails.
-     * @param array<string, mixed> $config
      *
+     * @param array<string, mixed> $config
      */
     private function handleEntryPointRedirect(array $config, bool $stateless): ResponseInterface
     {
@@ -728,8 +728,8 @@ trait AppSecurity
      * interactive login opted in via the configured parameter (default
      * `_remember_me`). A no-op when the firewall has no remember-me authenticator
      * or the opt-in parameter is absent, so ordinary logins are unaffected.
-     * @param array<string, mixed> $config
      *
+     * @param array<string, mixed> $config
      */
     private function issueRememberMeCookie(
         ServerRequestInterface $request,

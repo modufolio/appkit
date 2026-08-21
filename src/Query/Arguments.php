@@ -53,7 +53,7 @@ final class Arguments extends Collection implements Resolvable
      * passed together to the actual method call.
      *
      * @param array<string, mixed>|object $data
-        *
+     *
      * @return list<mixed>
      */
     public function resolve(array|object $data = []): array

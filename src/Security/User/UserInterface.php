@@ -4,6 +4,14 @@ declare(strict_types=1);
 
 namespace Modufolio\Appkit\Security\User;
 
+/**
+ * @author    Maarten Thiebou
+ *
+ * @see       https://github.com/symfony/security-core
+ *
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
+ */
 interface UserInterface
 {
     /**

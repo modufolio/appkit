@@ -2,6 +2,11 @@
 
 namespace Modufolio\Appkit\Toolkit;
 
+/**
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
+ */
 class Structurer
 {
     private string $root;

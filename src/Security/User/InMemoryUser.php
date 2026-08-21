@@ -4,6 +4,15 @@ declare(strict_types=1);
 
 namespace Modufolio\Appkit\Security\User;
 
+/**
+ * @author    Robin Chalas <robin.chalas@gmail.com>
+ * @author    Fabien Potencier <fabien@symfony.com>
+ *
+ * @see       https://github.com/symfony/security-core
+ *
+ * @copyright Fabien Potencier <fabien@symfony.com>
+ * @license   https://opensource.org/licenses/MIT
+ */
 final class InMemoryUser implements UserInterface, PasswordAuthenticatedUserInterface, EquatableInterface, \Stringable
 {
     private string $username;

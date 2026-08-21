@@ -16,6 +16,10 @@ use Symfony\Component\Uid\AbstractUid;
  * A missing parameter falls back to the argument default or null when the
  * argument is nullable, otherwise a 400 (\InvalidArgumentException) is thrown.
  * An invalid value throws a 400 unless FILTER_NULL_ON_FAILURE is set in flags.
+ *
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 readonly class MapQueryParameterResolver implements AttributeResolverInterface
 {

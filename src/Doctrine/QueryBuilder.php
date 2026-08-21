@@ -9,6 +9,11 @@ use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Query\Expression\ExpressionBuilder;
 use Doctrine\DBAL\Query\QueryBuilder as DBALQueryBuilder;
 
+/**
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
+ */
 final class QueryBuilder
 {
     private Connection $connection;

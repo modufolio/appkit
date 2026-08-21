@@ -8,6 +8,10 @@ use Psr\Http\Message\UploadedFileInterface;
 /**
  * A fluent wrapper around PSR-7 UploadedFileInterface that provides validation
  * and error handling capabilities.
+ *
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 class UploadedFileErrorHandler
 {
@@ -64,7 +68,7 @@ class UploadedFileErrorHandler
      * Assert the file has a specific extension.
      *
      * @param string|list<string> $extension Extension or array of extensions
-     * @param string|null  $message   Custom error message
+     * @param string|null         $message   Custom error message
      */
     public function hasExtension($extension, ?string $message = null): self
     {
@@ -86,7 +90,7 @@ class UploadedFileErrorHandler
      * Assert the file has a specific mime type.
      *
      * @param string|list<string> $mimeType Mime type or array of mime types
-     * @param string|null  $message  Custom error message
+     * @param string|null         $message  Custom error message
      */
     public function hasMimeType($mimeType, ?string $message = null): self
     {

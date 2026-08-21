@@ -7,7 +7,14 @@ namespace Modufolio\Appkit\Toolkit;
  * magic dependency injection based on the
  * defined variable names.
  *
- * Inspired by Kirby CMS Controller
+ * @author    Bastian Allgeier <bastian@getkirby.com>
+ * @author    Maarten Thiebou
+ *
+ * @see      https://getkirby.com
+ *
+ * @copyright Bastian Allgeier GmbH
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 class Controller
 {

@@ -9,6 +9,11 @@ use Symfony\Component\Config\Loader\Loader;
 use Symfony\Component\Routing\Route;
 use Symfony\Component\Routing\RouteCollection;
 
+/**
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
+ */
 class ArrayRouteLoader extends Loader
 {
     public function __construct(private FileLocatorInterface $fileLocator)

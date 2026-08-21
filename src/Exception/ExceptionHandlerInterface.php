@@ -11,6 +11,10 @@ use Psr\Http\Message\ServerRequestInterface;
  * Interface for Exception Handling.
  *
  * Provides contract for handling exceptions and formatting error responses
+ *
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 interface ExceptionHandlerInterface
 {
@@ -19,9 +23,9 @@ interface ExceptionHandlerInterface
      *
      * @template T of \Throwable
      *
-     * @param class-string<T>                            $exceptionClass
+     * @param class-string<T>                                           $exceptionClass
      * @param callable(T, ServerRequestInterface): array<string, mixed> $handler
-     * @param bool                                       $loggable       Whether this exception should be logged
+     * @param bool                                                      $loggable       Whether this exception should be logged
      */
     public function registerException(string $exceptionClass, callable $handler, bool $loggable = false): void;
 

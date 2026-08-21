@@ -6,6 +6,12 @@ namespace Modufolio\Appkit\Util;
 
 use Modufolio\Appkit\Console\Str;
 
+/**
+ * @see       https://github.com/symfony/maker-bundle
+ *
+ * @copyright Fabien Potencier <fabien@symfony.com>
+ * @license   https://opensource.org/licenses/MIT
+ */
 final class ClassNameValue implements \Stringable
 {
     public function __construct(

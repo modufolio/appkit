@@ -10,7 +10,9 @@ namespace Modufolio\Appkit\Image;
  * Maintains a registry of named disks and provides methods to
  * create, retrieve, and manage disk configurations.
  *
- * @license MIT
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 class DiskManager
 {

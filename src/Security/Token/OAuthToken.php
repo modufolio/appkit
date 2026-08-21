@@ -10,6 +10,10 @@ use Modufolio\Appkit\Security\User\UserInterface;
  * OAuth Token.
  *
  * Represents an authenticated OAuth 2.1 token
+ *
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 class OAuthToken extends AbstractToken
 {

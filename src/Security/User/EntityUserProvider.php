@@ -15,6 +15,13 @@ use Modufolio\Appkit\Security\Exception\UserNotFoundException;
  * database on refresh so role/password changes surface. Drop-in for apps that
  * would otherwise hand-roll loadUserByIdentifier/refreshUser/supportsClass on a
  * repository.
+ *
+ * @author    Maarten Thiebou
+ *
+ * @see       https://github.com/symfony/doctrine-bridge
+ *
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 class EntityUserProvider implements UserProviderInterface, PasswordUpgraderInterface
 {

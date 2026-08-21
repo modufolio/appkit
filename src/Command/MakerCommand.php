@@ -15,6 +15,14 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
+/**
+ * @author    Maarten Thiebou
+ *
+ * @see       https://github.com/symfony/maker-bundle
+ *
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
+ */
 final class MakerCommand extends Command
 {
     private InputConfiguration $inputConfig;

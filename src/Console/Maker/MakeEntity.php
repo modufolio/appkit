@@ -26,9 +26,14 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Question\Question;
 
 /**
- * @author Javier Eguiluz <javier.eguiluz@gmail.com>
- * @author Ryan Weaver <weaverryan@gmail.com>
- * @author Kévin Dunglas <dunglas@gmail.com>
+ * @author    Javier Eguiluz <javier.eguiluz@gmail.com>
+ * @author    Ryan Weaver <weaverryan@gmail.com>
+ * @author    Kévin Dunglas <dunglas@gmail.com>
+ *
+ * @see       https://github.com/symfony/maker-bundle
+ *
+ * @copyright Fabien Potencier <fabien@symfony.com>
+ * @license   https://opensource.org/licenses/MIT
  */
 final class MakeEntity extends AbstractMaker
 {

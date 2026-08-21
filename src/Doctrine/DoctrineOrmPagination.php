@@ -7,6 +7,11 @@ namespace Modufolio\Appkit\Doctrine;
 use Doctrine\ORM\Query;
 use Doctrine\ORM\Tools\Pagination\Paginator;
 
+/**
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
+ */
 class DoctrineOrmPagination
 {
     protected int $page = 1;

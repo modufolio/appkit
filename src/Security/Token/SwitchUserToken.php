@@ -13,6 +13,13 @@ use Modufolio\Appkit\Security\User\UserInterface;
  * to impersonate other users for debugging and support purposes.
  *
  * The original token can be retrieved to restore the original user session.
+ *
+ * @author    Maarten Thiebou
+ *
+ * @see       https://github.com/symfony/security-core
+ *
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 class SwitchUserToken extends AbstractToken
 {

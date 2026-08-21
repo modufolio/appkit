@@ -4,6 +4,14 @@ namespace Modufolio\Appkit\Security\Token;
 
 use Modufolio\Appkit\Security\User\UserInterface;
 
+/**
+ * @author    Maarten Thiebou
+ *
+ * @see       https://github.com/symfony/security-core
+ *
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
+ */
 class RememberMeToken extends AbstractToken
 {
     private string $firewallName;

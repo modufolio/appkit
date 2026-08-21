@@ -24,6 +24,11 @@ use Symfony\Component\Console\Style\SymfonyStyle;
     name: 'debug:firewall',
     description: 'Display the security firewalls, access-control rules and role hierarchy'
 )]
+/**
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
+ */
 final class FirewallDebugCommand extends Command
 {
     public function __construct(private readonly AppInterface $app)

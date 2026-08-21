@@ -20,6 +20,10 @@ use Psr\Log\NullLogger;
  *
  * Authenticates requests using OAuth 2.1 Bearer tokens validated against the
  * configured OAuth service.
+ *
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 class OAuthAuthenticator extends AbstractAuthenticator
 {

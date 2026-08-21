@@ -8,6 +8,16 @@ use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\ContainerInterface;
 use Psr\Container\NotFoundExceptionInterface;
 
+/**
+ * @author    Matthieu Napoli
+ * @author    Maarten Thiebou
+ *
+ * @see       https://github.com/PHP-DI/Invoker
+ *
+ * @copyright Matthieu Napoli
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
+ */
 readonly class TypeHintContainerResolver implements ParameterResolverInterface
 {
     public function __construct(private ContainerInterface $container)

@@ -12,6 +12,10 @@ namespace Modufolio\Appkit\Attributes;
  * unless an explicit name is given.
  *
  * @see https://php.net/manual/filter.constants for filter, flags and options
+ *
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 #[\Attribute(\Attribute::TARGET_PARAMETER)]
 class MapQueryParameter

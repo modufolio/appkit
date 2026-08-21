@@ -2,6 +2,11 @@
 
 namespace Modufolio\Appkit\Security;
 
+/**
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
+ */
 class RoleHierarchy
 {
     /**

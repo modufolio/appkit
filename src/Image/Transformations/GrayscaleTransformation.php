@@ -12,7 +12,9 @@ use Modufolio\Appkit\Image\Transformation;
 /**
  * Grayscale (black and white) transformation.
  *
- * @license MIT
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 class GrayscaleTransformation implements Transformation
 {

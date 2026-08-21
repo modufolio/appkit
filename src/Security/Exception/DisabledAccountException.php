@@ -7,6 +7,10 @@ namespace Modufolio\Appkit\Security\Exception;
 /**
  * Exception thrown when attempting to authenticate with a disabled account
  * For SOC 2 compliance: CC6.1 - Account lifecycle management.
+ *
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 class DisabledAccountException extends AccountStatusException
 {

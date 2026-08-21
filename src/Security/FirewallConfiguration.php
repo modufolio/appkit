@@ -9,6 +9,10 @@ use Symfony\Component\Config\Definition\ConfigurationInterface;
 
 /**
  * Config schema for the `firewalls` section of the security configuration.
+ *
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 final class FirewallConfiguration implements ConfigurationInterface
 {

@@ -12,6 +12,10 @@ use Modufolio\Appkit\Security\User\UserInterface;
  * Defines the contract for OAuth 2.1 access token entities.
  * Consuming applications must implement this interface on their
  * ORM entity (or any storage-backed class).
+ *
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 interface OAuthAccessTokenInterface
 {

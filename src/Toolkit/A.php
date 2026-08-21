@@ -11,12 +11,17 @@ namespace Modufolio\Appkit\Toolkit;
  * fetching elements from arrays, merging and
  * sorting or shuffling arrays.
  *
+ * @author    Bastian Allgeier <bastian@getkirby.com>
+ * @author    Taylor Otwell <taylor@laravel.com>
  * @author    Maarten Thiebou
+ *
+ * @see      https://getkirby.com
+ * @see      https://github.com/illuminate/support
+ *
+ * @copyright Bastian Allgeier GmbH
+ * @copyright Taylor Otwell
  * @copyright Modufolio
  * @license   https://opensource.org/licenses/MIT
- *
- * Most of the methods in this file come from illuminate/support and getkirby/kirby
- * thanks to Laravel Team and Kirby Team.
  */
 class A
 {

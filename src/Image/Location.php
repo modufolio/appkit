@@ -23,8 +23,7 @@ class Location implements \Stringable
     /**
      * Constructor.
      *
-     * @param array $exif The entire exif array
-     *
+     * @param array                $exif The entire exif array
      * @param array<string, mixed> $exif
      */
     public function __construct(array $exif)

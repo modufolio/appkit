@@ -9,6 +9,10 @@ namespace Modufolio\Appkit\Security\User;
  *
  * Implement this on your User entity if you want {@see UserChecker} to block
  * authentication for expired accounts.
+ *
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 interface ExpirableUserInterface extends UserInterface
 {

@@ -10,6 +10,10 @@ use Modufolio\Appkit\Security\Exception\RuntimeException;
  * Exception for Two-Factor Authentication errors.
  *
  * Wraps 2FA-specific errors for proper exception handling
+ *
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 class TwoFactorException extends RuntimeException
 {

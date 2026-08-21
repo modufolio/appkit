@@ -4,6 +4,12 @@ declare(strict_types=1);
 
 namespace Modufolio\Appkit\Console\Doctrine;
 
+/**
+ * @see       https://github.com/symfony/maker-bundle
+ *
+ * @copyright Fabien Potencier <fabien@symfony.com>
+ * @license   https://opensource.org/licenses/MIT
+ */
 abstract class BaseRelation
 {
     public function __construct(

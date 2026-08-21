@@ -4,6 +4,12 @@ declare(strict_types=1);
 
 namespace Modufolio\Appkit\Util;
 
+/**
+ * @see       https://github.com/symfony/maker-bundle
+ *
+ * @copyright Fabien Potencier <fabien@symfony.com>
+ * @license   https://opensource.org/licenses/MIT
+ */
 final class ClassDetails
 {
     public function __construct(

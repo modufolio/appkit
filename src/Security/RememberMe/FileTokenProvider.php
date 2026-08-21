@@ -10,6 +10,10 @@ namespace Modufolio\Appkit\Security\RememberMe;
  * The default persistent backend, mirroring FileBruteForceProtection — fine for
  * a single host; use a database-backed provider for multi-host deployments.
  * The on-disk file holds the value HASH, never the raw cookie value.
+ *
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 final class FileTokenProvider implements RememberMeTokenProviderInterface
 {

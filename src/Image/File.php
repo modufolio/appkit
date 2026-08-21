@@ -9,7 +9,12 @@ use Modufolio\Appkit\Toolkit\Mime;
 /**
  * File representation for image processing.
  *
+ * @author    Bastian Allgeier <bastian@getkirby.com>
  * @author    Maarten Thiebou
+ *
+ * @see      https://getkirby.com
+ *
+ * @copyright Bastian Allgeier GmbH
  * @copyright Modufolio
  * @license   https://opensource.org/licenses/MIT
  */

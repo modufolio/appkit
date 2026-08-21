@@ -18,6 +18,10 @@ namespace Modufolio\Appkit\Security\AccessControl;
  *    and "/" matches every path (catch-all).
  *  - "api:0" → matches when the zero-indexed path segment equals the value:
  *    "api:0" matches "/api/...", "users:1" matches "/api/users/...".
+ *
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 final class RequestMatcher
 {

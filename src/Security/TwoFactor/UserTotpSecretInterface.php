@@ -10,6 +10,10 @@ use Modufolio\Appkit\Security\User\UserInterface;
  * Interface for TOTP Secret Entity.
  *
  * Defines contract for managing user TOTP secrets
+ *
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 interface UserTotpSecretInterface extends TwoFactorSecret
 {

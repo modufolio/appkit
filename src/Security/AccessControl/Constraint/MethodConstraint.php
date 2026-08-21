@@ -13,6 +13,10 @@ use Symfony\Component\Routing\Exception\MethodNotAllowedException;
 
 /**
  * Rejects requests whose HTTP method is outside the rule's `methods` list.
+ *
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 final class MethodConstraint implements RuleConstraintInterface
 {

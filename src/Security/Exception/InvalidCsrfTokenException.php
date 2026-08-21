@@ -6,6 +6,13 @@ namespace Modufolio\Appkit\Security\Exception;
 
 /**
  * Exception thrown when CSRF token validation fails.
+ *
+ * @author    Maarten Thiebou
+ *
+ * @see       https://github.com/symfony/security-http
+ *
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 class InvalidCsrfTokenException extends AuthenticationException
 {

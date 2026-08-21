@@ -9,8 +9,13 @@ use Modufolio\Appkit\Exception\RuntimeCommandException;
 use Modufolio\Appkit\Security\User\UserInterface;
 
 /**
- * @author Javier Eguiluz <javier.eguiluz@gmail.com>
- * @author Ryan Weaver <weaverryan@gmail.com>
+ * @author    Javier Eguiluz <javier.eguiluz@gmail.com>
+ * @author    Ryan Weaver <weaverryan@gmail.com>
+ *
+ * @see       https://github.com/symfony/maker-bundle
+ *
+ * @copyright Fabien Potencier <fabien@symfony.com>
+ * @license   https://opensource.org/licenses/MIT
  *
  * @internal
  */

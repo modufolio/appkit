@@ -9,6 +9,10 @@ namespace Modufolio\Appkit\Query;
  *
  * Implemented by every node the query parser can produce, so a parsed tree can
  * be walked without inspecting concrete node types.
+ *
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 interface Resolvable
 {

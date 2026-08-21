@@ -8,6 +8,11 @@ use Doctrine\ORM\EntityManagerInterface;
 use Modufolio\Appkit\Attributes\MapEntity;
 use Symfony\Component\Routing\Exception\ResourceNotFoundException;
 
+/**
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
+ */
 class MapEntityResolver implements AttributeResolverInterface
 {
     public function __construct(
@@ -24,7 +29,7 @@ class MapEntityResolver implements AttributeResolverInterface
      * Resolves the entity for the given parameter using the MapEntity attribute.
      * Throws a 404 if the entity is not found and the parameter is not nullable.
      *
-     * @param array<string, mixed>      $providedParameters
+     * @param array<string, mixed> $providedParameters
      *
      * @throws \LogicException           if the attribute or parameter is invalid
      * @throws ResourceNotFoundException if the entity is not found and the parameter is not nullable
@@ -43,7 +48,7 @@ class MapEntityResolver implements AttributeResolverInterface
     }
 
     /**
-     * @param array<string, mixed>      $providedParameters
+     * @param array<string, mixed> $providedParameters
      *
      * @throws \LogicException           if the parameter type is not a valid class or no criteria can be built
      * @throws ResourceNotFoundException if the entity is not found and the parameter is not nullable

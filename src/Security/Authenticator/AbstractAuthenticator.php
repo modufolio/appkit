@@ -10,6 +10,11 @@ use Modufolio\Appkit\Security\User\UserInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
+/**
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
+ */
 abstract class AbstractAuthenticator implements AuthenticatorInterface
 {
     abstract public function supports(ServerRequestInterface $request): bool;

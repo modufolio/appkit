@@ -19,8 +19,7 @@ interface ImageJobRepositoryInterface
     /**
      * Save a thumbnail generation job.
      *
-     * @param string $mediaRoot The media root directory path for storing job info
-     *
+     * @param string               $mediaRoot The media root directory path for storing job info
      * @param array<string, mixed> $options
      */
     public function saveJob(

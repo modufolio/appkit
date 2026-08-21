@@ -9,6 +9,10 @@ namespace Modufolio\Appkit\Security\Exception;
  * the signature of a stolen-then-rotated cookie. All of the affected user's
  * remember-me tokens are revoked in response, forcing every device to
  * re-authenticate.
+ *
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 class CookieTheftException extends AuthenticationException
 {

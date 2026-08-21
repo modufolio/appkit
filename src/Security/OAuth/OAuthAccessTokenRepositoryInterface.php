@@ -11,6 +11,10 @@ use Modufolio\Appkit\Security\User\UserInterface;
  *
  * Provides the contract for accessing and managing OAuth access tokens.
  * Consuming applications must implement this interface on their repository.
+ *
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 interface OAuthAccessTokenRepositoryInterface
 {

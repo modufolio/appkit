@@ -9,6 +9,13 @@ namespace Modufolio\Appkit\Security\Exception;
  *
  * This is distinct from AuthenticationException (HTTP 401): the user IS
  * authenticated, they simply lack the required roles or fail an access rule.
+ *
+ * @author    Fabien Potencier <fabien@symfony.com>
+ *
+ * @see       https://github.com/symfony/security-core
+ *
+ * @copyright Fabien Potencier <fabien@symfony.com>
+ * @license   https://opensource.org/licenses/MIT
  */
 class AccessDeniedException extends RuntimeException
 {

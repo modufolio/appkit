@@ -6,6 +6,11 @@ use Modufolio\Appkit\Attributes\CurrentUser;
 use Modufolio\Appkit\Security\Token\TokenStorageInterface;
 use Modufolio\Appkit\Security\User\UserInterface;
 
+/**
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
+ */
 class UserResolver implements AttributeResolverInterface
 {
     public function __construct(

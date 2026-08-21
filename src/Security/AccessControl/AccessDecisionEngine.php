@@ -39,6 +39,10 @@ use Psr\Http\Message\ServerRequestInterface;
  *
  * Custom constraints (registerConstraint) run after the built-in ones for
  * every matched rule and read their configuration from AccessRule::$extra.
+ *
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 final class AccessDecisionEngine
 {

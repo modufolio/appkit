@@ -7,6 +7,14 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Routing\Route;
 use Symfony\Component\Routing\RouteCollection;
 
+/**
+ * @author    Jean-François Simon <jeanfrancois.simon@sensiolabs.com>
+ *
+ * @see       https://github.com/symfony/framework-bundle
+ *
+ * @copyright Fabien Potencier <fabien@symfony.com>
+ * @license   https://opensource.org/licenses/MIT
+ */
 abstract class Descriptor implements DescriptorInterface
 {
     protected OutputInterface $output;

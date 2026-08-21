@@ -6,6 +6,12 @@ namespace Modufolio\Appkit\Console\Doctrine;
 
 use Doctrine\ORM\Mapping\ManyToOneAssociationMapping;
 
+/**
+ * @see       https://github.com/symfony/maker-bundle
+ *
+ * @copyright Fabien Potencier <fabien@symfony.com>
+ * @license   https://opensource.org/licenses/MIT
+ */
 final class RelationManyToOne extends BaseRelation
 {
     public static function createFromObject(ManyToOneAssociationMapping $mapping): self

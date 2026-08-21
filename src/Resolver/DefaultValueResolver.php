@@ -11,6 +11,15 @@ namespace Modufolio\Appkit\Resolver;
  * This makes default handling explicit and lets nullable parameters resolve to
  * null instead of triggering an ArgumentCountError when nothing else resolves
  * them. Genuinely required parameters are left unresolved on purpose.
+ *
+ * @author    Matthieu Napoli
+ * @author    Maarten Thiebou
+ *
+ * @see       https://github.com/PHP-DI/Invoker
+ *
+ * @copyright Matthieu Napoli
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 class DefaultValueResolver implements ParameterResolverInterface
 {

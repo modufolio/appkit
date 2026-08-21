@@ -7,6 +7,11 @@ namespace Modufolio\Appkit\Routing\Loader;
 use Modufolio\Appkit\Attributes\IsGranted;
 use Symfony\Component\Routing\Route;
 
+/**
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
+ */
 class AttributeClassLoader extends \Symfony\Component\Routing\Loader\AttributeClassLoader
 {
     /**

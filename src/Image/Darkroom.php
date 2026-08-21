@@ -5,7 +5,12 @@ declare(strict_types=1);
 namespace Modufolio\Appkit\Image;
 
 /**
+ * @author    Bastian Allgeier <bastian@getkirby.com>
  * @author    Maarten Thiebou
+ *
+ * @see      https://getkirby.com
+ *
+ * @copyright Bastian Allgeier GmbH
  * @copyright Modufolio
  * @license   https://opensource.org/licenses/MIT
  */

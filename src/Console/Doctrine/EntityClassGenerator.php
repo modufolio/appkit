@@ -12,6 +12,12 @@ use Modufolio\Appkit\Util\ClassNameDetails;
 use Modufolio\Appkit\Util\UseStatementGenerator;
 use Symfony\Component\Uid\Uuid;
 
+/**
+ * @see       https://github.com/symfony/maker-bundle
+ *
+ * @copyright Fabien Potencier <fabien@symfony.com>
+ * @license   https://opensource.org/licenses/MIT
+ */
 final class EntityClassGenerator
 {
     public function __construct(

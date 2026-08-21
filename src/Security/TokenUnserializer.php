@@ -12,6 +12,11 @@ use Modufolio\Appkit\Security\Token\TwoFactorToken;
 use Modufolio\Appkit\Security\Token\UsernamePasswordToken;
 use Modufolio\Appkit\Security\User\InMemoryUser;
 
+/**
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
+ */
 final class TokenUnserializer
 {
     /**

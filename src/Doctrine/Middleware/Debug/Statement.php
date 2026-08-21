@@ -9,6 +9,14 @@ use Doctrine\DBAL\Driver\Result as ResultInterface;
 use Doctrine\DBAL\Driver\Statement as StatementInterface;
 use Doctrine\DBAL\ParameterType;
 
+/**
+ * @author    Filippo Tessarotto <zoeslam@gmail.com>
+ *
+ * @see       https://github.com/Slamdunk/dbal-debugstack-middleware
+ *
+ * @copyright Filippo Tessarotto
+ * @license   https://opensource.org/licenses/MIT
+ */
 final class Statement extends AbstractStatementMiddleware
 {
     /** @var array<int|string, mixed> */

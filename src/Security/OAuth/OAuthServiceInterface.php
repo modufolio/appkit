@@ -12,6 +12,10 @@ use Psr\Http\Message\ServerRequestInterface;
  *
  * Defines the contract for OAuth token lifecycle management:
  * creation, validation, refresh (with rotation), revocation, and cleanup.
+ *
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 interface OAuthServiceInterface
 {

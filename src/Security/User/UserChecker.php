@@ -17,6 +17,10 @@ use Psr\Log\LoggerInterface;
  * {@see ExpirableUserInterface} and {@see CredentialsExpirableUserInterface}.
  *
  * For SOC 2 compliance: CC6.1, CC6.2, CC6.7, CC7.2
+ *
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 class UserChecker implements UserCheckerInterface
 {

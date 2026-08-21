@@ -18,6 +18,10 @@ use Psr\Http\Message\ServerRequestInterface;
  * (IS_AUTHENTICATED_FULLY, IS_IMPERSONATOR, …). The decision — and the
  * authn-vs-authz split (log-in/step-up vs hard 403) — is delegated to the
  * shared RoleAttributeEvaluator so path rules and #[IsGranted] behave alike.
+ *
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 final class RoleConstraint implements RuleConstraintInterface
 {

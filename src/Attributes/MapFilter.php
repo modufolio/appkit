@@ -2,6 +2,11 @@
 
 namespace Modufolio\Appkit\Attributes;
 
+/**
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
+ */
 #[\Attribute(\Attribute::TARGET_PARAMETER)]
 class MapFilter
 {

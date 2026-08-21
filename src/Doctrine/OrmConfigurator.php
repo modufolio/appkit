@@ -9,6 +9,11 @@ use Doctrine\DBAL\Configuration as DbalConfiguration;
 use Doctrine\ORM\Configuration as OrmConfiguration;
 use Psr\Cache\CacheItemPoolInterface;
 
+/**
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
+ */
 final class OrmConfigurator
 {
     /** @var array<string, mixed> */

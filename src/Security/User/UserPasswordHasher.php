@@ -4,6 +4,14 @@ declare(strict_types=1);
 
 namespace Modufolio\Appkit\Security\User;
 
+/**
+ * @author    Maarten Thiebou
+ *
+ * @see       https://github.com/symfony/password-hasher
+ *
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
+ */
 class UserPasswordHasher implements UserPasswordHasherInterface
 {
     /**

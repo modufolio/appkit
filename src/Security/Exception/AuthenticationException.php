@@ -7,6 +7,14 @@ namespace Modufolio\Appkit\Security\Exception;
 use Modufolio\Appkit\Security\Token\TokenInterface;
 use Modufolio\Appkit\Security\User\UserInterface;
 
+/**
+ * @author    Maarten Thiebou
+ *
+ * @see       https://github.com/symfony/security-core
+ *
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
+ */
 class AuthenticationException extends RuntimeException
 {
     private ?TokenInterface $token = null;

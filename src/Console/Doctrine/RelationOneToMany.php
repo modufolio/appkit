@@ -7,6 +7,12 @@ namespace Modufolio\Appkit\Console\Doctrine;
 use Doctrine\ORM\Mapping\OneToManyAssociationMapping;
 use Modufolio\Appkit\Console\Str;
 
+/**
+ * @see       https://github.com/symfony/maker-bundle
+ *
+ * @copyright Fabien Potencier <fabien@symfony.com>
+ * @license   https://opensource.org/licenses/MIT
+ */
 final class RelationOneToMany extends BaseCollectionRelation
 {
     public function getTargetGetterMethodName(): string

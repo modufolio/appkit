@@ -4,6 +4,11 @@ namespace Modufolio\Appkit\Security\Token;
 
 use Modufolio\Appkit\Security\User\UserInterface;
 
+/**
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
+ */
 class JwtToken extends AbstractToken
 {
     private string $firewallName;

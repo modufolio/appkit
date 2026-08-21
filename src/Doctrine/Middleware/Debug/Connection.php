@@ -8,6 +8,14 @@ use Doctrine\DBAL\Driver\Connection as ConnectionInterface;
 use Doctrine\DBAL\Driver\Middleware\AbstractConnectionMiddleware;
 use Doctrine\DBAL\Driver\Result;
 
+/**
+ * @author    Filippo Tessarotto <zoeslam@gmail.com>
+ *
+ * @see       https://github.com/Slamdunk/dbal-debugstack-middleware
+ *
+ * @copyright Filippo Tessarotto
+ * @license   https://opensource.org/licenses/MIT
+ */
 final class Connection extends AbstractConnectionMiddleware
 {
     public function __construct(

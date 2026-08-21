@@ -12,7 +12,12 @@ use Modufolio\Appkit\Toolkit\F;
  * Provides access to image metadata: dimensions, EXIF data,
  * and image type checking. Completely original design.
  *
+ * @author    Bastian Allgeier <bastian@getkirby.com>
  * @author    Maarten Thiebou
+ *
+ * @see      https://getkirby.com
+ *
+ * @copyright Bastian Allgeier GmbH
  * @copyright Modufolio
  * @license   https://opensource.org/licenses/MIT
  */

@@ -8,7 +8,12 @@ use Modufolio\Appkit\Console\Str;
 use Modufolio\Appkit\Util\UseStatementGenerator;
 
 /**
- * @author Jesse Rushlow <jr@rushlow.dev>
+ * @author    Jesse Rushlow <jr@rushlow.dev>
+ *
+ * @see       https://github.com/symfony/maker-bundle
+ *
+ * @copyright Fabien Potencier <fabien@symfony.com>
+ * @license   https://opensource.org/licenses/MIT
  *
  * @internal
  */

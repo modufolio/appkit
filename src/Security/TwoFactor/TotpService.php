@@ -19,6 +19,10 @@ use Psr\Clock\ClockInterface;
  *
  * Handles secret generation, QR code creation, and code verification
  * for Google Authenticator and compatible apps
+ *
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 class TotpService implements TwoFactorServiceInterface
 {

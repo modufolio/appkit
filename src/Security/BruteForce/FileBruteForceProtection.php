@@ -9,6 +9,10 @@ namespace Modufolio\Appkit\Security\BruteForce;
  *
  * Read-modify-write cycles are performed under a single LOCK_EX, so concurrent
  * recordFailure() calls under load do not lose increments.
+ *
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 class FileBruteForceProtection implements BruteForceProtectionInterface
 {

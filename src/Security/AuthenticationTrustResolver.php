@@ -6,6 +6,14 @@ use Modufolio\Appkit\Security\Token\RememberMeToken;
 use Modufolio\Appkit\Security\Token\SwitchUserToken;
 use Modufolio\Appkit\Security\Token\TokenInterface;
 
+/**
+ * @author    Maarten Thiebou
+ *
+ * @see       https://github.com/symfony/security-core
+ *
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
+ */
 class AuthenticationTrustResolver implements AuthenticationTrustResolverInterface
 {
     public function isAuthenticated(#[\SensitiveParameter] ?TokenInterface $token = null): bool

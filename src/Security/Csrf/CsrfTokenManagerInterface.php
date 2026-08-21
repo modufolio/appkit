@@ -6,6 +6,13 @@ namespace Modufolio\Appkit\Security\Csrf;
 
 /**
  * Interface for CSRF Token Management.
+ *
+ * @author    Maarten Thiebou
+ *
+ * @see       https://github.com/symfony/security-csrf
+ *
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 interface CsrfTokenManagerInterface
 {

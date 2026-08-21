@@ -14,6 +14,16 @@ use Modufolio\Appkit\Util\ClassNameDetails;
 use Symfony\Component\Uid\Ulid;
 use Symfony\Component\Uid\Uuid;
 
+/**
+ * @author    Fabien Potencier <fabien@symfony.com>
+ * @author    Ryan Weaver <ryan@knpuniversity.com>
+ * @author    Sadicov Vladimir <sadikoff@gmail.com>
+ *
+ * @see       https://github.com/symfony/maker-bundle
+ *
+ * @copyright Fabien Potencier <fabien@symfony.com>
+ * @license   https://opensource.org/licenses/MIT
+ */
 final class DoctrineHelper
 {
     public function __construct(

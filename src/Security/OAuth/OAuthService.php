@@ -17,6 +17,10 @@ use Psr\Http\Message\ServerRequestInterface;
  * - Refresh token rotation
  * - Token binding to client
  * - PKCE support (optional)
+ *
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
  */
 class OAuthService implements OAuthServiceInterface
 {

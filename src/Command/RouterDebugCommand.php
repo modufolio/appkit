@@ -15,6 +15,15 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Routing\RouteCollection;
 
+/**
+ * @author    Fabien Potencier <fabien@symfony.com>
+ * @author    Tobias Schultze <http://tobion.de>
+ *
+ * @see       https://github.com/symfony/framework-bundle
+ *
+ * @copyright Fabien Potencier <fabien@symfony.com>
+ * @license   https://opensource.org/licenses/MIT
+ */
 #[AsCommand(name: 'debug:router', description: 'Display current routes for an application')]
 class RouterDebugCommand extends Command
 {

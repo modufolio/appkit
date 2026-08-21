@@ -9,12 +9,17 @@ use IntlDateFormatter;
 use Modufolio\Appkit\Query\Query;
 
 /**
+ * @author    Bastian Allgeier <bastian@getkirby.com>
+ * @author    Taylor Otwell <taylor@laravel.com>
  * @author    Maarten Thiebou
+ *
+ * @see      https://getkirby.com
+ * @see      https://github.com/illuminate/support
+ *
+ * @copyright Bastian Allgeier GmbH
+ * @copyright Taylor Otwell
  * @copyright Modufolio
  * @license   https://opensource.org/licenses/MIT
- *
- * Most of the methods in this file come from illuminate/support and getkirby/kirby
- * thanks to Laravel Team and Kirby Team.
  */
 class Str
 {

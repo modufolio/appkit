@@ -18,6 +18,11 @@ use Modufolio\Psr7\Http\Response;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
+/**
+ * @author    Maarten Thiebou
+ * @copyright Modufolio
+ * @license   https://opensource.org/licenses/MIT
+ */
 class RememberMeAuthenticator extends AbstractAuthenticator
 {
     /** @var array<string, mixed> */
