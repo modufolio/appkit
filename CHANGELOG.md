@@ -5,6 +5,69 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.1] - 2026-08-21
+
+### Added
+
+- **`config/controllers.php` entries may be keyed by constructor parameter
+  name**, in which case the dependencies are passed as named arguments and
+  their order in the file no longer matters. Prefer this for controllers with
+  several dependencies: a positional list that drifts out of sync with the
+  constructor transposes the arguments silently whenever the mismatched
+  parameters share a type, while an unrecognised key fails loudly with
+  `Unknown named parameter`. Plain positional lists keep working unchanged.
+  (`docs/dependency-injection.md`)
+
+### Fixed
+
+- **Controller arguments are matched by name, not by position.** The resolver
+  pipeline keys its results by parameter name and fills them in resolver
+  order, so `AssociativeArrayResolver` supplied the route parameters before
+  `TypeHintResolver` supplied the request. Spreading that array with
+  `array_values()` then handed argument #1 whatever resolved first — a
+  controller like `handle(ServerRequestInterface $request, string $slug)`
+  behind a `/{slug}` route failed with a `TypeError` before its body ran.
+  Arguments are now spread by name, which is order-independent, and an
+  unknown key raises `Unknown named parameter` instead of silently shifting
+  every argument along. `ReflectionControllerArgumentResolver` likewise keys
+  constructor dependencies by parameter name; hand-written
+  `config/controllers.php` lists remain positional.
+  (`src/Core/Kernel.php`,
+  `src/DependencyInjection/ReflectionControllerArgumentResolver.php`)
+
+- **`isViewable()` was never actually asserted.** `ImageTest::testIsViewable()`
+  called `isResizable()` twice, so the viewable-type check had no coverage at
+  all — hidden behind a skip for a missing HEIC fixture, which is now
+  committed. (`tests/Unit/Image/ImageTest.php`)
+
+- **Composer no longer warns about four test classes.** `mocks.php` declared
+  `CustomHandler` under a name PSR-4 could not map, `CameraTest` sat in
+  `tests/Unit/Image` while declaring `Tests\Unit\Unit\Image`, and the
+  `F::load()` fixtures are deliberately non-PSR-4. The first two are corrected
+  and every fixture directory is now excluded from the classmap.
+  (`composer.json`, `tests/Unit/Data/CustomHandler.php`,
+  `tests/Unit/Image/CameraTest.php`)
+
+### Changed
+
+- **CI runs the darkroom and brute-force suites instead of skipping them.**
+  24 tests were skipping for want of a runtime dependency, so ImageMagick
+  processing, Redis-backed lockout and the HEIC paths went unverified. The
+  workflow now installs ImageMagick and runs a `redis:7-alpine` service with
+  the phpredis extension.
+
+  Note for consumers packaging their own images: `Darkroom\ImageMagick`
+  defaults to `bin => 'magick'`, which exists in ImageMagick 7 but **not** in
+  the ImageMagick 6 that Debian and Ubuntu package — there the binary is
+  `convert`. Set the `bin` option accordingly. `ImageMagickTest` now resolves
+  whichever is present, so the suite covers both.
+  (`.github/workflows/ci.yml`,
+  `tests/Unit/Image/Darkroom/ImageMagickTest.php`)
+
+### Docs
+
+- CI status and PHPStan level 8 badges in the README.
+
 ## [0.10.0] - 2026-08-20
 
 ### Upgrading
