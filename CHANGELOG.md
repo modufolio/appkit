@@ -5,6 +5,72 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.0] - 2026-08-27
+
+### Upgrading
+
+- **Every existing image URL changes once on deploy**, since the variant
+  directory is now derived from the uploads-relative path and the master's
+  mtime. Variants rebuild on demand, but anything holding the old URLs outside
+  the app — feeds, sent email, CDN config — stops resolving.
+
+- **JSON:API endpoints now enforce the roles they declare.** The `roles` key
+  was read but never applied, so those entities were open to any authenticated
+  user. Clients relying on that gap start getting 403s — check each entity's
+  `roles` says what you meant while it went unenforced.
+
+### Fixed
+
+- **Generated JSON:API routes ignored the entity's declared roles.**
+  `JsonApiRouteLoader` read `roles` from the entity configuration for
+  validation but never wrote it to the routes it built, so every generated
+  endpoint — including `create`, `update` and `delete` — was reachable by any
+  authenticated user regardless of what the configuration declared. The roles
+  are now written to each of the entity's routes as `_is_granted_roles`, the
+  same default `#[IsGranted]` sets, so `AccessDecisionEngine::enforceRoleGroups()`
+  applies the role hierarchy before the controller runs. They are normalised
+  into a single group, which the engine ORs — any one of the listed roles
+  grants access, matching how the key reads.
+  (`src/Routing/Loader/JsonApiRouteLoader.php`)
+
+- **Media URLs changed whenever the project moved, and never changed when the
+  image did.** `Storage` derived the variant directory from
+  `md5($file->root())` — the absolute path — so a deploy path differing from
+  the developer's, or a plain directory move, silently rewrote every media URL
+  on the site. Because the hash covered only the path, the opposite also held:
+  masters are rewritten in place on upload (downscaled, auto-oriented) without
+  the URL changing, so a client or CDN holding the previous response kept
+  serving the superseded image. The segment is now derived from the
+  uploads-relative path plus the master's modification time — stable across
+  installations, and new bytes produce a new URL, so variants can be cached
+  indefinitely. Existing URLs change once on deploy.
+  (`src/Image/Storage.php`)
+
+- **`#[MapEntity]` added the route's `id` to a mapped lookup.** The resolver
+  appended `id` to the criteria unconditionally, so on a nested route such as
+  `/parent/{uuid}/child/{id}` the parent argument was constrained by the
+  child's id and resolved to nothing — a 404 with no indication why. A mapping
+  states which route parameters identify the entity, so the route's `id` is
+  only used when the attribute declares no mapping. `criteria` is unaffected:
+  it holds fixed constraints such as `['status' => 'published']` rather than
+  identifying a record, and still combines with the route's id.
+  (`src/Resolver/MapEntityResolver.php`)
+
+### Changed
+
+- **`phpstan/phpstan-phpunit` analyses the test suite.** PHPUnit's assertions
+  now narrow types for static analysis, so a guarded value no longer needs a
+  hand-written `is_int()` check to satisfy level 8, and an assertion that can
+  never pass is reported rather than sitting green forever. That last rule
+  found three: `Handler::decode()` was documented `@return array<string, mixed>`
+  while a decoded scalar legitimately yields a list, and two `testParse()`
+  docblocks in the query tests claimed a string-keyed array against providers
+  supplying lists. The extension's style rules (`rules.neon`) are deliberately
+  not included, and its redundant-`assertInstanceOf` rule is ignored under
+  `tests/` — those assertions still fail at runtime when an implementation
+  violates its declared type, which mocks and proxies do.
+  (`phpstan.php`, `composer.json`, `src/Data/Handler.php`)
+
 ## [0.10.1] - 2026-08-21
 
 ### Added
