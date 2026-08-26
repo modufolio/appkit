@@ -45,15 +45,36 @@ class Storage implements StorageInterface
 
     public function mediaRoot(FileInterface $file): string
     {
-        $hash = md5($file->root());
-
-        return $this->baseMediaRoot.'/images/'.$file->disk()->name().'/'.$hash.'/'.$file->filename();
+        return $this->baseMediaRoot.'/images/'.$file->disk()->name().'/'.$this->mediaHash($file).'/'.$file->filename();
     }
 
     public function mediaUrl(FileInterface $file): string
     {
-        $hash = md5($file->root());
+        return $this->baseMediaUrl.'/images/'.$file->disk()->name().'/'.$this->mediaHash($file).'/'.$file->filename();
+    }
 
-        return $this->baseMediaUrl.'/images/'.$file->disk()->name().'/'.$hash.'/'.$file->filename();
+    /**
+     * The directory segment that namespaces a master's generated variants.
+     *
+     * Two properties matter here, and the previous md5($file->root()) had
+     * neither:
+     *
+     *  - It hashes the uploads-relative path rather than the absolute one, so
+     *    the same file yields the same URL whatever directory the project is
+     *    installed in. Hashing the absolute path meant a move — or a deploy
+     *    path differing from the developer's — silently changed every media
+     *    URL on the site.
+     *
+     *  - It carries the master's modification time, so the URL changes when
+     *    the bytes change. Masters are rewritten in place (downscaling and
+     *    auto-orienting on upload), and without this a client or CDN holding
+     *    the old response would keep serving the superseded image. With it,
+     *    variants can be cached indefinitely.
+     */
+    private function mediaHash(FileInterface $file): string
+    {
+        $mtime = @filemtime($file->root()) ?: 0;
+
+        return substr(md5($file->relativePathFromUploads()), 0, 10).'-'.$mtime;
     }
 }
