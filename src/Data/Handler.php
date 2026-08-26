@@ -23,7 +23,7 @@ abstract class Handler
     /**
      * Parses an encoded string and returns a multi-dimensional array.
      *
-     * @return array<string, mixed>
+     * @return array<array-key, mixed>
      *
      * @throws \Exception if the file can't be parsed
      */
