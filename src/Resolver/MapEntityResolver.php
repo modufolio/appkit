@@ -71,10 +71,20 @@ class MapEntityResolver implements AttributeResolverInterface
             $criteria[$field] = $providedParameters[$routeParam];
         }
 
-        // Use the route's id as a primary-key criterion when one is available.
-        $id = $criteria['id'] ?? $providedParameters['id'] ?? null;
-        if (null !== $id) {
-            $criteria['id'] = $id;
+        // Fall back to the route's id only when the attribute named no mapping.
+        //
+        // A mapping says which route parameters identify this entity, so the
+        // route's `id` is not one of them — on `/parent/{uuid}/child/{id}` with
+        // two mapped arguments, adding it would constrain the parent by the
+        // child's id and silently 404. `criteria` is different: it holds fixed
+        // extra constraints (`['status' => 'published']`) and does not identify
+        // a record, so it still combines with the route's id.
+        if (null === $attribute->mapping && !array_key_exists('id', $criteria)) {
+            $id = $providedParameters['id'] ?? null;
+
+            if (null !== $id) {
+                $criteria['id'] = $id;
+            }
         }
 
         foreach ($attribute->exclude ?? [] as $field) {
