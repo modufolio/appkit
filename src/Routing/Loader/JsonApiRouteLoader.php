@@ -56,22 +56,33 @@ class JsonApiRouteLoader extends Loader
 
             $resourceKey = $entityConfig['resource_key'] ?? $this->extractResourceKey($entityClass);
 
+            // Roles declared on the resource are enforced by the kernel, not
+            // here: writing them to the route as `_is_granted_roles` is exactly
+            // what #[IsGranted] does, so AccessDecisionEngine::enforceRoleGroups()
+            // applies the role hierarchy before the controller is reached.
+            $roleGroups = $this->roleGroups($entityConfig);
+
             // The read-only guard is a security control and MUST be enforced in
             // every environment, not just debug.
             $readOnly = $this->isReadOnly($entityClass);
 
             $operations = $entityConfig['operations'] ?? [];
 
+            // Collected per entity so the declared roles can be applied to
+            // all of its routes in one place, rather than threaded through
+            // every createRoute() call.
+            $entityRoutes = new RouteCollection();
+
             // Always allow read operations
             if ($operations['index'] ?? false) {
-                $routes->add(
+                $entityRoutes->add(
                     "api_{$resourceKey}_index",
                     $this->createRoute("/{$resourceKey}", ['GET'], 'index', $entityClass)
                 );
             }
 
             if ($operations['show'] ?? false) {
-                $routes->add(
+                $entityRoutes->add(
                     "api_{$resourceKey}_show",
                     $this->createRoute("/{$resourceKey}/{id}", ['GET'], 'show', $entityClass)
                 );
@@ -80,21 +91,21 @@ class JsonApiRouteLoader extends Loader
             // Skip write operations if entity is read-only
             if (!$readOnly) {
                 if ($operations['create'] ?? false) {
-                    $routes->add(
+                    $entityRoutes->add(
                         "api_{$resourceKey}_create",
                         $this->createRoute("/{$resourceKey}", ['POST'], 'create', $entityClass)
                     );
                 }
 
                 if ($operations['update'] ?? false) {
-                    $routes->add(
+                    $entityRoutes->add(
                         "api_{$resourceKey}_update",
                         $this->createRoute("/{$resourceKey}/{id}", ['PATCH', 'PUT'], 'update', $entityClass)
                     );
                 }
 
                 if ($operations['delete'] ?? false) {
-                    $routes->add(
+                    $entityRoutes->add(
                         "api_{$resourceKey}_delete",
                         $this->createRoute("/{$resourceKey}/{id}", ['DELETE'], 'delete', $entityClass)
                     );
@@ -103,7 +114,7 @@ class JsonApiRouteLoader extends Loader
 
             // Relationship routes (always allowed)
             foreach ($entityConfig['relationships'] ?? [] as $relationship) {
-                $routes->add(
+                $entityRoutes->add(
                     "api_{$resourceKey}_related_{$relationship}",
                     $this->createRoute(
                         "/{$resourceKey}/{id}/{$relationship}",
@@ -115,6 +126,11 @@ class JsonApiRouteLoader extends Loader
                     )
                 );
             }
+            if ($roleGroups !== []) {
+                $entityRoutes->addDefaults(['_is_granted_roles' => $roleGroups]);
+            }
+
+            $routes->addCollection($entityRoutes);
         }
 
         return $routes;
@@ -148,6 +164,33 @@ class JsonApiRouteLoader extends Loader
             requirements: $requirements,
             methods: $methods
         );
+    }
+
+    /**
+     * Normalise the declared roles into the shape the kernel enforces.
+     *
+     * `AccessDecisionEngine::enforceRoleGroups()` ANDs across groups and ORs
+     * within one, so the roles become a single group — any one of them grants
+     * access. A flat list would instead demand every listed role.
+     *
+     * @param array<string, mixed> $entityConfig
+     *
+     * @return list<list<string>>
+     */
+    private function roleGroups(array $entityConfig): array
+    {
+        $roles = $entityConfig['roles'] ?? [];
+
+        if (!is_array($roles)) {
+            return [];
+        }
+
+        $roles = array_values(array_filter(
+            $roles,
+            static fn (mixed $role): bool => is_string($role) && '' !== $role,
+        ));
+
+        return $roles === [] ? [] : [$roles];
     }
 
     /**
