@@ -15,13 +15,15 @@ without Symfony's full kernel, bundle system, and compile step.
 - **Slim is too thin.** No Doctrine, no validation, no security primitives —
   the consumer wires everything.
 - **Symfony is too heavy.** A compiled DI container, an event dispatcher,
-  bundles, MakerBundle, recipes. Excellent for large apps; more than most
-  SaaS workloads need.
+  bundles, Flex recipes, and a bootstrap that has to be generated. Excellent
+  for large apps; more than most SaaS workloads need.
 - **Laravel is opinionated and non-Symfony.** Facades, ActiveRecord, and a
   separate ecosystem.
 - **Appkit sits in between.** Symfony components plus Doctrine plus a thin
   abstract kernel, with a hand-compiled container so the file you read is
-  the resolution path that runs.
+  the resolution path that runs — and the parts of Symfony's tooling that
+  earn their keep, such as a `make:entity` generator ported from
+  [MakerBundle](https://symfony.com/bundles/SymfonyMakerBundle/current/index.html).
 
 ## What it solves
 
