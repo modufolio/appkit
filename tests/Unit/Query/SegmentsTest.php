@@ -54,7 +54,7 @@ class SegmentsTest extends TestCase
     }
 
     /**
-     * @param array<string, mixed> $result
+     * @param list<string> $result
      */
     #[DataProvider('parseProvider')]
     public function testParse(string $string, array $result): void

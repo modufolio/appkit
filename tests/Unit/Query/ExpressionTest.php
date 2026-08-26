@@ -74,7 +74,7 @@ class ExpressionTest extends TestCase
     }
 
     /**
-     * @param array<string, mixed> $result
+     * @param list<string> $result
      */
     #[DataProvider('parseProvider')]
     public function testParse(string $expression, array $result): void

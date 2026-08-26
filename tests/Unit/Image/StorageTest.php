@@ -94,7 +94,7 @@ class StorageTest extends TestCase
             public function filename(): string { return basename($this->absolute); }
             public function disk(): DiskInterface { return $this->disk; }
             public function extension(): string { return pathinfo($this->absolute, PATHINFO_EXTENSION); }
-            public function mime(): ?string { return 'image/jpeg'; }
+            public function mime(): string { return 'image/jpeg'; }
             public function name(): string { return pathinfo($this->absolute, PATHINFO_FILENAME); }
             public function isResizable(): bool { return true; }
             public function relativePathFromUploads(): string { return $this->relative; }
@@ -147,7 +147,9 @@ class StorageTest extends TestCase
         $here  = $this->makeMaster();
         $there = $this->makeMaster();
         // Same modification time, so only the absolute path differs.
-        touch($there, filemtime($here));
+        $mtime = filemtime($here);
+        self::assertIsInt($mtime, 'The master fixture should exist and be readable.');
+        touch($there, $mtime);
 
         // The same logical file, reached through two different install roots.
         $a = $this->file($here, 'tus/abc12/photo.jpg');

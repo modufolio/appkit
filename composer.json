@@ -61,7 +61,8 @@
         "phpstan/phpstan": "^2.2",
         "modufolio/http": "^0.1.0",
         "friendsofphp/php-cs-fixer": "^3.64",
-        "brianium/paratest": "^7.8"
+        "brianium/paratest": "^7.8",
+        "phpstan/phpstan-phpunit": "^2.0"
     },
     "autoload": {
         "psr-4": {

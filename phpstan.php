@@ -5,6 +5,7 @@ use Modufolio\Appkit\PHPStan\Doctrine\ObjectMetadataResolver;
 return [
     'includes' => [
         __DIR__.'/extension.php',
+        __DIR__.'/vendor/phpstan/phpstan-phpunit/extension.neon',
     ],
     'services' => [
         'appkitDoctrine.objectMetadataResolver' => [
@@ -62,6 +63,14 @@ return [
             // reflection internals (DummyParameter) — same trade-off phpstan-doctrine
             // itself makes for the equivalent magic-method reflection extension.
             ['identifier' => 'phpstanApi.constructor', 'path' => 'src/PHPStan/*', 'reportUnmatched' => false],
+            // phpstan-phpunit flags an assertInstanceOf() whose subject is already
+            // of that type as redundant. In the suite these are deliberate: they
+            // document the contract a factory or resolver is expected to honour,
+            // so a later signature change surfaces as a failing assertion rather
+            // than a silently weakened test. The extension's real value here is
+            // narrowing after assertions and `method.impossibleType`, both of
+            // which stay on.
+            ['identifier' => 'method.alreadyNarrowedType', 'path' => 'tests/*', 'reportUnmatched' => false],
         ],
     ],
 ];

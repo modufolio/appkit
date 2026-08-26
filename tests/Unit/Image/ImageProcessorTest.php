@@ -117,11 +117,15 @@ class ImageProcessorTest extends TestCase
         $processor->add(new CropTransformation(300, 200))
                   ->add(new BlurTransformation(10));
 
-        $this->assertCount(2, $processor->getTransformationNames());
+        $stacked = $processor->getTransformationNames();
+
+        $this->assertCount(2, $stacked);
 
         $processor->clear();
 
-        $this->assertCount(0, $processor->getTransformationNames());
+        $cleared = $processor->getTransformationNames();
+
+        $this->assertCount(0, $cleared);
     }
 
     public function testProcessorIsFluentInterface(): void
