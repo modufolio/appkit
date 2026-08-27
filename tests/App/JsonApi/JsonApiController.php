@@ -124,6 +124,9 @@ class JsonApiController
         };
     }
 
+    /**
+     * @param class-string $entityClass validated by handle()
+     */
     private function index(ServerRequestInterface $request, string $entityClass): ResponseInterface
     {
         try {
@@ -187,7 +190,7 @@ class JsonApiController
             // Add path without query string and trailing slash
             $baseUrl .= rtrim($uri->getPath(), '/');
 
-            $queryString = $this->buildQueryString($params);
+            $queryString = $this->buildQueryString($params, $resourceKey);
             $document->setLinks($this->buildPaginationLinks($baseUrl, $queryString, $page, $lastPage, $perPage));
 
             return $this->jsonApiResponse($document);
@@ -201,6 +204,9 @@ class JsonApiController
         }
     }
 
+    /**
+     * @param class-string $entityClass validated by handle()
+     */
     private function show(ServerRequestInterface $request, string $entityClass, ?int $id): ResponseInterface
     {
         try {
@@ -220,15 +226,14 @@ class JsonApiController
                 ->operation('show')
                 ->get();
 
-            if (empty($result)) {
-                $resourceKey = $this->config[$entityClass]['resource_key'];
+            // Since 0.6 a single resource is the `data` member itself and a
+            // missing record is reported as ['data' => null].
+            $item = $result['data'] ?? null;
+            $resourceKey = $this->config[$entityClass]['resource_key'];
 
+            if (!is_array($item)) {
                 return $this->errorResponse(ucfirst($resourceKey).' not found', 404);
             }
-
-            $resourceKey = $this->config[$entityClass]['resource_key'];
-            // executeShow now returns an array with one item in JSON:API format
-            $item = $result[0];
 
             $document = new JsonApiDocument();
             $document->setData($this->createResourceObject($item, $resourceKey));
@@ -788,7 +793,7 @@ class JsonApiController
     /**
      * Build query string from JSON:API params (excluding pagination).
      */
-    private function buildQueryString(JsonApiQueryParams $params): string
+    private function buildQueryString(JsonApiQueryParams $params, ?string $resourceKey = null): string
     {
         $queryParts = [];
 
@@ -823,13 +828,10 @@ class JsonApiController
             $queryParts[] = 'include='.urlencode(implode(',', $params->include));
         }
 
-        // Add fields parameters
-        if (!empty($params->fields)) {
-            foreach ($params->fields as $type => $fields) {
-                if (is_array($fields)) {
-                    $queryParts[] = "fields[{$type}]=".urlencode(implode(',', $fields));
-                }
-            }
+        // Add fields parameters — since 0.6 `fields` is a flat list of the
+        // primary resource's requested fields, keyed back by its resource type.
+        if (null !== $resourceKey && !empty($params->fields)) {
+            $queryParts[] = "fields[{$resourceKey}]=".urlencode(implode(',', $params->fields));
         }
 
         return implode('&', $queryParts);
