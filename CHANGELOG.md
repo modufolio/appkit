@@ -5,6 +5,83 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.0] - 2026-08-27
+
+### Upgrading
+
+- **Generated JSON:API write endpoints now require authentication by
+  default.** An entity that exposes `create`/`update`/`delete` routes but
+  declares no write roles gets `IS_AUTHENTICATED` stamped on the write methods
+  — an unconfigured resource is no longer a silently ungated write endpoint
+  (the shape behind this year's Backpack/Winter advisories). Deliberately
+  public writes must now say so: `'roles' => ['read' => [], 'write' => []]`.
+
+- **Anonymous state-changing requests on public paths need a CSRF token.** On
+  session-backed firewalls, a POST to a `publicPath()` route is CSRF-checked
+  like any authenticated request — an anonymous session (guest cart, wizard)
+  is just as forgeable cross-site. Public forms must render the firewall
+  token; webhook-style receivers opt out per firewall via `csrf => false`, a
+  `csrf_validator`, or a stateless firewall.
+
+- **`{two_factor_path}/cancel` is POST-only and CSRF-checked.** Cancelling a
+  pending 2FA login wipes session state, so a cross-site GET (an `<img>` tag
+  sufficed) must not reach it. Cancel links must become forms carrying the
+  firewall CSRF token; a GET now just bounces to the entry point with the
+  pending token intact.
+
+### Added
+
+- **`csrf_form_tokens` — accept Symfony-form-shaped CSRF tokens
+  declaratively.** A form named `contact` posts its token as
+  `contact[_token]`, keyed by the form type's `csrf_token_id` — invisible to
+  the kernel's flat `_csrf_token` extraction, and until now expressible only
+  as a `csrf_validator` closure. A firewall now declares the pairs instead:
+  `'csrf_form_tokens' => ['contact' => 'contact_form']`. Validated as an
+  additional accepted proof; the header and `_csrf_token` checks still run
+  when no declared shape matches. (`docs/security.md`)
+
+- **`csrf_delegated_paths` — hand the CSRF check to a form layer, per path.**
+  A controller that validates its own token (a Symfony form with form-level
+  CSRF, a component with a per-form token id) can now be declared instead of
+  worked around: paths listed in the firewall's `csrf_delegated_paths` skip
+  the kernel check so the form layer answers with its own failure shape (a
+  re-rendered form with a field error, a 422) rather than the kernel's hard
+  403 — the right response for a public form whose visitor's session expired
+  mid-compose. Same pattern syntax as firewall `pattern`; everything else on
+  the firewall keeps the kernel check. Previously this took a `csrf_validator`
+  closure per request shape. (`docs/security.md`)
+
+- **Per-operation JSON:API roles.** `roles` accepts a split shape next to the
+  flat list: `['read' => ['ROLE_USER'], 'write' => ['ROLE_ADMIN']]` becomes
+  method-scoped `_is_granted_roles` groups (`GET|HEAD` vs
+  `POST|PUT|PATCH|DELETE`), so "readable by users, writable by admins" no
+  longer forces over-granting writes or over-protecting reads. Declared via
+  the fluent `roles()` (json-api ≥ 0.7) or `setResourceConfig()`; unknown
+  keys throw in debug.
+  (`src/Routing/Loader/JsonApiRouteLoader.php`, `docs/routing.md`)
+
+### Fixed
+
+- **SVG dimension probing parsed uploads with an unhardened XML parser.**
+  `Dimensions::forSvg()` slurped the whole file and called
+  `simplexml_load_string()` with no flags, and left
+  `libxml_use_internal_errors(true)` leaked into the process. It now mirrors
+  `Mime::fromSvg()` — 1 MB read cap, `LIBXML_NONET` (and never
+  `LIBXML_NOENT`), error state restored in `finally`.
+  (`src/Image/Dimensions.php`)
+
+- **The focal-point crop was the one ImageMagick argument built without
+  `escapeshellarg()`.** `Focus::coords()` only returns ints, so it was not
+  injectable — but `crop` originates from a URL-parsed filename, and this was
+  the single branch relying on that invariant from a distance. The geometry
+  is now escaped like every other argument. (`src/Image/Darkroom/ImageMagick.php`)
+
+### Changed
+
+- **`modufolio/json-api` dev dependency raised to `^0.6.0 || ^0.7.0`.** 0.7.0
+  adds the fluent read/write roles split and row-level `scope()`; the test
+  suite runs on either.
+
 ## [0.11.0] - 2026-08-27
 
 ### Upgrading
