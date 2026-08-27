@@ -456,17 +456,46 @@ class TwoFactorControllerTest extends AppTestCase
         $user = $this->loadUserFromFixture();
         $this->seedTwoFactorToken($user);
 
-        $response = $this->get('/2fa/cancel');
+        $csrfToken = $this->app()->csrfTokenManager()->getToken('csrf')->getValue();
+        $response = $this->post('/2fa/cancel', ['_csrf_token' => $csrfToken], [
+            'Content-Type' => 'application/x-www-form-urlencoded',
+        ]);
 
         $response->assertRedirect('/login');
         $this->assertFalse($this->app()->session()->has('_2fa_token'));
+    }
+
+    public function testCancelTwoFactorViaGetIsNotAnEntryPointPage(): void
+    {
+        // Cancelling wipes the pending 2FA token — a state change — so a
+        // cross-site GET (e.g. an <img> tag) must not reach it. The request
+        // falls through isEntryPointPage and bounces to the entry point,
+        // leaving the pending token untouched.
+        $user = $this->loadUserFromFixture();
+        $this->seedTwoFactorToken($user);
+
+        $response = $this->get('/2fa/cancel');
+
+        $response->assertRedirect('/login');
+        $this->assertTrue($this->app()->session()->has('_2fa_token'));
+    }
+
+    public function testCancelTwoFactorWithoutCsrfTokenIsRejected(): void
+    {
+        $user = $this->loadUserFromFixture();
+        $this->seedTwoFactorToken($user);
+
+        $response = $this->withoutCsrfToken()->post('/2fa/cancel');
+
+        $this->assertSame(403, $response->getResponse()->getStatusCode());
+        $this->assertTrue($this->app()->session()->has('_2fa_token'));
     }
 
     public function testCancelTwoFactorWithNoSessionStillRedirects(): void
     {
         // /2fa/cancel without _2fa_token in session — AppSecurity won't pass
         // isEntryPointPage, so it goes through auth and redirects to /login
-        $response = $this->get('/2fa/cancel');
+        $response = $this->post('/2fa/cancel');
 
         $response->assertRedirect('/login');
     }

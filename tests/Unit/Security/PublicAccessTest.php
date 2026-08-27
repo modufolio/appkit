@@ -71,6 +71,34 @@ class PublicAccessTest extends AppTestCase
         $this->post('/public', ['x' => 'y'])->assertRedirect('/login');
     }
 
+    public function testAnonymousStateChangeOnPublicPathRequiresCsrfToken(): void
+    {
+        $this->configureSecurity();
+
+        // Start an anonymous session (the visitor loaded the form page), then
+        // forge a POST without a token — the anonymous session cookie is just
+        // as ambient as an authenticated one, so the kernel rejects it.
+        $this->get('/public')->assertStatus(200);
+        $this->app()->session()->set('_seen', true);
+        $this->app()->session()->save();
+
+        $response = $this->withoutCsrfToken()->post('/public', ['x' => 'y']);
+        $this->assertSame(403, $response->getResponse()->getStatusCode());
+    }
+
+    public function testAnonymousStateChangeOnPublicPathSucceedsWithCsrfToken(): void
+    {
+        $this->configureSecurity();
+
+        $this->get('/public')->assertStatus(200);
+        $token = $this->app()->csrfTokenManager()->getToken('csrf')->getValue();
+        $this->app()->session()->save();
+
+        $this->post('/public', ['x' => 'y', '_csrf_token' => $token], [
+            'Content-Type' => 'application/x-www-form-urlencoded',
+        ])->assertStatus(200);
+    }
+
     public function testPublicAccessRuleDoesNotRestrictAnAuthenticatedUser(): void
     {
         $this->configureSecurity();

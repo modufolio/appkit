@@ -139,7 +139,7 @@ abstract class AppTestCase extends BaseTestCase
 
     /**
      * @param array<string, string> $headers
-     * @param array<string, mixed> $query
+     * @param array<string, mixed>  $query
      */
     protected function get(string $uri, array $query = [], array $headers = []): TestResponse
     {
@@ -151,7 +151,7 @@ abstract class AppTestCase extends BaseTestCase
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param array<string, mixed>  $data
      * @param array<string, string> $headers
      */
     protected function post(string $uri, array $data = [], array $headers = []): TestResponse
@@ -160,7 +160,7 @@ abstract class AppTestCase extends BaseTestCase
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param array<string, mixed>  $data
      * @param array<string, string> $headers
      */
     protected function put(string $uri, array $data = [], array $headers = []): TestResponse
@@ -169,7 +169,7 @@ abstract class AppTestCase extends BaseTestCase
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param array<string, mixed>  $data
      * @param array<string, string> $headers
      */
     protected function patch(string $uri, array $data = [], array $headers = []): TestResponse
@@ -178,7 +178,7 @@ abstract class AppTestCase extends BaseTestCase
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param array<string, mixed>  $data
      * @param array<string, string> $headers
      */
     protected function delete(string $uri, array $data = [], array $headers = []): TestResponse
@@ -200,7 +200,7 @@ abstract class AppTestCase extends BaseTestCase
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param array<string, mixed>  $data
      * @param array<string, string> $headers
      */
     protected function json(string $method, string $uri, array $data = [], array $headers = []): TestResponse
@@ -213,7 +213,7 @@ abstract class AppTestCase extends BaseTestCase
     /**
      * Create and dispatch a PSR-7 compliant request to the application.
      *
-     * @param array<string, mixed> $data
+     * @param array<string, mixed>  $data
      * @param array<string, string> $headers
      *
      * @throws \JsonException
@@ -259,21 +259,21 @@ abstract class AppTestCase extends BaseTestCase
             }
         }
 
-        // Mirror a real browser/XHR client: attach a CSRF token on authenticated,
+        // Mirror a real browser/XHR client: attach a CSRF token on session-backed,
         // state-changing requests so the firewall's CSRF guard (enforced on the
-        // restored-session path) is satisfied. Tests that supply their own token,
-        // or exercise the unauthenticated/login flow, are left untouched.
+        // restored-session, remember-me and anonymous public-path branches) is
+        // satisfied. A browser rendering a form on a public page embeds the
+        // token the same way, so this covers anonymous sessions too. Tests that
+        // supply their own token, or run without a session, are left untouched.
         $state = $this->app()->getState();
-        $isAuthenticated = $state
-            && $state->hasSession()
-            && null !== $this->app()->tokenStorage()->getToken();
+        $hasLiveSession = $state && $state->hasSession();
         $alreadyHasCsrf = isset($headers['X-CSRF-Token'])
             || isset($headers['X-XSRF-Token'])
             || array_key_exists('_csrf_token', $data);
 
         if ($this->skipAutoCsrf) {
             $this->skipAutoCsrf = false;
-        } elseif ($hasBody && $isAuthenticated && !$alreadyHasCsrf) {
+        } elseif ($hasBody && $hasLiveSession && !$alreadyHasCsrf) {
             $headers['X-CSRF-Token'] = $this->app()
                 ->csrfTokenManager()
                 ->getToken('csrf')

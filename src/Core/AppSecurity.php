@@ -113,6 +113,16 @@ trait AppSecurity
         }
 
         if ($this->isEntryPointPage($request, $config)) {
+            // Cancelling a pending 2FA login is a state change on a
+            // framework-hardcoded route, so the kernel owns its CSRF check —
+            // unlike POST {two_factor_path} (the code submission), whose
+            // token the 2FA controller validates itself under its own token
+            // id, exactly like the login entry point.
+            if ($this->isTwoFactorCancelRequest($request, $config)
+                && null !== ($csrfFailure = $this->enforceCsrf($request, $config))) {
+                return $csrfFailure;
+            }
+
             return $this->controllerResolver($request);
         }
 
@@ -209,6 +219,18 @@ trait AppSecurity
         // first, so a remember-me cookie still signs the visitor in.
         // See SecurityConfigurator::publicPath() for how paths opt in.
         if ($this->accessDecisionEngine()->isPublic($request, $firewallName)) {
+            // An anonymous session can still carry state worth forging a
+            // request against (a guest cart, wizard progress), and its
+            // cookie is just as ambient as an authenticated one — so
+            // state-changing methods on public paths need a CSRF token too.
+            // Stateless firewalls have no session to bind a token to and are
+            // skipped, same as on the restored-session path; webhook-style
+            // public POST endpoints opt out per firewall via `csrf => false`
+            // or a `csrf_validator`.
+            if (!$stateless && null !== ($csrfFailure = $this->enforceCsrf($request, $config))) {
+                return $this->withStaleCookiesExpired($csrfFailure, $staleCookies);
+            }
+
             return $this->withStaleCookiesExpired($this->controllerResolver($request), $staleCookies);
         }
 
@@ -424,12 +446,47 @@ trait AppSecurity
             return null;
         }
 
+        // Paths whose controller validates its own CSRF token — a Symfony form
+        // with form-level CSRF, a component with a per-form token id. The
+        // kernel steps aside so that layer can answer with its own failure
+        // shape (a re-rendered form with a field error, a 422) instead of the
+        // kernel's hard 403 — the right response for a public form whose
+        // visitor's session simply expired mid-compose. Delegation is per
+        // path (firewall pattern syntax), so the rest of the firewall keeps
+        // the kernel check; the delegated controller MUST actually validate.
+        $path = $this->securityPath($request);
+        foreach ($config['csrf_delegated_paths'] ?? [] as $pattern) {
+            if (is_string($pattern) && RequestMatcher::matches($pattern, $path)) {
+                return null;
+            }
+        }
+
         $manager = $this->csrfTokenManager();
 
-        // A form layer that names its field differently, namespaces it
-        // (`contact[_token]`) or keys the token by form rather than by firewall
-        // cannot be expressed by the built-in extraction. Such an app supplies
-        // a validator instead of being forced to disable CSRF wholesale.
+        // Symfony forms namespace their token as `<name>[_token]` and key it
+        // by a form-specific token id — a shape the flat `_csrf_token`
+        // extraction below cannot see. Declaring the (form name → token id)
+        // pairs lets such a form authorise the request declaratively, as an
+        // ADDITIONAL accepted proof: when none matches, the header and
+        // `_csrf_token` checks below still run as usual.
+        //
+        //   'csrf_form_tokens' => ['contact' => 'contact_form']
+        //     → accepts body field `contact[_token]` validated against the
+        //       token id `contact_form` (the form type's `csrf_token_id`).
+        $formTokens = $config['csrf_form_tokens'] ?? [];
+        if ([] !== $formTokens) {
+            $body = $request->getParsedBody();
+            foreach ($formTokens as $form => $tokenId) {
+                $token = is_array($body) ? ($body[$form]['_token'] ?? null) : null;
+                if (is_string($token) && is_string($tokenId) && $manager->validateToken($tokenId, $token)) {
+                    return null;
+                }
+            }
+        }
+
+        // A form layer with a shape neither the built-in extraction nor
+        // `csrf_form_tokens` can express supplies a validator instead of
+        // being forced to disable CSRF wholesale.
         $validator = $config['csrf_validator'] ?? null;
 
         if (is_callable($validator)) {
@@ -555,12 +612,30 @@ trait AppSecurity
             return true;
         }
 
-        // Allow 2FA cancel route
-        if ($path === $twoFactorPath.'/cancel' && $this->session()->has('_2fa_token')) {
+        // Allow the 2FA cancel route. POST only: cancelling wipes the pending
+        // 2FA token from the session — a state change — so it must not be
+        // reachable through a cross-site GET (an <img> tag would do). The
+        // caller additionally enforces the CSRF token on it.
+        if ('POST' === $method
+            && $path === $twoFactorPath.'/cancel'
+            && $this->session()->has('_2fa_token')) {
             return true;
         }
 
         return false;
+    }
+
+    /**
+     * Whether this request is the framework-hardcoded 2FA cancel action.
+     *
+     * @param array<string, mixed> $config
+     */
+    private function isTwoFactorCancelRequest(ServerRequestInterface $request, array $config): bool
+    {
+        $twoFactorPath = $config['two_factor_path'] ?? '/2fa';
+
+        return 'POST' === $request->getMethod()
+            && $this->securityPath($request) === $twoFactorPath.'/cancel';
     }
 
     /**

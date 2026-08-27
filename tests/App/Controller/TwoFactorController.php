@@ -264,10 +264,11 @@ class TwoFactorController
     }
 
     /**
-     * Cancel 2FA and return to login (GET|POST /2fa/cancel)
-     * Allowed through AppSecurity::isEntryPointPage when session has _2fa_token.
+     * Cancel 2FA and return to login (POST /2fa/cancel).
+     * Allowed through AppSecurity::isEntryPointPage when session has _2fa_token;
+     * the kernel enforces the firewall CSRF token on it (state change).
      */
-    #[Route(path: '/2fa/cancel', name: '2fa_cancel', options: ['expose' => true], methods: ['GET', 'POST'])]
+    #[Route(path: '/2fa/cancel', name: '2fa_cancel', options: ['expose' => true], methods: ['POST'])]
     public function cancelTwoFactor(): ResponseInterface
     {
         $this->session->remove('_2fa_token');
