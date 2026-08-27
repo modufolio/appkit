@@ -264,13 +264,25 @@ final class Dimensions implements \Stringable
      */
     public static function forSvg(string $root): static
     {
-        // avoid xml errors
-        libxml_use_internal_errors(true);
-
-        $content = file_get_contents($root);
+        // Same hardening as Mime::fromSvg — this parses the same
+        // attacker-supplied uploads: cap the read (the root element is all we
+        // need), block external entity/DTD fetches with LIBXML_NONET (and
+        // never set LIBXML_NOENT, so entities stay unexpanded), and restore
+        // the libxml error state instead of leaking it into the process.
+        $content = file_get_contents($root, false, null, 0, 1024 * 1024);
         $height = 0;
         $width = 0;
-        $xml = false === $content ? false : simplexml_load_string($content);
+
+        $previous = libxml_use_internal_errors(true);
+
+        try {
+            $xml = false === $content || '' === $content
+                ? false
+                : simplexml_load_string($content, \SimpleXMLElement::class, LIBXML_NONET);
+        } finally {
+            libxml_clear_errors();
+            libxml_use_internal_errors($previous);
+        }
 
         if (false !== $xml) {
             $attr = $xml->attributes();

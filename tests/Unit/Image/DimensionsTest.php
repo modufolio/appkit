@@ -172,6 +172,28 @@ class DimensionsTest extends TestCase
         $this->assertSame(25, $dimensions->height());
     }
 
+    public function testForSvgToleratesMalformedInputAndRestoresLibxmlState(): void
+    {
+        $file = tempnam(sys_get_temp_dir(), 'svg');
+        file_put_contents($file, '<svg width="10" height="10"');
+
+        $previous = libxml_use_internal_errors(false);
+
+        try {
+            $dimensions = Dimensions::forSvg($file);
+
+            // Malformed input degrades to 0x0 instead of raising warnings ...
+            $this->assertSame(0, $dimensions->width());
+            $this->assertSame(0, $dimensions->height());
+
+            // ... and the libxml error handling of the process is restored.
+            $this->assertFalse(libxml_use_internal_errors(false));
+        } finally {
+            libxml_use_internal_errors($previous);
+            unlink($file);
+        }
+    }
+
     public function testOrientation(): void
     {
         $dimensions = new Dimensions(1200, 768);

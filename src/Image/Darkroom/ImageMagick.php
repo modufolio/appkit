@@ -210,14 +210,20 @@ class ImageMagick extends Darkroom
             $options['width'],
             $options['height']
         )) {
+            // Focus::coords() only returns ints, but this is the one branch
+            // whose geometry reaches the shell — and `crop` originates from a
+            // URL-parsed filename — so escape it like every other argument
+            // instead of relying on that invariant from a distance.
             return sprintf(
-                '-crop %sx%s+%s+%s -resize %sx%s^',
-                $focus['width'],
-                $focus['height'],
-                $focus['x1'],
-                $focus['y1'],
-                $options['width'],
-                $options['height']
+                '-crop %s -resize %s',
+                escapeshellarg(sprintf(
+                    '%dx%d+%d+%d',
+                    $focus['width'],
+                    $focus['height'],
+                    $focus['x1'],
+                    $focus['y1'],
+                )),
+                escapeshellarg(sprintf('%dx%d^', $options['width'], $options['height'])),
             );
         }
 
