@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modufolio\Appkit\Routing\Loader;
 
 use Doctrine\ORM\Mapping\Entity as DoctrineEntity;
+use Modufolio\Appkit\Security\AuthenticationTrustResolverInterface;
 use Modufolio\JsonApi\JsonApiConfigurator;
 use Symfony\Component\Config\FileLocatorInterface;
 use Symfony\Component\Config\Loader\Loader;
@@ -56,17 +57,25 @@ class JsonApiRouteLoader extends Loader
 
             $resourceKey = $entityConfig['resource_key'] ?? $this->extractResourceKey($entityClass);
 
-            // Roles declared on the resource are enforced by the kernel, not
-            // here: writing them to the route as `_is_granted_roles` is exactly
-            // what #[IsGranted] does, so AccessDecisionEngine::enforceRoleGroups()
-            // applies the role hierarchy before the controller is reached.
-            $roleGroups = $this->roleGroups($entityConfig);
-
             // The read-only guard is a security control and MUST be enforced in
             // every environment, not just debug.
             $readOnly = $this->isReadOnly($entityClass);
 
             $operations = $entityConfig['operations'] ?? [];
+
+            // Whether this entity exposes any generated write route at all —
+            // decides if the default write gate below has anything to protect.
+            $hasWriteRoutes = !$readOnly && (
+                ($operations['create'] ?? false)
+                || ($operations['update'] ?? false)
+                || ($operations['delete'] ?? false)
+            );
+
+            // Roles declared on the resource are enforced by the kernel, not
+            // here: writing them to the route as `_is_granted_roles` is exactly
+            // what #[IsGranted] does, so AccessDecisionEngine::enforceRoleGroups()
+            // applies the role hierarchy before the controller is reached.
+            $roleGroups = $this->roleGroups($entityClass, $entityConfig, $hasWriteRoutes);
 
             // Collected per entity so the declared roles can be applied to
             // all of its routes in one place, rather than threaded through
@@ -126,7 +135,7 @@ class JsonApiRouteLoader extends Loader
                     )
                 );
             }
-            if ($roleGroups !== []) {
+            if ([] !== $roleGroups) {
                 $entityRoutes->addDefaults(['_is_granted_roles' => $roleGroups]);
             }
 
@@ -167,30 +176,108 @@ class JsonApiRouteLoader extends Loader
     }
 
     /**
+     * HTTP methods the generated write routes answer to. HEAD is deliberately
+     * absent: it belongs to the read gate (the router treats HEAD as GET).
+     */
+    private const WRITE_METHODS = ['POST', 'PUT', 'PATCH', 'DELETE'];
+
+    /**
      * Normalise the declared roles into the shape the kernel enforces.
      *
+     * Two declaration shapes are accepted:
+     *
+     *   'roles' => ['ROLE_USER']                  // one gate for every route
+     *   'roles' => [                              // split by operation kind
+     *       'read'  => ['ROLE_USER'],             // index/show/related (GET|HEAD)
+     *       'write' => ['ROLE_ADMIN'],            // create/update/delete
+     *   ]
+     *
+     * The split shape exists because "readable by users, writable by admins"
+     * is the common case, and a single flat list forces either over-granting
+     * writes or over-protecting reads. In the split shape a key that is
+     * *present but empty* deliberately leaves that side ungated
+     * (`'read' => []` — public reads), while an *absent* `write` key falls
+     * back to the default write gate below.
+     *
+     * Generated write endpoints are never silently ungated: an entity that
+     * exposes write routes but declares no write roles (no roles at all, or a
+     * split shape without a `write` key) gets `IS_AUTHENTICATED` stamped on
+     * the write methods. Deliberately public writes must say so with
+     * `'roles' => ['read' => [], 'write' => []]`.
+     *
      * `AccessDecisionEngine::enforceRoleGroups()` ANDs across groups and ORs
-     * within one, so the roles become a single group — any one of them grants
-     * access. A flat list would instead demand every listed role.
+     * within one, so each side becomes a single group — any one of its roles
+     * grants access. A group carrying a `methods` list only applies to those
+     * HTTP methods, which is how the read/write split is expressed on routes
+     * whose collection shares one `_is_granted_roles` default.
      *
      * @param array<string, mixed> $entityConfig
      *
-     * @return list<list<string>>
+     * @return list<list<string>|array{roles: list<string>, methods: list<string>}>
      */
-    private function roleGroups(array $entityConfig): array
+    private function roleGroups(string $entityClass, array $entityConfig, bool $hasWriteRoutes): array
     {
         $roles = $entityConfig['roles'] ?? [];
 
         if (!is_array($roles)) {
-            return [];
+            $roles = [];
         }
 
-        $roles = array_values(array_filter(
+        // Flat shape: a list of role strings guards every route of the entity.
+        if (array_is_list($roles)) {
+            $flat = $this->sanitizeRoles($roles);
+
+            if ([] !== $flat) {
+                return [$flat];
+            }
+
+            // No roles declared at all: reads stay open (they always were),
+            // writes get the default gate.
+            return $hasWriteRoutes
+                ? [['roles' => [AuthenticationTrustResolverInterface::IS_AUTHENTICATED], 'methods' => self::WRITE_METHODS]]
+                : [];
+        }
+
+        // Split shape.
+        if ($this->debug) {
+            $unknown = array_diff(array_keys($roles), ['read', 'write']);
+            if ([] !== $unknown) {
+                throw new \InvalidArgumentException(sprintf('Unknown roles key(s) "%s" for entity "%s"; expected "read" and/or "write".', implode('", "', $unknown), $entityClass));
+            }
+        }
+
+        $groups = [];
+
+        if (($read = $this->sanitizeRoles((array) ($roles['read'] ?? []))) !== []) {
+            // GET implies HEAD, same as #[IsGranted]: the router answers HEAD
+            // requests with the GET route, so leaving it out would let a HEAD
+            // request slip past the read gate.
+            $groups[] = ['roles' => $read, 'methods' => ['GET', 'HEAD']];
+        }
+
+        if (\array_key_exists('write', $roles)) {
+            if (($write = $this->sanitizeRoles((array) $roles['write'])) !== []) {
+                $groups[] = ['roles' => $write, 'methods' => self::WRITE_METHODS];
+            }
+        // Present but empty: writes are deliberately public.
+        } elseif ($hasWriteRoutes) {
+            $groups[] = ['roles' => [AuthenticationTrustResolverInterface::IS_AUTHENTICATED], 'methods' => self::WRITE_METHODS];
+        }
+
+        return $groups;
+    }
+
+    /**
+     * @param array<int|string, mixed> $roles
+     *
+     * @return list<string>
+     */
+    private function sanitizeRoles(array $roles): array
+    {
+        return array_values(array_filter(
             $roles,
             static fn (mixed $role): bool => is_string($role) && '' !== $role,
         ));
-
-        return $roles === [] ? [] : [$roles];
     }
 
     /**

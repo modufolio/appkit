@@ -180,3 +180,29 @@ AppKit ships additional route loaders for specific use cases:
 | `ArrayRouteLoader` | `array` | Explicit PHP array route definitions |
 | `FlatFileRouteLoader` | `flat_file` | Filesystem-based routing — folder structure maps to URLs |
 | `JsonApiRouteLoader` | `json_api` | Auto-generated JSON:API CRUD routes — see [modufolio/json-api](https://github.com/modufolio/json-api) |
+
+### JSON:API route authorization
+
+Roles declared on a JSON:API resource are written to its generated routes as
+`_is_granted_roles` — the same default `#[IsGranted]` produces — so the kernel
+enforces them (with the role hierarchy) before the controller runs. Two shapes
+are accepted:
+
+```php
+// One gate for every route of the entity — any listed role grants access.
+$api->resource(Article::class)->roles(['ROLE_API_USER']);
+
+// Split by operation kind. The fluent roles() accepts this shape since
+// modufolio/json-api 0.7; on 0.6 declare it via setResourceConfig() instead.
+$api->resource(Article::class)->roles([
+    'read'  => ['ROLE_USER'],   // index/show/related (GET|HEAD)
+    'write' => ['ROLE_ADMIN'],  // create/update/delete
+]);
+```
+
+Generated write endpoints are never silently ungated: an entity that exposes
+`create`/`update`/`delete` routes but declares no write roles gets
+`IS_AUTHENTICATED` stamped on the write methods. To deliberately leave a side
+open, declare it *present but empty* — `'read' => []` means public reads, and
+`'roles' => ['read' => [], 'write' => []]` is the explicit opt-in for fully
+public writes.

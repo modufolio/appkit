@@ -361,6 +361,87 @@ class JsonApiRouteLoaderTest extends TestCase
         $this->assertGreaterThan(0, count($routes));
     }
 
+    public function testDeclaredFlatRolesGateEveryRoute(): void
+    {
+        $routes = $this->loader->load('config/json_api_roles.php', 'json_api');
+
+        foreach (['index', 'show', 'create', 'update', 'delete'] as $op) {
+            $this->assertSame(
+                [['ROLE_API_USER']],
+                $this->route($routes, "api_account_{$op}")->getDefault('_is_granted_roles'),
+                "Flat roles missing on '{$op}'"
+            );
+        }
+    }
+
+    public function testSplitRolesGateReadsAndWritesSeparately(): void
+    {
+        $routes = $this->loader->load('config/json_api_roles.php', 'json_api');
+
+        $expected = [
+            ['roles' => ['ROLE_USER'], 'methods' => ['GET', 'HEAD']],
+            ['roles' => ['ROLE_ADMIN'], 'methods' => ['POST', 'PUT', 'PATCH', 'DELETE']],
+        ];
+
+        foreach (['index', 'show', 'create', 'update', 'delete'] as $op) {
+            $this->assertSame(
+                $expected,
+                $this->route($routes, "api_contact_{$op}")->getDefault('_is_granted_roles'),
+                "Split roles missing on '{$op}'"
+            );
+        }
+    }
+
+    public function testUndeclaredRolesDefaultToAuthenticatedWrites(): void
+    {
+        // The base fixture declares no roles at all: reads stay open, but the
+        // generated write endpoints must never be silently ungated.
+        $routes = $this->loader->load('config/json_api.php', 'json_api');
+
+        $expected = [
+            ['roles' => ['IS_AUTHENTICATED'], 'methods' => ['POST', 'PUT', 'PATCH', 'DELETE']],
+        ];
+
+        foreach (['index', 'show', 'create', 'update', 'delete'] as $op) {
+            $this->assertSame(
+                $expected,
+                $this->route($routes, "api_account_{$op}")->getDefault('_is_granted_roles'),
+                "Default write gate missing on '{$op}'"
+            );
+        }
+    }
+
+    public function testEntityWithoutWriteOperationsGetsNoDefaultGate(): void
+    {
+        $routes = $this->loader->load('config/json_api_roles.php', 'json_api');
+
+        foreach (['index', 'show'] as $op) {
+            $this->assertNull(
+                $this->route($routes, "api_organization_{$op}")->getDefault('_is_granted_roles')
+            );
+        }
+    }
+
+    public function testExplicitlyPublicWritesEmitNoGate(): void
+    {
+        $routes = $this->loader->load('config/json_api_public_writes.php', 'json_api');
+
+        foreach (['index', 'show', 'create', 'update', 'delete'] as $op) {
+            $this->assertNull(
+                $this->route($routes, "api_account_{$op}")->getDefault('_is_granted_roles'),
+                "Explicit public opt-out ignored on '{$op}'"
+            );
+        }
+    }
+
+    public function testUnknownRolesKeyThrowsInDebug(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Unknown roles key(s) "admin"');
+
+        $this->loader->load('config/json_api_invalid_roles.php', 'json_api');
+    }
+
     private function route(RouteCollection $routes, string $name): Route
     {
         $route = $routes->get($name);
