@@ -76,30 +76,89 @@ class StorageTest extends TestCase
      */
     private function file(string $absolute, string $relative, string $disk = 'tus'): FileInterface
     {
-        $diskStub = new class ($disk) implements DiskInterface {
-            public function __construct(private string $name) {}
-            public function name(): string { return $this->name; }
-            public function root(): string { return '/uploads/' . $this->name; }
-            public function url(): string { return '/uploads/' . $this->name; }
-            public function config(): array { return []; }
+        $diskStub = new class($disk) implements DiskInterface {
+            public function __construct(private string $name)
+            {
+            }
+
+            public function name(): string
+            {
+                return $this->name;
+            }
+
+            public function root(): string
+            {
+                return '/uploads/'.$this->name;
+            }
+
+            public function url(): string
+            {
+                return '/uploads/'.$this->name;
+            }
+
+            public function config(): array
+            {
+                return [];
+            }
         };
 
-        return new class ($absolute, $relative, $diskStub) implements FileInterface {
+        return new class($absolute, $relative, $diskStub) implements FileInterface {
             public function __construct(
                 private string $absolute,
                 private string $relative,
                 private DiskInterface $disk,
-            ) {}
-            public function root(): string { return $this->absolute; }
-            public function filename(): string { return basename($this->absolute); }
-            public function disk(): DiskInterface { return $this->disk; }
-            public function extension(): string { return pathinfo($this->absolute, PATHINFO_EXTENSION); }
-            public function mime(): string { return 'image/jpeg'; }
-            public function name(): string { return pathinfo($this->absolute, PATHINFO_FILENAME); }
-            public function isResizable(): bool { return true; }
-            public function relativePathFromUploads(): string { return $this->relative; }
-            public function mediaRoot(): string { return ''; }
-            public function mediaUrl(): string { return ''; }
+            ) {
+            }
+
+            public function root(): string
+            {
+                return $this->absolute;
+            }
+
+            public function filename(): string
+            {
+                return basename($this->absolute);
+            }
+
+            public function disk(): DiskInterface
+            {
+                return $this->disk;
+            }
+
+            public function extension(): string
+            {
+                return pathinfo($this->absolute, PATHINFO_EXTENSION);
+            }
+
+            public function mime(): string
+            {
+                return 'image/jpeg';
+            }
+
+            public function name(): string
+            {
+                return pathinfo($this->absolute, PATHINFO_FILENAME);
+            }
+
+            public function isResizable(): bool
+            {
+                return true;
+            }
+
+            public function relativePathFromUploads(): string
+            {
+                return $this->relative;
+            }
+
+            public function mediaRoot(): string
+            {
+                return '';
+            }
+
+            public function mediaUrl(): string
+            {
+                return '';
+            }
         };
     }
 
@@ -110,9 +169,9 @@ class StorageTest extends TestCase
      */
     private function makeMaster(string $name = 'photo.jpg'): string
     {
-        $dir = sys_get_temp_dir() . '/appkit-storage-' . bin2hex(random_bytes(4));
+        $dir = sys_get_temp_dir().'/appkit-storage-'.bin2hex(random_bytes(4));
         mkdir($dir);
-        $path = $dir . '/' . $name;
+        $path = $dir.'/'.$name;
         file_put_contents($path, 'original bytes');
 
         return $path;
@@ -130,7 +189,7 @@ class StorageTest extends TestCase
         $file = $this->file($master, 'tus/abc12/photo.jpg');
 
         $root = $this->storage->mediaRoot($file);
-        $url  = $this->storage->mediaUrl($file);
+        $url = $this->storage->mediaUrl($file);
 
         // Same trailing path under each base — otherwise a generated variant
         // would be written somewhere the URL does not point.
@@ -144,7 +203,7 @@ class StorageTest extends TestCase
 
     public function testHashDoesNotDependOnWhereTheProjectIsInstalled(): void
     {
-        $here  = $this->makeMaster();
+        $here = $this->makeMaster();
         $there = $this->makeMaster();
         // Same modification time, so only the absolute path differs.
         $mtime = filemtime($here);
@@ -182,7 +241,7 @@ class StorageTest extends TestCase
     {
         $master = $this->makeMaster();
 
-        $tus     = $this->file($master, 'tus/abc12/photo.jpg', 'tus');
+        $tus = $this->file($master, 'tus/abc12/photo.jpg', 'tus');
         $default = $this->file($master, 'default/abc12/photo.jpg', 'default');
 
         $this->assertNotSame($this->storage->mediaUrl($tus), $this->storage->mediaUrl($default));

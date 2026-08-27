@@ -28,9 +28,6 @@ class UserResolverTest extends TestCase
     {
         // Arrange
         $testClass = new class {
-            /**
-             * @param mixed $user
-             */
             public function method(#[CurrentUser] $user): void
             {
             }
@@ -49,9 +46,6 @@ class UserResolverTest extends TestCase
     {
         // Arrange
         $testClass = new class {
-            /**
-             * @param mixed $user
-             */
             public function method($user): void
             {
             }
@@ -73,9 +67,6 @@ class UserResolverTest extends TestCase
         $token = new UsernamePasswordToken($user, 'main', ['ROLE_USER']);
         $this->tokenStorage->setToken($token);
         $testClass = new class {
-            /**
-             * @param mixed $user
-             */
             public function method(#[CurrentUser] $user): void
             {
             }
@@ -97,9 +88,6 @@ class UserResolverTest extends TestCase
         // Arrange
         $this->tokenStorage->setToken(null); // No token
         $testClass = new class {
-            /**
-             * @param mixed $user
-             */
             public function method(#[CurrentUser] $user): void
             {
             }
@@ -122,9 +110,6 @@ class UserResolverTest extends TestCase
         $token = new UsernamePasswordToken($user, 'main', ['ROLE_USER']);
         $this->tokenStorage->setToken($token);
         $testClass = new class {
-            /**
-             * @param mixed $user
-             */
             public function method(#[CurrentUser] $user): void
             {
             }

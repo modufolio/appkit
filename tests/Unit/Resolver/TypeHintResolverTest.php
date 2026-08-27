@@ -119,9 +119,6 @@ class TypeHintResolverTest extends TestCase
     {
         // Arrange
         $testClass = new class {
-            /**
-             * @param mixed $param
-             */
             public function method($param): void
             {
             }
