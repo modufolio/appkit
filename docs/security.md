@@ -1,6 +1,6 @@
 # Security
 
-AppKit's security system is configured through `config/security.php` using a fluent `SecurityConfigurator` API. It covers firewalls, global access control rules, role hierarchy, CSRF protection, and session hardening. The design and flow are inspired by [Symfony Security](https://symfony.com/doc/current/security.html).
+AppKit's security system is configured through `config/security.php` using a fluent `SecurityConfigurator` API. It covers firewalls, global access control rules, role hierarchy, CSRF protection, and session hardening. The design and flow are inspired by [Symfony Security](https://symfony.com/doc/current/security.html) — with one deliberate exception: CSRF is enforced centrally by the kernel rather than per consumer. [Why the kernel enforces CSRF (and Symfony doesn't)](#why-the-kernel-enforces-csrf-and-symfony-doesnt) explains the reasoning.
 
 ## The `SecurityConfigurator`
 
@@ -54,6 +54,8 @@ Firewall options:
 | `logout.path` | `string` | POST to this URL to log out. Requires a CSRF token — see below. |
 | `logout.target` | `string` | Redirect destination after logout. |
 | `two_factor_path` | `string` | Path for the 2FA code entry form. Defaults to `/2fa`. |
+| `csrf_delegated_paths` | `string[]` | Paths (firewall pattern syntax) whose controller validates its own CSRF token — the kernel check is skipped there. See below. |
+| `csrf_form_tokens` | `array<string,string>` | Symfony-form token shapes the kernel accepts: form name → token id, e.g. `['contact' => 'contact_form']` accepts `contact[_token]`. See below. |
 
 > **Firewall restrictions (Symfony-style).** A firewall handles a request only
 > when *all* of its declared restrictions match — `pattern` **and** `methods`
@@ -295,6 +297,93 @@ Token details:
 - Validated with `hash_equals()` — timing-safe
 - Maximum 50 tokens per session (FIFO eviction)
 - Rotated automatically on successful login
+
+### What the kernel checks for you
+
+On every **session-backed** (non-stateless) firewall, state-changing requests
+(anything but `GET`/`HEAD`/`OPTIONS`/`TRACE`) must carry a valid CSRF token —
+either the firewall token (`csrf_token_id`, default `csrf`) in the
+`X-CSRF-Token`/`X-XSRF-Token` header, or a `_csrf_token` body field. This is
+enforced for:
+
+- restored sessions (the usual logged-in browser),
+- first requests authenticated by a remember-me cookie,
+- **anonymous requests to public paths** — an anonymous session cookie (a guest
+  cart, wizard progress) is just as ambient as an authenticated one, so a
+  cross-site POST against it is forgeable in exactly the same way,
+- `POST {two_factor_path}/cancel` — cancelling a pending 2FA login wipes
+  session state, so the route is POST-only and CSRF-checked by the kernel.
+
+Besides the header and `_csrf_token` proofs, a firewall can declare
+**Symfony-form-shaped tokens** the kernel should accept: a form named
+`contact` posts its token as `contact[_token]`, keyed by the form type's
+`csrf_token_id` — invisible to the flat extraction. Declare the pair and the
+kernel validates it as an additional accepted proof (falling through to the
+usual checks when absent):
+
+```php
+'csrf_form_tokens' => ['contact' => ContactFormType::CSRF_TOKEN_ID],
+```
+
+Not checked by the kernel:
+
+- **stateless firewalls** — no session, nothing ambient to forge,
+- bearer/API-key/JWT requests — the browser does not attach those credentials
+  automatically,
+- `POST /login` (the `entry_point`) and `POST {two_factor_path}` — the
+  authenticator and your 2FA controller validate their own token ids
+  (`authenticate`, and e.g. `2fa_verify`) there,
+- paths listed in `csrf_delegated_paths` — for controllers that validate
+  their own token, typically a Symfony form with form-level CSRF. The kernel
+  steps aside so the form layer can answer with its own failure shape (a
+  re-rendered form with a field error, a 422) instead of a hard 403 — the
+  right response for a public form whose visitor's session expired
+  mid-compose. The delegated controller MUST actually validate; delegation
+  hands it the responsibility, not an exemption:
+
+  ```php
+  ->firewall('contact', [
+      'pattern' => '/contact',
+      // ContactFormType checks contact[_token] itself and re-renders on failure.
+      'csrf_delegated_paths' => ['/contact'],
+  ])
+  ```
+- firewalls that opt out with `csrf => false`, or handle special shapes
+  (webhook receivers) with a `csrf_validator` callable.
+
+### Why the kernel enforces CSRF (and Symfony doesn't)
+
+AppKit's security design is inspired by Symfony, but CSRF is the one place it
+deliberately departs. Symfony has **no firewall-level CSRF check**: each
+consumer protects itself — the Form component validates its own token, login
+and logout opt in via config, and a plain controller calls
+`isCsrfTokenValid()` (or uses `#[IsCsrfTokenValid]`) by hand. That model is
+fail-open per route: a state-changing controller that forgets to validate is
+silently unprotected, and nothing in the framework will ever tell you.
+
+AppKit takes the Laravel/Rails posture instead — one enforcement point in the
+kernel, on by default, fail-closed: a state-changing request on a
+session-backed firewall is rejected unless *some* accepted proof passes. A
+forgotten check surfaces as a 403 in development, not as a silent hole in
+production. This matches the rest of the framework's direction
+(deny-by-default access control, generated write routes that are never
+silently ungated).
+
+The cost of a default-on check is that request shapes the kernel cannot see —
+and layers that already validate — need a way to say so. That is exactly what
+the escape valves above are, from most to least declarative:
+
+| Option | Meaning | Symfony equivalent |
+|--------|---------|--------------------|
+| `csrf_form_tokens` | "Also accept this Symfony-form-shaped token" — the kernel still validates | none needed (the form is the only checker) |
+| `csrf_delegated_paths` | "This path's controller validates its own token; step aside" | none needed — but the *contract* mirrors it: the delegate must validate, like every Symfony controller must |
+| `csrf_validator` | Custom callable for shapes neither option expresses | `isCsrfTokenValid()` in a listener |
+| `csrf => false` | No CSRF on this firewall at all | the Symfony default, everywhere |
+
+Rule of thumb: reach for the options in that order. Each step down trades
+declarativeness for flexibility, and `csrf => false` should be reserved for
+firewalls that are genuinely immune (stateless APIs already skip the check
+without it).
 
 ## Session security
 
