@@ -355,9 +355,9 @@ trait DatabaseTestingCapabilities
     }
 
     /**
-     * @param array<string, mixed> $data
-     *
      * @throws Exception
+     *
+     * @param array<string, mixed> $data
      */
     protected function loadFixtureData(string $table, array $data): void
     {
@@ -847,9 +847,9 @@ trait DatabaseTestingCapabilities
     /**
      * Assert database state matches expected data.
      *
-     * @param array<string, mixed> $criteria
-     *
      * @throws Exception
+     *
+     * @param array<string, mixed> $criteria
      */
     protected function assertDatabaseHas(string $table, array $criteria): void
     {
@@ -878,9 +878,9 @@ trait DatabaseTestingCapabilities
     /**
      * Assert database state does not match criteria.
      *
-     * @param array<string, mixed> $criteria
-     *
      * @throws Exception
+     *
+     * @param array<string, mixed> $criteria
      */
     protected function assertDatabaseMissing(string $table, array $criteria): void
     {
@@ -942,9 +942,9 @@ trait DatabaseTestingCapabilities
     /**
      * Seed database with custom data.
      *
-     * @param list<array<string, mixed>> $data
-     *
      * @throws Exception
+     *
+     * @param list<array<string, mixed>> $data
      */
     protected function seed(string $table, array $data): void
     {
@@ -972,9 +972,9 @@ trait DatabaseTestingCapabilities
     /**
      * Execute raw SQL for testing.
      *
-     * @param array<string, mixed> $params
-     *
      * @throws Exception
+     *
+     * @param array<string, mixed> $params
      */
     protected function executeSql(string $sql, array $params = []): void
     {
@@ -984,11 +984,11 @@ trait DatabaseTestingCapabilities
     /**
      * Fetch data for assertions.
      *
+     * @throws Exception
+     *
      * @param array<string, mixed> $criteria
      *
      * @return array<string, mixed>
-     *
-     * @throws Exception
      */
     protected function fetchFromDatabase(string $table, array $criteria = []): ?array
     {
