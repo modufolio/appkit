@@ -193,11 +193,13 @@ public function index(#[MapQueryString] SearchQuery $query): ResponseInterface
 
 ## Filter objects
 
-`#[MapFilter]` is designed for filter objects with a `fromArray()` static method. AppKit calls `fromArray($request->getQueryParams())` and injects the result.
+`#[MapFilter]` is designed for filter objects with a `fromArray()` static method. The class must implement `MapFilterInterface` — a `fromArray()` without the interface fails an assertion at resolution time. AppKit calls `fromArray($request->getQueryParams())` and injects the result.
 
 ```php
 // src/Filter/PostFilter.php
-class PostFilter
+use Modufolio\Appkit\Resolver\MapFilterInterface;
+
+class PostFilter implements MapFilterInterface
 {
     public function __construct(
         public readonly ?string $status = null,

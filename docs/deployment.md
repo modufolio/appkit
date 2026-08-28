@@ -10,6 +10,7 @@ Before going live, confirm each of these.
 - [ ] `composer install --no-dev --optimize-autoloader` completed
 - [ ] `npm run build` completed and compiled assets uploaded to `public/assets/`
 - [ ] `php bin/console migrations:migrate` completed
+- [ ] `php bin/console security:validate` passes — config validation is skipped at runtime in `prod`, so this is the last gate that catches a bad firewall or access-control rule (see [Security](security.md#validating-configuration))
 - [ ] `storage/logs/` is writable by the web server user
 - [ ] `var/` is writable by both the web server user and the CLI user
 - [ ] Any secrets (JWT keys, OAuth secrets, DB passwords) are in the server environment, not in `.env` files
@@ -145,11 +146,13 @@ return (new App(
 
 ## Caching
 
+Persistent caches are namespaced by environment — `var/cache/prod`, `var/cache/dev`, … (`Kernel::cacheDir()`) — so switching `APP_ENV` on one machine can never serve a cache built by another environment. A stale prod metadata cache after an entity change is exactly the failure mode this prevents.
+
 Doctrine uses different cache adapters per environment:
 
 | Environment | Adapter |
 |-------------|---------|
-| `prod` | `FilesystemAdapter` — persisted in `var/cache/` |
+| `prod` | `FilesystemAdapter` — persisted in `var/cache/prod/` |
 | `dev` / `test` | `ArrayAdapter` — in-memory, cleared on each request |
 
 Clear the Doctrine cache after a deployment that changes entity metadata:
@@ -163,7 +166,7 @@ php bin/console orm:clear-cache:result
 Clear the router cache:
 
 ```bash
-rm -rf var/cache/router/
+rm -rf var/cache/prod/router/
 ```
 
 ## RoadRunner
@@ -313,6 +316,46 @@ http:
 `max_worker_memory` (MB) restarts a worker that exceeds the limit — a safety net
 for slow leaks, not a substitute for resetting state properly. Disabling xdebug in
 the worker environment matters: it roughly halves throughput when left on.
+
+### Background jobs
+
+**For background jobs, use RoadRunner's first-party jobs plugin** via
+[`spiral/roadrunner-jobs`](https://github.com/roadrunner-php/jobs). AppKit
+deliberately ships no queue abstraction of its own and does not integrate
+Symfony Messenger — you are already running RoadRunner, and its jobs plugin
+gives you queues, workers, and driver-swappable pipelines with no extra
+infrastructure layer in PHP.
+
+The pattern, shown working in
+[`modufolio/appkit-roadrunner`](https://github.com/modufolio/appkit-roadrunner):
+
+- **One worker script serves both modes.** `worker.php` branches on `RR_MODE` —
+  HTTP requests go through `$app->handle()`, job payloads through a
+  `Spiral\RoadRunner\Jobs\Consumer` loop dispatching to your handler classes
+  (`src/Jobs/`, one class per task type).
+- **Push from PHP over the RPC socket**; handlers run in dedicated job workers
+  with their own pool and `max_worker_memory` supervisor.
+- **Durability is a config decision, not a code change.** Pipelines start on
+  `driver: memory` (in-process, zero infrastructure) and swap to
+  `redis`/`amqp`/`sqs` per pipeline in `.rr.yaml` when a queue needs to survive
+  restarts — the PHP side does not change.
+
+**Job handlers get the application, not console-style isolation.** The console
+is repair tooling and must survive a broken app; jobs are the *application's
+own deferred work* — if the app cannot boot, its jobs should stop, not run
+against broken wiring. So the jobs branch of `worker.php` boots the `App` the
+same way the HTTP branch does, and handlers take their dependencies from its
+accessors (`$app->entityManager()`, your own service methods) — one
+construction site, no third wiring system. Two rules follow:
+
+- **Call `$app->reset()` in the task loop's `finally`**, exactly like the HTTP
+  loop. Job workers are long-lived PHP processes, and the same
+  [reset contract](#the-reset-contract) applies — above all
+  `EntityManager::clear()`, or entities from one task bleed into the next.
+- **Only application-level services.** Request-scoped accessors — `session()`,
+  `tokenStorage()`, `request()` — have no meaning in jobs mode; no request ever
+  creates their state. A handler that needs to know "who" acts on an id in the
+  payload, not on a session.
 
 ## Security headers
 

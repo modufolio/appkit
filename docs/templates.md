@@ -100,6 +100,8 @@ AppKit looks for `resources/views/cards/post.php`. The array passed as the secon
 
 ## Template helper reference
 
+`$template` and `$this` are the same object inside a template file — the table below uses whichever form the examples in this page use, but every helper works on both.
+
 | Helper | Description |
 |--------|-------------|
 | `$template->layout(string $name)` | Declare the parent layout (call once, at the top). |

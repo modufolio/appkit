@@ -10,7 +10,11 @@ This prints a list of all available commands.
 
 ## How the console is bootstrapped
 
-The console is a **separate bootstrap from the HTTP app**. It does not call `AppFactory::create()` and does not use the AppKit kernel or its DI container. There is no `config/interfaces.php`, `config/factories.php`, or `config/controllers.php` involved.
+The console is a **separate bootstrap from the HTTP app**. It does not call `AppFactory::create()` and does not use the AppKit kernel or its DI container. There is no `config/services.php` or `config/controllers.php` involved.
+
+This is deliberate: **the console must not share a failure domain with the app it repairs.** A broken `services.php` closure, a circular dependency, a fatal in an `App` accessor, a security config that kills `boot()` — none of it can take the console down, because the console never touches any of it. The moment you most need `migrations:migrate` or `dbal:run-sql` is exactly the moment an app-coupled console would be dead too. (Frameworks whose CLI builds the full container have this failure mode: one bad service definition and the command that would fix it cannot start.)
+
+Hand-constructing command dependencies (see [Registering a custom command](#registering-a-custom-command)) costs a few lines per command — that is the price of the isolation, and it extends inside the console too: each command wires itself, so one command's broken construction does not poison the rest. Keep the discipline even when it feels redundant: a command that reaches into the HTTP app's container for convenience re-couples the fates and gives the isolation away.
 
 `bin/console` loads `config/console.php`, which creates a `ConsoleRunner` and registers commands manually:
 
@@ -30,6 +34,8 @@ $console->run();
 ```
 
 `ConsoleRunner` builds its own `EntityManager` directly from `config/doctrine.php`. All command dependencies are instantiated explicitly — there is no container to call `get()` on.
+
+`ConsoleRunner` is **application code**, not framework code — it lives in your `src/Console/`, the skeleton ships a starting version, and it is yours to extend, exactly like `AppFactory` and `App`. The framework's console surface is the commands themselves and `ConsoleStyle`; how they are wired belongs to the application.
 
 ## Built-in commands
 

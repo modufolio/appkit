@@ -542,12 +542,10 @@ $entityManager->flush();
 
 ## What the framework does not handle
 
-These are your responsibility:
+These are your responsibility — deliberately, not as gaps:
 
-- **Brute-force protection** — `FileBruteForceProtection` and `RedisBruteForceProtection` exist but must be wired manually into `FormLoginAuthenticator`. See [Authenticators](authenticators.md).
-- **HSTS** — set `Strict-Transport-Security` in nginx, Caddy, or your CDN.
-- **Content Security Policy** — set `Content-Security-Policy` at the edge.
-- **X-Frame-Options** — set in your reverse proxy configuration.
+- **Brute-force protection** — `FileBruteForceProtection` and `RedisBruteForceProtection` ship with the framework but must be wired into `FormLoginAuthenticator` yourself, because the right backend (file vs Redis) and thresholds depend on your deployment. See [Authenticators](authenticators.md).
+- **HSTS, Content-Security-Policy, X-Frame-Options** — response headers belong at the edge (nginx, Caddy, your CDN), where they also cover static assets and error pages the PHP app never renders, and where they can change without a deploy. If you prefer app-level headers, your `App` is a PSR-15 request handler and implements `handle()` itself, so it can wrap a small header-setting middleware around the kernel flow — or simply add the headers in `handle()` before returning the response.
 
 ## Impersonation (switch user)
 
@@ -557,7 +555,7 @@ AppKit provides `SwitchUserToken` for programmatic user impersonation. There is 
 
 Protect the switch route with `#[IsGranted]` so only authenticated admins can reach it. This is the same pattern Symfony's `SwitchUserListener` relies on — the firewall handles unauthenticated users before any switch logic runs, so a null-token check inside the controller is neither necessary nor appropriate (it would produce a 500 instead of a proper login redirect).
 
-The `string $firewall` parameter is injected automatically by the Kernel — it contains the name of the active firewall for the current request.
+The `string $firewall` parameter is injected automatically by the Kernel — it contains the name of the active firewall for the current request. `$this->session` in these examples is a `SessionInterface` injected through the constructor (`AbstractController` does not provide one) — wire it in `config/controllers.php`:
 
 ```php
 use Modufolio\Appkit\Attributes\IsGranted;
@@ -577,7 +575,7 @@ public function switchUser(
 
     $switchToken = new SwitchUserToken(
         user:          $refreshedTarget,
-        firewallName:  'main',
+        firewallName:  $firewall,
         roles:         $refreshedTarget->getRoles(),
         originalToken: $currentToken,
     );

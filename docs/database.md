@@ -107,6 +107,30 @@ config does not, and every test dies in `setUp()` with
 `Unknown column type "uuid" requested` — an error that points at Doctrine rather
 than at the config file that caused it.
 
+The way out is to make the environment file *delegate* to the base file and
+override only what differs:
+
+```php
+// config/test/doctrine.php
+use Modufolio\Appkit\Doctrine\OrmConfigurator;
+
+return function (OrmConfigurator $orm) use ($projectDir): void {
+    // Run the base config first — types, filters, middleware, entity paths.
+    (require dirname(__DIR__) . '/doctrine.php')($orm);
+
+    // Then override only the connection.
+    $orm->connection([
+        'driver' => 'pdo_sqlite',
+        'memory' => true,
+    ]);
+};
+```
+
+This works because `connection()` replaces its parameters wholesale, custom
+types are guarded by `hasType()`, and `addFilter()` overwrites by name. Only
+`entities()` appends — so do not call it again in the environment file unless
+you are adding an extra path.
+
 ## Defining an entity
 
 Entity classes live in `src/Entity/`. Use Doctrine PHP attributes for mapping.

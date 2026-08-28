@@ -367,18 +367,18 @@ Two pieces cooperate. `GoogleOAuthClient` builds the authorization redirect, exc
 The client depends only on PSR-18 (an HTTP client) and PSR-17 (message factories), so supply whichever your app already uses — Guzzle's client implements PSR-18, and the PSR-7 `Psr17Factory` is both the request and stream factory.
 
 ```php
-// config/interfaces.php — register the client once
+// config/services.php — register the client once
 use Modufolio\Appkit\Security\OAuth\Google\GoogleOAuthClient;
 use Modufolio\Appkit\Security\OAuth\Google\GoogleOAuthClientInterface;
 
-GoogleOAuthClientInterface::class => fn () => new GoogleOAuthClient(
+$services->set(GoogleOAuthClientInterface::class, fn () => new GoogleOAuthClient(
     clientId:       env()->getString('GOOGLE_CLIENT_ID', ''),
     clientSecret:   env()->getString('GOOGLE_CLIENT_SECRET', ''),
     redirectUri:    env()->getString('GOOGLE_REDIRECT_URI', ''),
     httpClient:     new \GuzzleHttp\Client(['timeout' => 10]), // any PSR-18 client
     requestFactory: new Psr17Factory(),
     streamFactory:  new Psr17Factory(),
-),
+));
 ```
 
 ```php
@@ -451,7 +451,10 @@ $secret = $totpService->generateSecret($user);
 $totpService = new TotpService(
     // …
     secretBytes: 32, // only if you have a specific reason to exceed 160 bits
+);
+```
 
+```php
 // Show the QR code to the user
 $qrCodeDataUri = $totpService->generateQrCode($secret);
 

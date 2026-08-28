@@ -64,7 +64,6 @@ A::random($array, 3);                      // pick 3 random elements
 A::shuffle($array);
 A::sum($array);
 A::average($array, 2);                     // average, 2 decimal places
-A::dot($array);                            // flatten to dot-notation keys
 A::wrap($value);                           // ensure value is an array
 ```
 

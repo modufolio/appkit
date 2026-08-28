@@ -85,6 +85,10 @@ A typical team setup:
 
 Once Symfony Dotenv is loaded, `env()` still works — it reads from `$_ENV` first, which is where Symfony Dotenv puts its values.
 
+### Core variables
+
+Every AppKit app recognises these three; everything else is defined by your own config files.
+
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `APP_ENV` | `prod` | Application environment. One of `dev`, `test`, or `prod`. |
@@ -115,7 +119,7 @@ See [Routing](routing.md).
 
 ## `config/controllers.php`
 
-Maps controller classes to their constructor dependencies. The array order must match the constructor parameter order.
+Maps controller classes to their constructor dependencies. In a plain list the array order must match the constructor parameter order; keying entries by parameter name passes them as named arguments, which cannot be transposed — prefer that for anything with more than two dependencies (see [Dependency injection](dependency-injection.md#naming-the-arguments)).
 
 ```php
 return [
@@ -131,55 +135,27 @@ return [
 
 See [Dependency injection](dependency-injection.md).
 
-## `config/interfaces.php`
+## `config/services.php`
 
-Maps interface and class names to closures that produce the service. The closures bind to the kernel instance at load time — `$this` refers to the `App` kernel.
-
-All core framework services are pre-wired. Add your own at the bottom of the file.
+Declares the application's services through a `ServiceConfigurator`. The kernel pre-wires its own core services (router, session, entity manager, CSRF, serializer, …), so this file only adds what the application needs — an entry with a core id overrides the kernel default. Factory closures receive the application as their only argument.
 
 ```php
-return [
-    CsrfTokenManagerInterface::class     => fn () => $this->csrfTokenManager(),
-    EntityManagerInterface::class        => fn () => $this->entityManager(),
-    Environment::class                   => fn () => $this->environment(),
-    FlashBagAwareSessionInterface::class => fn () => $this->session(),
-    FlashBagInterface::class             => fn () => $this->session()->getFlashBag(),
-    ParameterResolverInterface::class    => fn () => $this->parameterResolver(),
-    ResponseFactoryInterface::class      => fn () => new Psr17Factory(),
-    ResponseInterface::class             => fn () => new Response(),
-    RouterInterface::class               => fn () => $this->router(),
-    SerializerInterface::class           => fn () => $this->serializer(),
-    ServerRequestInterface::class        => fn () => $this->request(),
-    SessionInterface::class              => fn () => $this->session(),
-    TokenStorageInterface::class         => fn () => $this->tokenStorage(),
-    UrlGeneratorInterface::class         => fn () => $this->router()->getUrlGenerator(),
-    UserCheckerInterface::class          => fn () => new UserChecker(),
-    UserPasswordHasherInterface::class   => fn () => new UserPasswordHasher(),
-    UserProviderInterface::class         => fn () => $this->userProvider(),
-    ValidatorInterface::class            => fn () => $this->validator(),
-
-    // Add your own:
-    MailerInterface::class               => fn () => $this->get(Mailer::class),
-];
-```
-
-## `config/factories.php`
-
-Registers service factory closures. The closure receives the kernel (`$container`) as its argument.
-
-```php
+use App\App;
+use App\Contract\MailerInterface;
 use App\Service\Mailer;
-use Doctrine\ORM\EntityManagerInterface;
+use Modufolio\Appkit\DependencyInjection\ServiceConfigurator;
 
-return [
-    Mailer::class => function ($container) {
-        return new Mailer(
-            $container->get(EntityManagerInterface::class),
-            getenv('MAIL_DSN'),
-        );
-    },
-];
+return function (ServiceConfigurator $services): void {
+    $services
+        ->set(Mailer::class, fn (App $app) => new Mailer(
+            $app->entityManager(),
+            env('MAIL_DSN'),
+        ))
+        ->alias(MailerInterface::class, Mailer::class);
+};
 ```
+
+`set()` builds a fresh instance per `get()`; `shared()` resolves once per request (cleared by `reset()`); `alias()` points one id at another. See [Dependency injection](dependency-injection.md) for the full API and the legacy `config/interfaces.php` / `config/factories.php` layout it replaces.
 
 ## `config/repositories.php`
 
@@ -264,13 +240,22 @@ return [
 
 ## `config/console.php`
 
-Bootstrap file for `bin/console`. It creates a `ConsoleRunner` with the Doctrine config and registers commands.
+Bootstrap file for `bin/console`. It creates a `ConsoleRunner` and registers command groups — see [Console](console.md) for the full picture.
 
 ```php
 use App\Console\ConsoleRunner;
 
-$runner = new ConsoleRunner($baseDir);
-$runner->run();
+$console = new ConsoleRunner(
+    classLoader: $classLoader,
+    userClass:   App\Entity\User::class,
+    projectDir:  dirname(__DIR__),
+);
+
+$console->addDefaultCommands();
+$console->addOrmCommands();
+$console->addMigrationsCommands();
+
+$console->run();
 ```
 
 ## `bootstrap.php`

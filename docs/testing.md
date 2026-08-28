@@ -135,6 +135,8 @@ $factory->create(User::class, ['email' => 'admin@example.com'])
 
 `Modufolio\Appkit\Tests\Response\TestResponse` wraps a PSR-7 `ResponseInterface` and provides a fluent assertion API inspired by Laravel's `TestResponse`. Use it in feature tests to assert HTTP responses without parsing raw headers or body strings.
 
+The recommended shape for feature tests is: boot the *real* app once via your `AppFactory`, build PSR-7 requests, pass them to `$app->handle()`, and assert on the wrapped response — no mocking of framework internals. AppKit's own suite does exactly this; its [`tests/Case/AppTestCase.php`](https://github.com/modufolio/appkit/blob/main/tests/Case/AppTestCase.php) (with `get()`/`post()` helpers, automatic session cookies and CSRF headers, and an `actingAs()` login helper) is the reference implementation to copy into your project.
+
 ```php
 use Modufolio\Appkit\Tests\Response\TestResponse;
 
@@ -299,9 +301,7 @@ $log = $this->getQueryLog('SELECT', 'users'); // filter by type and table
 composer stan
 ```
 
-PHPStan runs at level 5. The config file is `phpstan.php` in the project root.
-
-To raise the level, edit `phpstan.php`:
+PHPStan runs at level 8 — the framework and the skeleton both hold that level. The config file is `phpstan.php` in the project root:
 
 ```php
 return [
@@ -311,6 +311,8 @@ return [
     ],
 ];
 ```
+
+If level 8 is too strict for a legacy codebase you are migrating, lower `level` and raise it back incrementally.
 
 Fix errors before committing. PHPStan catches type mismatches, undefined variables, and unreachable code that tests might miss.
 
@@ -330,11 +332,11 @@ vendor/bin/php-cs-fixer fix --dry-run --diff
 
 ## CI pipeline
 
-A reliable CI pipeline runs these steps in order:
+A reliable CI pipeline runs these steps in order. Note that CI installs **with** dev dependencies — PHPUnit and PHPStan live in `require-dev`; `--no-dev` belongs to the *deploy* build, not the test run:
 
 ```bash
-# 1. Install production dependencies only
-composer install --no-dev --optimize-autoloader
+# 1. Install dependencies (including require-dev, for phpunit + phpstan)
+composer install --optimize-autoloader
 
 # 2. Install Node.js dependencies and build assets
 npm ci
@@ -350,7 +352,7 @@ vendor/bin/phpunit
 vendor/bin/phpstan analyse
 ```
 
-Install dev dependencies for the `phpunit` and `phpstan` steps if you keep them in `require-dev`.
+For the artifact you actually deploy, build separately with `composer install --no-dev --optimize-autoloader`.
 
 ## Test database isolation
 

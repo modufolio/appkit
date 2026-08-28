@@ -17,6 +17,18 @@ public function handle(ServerRequestInterface $request): ResponseInterface
 
 The handler is constructed with an `Environment` and a PSR-3 logger. Both are optional: without them it reads `APP_ENV` from the environment and discards log calls into a `NullLogger`.
 
+## Error-output hardening
+
+PHP warnings and notices are not exceptions — left alone, they bypass `ExceptionHandler` entirely. Worse, with `display_errors` on, the first warning PHP prints becomes the first output byte, which commits the response headers with a **200** status; the real response (often a 500) then loses its status line and every header to "headers already sent". `Kernel::boot()` closes both holes via `Modufolio\Appkit\Core\Debug`:
+
+| Environment | Behaviour |
+|-------------|-----------|
+| `dev` | `Debug::enable()` — warnings and notices are thrown as `\ErrorException`, so they route through the `try / catch` above and become a clean 500 with the warning's message as detail. `display_errors` is forced off for web SAPIs. Deprecations and `@`-silenced errors are left to PHP's logger. |
+| `prod` | `Debug::harden()` — `display_errors` is forced off for web SAPIs, as defence in depth against a dev `php.ini` serving a prod app. Warnings are logged by PHP, never printed into the response. |
+| `test` | Untouched — PHPUnit keeps its own error handling. |
+
+CLI SAPIs (including RoadRunner workers) never have `display_errors` touched — stderr is the right place for errors there. The emitter is defensive on top of this: when headers have already been sent it skips the header phase entirely instead of cascading "Cannot modify header information" warnings.
+
 ## How `handle()` works
 
 1. **Match.** Walk the handler registry in insertion order; the first class with `$e instanceof $class` wins. A check for class names ending in `TwoFactorException` runs after the explicit registry — that hook lets the handler stay decoupled from the optional 2FA module (see [Two-factor exceptions](#two-factor-exceptions)). If nothing matches, `defaultData()` produces a generic 500.
@@ -254,8 +266,8 @@ $handler->registerException(
 $handler->registerFormatter('text/html', function (array $data) use ($app): ResponseInterface {
     $template = new Template(
         name: 'errors/' . ($data['status'] ?? 500),
-        templatePaths: [$app->baseDir() . '/site/templates'],
-        layoutPaths:   [$app->baseDir() . '/site/layouts'],
+        templatePaths: [$app->baseDir . '/site/templates'],
+        layoutPaths:   [$app->baseDir . '/site/layouts'],
         data: $data,
     );
 

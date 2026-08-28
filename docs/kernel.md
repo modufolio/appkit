@@ -25,7 +25,7 @@ These six abstract methods are your integration points. The skeleton's `src/App.
 ## The request lifecycle
 
 1. `public/index.php` calls `AppFactory::create($baseDir)` — this instantiates `App`, loads config files, and calls `boot()`.
-2. `boot()` loads `config/interfaces.php`, sets up the router cache directory, and freezes the token unserializer whitelist.
+2. `boot()` applies error-output hardening for the environment (see [Exception handling](exception-handling.md#error-output-hardening)), wires the kernel core services (or loads a legacy `config/interfaces.php` when mapped), sets up the router cache directory, and freezes the token unserializer whitelist.
 3. `handle(ServerRequestInterface $request)` is called. It creates a fresh `NativeApplicationState` for the request, then calls `handleAuthentication()`.
 4. `handleAuthentication()` determines the active firewall, attempts session token restoration, runs authenticators if needed, and either calls `controllerResolver()` or returns an authentication response.
 5. `controllerResolver()` enforces global access control, matches the route, enforces attribute-level access control (`#[IsGranted]`), instantiates the controller, resolves method parameters, and calls the controller method.
@@ -52,7 +52,7 @@ $env->isTest();  // bool
 $env->isProd();  // bool
 ```
 
-The current environment is read from `APP_ENV`. It affects router caching (`var/cache/router` in prod), debug mode, and exception detail visibility.
+The current environment is read from `APP_ENV`. It affects router caching (`var/cache/prod/router` in prod), debug mode, error-output handling (see [Exception handling](exception-handling.md#error-output-hardening)), and exception detail visibility. Persistent caches live under `Kernel::cacheDir()` — `var/cache/<env>` — so environments never share a cache.
 
 Access the environment from anywhere you have the kernel:
 
@@ -76,12 +76,13 @@ The Kernel implements `ContainerInterface`. Call `get(string $id)` to resolve a 
 
 Resolution order:
 
-1. Interface map (`config/interfaces.php`)
-2. Singleton instances (already-created services)
-3. Repositories (Doctrine entity repositories)
-4. Authenticators (`config/authenticators.php`)
-5. Factories (`config/factories.php`)
-6. `NotFoundException` if nothing matched
+1. Service definitions (`config/services.php`)
+2. Kernel core services (or the legacy `config/interfaces.php` map)
+3. Singleton instances (already-created services)
+4. Repositories (Doctrine entity repositories)
+5. Authenticators (`config/authenticators.php`)
+6. Legacy factories (`config/factories.php`)
+7. `NotFoundException` if nothing matched
 
 ```php
 use Doctrine\ORM\EntityManagerInterface;
@@ -107,8 +108,13 @@ The Kernel exposes lazy-loaded services as methods. Use these inside `App` or co
 | `serializer()` | `SerializerInterface` |
 | `parameterResolver()` | `ParameterResolverInterface` |
 | `exceptionHandler()` | `ExceptionHandlerInterface` |
+| `csrfTokenManager()` | `CsrfTokenManagerInterface` |
+| `request()` | `ServerRequestInterface` (the current request) |
+| `urlGenerator()` | `UrlGeneratorInterface` |
 | `logger()` | `LoggerInterface` |
 | `emitter()` | `EmitterInterface` |
+
+Your `App` continues this pattern for its own services — a typed method per service, lazily constructed with `??=`, cleared in `reset()` when request-scoped. This is the primary way services are defined in AppKit; see [Dependency injection](dependency-injection.md#the-app-class-as-a-precompiled-container).
 
 ## URL helpers
 
@@ -139,7 +145,7 @@ Parameters are available inside controller config as `%app.name%` strings.
 
 1. Registers `User::class` with `TokenUnserializer` (whitelist-based session deserialization).
 2. Creates a route loader that scans `src/Controller/` for `#[Route]` attributes and also loads PHP route files.
-3. Reads `config/security.php` and applies the firewall configuration.
-4. Passes all config arrays to `App`, calls `configureSecurity()`, and calls `boot()`.
+3. Reads `config/security.php` into a `SecurityConfigurator` and `config/services.php` into a `ServiceConfigurator`.
+4. Passes all config arrays to `App`, calls `configureServices()` and `configureSecurity()`, and calls `boot()`.
 
 You can create your own factory if you need a different setup.

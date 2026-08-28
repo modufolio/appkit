@@ -4,7 +4,15 @@ AppKit Skeleton is the recommended way to start a new AppKit project. It gives y
 
 ## Installing
 
-AppKit Skeleton is a starting point, not a Composer package. Clone or download it, then install dependencies.
+Create a project from the skeleton. It is a template — `create-project` copies it once and from then on the code is yours, like the rest of your app.
+
+```bash
+composer create-project modufolio/appkit-skeleton my-app
+cd my-app
+npm install
+```
+
+Or clone the repository directly (useful for trying an unreleased state):
 
 ```bash
 git clone https://github.com/modufolio/appkit-skeleton my-app

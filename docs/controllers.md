@@ -250,4 +250,4 @@ return [
 ];
 ```
 
-The order of the array must match the constructor parameter order. See [Dependency injection](dependency-injection.md).
+In a plain list the array order must match the constructor parameter order. Keying the entries by parameter name (`'mailer' => MailerInterface::class`) passes them as named arguments instead — preferred for more than two dependencies, because named keys cannot be transposed. See [Dependency injection](dependency-injection.md#naming-the-arguments).

@@ -10,6 +10,13 @@ Doctrine ORM, Firebase JWT, and a strict-typed PSR-7 fork. Designed for
 security-conscious SaaS applications that want Symfony-grade components
 without Symfony's full kernel, bundle system, and compile step.
 
+**In AppKit, your App class is the container.** Symfony compiles a container
+class you never read; Laravel hides its container behind facades. Here the
+container is a class you write: services are typed methods on your `App`,
+lazily constructed and cached in properties you can see. There is nothing to
+compile, because you already wrote what a compiler would generate — and
+`grep` is the container debugger.
+
 ## Why it exists
 
 - **Slim is too thin.** No Doctrine, no validation, no security primitives —
@@ -24,6 +31,30 @@ without Symfony's full kernel, bundle system, and compile step.
   the resolution path that runs — and the parts of Symfony's tooling that
   earn their keep, such as a `make:entity` generator ported from
   [MakerBundle](https://symfony.com/bundles/SymfonyMakerBundle/current/index.html).
+
+## What AppKit deliberately doesn't include
+
+Each of these is a stated choice with a documented alternative, not a gap:
+
+- **No application-level event bus.** Extension happens through named seams:
+  explicit interfaces (authenticators, user checkers, CSRF validators,
+  package contracts answered in `config/services.php`), Doctrine's lifecycle
+  events at the persistence layer, and plain method override — subclass your
+  `App` and replace an accessor. Internal control flow stays a readable call
+  stack.
+- **No queue abstraction.** Background jobs run on RoadRunner's first-party
+  jobs plugin — you are already running RoadRunner, and durability is a
+  config swap, not a PHP layer. See
+  [Background jobs](docs/deployment.md#background-jobs).
+- **No mailer, no i18n.** Bring the PSR-compatible library your app needs and
+  register it as an `App` method; the framework does not wrap what it cannot
+  improve.
+- **No container-coupled console.** `bin/console` boots without the app
+  container, so a wiring bug can never take down the tool that fixes it —
+  see [Console](docs/console.md#how-the-console-is-bootstrapped).
+- **Security headers live at the edge** (nginx/Caddy/CDN), where they also
+  cover static assets — see
+  [What the framework does not handle](docs/security.md#what-the-framework-does-not-handle).
 
 ## What it solves
 
