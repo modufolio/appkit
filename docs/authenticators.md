@@ -1,6 +1,6 @@
 # Authenticators
 
-AppKit ships with six authenticators. Each handles a different authentication strategy. Configure them in `config/authenticators.php` and reference them by name in `config/security.php`.
+AppKit ships with seven authenticators. Each handles a different authentication strategy. Configure them in `config/authenticators.php` and reference them by name in `config/security.php`.
 
 ## Available authenticators
 
@@ -10,7 +10,8 @@ AppKit ships with six authenticators. Each handles a different authentication st
 | `BasicAuthenticator` | HTTP Basic authentication |
 | `ApiKeyAuthenticator` | Static API key in a header |
 | `JwtAuthenticator` | JSON Web Token in `Authorization: Bearer` |
-| `OAuthAuthenticator` | OAuth 2.1 access tokens |
+| `OAuthAuthenticator` | OAuth 2.1 access tokens (your app as provider) |
+| `GoogleAuthenticator` | "Sign in with Google" (your app as client) |
 | `RememberMeAuthenticator` | Persistent login cookie |
 
 ## Form login
@@ -355,6 +356,76 @@ Access tokens and refresh tokens are hashed with SHA-256 before storage. The ent
 
 Your `AccessToken` entity must implement `OAuthAccessTokenInterface`. Use `OAuthAccessTokenRepositoryInterface` for the repository.
 
+## Google sign-in
+
+"Sign in with Google" is the OAuth *client* flow — distinct from the OAuth 2.1 section above, which is the provider side that issues your own tokens. Here your app redirects the user to Google and turns the identity Google returns into a session.
+
+Two pieces cooperate. `GoogleOAuthClient` builds the authorization redirect, exchanges the code, and verifies the returned ID token — its RS256 signature against Google's published keys, plus issuer, audience, expiry, and `email_verified`. `GoogleAuthenticator` runs the callback leg: it checks the one-time OAuth `state`, requires a verified email, and resolves it to an **existing** user. It never provisions an account.
+
+### Wiring
+
+The client depends only on PSR-18 (an HTTP client) and PSR-17 (message factories), so supply whichever your app already uses — Guzzle's client implements PSR-18, and the PSR-7 `Psr17Factory` is both the request and stream factory.
+
+```php
+// config/interfaces.php — register the client once
+use Modufolio\Appkit\Security\OAuth\Google\GoogleOAuthClient;
+use Modufolio\Appkit\Security\OAuth\Google\GoogleOAuthClientInterface;
+
+GoogleOAuthClientInterface::class => fn () => new GoogleOAuthClient(
+    clientId:       env()->getString('GOOGLE_CLIENT_ID', ''),
+    clientSecret:   env()->getString('GOOGLE_CLIENT_SECRET', ''),
+    redirectUri:    env()->getString('GOOGLE_REDIRECT_URI', ''),
+    httpClient:     new \GuzzleHttp\Client(['timeout' => 10]), // any PSR-18 client
+    requestFactory: new Psr17Factory(),
+    streamFactory:  new Psr17Factory(),
+),
+```
+
+```php
+// config/authenticators.php
+use Modufolio\Appkit\Security\Authenticator\GoogleAuthenticator;
+
+'google_login' => function ($container) {
+    return new GoogleAuthenticator(
+        $container->get(GoogleOAuthClientInterface::class),
+        $container->get(UserProviderInterface::class),
+        $container->get(SessionInterface::class),
+        options: [
+            'callback_path' => '/panel/auth/google/callback',
+            'login_path'    => '/panel/login',
+            // Optional: restrict to one Google Workspace domain (the `hd` claim).
+            'allowed_hosted_domain' => env()->getString('GOOGLE_ALLOWED_DOMAIN', '') ?: null,
+        ],
+    );
+},
+```
+
+Then add `google_login` to the firewall's `authenticators` list in `config/security.php`.
+
+### The two routes
+
+The authenticator only handles the return trip. The redirect that *starts* the flow is an ordinary controller action that mints the `state` and hands off to Google:
+
+```php
+#[Route('/panel/auth/google/start', methods: ['GET'])]
+public function start(): ResponseInterface
+{
+    $state = bin2hex(random_bytes(16));
+    $this->session->set('_google_oauth_state', $state);
+
+    return Response::redirect($this->google->authorizationUrl($state));
+}
+```
+
+Make the **start** path public — `$security->publicPath('/panel/auth/google/start')` — so a logged-out visitor can begin; no authenticator claims that path, so without this the firewall bounces them to the login page. Leave the **callback** path protected: the authenticator runs on it precisely *because* it is inside the firewall (authenticators run ahead of the public/entry-point decision — see [security.md](security.md)), and a failed exchange falls through to the login page. Keep the two paths as siblings so `publicPath` on `/start` does not also expose the callback.
+
+### Behaviour
+
+- **Existing users only.** The verified Google email is resolved with `loadUserByIdentifier`; an unknown address is a failed login, not a new account. Control who may sign in the usual way — by adding users.
+- **State is single-use.** It is removed from the session on read, so a replayed callback URL is inert, and a callback arriving without a stored state is rejected.
+- **`allowed_hosted_domain`** is a second gate: only accounts in that Workspace domain pass, on top of the existing-user match. Leave it `null` to accept any domain.
+- The session token minted is the same `UsernamePasswordToken` a form login produces, so a Google session behaves identically afterward — switch-user, logout, and role checks all apply.
+
 ## Two-factor authentication (TOTP)
 
 AppKit includes a full TOTP implementation via `TotpService`.
@@ -372,6 +443,14 @@ $totpService = new TotpService(
 
 // Generate and persist a secret
 $secret = $totpService->generateSecret($user);
+```
+
+`generateSecret()` produces a 160-bit (20-byte) secret — the RFC 4226 recommendation, and what authenticator apps expect. Pass `secretBytes:` to the constructor to change it (minimum 16). There is rarely a reason to raise it: a longer secret is folded back to the hash's block size, so it adds no strength while making the QR code denser and the manual key longer.
+
+```php
+$totpService = new TotpService(
+    // …
+    secretBytes: 32, // only if you have a specific reason to exceed 160 bits
 
 // Show the QR code to the user
 $qrCodeDataUri = $totpService->generateQrCode($secret);

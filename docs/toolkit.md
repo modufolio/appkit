@@ -114,7 +114,17 @@ F::remove('/path/to/file.txt');               // bool
 ```php
 F::safeName('My File (1).txt');    // 'my-file-1.txt'
 F::safeBasename('My Photo.JPG');  // 'My Photo.JPG' — preserves extension case
+F::safeFilename('../../.env');    // '.env' — strips the directory, keeps the rest
 ```
+
+`safeName()` and `safeBasename()` *slug* a title into a fresh storage name —
+lowercasing and collapsing to a strict character set. `safeFilename()` does the
+opposite: it *confines* an existing name without rewriting it. It strips any
+directory component and control characters and rejects `.`/`..` (returning `''`
+when nothing usable survives), but preserves case and every other character.
+Reach for it when a name must round-trip — a token already written to disk under
+that exact string, or a filename echoed back into a `Content-Disposition` header
+— where slugging would break the lookup or mangle what the user sees.
 
 ### MIME and type lookups
 

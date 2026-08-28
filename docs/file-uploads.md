@@ -76,6 +76,14 @@ The filename is passed through `F::safeName()` and used as given; no extension i
 appended. Omitting it writes an extensionless file, which then breaks anything
 downstream that infers type from the path — image processing in particular.
 
+`safeName()` slugs the name (lowercase, strict character set), which is the right
+choice when you are minting a fresh storage name. It is the wrong choice when the
+name must round-trip — e.g. a TUS staging token you look up on disk afterward, or
+a client filename you echo back verbatim — because slugging changes it. For those,
+sanitise with `F::safeFilename()` instead: it strips the directory component and
+control characters (closing path traversal) but preserves the token exactly. See
+[toolkit.md](toolkit.md) for the distinction.
+
 To keep the original extension:
 
 ```php
