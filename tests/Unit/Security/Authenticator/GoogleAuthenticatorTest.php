@@ -54,11 +54,16 @@ class GoogleAuthenticatorTest extends AppTestCase
                     throw $this->throw;
                 }
 
-                return $this->identity;
+                // The interface guarantees a non-null identity or a throw; a
+                // fake given neither is a test-setup error.
+                return $this->identity ?? throw new \LogicException('fake has no identity');
             }
         };
     }
 
+    /**
+     * @param array<string, mixed> $options
+     */
     private function authenticator(?GoogleIdentity $identity, ?\Throwable $throw = null, array $options = []): GoogleAuthenticator
     {
         return new GoogleAuthenticator($this->client($identity, $throw), $this->userProvider, $this->session, $options);
