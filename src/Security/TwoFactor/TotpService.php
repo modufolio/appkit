@@ -38,6 +38,17 @@ class TotpService implements TwoFactorServiceInterface
     /** Clock-drift tolerance, in TOTP time-steps, accepted either side of "now". */
     private const LEEWAY_PERIODS = 1;
 
+    /**
+     * Shared-secret size in bytes. RFC 4226 §4 requires at least 128 bits and
+     * recommends 160, which is what every authenticator app expects and what
+     * HMAC-SHA1 uses as its key size anyway — a longer secret is hashed back
+     * down to 160 bits before use, so it buys no strength and costs QR density.
+     */
+    private const DEFAULT_SECRET_BYTES = 20;
+
+    /** The RFC's floor. Below this the secret is too short to be compliant. */
+    private const MIN_SECRET_BYTES = 16;
+
     public function __construct(
         private EntityManagerInterface $entityManager,
         private UserTotpSecretRepositoryInterface $totpSecretRepository,
@@ -46,7 +57,22 @@ class TotpService implements TwoFactorServiceInterface
         private ClockInterface $clock,
         /** @var non-empty-string */
         private string $issuer = 'Appkit',
+        /**
+         * Only worth changing to raise the size; otphp's own default is 64
+         * bytes, which produces a 103-character secret that is painful to
+         * type and dense enough to hurt scanning.
+         *
+         * @var positive-int
+         */
+        private int $secretBytes = self::DEFAULT_SECRET_BYTES,
     ) {
+        if ($secretBytes < self::MIN_SECRET_BYTES) {
+            throw new \InvalidArgumentException(sprintf(
+                'A TOTP secret must be at least %d bytes (RFC 4226 §4); %d given.',
+                self::MIN_SECRET_BYTES,
+                $secretBytes,
+            ));
+        }
     }
 
     /**
@@ -61,8 +87,9 @@ class TotpService implements TwoFactorServiceInterface
             throw new \RuntimeException('User already has 2FA enabled. Disable it first before generating a new secret.');
         }
 
-        // Create TOTP instance
-        $totp = TOTP::generate();
+        // Create TOTP instance. The size is passed explicitly: otphp defaults
+        // to 64 bytes, which is far more than the standard asks for.
+        $totp = TOTP::generate(secretSize: $this->secretBytes);
         $totp->setLabel(self::requireNonEmpty($user->getEmail(), 'user e-mail'));
         $totp->setIssuer($this->issuer);
 
