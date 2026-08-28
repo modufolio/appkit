@@ -77,7 +77,7 @@ final class EntityManagerFactory implements ResetInterface
         ($this->configuratorFactory)($configurator);
 
         $defaultCache = $this->environment->isProd()
-            ? new FilesystemAdapter('doctrine', 0, $this->varDir().'/cache')
+            ? new FilesystemAdapter('doctrine', 0, $this->varDir().'/cache/'.$this->environment->value)
             : new ArrayAdapter();
 
         $config = $configurator->ormConfig;

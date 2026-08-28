@@ -8,6 +8,7 @@ use Doctrine\DBAL\Exception;
 use Doctrine\ORM\EntityManagerInterface;
 use Modufolio\Appkit\DependencyInjection\ParameterBag;
 use Modufolio\Appkit\DependencyInjection\ReflectionControllerArgumentResolver;
+use Modufolio\Appkit\DependencyInjection\ServiceConfigurator;
 use Modufolio\Appkit\Doctrine\EntityManagerFactory;
 use Modufolio\Appkit\Doctrine\Middleware\Debug\DebugStack;
 use Modufolio\Appkit\Exception\ExceptionHandler;
@@ -24,22 +25,31 @@ use Modufolio\Appkit\Security\RoleHierarchy;
 use Modufolio\Appkit\Security\SecurityConfigurator;
 use Modufolio\Appkit\Security\Token\TokenStorageInterface;
 use Modufolio\Appkit\Security\TokenUnserializer;
+use Modufolio\Appkit\Security\User\UserChecker;
+use Modufolio\Appkit\Security\User\UserCheckerInterface;
+use Modufolio\Appkit\Security\User\UserPasswordHasher;
+use Modufolio\Appkit\Security\User\UserPasswordHasherInterface;
 use Modufolio\Appkit\Security\User\UserProviderInterface;
 use Modufolio\Psr7\Http\Emitter;
 use Modufolio\Psr7\Http\EmitterInterface;
+use Modufolio\Psr7\Http\Factory\Psr17Factory;
+use Modufolio\Psr7\Http\Response;
 use Modufolio\Psr7\Http\ServerRequest;
 use Modufolio\Psr7\Http\Stream;
 use Modufolio\Psr7\Http\Uri;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\ContainerInterface;
 use Psr\Container\NotFoundExceptionInterface;
+use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Config\Definition\Processor;
 use Symfony\Component\Config\Loader\LoaderInterface;
+use Symfony\Component\HttpFoundation\Session\Flash\FlashBagInterface;
 use Symfony\Component\HttpFoundation\Session\FlashBagAwareSessionInterface;
+use Symfony\Component\HttpFoundation\Session\SessionInterface;
 use Symfony\Component\Routing\Exception\ResourceNotFoundException;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Serializer\SerializerInterface;
@@ -105,6 +115,10 @@ abstract class Kernel implements AppInterface
     protected ParameterBag $parameterBag;
     /** @var array<class-string, \Closure> */
     protected array $interfaceMap = [];
+    /** @var array<string, \Closure> Definitions from config/services.php via configureServices() */
+    protected array $services = [];
+    /** @var array<string, true> Service ids resolved once per request, cached in the instance table */
+    protected array $sharedServices = [];
     private ?ContainerInterface $fallbackContainer = null;
 
     // Security components
@@ -128,13 +142,25 @@ abstract class Kernel implements AppInterface
 
     public function boot(): static
     {
+        // Dev throws warnings as exceptions; prod forces display_errors off for
+        // web SAPIs. Test is left alone so PHPUnit keeps its own error handling.
+        if ($this->environment()->isDev()) {
+            Debug::enable();
+        } elseif ($this->environment()->isProd()) {
+            Debug::harden();
+        }
+
         $this->parameterBag = new ParameterBag();
         $this->debugStack = new DebugStack();
         $this->routeResource = 'routes.php';
-        $this->interfaceMap = require $this->fileMap['interfaces'];
+        // Legacy interfaces.php file, when mapped; otherwise the kernel wires
+        // its own core services and config/services.php supplies the rest.
+        $this->interfaceMap = isset($this->fileMap['interfaces'])
+            ? require $this->fileMap['interfaces']
+            : $this->coreServices();
 
         $this->setRouterOptions([
-            'cache_dir' => $this->environment()->isProd() ? $this->varDir().'/cache/router' : null,
+            'cache_dir' => $this->environment()->isProd() ? $this->cacheDir().'/router' : null,
             'debug' => $this->environment()->isDev(),
             'resource_type' => null,
             'strict_requirements' => true,
@@ -300,6 +326,13 @@ abstract class Kernel implements AppInterface
     protected function getControllerDependencies(string $id): array
     {
         if (!isset($this->controllers[$id])) {
+            // Safety net, not a wiring strategy: log so the miss is visible
+            // instead of silently resolving by reflection on every request.
+            $this->logger()->warning(sprintf(
+                'Controller "%s" is not wired in config/controllers.php — resolving its constructor by reflection. Wire it explicitly; a parameter with a default value silently receives that default instead of the wired service.',
+                $id,
+            ));
+
             $resolver = new ReflectionControllerArgumentResolver($this);
 
             return $resolver->resolveArguments($id);
@@ -379,6 +412,16 @@ abstract class Kernel implements AppInterface
     public function varDir(): string
     {
         return $this->varDir ??= $this->baseDir.'/var';
+    }
+
+    /**
+     * The cache directory, namespaced by environment (var/cache/prod,
+     * var/cache/dev, …) so switching APP_ENV on one machine can never serve a
+     * cache built by another environment.
+     */
+    public function cacheDir(): string
+    {
+        return $this->varDir().'/cache/'.$this->environment()->value;
     }
 
     /**
@@ -492,6 +535,54 @@ abstract class Kernel implements AppInterface
     }
 
     /**
+     * Apply the service definitions declared in config/services.php.
+     *
+     * Definitions take precedence over everything else in the container, so an
+     * application can override a kernel core service by re-declaring its id.
+     * Call before boot(), alongside configureSecurity().
+     */
+    public function configureServices(ServiceConfigurator $configurator): static
+    {
+        $this->services = $configurator->definitions + $this->services;
+        $this->sharedServices = $configurator->shared + $this->sharedServices;
+
+        return $this;
+    }
+
+    /**
+     * Core services the kernel wires itself — every interface backed by a
+     * kernel accessor or a dependency-free construction. Applications on
+     * config/services.php only declare what they add on top; the legacy
+     * config/interfaces.php path replaces this map entirely.
+     *
+     * @return array<class-string, \Closure>
+     */
+    protected function coreServices(): array
+    {
+        return [
+            CsrfTokenManagerInterface::class => fn () => $this->csrfTokenManager(),
+            DebugStack::class => fn () => $this->debugStack,
+            EntityManagerInterface::class => fn () => $this->entityManager(),
+            Environment::class => fn () => $this->environment(),
+            FlashBagAwareSessionInterface::class => fn () => $this->session(),
+            FlashBagInterface::class => fn () => $this->session()->getFlashBag(),
+            ParameterResolverInterface::class => fn () => $this->parameterResolver(),
+            ResponseFactoryInterface::class => fn () => new Psr17Factory(),
+            ResponseInterface::class => fn () => new Response(),
+            RouterInterface::class => fn () => $this->router(),
+            SerializerInterface::class => fn () => $this->serializer(),
+            ServerRequestInterface::class => fn () => $this->request(),
+            SessionInterface::class => fn () => $this->session(),
+            TokenStorageInterface::class => fn () => $this->tokenStorage(),
+            UrlGeneratorInterface::class => fn () => $this->urlGenerator(),
+            UserCheckerInterface::class => fn () => new UserChecker(),
+            UserPasswordHasherInterface::class => fn () => new UserPasswordHasher(),
+            UserProviderInterface::class => fn () => $this->userProvider(),
+            ValidatorInterface::class => fn () => $this->validator(),
+        ];
+    }
+
+    /**
      * @param array<string, true> $resolving
      *
      * @throws NotFoundException
@@ -510,7 +601,17 @@ abstract class Kernel implements AppInterface
                 throw new \LogicException(sprintf('Injecting "%s" (the kernel/app) as a dependency is not allowed. Use specific service accessors instead (e.g. router(), serializer(), session()).', $id));
             }
 
-            if (array_key_exists($id, $this->interfaceMap)) {
+            if (isset($this->services[$id])) {
+                if (isset($this->sharedServices[$id], $this->instances[$id])) {
+                    $instance = $this->instances[$id];
+                } else {
+                    $instance = $this->services[$id]($this);
+
+                    if (isset($this->sharedServices[$id])) {
+                        $this->instances[$id] = $instance;
+                    }
+                }
+            } elseif (array_key_exists($id, $this->interfaceMap)) {
                 $instance = $this->interfaceMap[$id]();
             } elseif (isset($this->instances[$id])) {
                 $instance = $this->instances[$id];
@@ -557,7 +658,8 @@ abstract class Kernel implements AppInterface
             return false;
         }
 
-        return isset($this->instances[$id])
+        return isset($this->services[$id])
+            || isset($this->instances[$id])
             || array_key_exists($id, $this->interfaceMap)
             || array_key_exists($id, $this->repositories())
             || isset($this->factories[$id])

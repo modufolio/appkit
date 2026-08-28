@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modufolio\Appkit\Tests\App;
 
+use Modufolio\Appkit\DependencyInjection\ServiceConfigurator;
 use Modufolio\Appkit\Routing\Loader\ArrayRouteLoader;
 use Modufolio\Appkit\Routing\Loader\AttributeClassLoader;
 use Modufolio\Appkit\Routing\Loader\JsonApiRouteLoader;
@@ -68,6 +69,12 @@ class AppFactory
 
         $securityClosure($securityConfigurator);
 
+        // Configure Services
+        $serviceConfigurator = new ServiceConfigurator();
+        $servicesClosure = require $configDir.'/services.php';
+
+        $servicesClosure($serviceConfigurator);
+
         $app = new App(
             baseDir: $baseDir,
             routeLoader: $routeLoader,
@@ -75,16 +82,14 @@ class AppFactory
             userProviderClass: UserRepository::class,
             authenticators: F::load($configDir.'/authenticators.php', []),
             controllers: F::load($configDir.'/controllers.php', []),
-            factories: F::load($configDir.'/factories.php', []),
             fileMap: [
                 'doctrine' => $configDir.'/test/doctrine.php',
-                'interfaces' => $configDir.'/interfaces.php',
             ],
             repositories: F::load($configDir.'/repositories.php', []),
         );
 
         $app->setVarDir(self::varDir($baseDir));
-        $app->configureSecurity($securityConfigurator)->boot();
+        $app->configureServices($serviceConfigurator)->configureSecurity($securityConfigurator)->boot();
 
         // JsonApiController isn't in config/controllers.php, so its
         // constructor is auto-wired by reflection; the untyped $configPath
