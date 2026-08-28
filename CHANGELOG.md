@@ -5,6 +5,104 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.0] - 2026-08-28
+
+### Upgrading
+
+- **The cache directory is now namespaced by environment.** `cacheDir()`
+  resolves to `var/cache/{env}` (`var/cache/prod`, `var/cache/dev`, …) instead
+  of `var/cache`, so switching `APP_ENV` on one machine can never serve a cache
+  another environment built. The compiled router cache moves with it; delete
+  the stale `var/cache/router` directory on deploy. (`src/Core/Kernel.php`)
+
+- **A controller that is not wired in `config/controllers.php` now logs a
+  warning** before falling back to reflection-based resolution. Reflection is a
+  safety net, not a wiring strategy — a constructor parameter with a default
+  value silently receives that default instead of the service you meant. The
+  behaviour is unchanged; the miss is simply no longer invisible. Expect these
+  warnings in the log until every controller is declared.
+  (`src/Core/Kernel.php`)
+
+- **PHP no longer prints errors into the response stream.** `boot()` now calls
+  `Debug::enable()` in dev (warnings and notices are thrown as
+  `\ErrorException` and routed through `ExceptionHandler`) and
+  `Debug::harden()` in prod (`display_errors` forced off for web SAPIs). A
+  warning previously became the first output byte, committing a 200 and losing
+  the real response's status and headers to "headers already sent". Dev code
+  that relied on a notice being ignored will now surface as a 500 — which is
+  the point. Test is left untouched so PHPUnit keeps its own error handling.
+  (`src/Core/Debug.php`)
+
+### Added
+
+- **`config/services.php` and the `ServiceConfigurator`** — one fluent place to
+  declare application services, replacing the split between `interfaces.php`
+  (kernel-bound closures) and `factories.php` (container-parameter closures):
+
+  ```php
+  return function (ServiceConfigurator $services): void {
+      $services
+          ->set(Mailer::class, fn (App $app) => new Mailer($app->entityManager()))
+          ->shared(JsonApiRegistry::class, fn (App $app) => new JsonApiRegistry(...))
+          ->alias(SharedPropsInterface::class, DefaultProps::class);
+  };
+  ```
+
+  Every factory receives the application as its only argument, so definitions
+  no longer depend on `$this` binding at `require` time. `set()` runs the
+  factory on every `get()`; `shared()` caches the first resolution in the
+  kernel's per-request instance table (cleared by `reset()`); `alias()` points
+  one id at another. Wire it with `configureServices()` before `boot()`,
+  alongside `configureSecurity()`. Definitions take precedence over everything
+  else in the container, so an application can override a kernel core service
+  by re-declaring its id. (`src/DependencyInjection/ServiceConfigurator.php`,
+  `docs/dependency-injection.md`)
+
+- **The kernel wires its own core services.** `coreServices()` supplies the
+  container defaults every application repeated by hand — router, session,
+  entity manager, CSRF token manager, serializer, validator, user provider,
+  user checker, password hasher, request, response factory, flash bag,
+  environment, debug stack. `config/services.php` therefore only declares what
+  the application adds. A mapped legacy `config/interfaces.php` still replaces
+  this map entirely, so existing applications keep working unchanged.
+  (`src/Core/Kernel.php`)
+
+- **"Sign in with Google".** `GoogleOAuthClient` builds the authorization
+  redirect, exchanges the code, and verifies the returned ID token — RS256
+  signature against Google's published keys, plus issuer, audience, expiry and
+  `email_verified`. `GoogleAuthenticator` runs the callback leg: it checks the
+  one-time OAuth `state`, requires a verified email, and maps it onto an
+  **existing** user. It never provisions an account — an address Google vouches
+  for that nobody here owns is a failed login, not a new user — so who may sign
+  in stays governed by who you added. `allowed_hosted_domain` gates on the
+  Workspace `hd` claim as a second check. Every OAuth failure collapses to one
+  message. (`src/Security/OAuth/Google/`,
+  `src/Security/Authenticator/GoogleAuthenticator.php`, `docs/authenticators.md`)
+
+- **`F::safeFilename()` — confine an untrusted string to a single filename.**
+  Strips any directory component (Windows separators included) and control
+  characters, rejects `.` and `..`, and returns `''` when nothing usable
+  survives. Unlike `safeName()` it preserves case and the remaining
+  characters, so a token already written to disk still matches and a display
+  name is not mangled. (`src/Toolkit/F.php`, `docs/toolkit.md`)
+
+- **`Kernel::cacheDir()`** — the environment-namespaced cache directory, for
+  application code that needs to place a cache next to the framework's.
+
+### Fixed
+
+- **TOTP enrolment generated a 103-character secret.** `TotpService` used
+  otphp's 64-byte default, dense enough to hurt QR scanning, painful to type by
+  hand, and no stronger — HMAC-SHA1 folds anything over its block size back to
+  160 bits. It now generates 20 bytes (RFC 4226 §4), via an injectable
+  `secretBytes` floored at 16. Existing enrolled secrets are read as-is and are
+  unaffected. (`src/Security/TwoFactor/TotpService.php`)
+
+### Changed
+
+- **`psr/http-client` is now a required dependency**, used by the Google OAuth
+  client for the token exchange and key fetch.
+
 ## [0.12.0] - 2026-08-27
 
 ### Upgrading
