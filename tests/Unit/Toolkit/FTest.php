@@ -506,6 +506,37 @@ class FTest extends TestCase
         $this->assertSame('jpg', F::safeExtension('JPG', false));
     }
 
+    public function testSafeFilenamePreservesTheNameUnlikeSafeName(): void
+    {
+        // The whole reason this exists next to safeName(): case and the inner
+        // characters survive, so a token written to disk still matches.
+        $this->assertSame('My_Report.PDF', F::safeFilename('My_Report.PDF'));
+        $this->assertSame('a file (final).txt', F::safeFilename('  a file (final).txt  '));
+    }
+
+    public function testSafeFilenameStripsAnyDirectoryComponent(): void
+    {
+        $this->assertSame('.env', F::safeFilename('../../.env'));
+        $this->assertSame('c.pdf', F::safeFilename('a/b/c.pdf'));
+        // A backslash must not smuggle a directory past basename() on unix.
+        $this->assertSame('c.pdf', F::safeFilename('a\\b\\c.pdf'));
+    }
+
+    public function testSafeFilenameRejectsEmptyAndDirectoryReferences(): void
+    {
+        $this->assertSame('', F::safeFilename(''));
+        $this->assertSame('', F::safeFilename('.'));
+        $this->assertSame('', F::safeFilename('..'));
+        $this->assertSame('', F::safeFilename('../../'));
+    }
+
+    public function testSafeFilenameStripsControlCharacters(): void
+    {
+        // A CR/LF here would break a Content-Disposition header downstream.
+        $this->assertSame('evilSet-Cookie: 1', F::safeFilename("evil\r\nSet-Cookie: 1"));
+        $this->assertSame('ab', F::safeFilename("a\x00b"));
+    }
+
     public function testSimilar(): void
     {
         F::write($a = $this->tmp.'/similar.txt', 'a');

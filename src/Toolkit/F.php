@@ -755,6 +755,38 @@ class F
     }
 
     /**
+     * Confine an untrusted string to a single, safe filename.
+     *
+     * Unlike {@see safeName()}, which slugs a title into a *new* storage name
+     * — lowercasing and collapsing to a strict charset — this leaves the name
+     * intact and only makes it safe to use:
+     *
+     *  - any directory portion is stripped (`../../.env` becomes `.env`), so
+     *    the result can never walk out of the directory it is joined to;
+     *  - a lone `.` or `..` returns `''`, since neither names a file;
+     *  - control characters, including CR/LF, are removed — a filename that
+     *    reaches a `Content-Disposition` header must not carry them.
+     *
+     * Case and every other character are preserved, which is the whole point:
+     * use this for a name that must *round-trip* — a token already written to
+     * disk under this exact string, or a filename echoed back to the browser —
+     * where slugging would break the disk lookup or mangle what the user sees.
+     * Returns `''` when nothing usable survives, so callers can reject it.
+     */
+    public static function safeFilename(string $string): string
+    {
+        // Strip control characters first, so one adjacent to a separator
+        // cannot survive into the basename below.
+        $string = preg_replace('/[\x00-\x1F\x7F]/', '', trim($string)) ?? '';
+
+        // Normalise Windows separators so a backslash cannot smuggle a
+        // directory component past basename() on non-Windows hosts.
+        $name = basename(str_replace('\\', '/', $string));
+
+        return in_array($name, ['', '.', '..'], true) ? '' : $name;
+    }
+
+    /**
      * Tries to find similar or the same file by
      * building a glob based on the path.
      */
