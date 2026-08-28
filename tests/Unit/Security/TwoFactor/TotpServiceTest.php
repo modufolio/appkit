@@ -106,6 +106,20 @@ class TotpServiceTest extends AppTestCase
     }
 
     /**
+     * otphp's own default is 64 bytes, which yields a 103-character secret:
+     * dense enough to hurt QR scanning and miserable to type by hand, with no
+     * strength gained (HMAC-SHA1 folds anything over its block size back down).
+     * The service overrides that, so pin the size the RFC recommends.
+     */
+    public function testGeneratedSecretIsOneHundredAndSixtyBits(): void
+    {
+        $secret = $this->app()->totpService()->generateSecret($this->fixtureUser());
+
+        // 20 bytes of base32 is 32 characters, unpadded.
+        $this->assertSame(32, strlen($secret->getSecret()));
+    }
+
+    /**
      * A currently-valid TOTP code for the secret, computed against the frozen
      * clock (MockClock leaves PHP's native time() untouched).
      */
