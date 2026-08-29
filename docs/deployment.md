@@ -7,7 +7,7 @@ Before going live, confirm each of these.
 - [ ] `APP_ENV=prod` in your server environment
 - [ ] `APP_URL` set to your production domain (e.g. `https://example.com`)
 - [ ] `COOKIE_SECURE=true`
-- [ ] `composer install --no-dev --optimize-autoloader` completed
+- [ ] `composer install --no-dev --classmap-authoritative` completed — see [Autoloader](#autoloader)
 - [ ] `npm run build` completed and compiled assets uploaded to `public/assets/`
 - [ ] `php bin/console migrations:migrate` completed
 - [ ] `php bin/console security:validate` passes — config validation is skipped at runtime in `prod`, so this is the last gate that catches a bad firewall or access-control rule (see [Security](security.md#validating-configuration))
@@ -143,6 +143,25 @@ return (new App(
     logger: $logger,
 ))->configureSecurity($security)->boot();
 ```
+
+## Autoloader
+
+Always deploy with an authoritative classmap:
+
+```bash
+composer install --no-dev --classmap-authoritative
+```
+
+Without it, Composer resolves every class through PSR-4 prefix lookups and
+`file_exists()` probes — several hundred per request — which can account for more
+than half of a page's response time. `--classmap-authoritative` (which implies
+`--optimize-autoloader`) turns each lookup into a single array hit and skips the
+filesystem entirely for unknown classes. `--no-dev` matters too: dev packages can
+register Composer `files` autoloads (PHPUnit does) that would otherwise be
+included on every production request.
+
+Don't use `--classmap-authoritative` in development — classes added after the
+dump are not found until you re-run it.
 
 ## Caching
 
