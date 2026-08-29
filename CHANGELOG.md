@@ -5,6 +5,26 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.14.0] - 2026-08-29
+
+### Added
+
+- `I18n::snapshot()` and `I18n::reset()` for long-lived worker runtimes:
+  capture the boot-time configuration once, restore it after each request, so
+  a locale or translations set for one request cannot leak into the next one
+  on the same worker. Opt-in — the framework does not call either itself.
+
+### Changed
+
+- **Image-processing dependencies are now optional.** `ext-exif`, `ext-gd` and
+  `claviska/simpleimage` moved from `require` to `suggest` — they only serve
+  the `Modufolio\Appkit\Image` classes, which load lazily. Applications that
+  use image processing must now require them themselves:
+  `composer require claviska/simpleimage` plus the `exif` and `gd` extensions.
+  Applications that don't get a lighter install. When the dependencies are
+  missing, `GdLib::process()` throws a `RuntimeException` naming the missing
+  piece and how to install it (EXIF reading already degrades gracefully).
+
 ## [0.13.0] - 2026-08-28
 
 ### Upgrading
