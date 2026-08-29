@@ -30,6 +30,15 @@ class GdLib extends Darkroom
      */
     public function process(string $file, array $options = []): array
     {
+        // Optional dependencies (composer suggest) — fail with the fix in the
+        // message instead of a bare class-not-found from deep inside the stack.
+        if (false === extension_loaded('gd')) {
+            throw new \RuntimeException('Image processing requires the gd PHP extension. Enable it in your php.ini or rebuild PHP with gd support.');
+        }
+        if (false === class_exists(SimpleImage::class)) {
+            throw new \RuntimeException('Image processing requires the claviska/simpleimage package. Install it with `composer require claviska/simpleimage`.');
+        }
+
         $options = $this->preprocess($file, $options);
         $mime = $this->mime($options);
 

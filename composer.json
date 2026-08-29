@@ -12,16 +12,13 @@
         "php": "^8.2",
         "ext-curl": "*",
         "ext-dom": "*",
-        "ext-exif": "*",
         "ext-fileinfo": "*",
-        "ext-gd": "*",
         "ext-intl": "*",
         "ext-libxml": "*",
         "ext-pdo": "*",
         "ext-simplexml": "*",
         "ext-sqlite3": "*",
         "ext-zip": "*",
-        "claviska/simpleimage": "^4.0",
         "doctrine/dbal": "^4",
         "doctrine/migrations": "^3.6",
         "doctrine/orm": "^3",
@@ -63,7 +60,13 @@
         "modufolio/http": "^0.1.0",
         "friendsofphp/php-cs-fixer": "^3.64",
         "brianium/paratest": "^7.8",
-        "phpstan/phpstan-phpunit": "^2.0"
+        "phpstan/phpstan-phpunit": "^2.0",
+        "claviska/simpleimage": "^4.0"
+    },
+    "suggest": {
+        "ext-exif": "Required for image processing — reading EXIF metadata and auto-orienting photos",
+        "ext-gd": "Required for image processing — resizing, cropping and converting images",
+        "claviska/simpleimage": "Required for image processing — the GD-based manipulation backend (^4.0)"
     },
     "autoload": {
         "psr-4": {
