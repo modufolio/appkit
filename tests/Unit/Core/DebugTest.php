@@ -57,7 +57,20 @@ class DebugTest extends TestCase
     {
         Debug::enable();
 
-        $result = trigger_error('old api', \E_USER_DEPRECATED);
+        // The handler declines deprecations (they must be logged, not thrown),
+        // so PHP's default handler would print "PHP Deprecated: old api" into
+        // the test output. Mute its output channels for this one call; the
+        // error_reporting mask stays untouched, so the handler still takes the
+        // deprecation branch rather than the @-silenced one.
+        $displayErrors = ini_set('display_errors', '0');
+        $errorLog = ini_set('error_log', '/dev/null');
+
+        try {
+            $result = trigger_error('old api', \E_USER_DEPRECATED);
+        } finally {
+            ini_set('display_errors', (string) $displayErrors);
+            ini_set('error_log', (string) $errorLog);
+        }
 
         $this->assertTrue($result);
     }
