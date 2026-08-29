@@ -432,4 +432,57 @@ class I18nTest extends TestCase
 
         $this->assertSame($translations, I18n::translations());
     }
+
+    public function testResetRestoresBootSnapshot(): void
+    {
+        // Boot-time configuration, as an application would set it before
+        // Kernel::boot() captures the snapshot.
+        $load = fn (string $locale) => [];
+        I18n::$load = $load;
+        I18n::$locale = 'en';
+        I18n::$fallback = ['en'];
+        I18n::$translations = ['en' => ['greeting' => 'Hello']];
+        I18n::snapshot();
+
+        // Request-scoped mutations — the worker-mode leak scenario.
+        I18n::$load = null;
+        I18n::$locale = 'de';
+        I18n::$fallback = 'de';
+        I18n::$translations['de'] = ['greeting' => 'Hallo'];
+
+        I18n::reset();
+
+        $this->assertSame($load, I18n::$load);
+        $this->assertSame('en', I18n::$locale);
+        $this->assertSame(['en'], I18n::$fallback);
+        $this->assertSame(['en' => ['greeting' => 'Hello']], I18n::$translations);
+
+        $this->resetBootSnapshot();
+    }
+
+    public function testResetWithoutSnapshotRestoresDefaults(): void
+    {
+        $this->resetBootSnapshot();
+
+        I18n::$load = fn (string $locale) => [];
+        I18n::$locale = 'de';
+        I18n::$fallback = 'de';
+        I18n::$translations = ['de' => ['greeting' => 'Hallo']];
+
+        I18n::reset();
+
+        $this->assertNull(I18n::$load);
+        $this->assertSame('en', I18n::$locale);
+        $this->assertSame(['en'], I18n::$fallback);
+        $this->assertSame([], I18n::$translations);
+    }
+
+    /**
+     * Clear the private boot snapshot so state cannot leak between tests.
+     */
+    private function resetBootSnapshot(): void
+    {
+        $property = new \ReflectionProperty(I18n::class, 'bootState');
+        $property->setValue(null, null);
+    }
 }

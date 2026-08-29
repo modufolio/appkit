@@ -42,6 +42,55 @@ class I18n
     protected static array $decimalsFormatters = [];
 
     /**
+     * Boot-time snapshot of the static configuration, captured via
+     * snapshot(). reset() restores it, so per-request mutations (a locale set
+     * from the authenticated user, request-scoped translation overrides)
+     * cannot leak into the next request on a long-running worker, while
+     * translations and loaders registered during boot survive.
+     *
+     * @var array{load: ?\Closure, locale: string|\Closure|null, translations: array, fallback: string|array|\Closure|null}|null
+     */
+    private static ?array $bootState = null;
+
+    /**
+     * Capture the current static configuration as the boot state.
+     *
+     * If your application configures I18n and runs on a long-lived worker
+     * runtime, call this once after boot and reset() after each request.
+     * Calling it again replaces the snapshot.
+     */
+    public static function snapshot(): void
+    {
+        static::$bootState = [
+            'load' => static::$load,
+            'locale' => static::$locale,
+            'translations' => static::$translations,
+            'fallback' => static::$fallback,
+        ];
+    }
+
+    /**
+     * Restore the boot-time configuration, discarding request-scoped
+     * mutations. Without a snapshot the hard defaults are restored. The
+     * NumberFormatter cache is kept — it is keyed by locale and holds no
+     * request state.
+     */
+    public static function reset(): void
+    {
+        $state = static::$bootState ?? [
+            'load' => null,
+            'locale' => 'en',
+            'translations' => [],
+            'fallback' => ['en'],
+        ];
+
+        static::$load = $state['load'];
+        static::$locale = $state['locale'];
+        static::$translations = $state['translations'];
+        static::$fallback = $state['fallback'];
+    }
+
+    /**
      * Returns the list of fallback locales.
      */
     public static function fallbacks(): array
