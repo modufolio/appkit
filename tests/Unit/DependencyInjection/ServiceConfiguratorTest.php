@@ -75,6 +75,41 @@ class ServiceConfiguratorTest extends AppTestCase
         );
     }
 
+    public function testNamespacedIdMustBeARealClass(): void
+    {
+        $configurator = new ServiceConfigurator();
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('is not an existing class or interface');
+
+        $configurator->set('Modufolio\\Appkit\\DoesNotExist', fn () => new \stdClass());
+    }
+
+    public function testAliasSwallowedNamespaceIsDiagnosed(): void
+    {
+        // `use Modufolio\Appkit\DependencyInjection\ServiceConfigurator;` plus a bare
+        // `ServiceConfigurator\...` style token produces a doubled prefix; the
+        // validator names the class that does exist and the leading-backslash fix.
+        $configurator = new ServiceConfigurator();
+
+        try {
+            $configurator->set('Modufolio\\Modufolio\\Appkit\\DependencyInjection\\ServiceConfigurator', fn () => new \stdClass());
+            self::fail('Expected InvalidArgumentException.');
+        } catch (\InvalidArgumentException $e) {
+            self::assertStringContainsString('does exist', $e->getMessage());
+            self::assertStringContainsString(ServiceConfigurator::class, $e->getMessage());
+            self::assertStringContainsString('leading backslash', $e->getMessage());
+        }
+    }
+
+    public function testNonNamespacedStringIdsAreStillAccepted(): void
+    {
+        $configurator = new ServiceConfigurator();
+        $configurator->set('someLegacyServiceId', fn () => new \stdClass());
+
+        self::assertArrayHasKey('someLegacyServiceId', $configurator->definitions);
+    }
+
     public function testAliasOfItselfIsRejected(): void
     {
         $this->expectException(\LogicException::class);

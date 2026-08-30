@@ -63,6 +63,8 @@ final class ServiceConfigurator
      */
     public function set(string $id, \Closure $factory): self
     {
+        self::assertResolvableId($id);
+
         $this->definitions[$id] = $factory;
         unset($this->shared[$id]);
 
@@ -77,6 +79,8 @@ final class ServiceConfigurator
      */
     public function shared(string $id, \Closure $factory): self
     {
+        self::assertResolvableId($id);
+
         $this->definitions[$id] = $factory;
         $this->shared[$id] = true;
 
@@ -97,6 +101,47 @@ final class ServiceConfigurator
             throw new \LogicException(sprintf('Service "%s" cannot be an alias of itself.', $alias));
         }
 
+        self::assertResolvableId($target);
+
         return $this->set($alias, fn (\Psr\Container\ContainerInterface $app) => $app->get($target));
+    }
+
+    /**
+     * A namespaced id must name a real class or interface — anything else is a
+     * wiring bug that would otherwise surface only as a request-time
+     * NotFoundException far from the misspelling.
+     *
+     * The classic culprit is a `use` import swallowing the namespace: with
+     * `use App\App;` in scope, a bare `App\SmartAlbum\Foo::class` compiles to
+     * `App\App\SmartAlbum\Foo`. When dropping leading segments produces a class
+     * that does exist, the message names it and the fix.
+     *
+     * Non-namespaced string ids are left alone for backward compatibility.
+     */
+    private static function assertResolvableId(string $id): void
+    {
+        if (!str_contains($id, '\\') || class_exists($id) || interface_exists($id)) {
+            return;
+        }
+
+        $hint = '';
+        $parts = explode('\\', $id);
+        for ($drop = 1; $drop < count($parts) - 1; $drop++) {
+            $candidate = implode('\\', array_slice($parts, $drop));
+            if (class_exists($candidate) || interface_exists($candidate)) {
+                $hint = sprintf(
+                    ' "%s" does exist — a `use` import in the config file has probably swallowed the'
+                    . ' namespace (e.g. `use %s;`). Write the id with a leading backslash: \\%s::class.',
+                    $candidate,
+                    implode('\\', array_slice($parts, 0, $drop + 1)),
+                    $candidate
+                );
+                break;
+            }
+        }
+
+        throw new \InvalidArgumentException(
+            sprintf('Service id "%s" is not an existing class or interface.%s', $id, $hint)
+        );
     }
 }
