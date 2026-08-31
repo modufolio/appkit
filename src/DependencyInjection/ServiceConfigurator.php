@@ -62,7 +62,10 @@ final class ServiceConfigurator
      * Register a service factory. The closure receives the application and is
      * invoked on every `get($id)`.
      *
-     * @param class-string $id
+     * The id is usually a class or interface name (`Foo::class`), but plain
+     * non-namespaced string ids are accepted for backward compatibility —
+     * assertResolvableId() enforces the rules at definition time, so the
+     * declared type stays `string`, not `class-string`.
      */
     public function set(string $id, \Closure $factory): self
     {
@@ -77,8 +80,6 @@ final class ServiceConfigurator
     /**
      * Register a request-scoped singleton: the factory runs once, the result is
      * cached in the kernel's instance table and cleared by `reset()`.
-     *
-     * @param class-string $id
      */
     public function shared(string $id, \Closure $factory): self
     {
@@ -93,10 +94,7 @@ final class ServiceConfigurator
     /**
      * Point one id at another: `get($alias)` resolves `$target` through the
      * container. Use it to answer a package's interface with an application
-     * service without repeating its wiring.
-     *
-     * @param class-string $alias
-     * @param class-string $target
+     * service without repeating its wiring. The same id rules as set() apply.
      */
     public function alias(string $alias, string $target): self
     {
