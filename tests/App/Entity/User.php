@@ -6,12 +6,26 @@ namespace Modufolio\Appkit\Tests\App\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
 use Modufolio\Appkit\Security\User\PasswordAuthenticatedUserInterface;
+use Modufolio\Appkit\Security\User\SoftDeletableUserInterface;
 use Modufolio\Appkit\Tests\App\Repository\UserRepository;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\Table(name: 'users')]
-class User implements PasswordAuthenticatedUserInterface
+class User implements PasswordAuthenticatedUserInterface, SoftDeletableUserInterface
 {
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $deletedAt = null;
+
+    public function isDeleted(): bool
+    {
+        return null !== $this->deletedAt;
+    }
+
+    public function softDelete(): void
+    {
+        $this->deletedAt = new \DateTimeImmutable();
+    }
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]

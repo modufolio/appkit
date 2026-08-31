@@ -40,7 +40,9 @@ class EntityUserProvider implements UserProviderInterface, PasswordUpgraderInter
         $user = $this->entityManager->getRepository($this->entityClass)
             ->findOneBy([$this->identifierProperty => $identifier]);
 
-        if (!$user instanceof UserInterface) {
+        // A soft-deleted account is treated exactly like a missing one — the
+        // "not found" path hides whether the account ever existed.
+        if (!$user instanceof UserInterface || ($user instanceof SoftDeletableUserInterface && $user->isDeleted())) {
             throw new UserNotFoundException(sprintf('User "%s" not found.', $identifier));
         }
 
@@ -55,7 +57,9 @@ class EntityUserProvider implements UserProviderInterface, PasswordUpgraderInter
 
         $refreshed = $this->entityManager->getRepository($this->entityClass)->find($user->getId());
 
-        if (!$refreshed instanceof UserInterface) {
+        // Refusing the refresh kills the session of a user deleted after
+        // login — deletion takes effect on their next request.
+        if (!$refreshed instanceof UserInterface || ($refreshed instanceof SoftDeletableUserInterface && $refreshed->isDeleted())) {
             throw new UserNotFoundException(sprintf('User with id "%s" could not be reloaded.', (string) $user->getId()));
         }
 

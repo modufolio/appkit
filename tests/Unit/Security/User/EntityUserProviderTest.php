@@ -44,6 +44,30 @@ class EntityUserProviderTest extends AppTestCase
         $this->provider->loadUserByIdentifier('nobody@example.com');
     }
 
+    public function testLoadUserByIdentifierRefusesSoftDeletedUser(): void
+    {
+        $user = $this->provider->loadUserByIdentifier('johndoe@example.com');
+        assert($user instanceof User);
+        $user->softDelete();
+        $this->app()->entityManager()->flush();
+
+        $this->expectException(UserNotFoundException::class);
+        $this->provider->loadUserByIdentifier('johndoe@example.com');
+    }
+
+    public function testRefreshUserRefusesSoftDeletedUser(): void
+    {
+        // Deleting a logged-in user must kill their session on the next
+        // request — the refresh is where that enforcement lives.
+        $user = $this->provider->loadUserByIdentifier('johndoe@example.com');
+        assert($user instanceof User);
+        $user->softDelete();
+        $this->app()->entityManager()->flush();
+
+        $this->expectException(UserNotFoundException::class);
+        $this->provider->refreshUser($user);
+    }
+
     public function testRefreshUserReloadsFromDatabase(): void
     {
         $user = $this->provider->loadUserByIdentifier('johndoe@example.com');

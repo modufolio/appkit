@@ -11,6 +11,7 @@ use Modufolio\Appkit\Security\Exception\LockedAccountException;
 use Modufolio\Appkit\Security\User\CredentialsExpirableUserInterface;
 use Modufolio\Appkit\Security\User\ExpirableUserInterface;
 use Modufolio\Appkit\Security\User\LockableUserInterface;
+use Modufolio\Appkit\Security\User\SoftDeletableUserInterface;
 use Modufolio\Appkit\Security\User\UserChecker;
 use Modufolio\Appkit\Security\User\UserInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -146,6 +147,64 @@ class UserCheckerTest extends TestCase
 
         $this->expectException(DisabledAccountException::class);
         (new UserChecker())->checkPreAuth($user);
+    }
+
+    public function testCheckPreAuthThrowsForSoftDeletedUser(): void
+    {
+        // The message must not reveal the account was deleted.
+        $this->expectException(DisabledAccountException::class);
+        $this->expectExceptionMessageMatches('/disabled.*administrator/');
+
+        (new UserChecker())->checkPreAuth($this->softDeletableUser(deleted: true));
+    }
+
+    public function testCheckPreAuthPassesForNonDeletedSoftDeletableUser(): void
+    {
+        (new UserChecker())->checkPreAuth($this->softDeletableUser(deleted: false));
+        $this->addToAssertionCount(1);
+    }
+
+    private function softDeletableUser(bool $deleted): SoftDeletableUserInterface
+    {
+        return new class($deleted) implements SoftDeletableUserInterface {
+            public function __construct(private bool $deleted)
+            {
+            }
+
+            public function getId(): int
+            {
+                return 1;
+            }
+
+            public function getEmail(): string
+            {
+                return 'deleted@example.com';
+            }
+
+            public function getRoles(): array
+            {
+                return ['ROLE_USER'];
+            }
+
+            public function getUserIdentifier(): string
+            {
+                return 'deleted@example.com';
+            }
+
+            public function eraseCredentials(): void
+            {
+            }
+
+            public function isEnabled(): bool
+            {
+                return true;
+            }
+
+            public function isDeleted(): bool
+            {
+                return $this->deleted;
+            }
+        };
     }
 
     private function plainUser(bool $enabled): UserInterface

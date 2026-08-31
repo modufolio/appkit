@@ -38,6 +38,20 @@ class UserChecker implements UserCheckerInterface
      */
     public function checkPreAuth(UserInterface $user): void
     {
+        // Second line of defence behind EntityUserProvider's soft-delete
+        // refusal — a custom provider that loads deleted users still gets
+        // blocked here. The generic "disabled" message deliberately does not
+        // reveal that the account was deleted.
+        if ($user instanceof SoftDeletableUserInterface && $user->isDeleted()) {
+            $this->logger?->warning('Authentication attempted on soft-deleted account', [
+                'user_id' => $user->getId(),
+                'email' => $user->getEmail(),
+                'reason' => 'account_deleted',
+            ]);
+
+            throw new DisabledAccountException('Your account has been disabled. Please contact an administrator.');
+        }
+
         if (!$user->isEnabled()) {
             $this->logger?->warning('Authentication attempted on disabled account', [
                 'user_id' => $user->getId(),
