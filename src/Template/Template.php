@@ -334,7 +334,10 @@ class Template implements \Stringable
 
         $base = $scheme.'://'.$host;
 
-        if (('http' === $scheme && 80 !== $port) || ('https' === $scheme && 443 !== $port)) {
+        // PSR-7 getPort() returns null for the scheme's default port — only a
+        // real, non-default port belongs in the URL (null used to render as
+        // a dangling "host:" colon).
+        if (null !== $port && !(('http' === $scheme && 80 === $port) || ('https' === $scheme && 443 === $port))) {
             $base .= ':'.$port;
         }
 
