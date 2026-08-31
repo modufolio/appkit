@@ -2,6 +2,8 @@
 
 The Kernel is the heart of every AppKit application. It acts as the HTTP request handler, the service container, and the boot coordinator. Your application's `App` class extends it.
 
+The class itself stays small: it owns the state (every property lives on the Kernel), the boot/reset lifecycle, and the core service accessors. Behavior is composed from one trait per concern — `AppContainer` (service resolution, repositories, parameters), `AppControllers` (controller wiring and instantiation), `AppModules` (module lifecycle), `AppRouting` (router and URL generation), and `AppSecurity` (authentication flow and firewall configuration). Traits hold no state of their own, and every method kept its name, visibility and signature when it moved — from your `App` subclass, nothing changed. Read the trait for the concern you care about; the Kernel file tells you the order things happen in.
+
 ## Extending the Kernel
 
 ```php

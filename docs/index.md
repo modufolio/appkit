@@ -50,6 +50,7 @@ AppKit makes deliberate choices to stay small and fast. There is no application-
 | [Routing](routing.md) | Declaring routes, route parameters, access control |
 | [Controllers](controllers.md) | Writing controllers and using parameter attributes |
 | [Dependency injection](dependency-injection.md) | The App-class container, `services.php`, controller wiring |
+| [Modules](modules.md) | Self-contained feature packages: manifest, conventions, lifecycle |
 | [Templates](templates.md) | Layouts, snippets, sections, and asset helpers |
 | [Security](security.md) | Firewalls, access control rules, CSRF, roles |
 | [Authenticators](authenticators.md) | Form login, JWT, OAuth 2.1, 2FA, brute-force protection |

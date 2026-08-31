@@ -89,7 +89,11 @@ class AppFactory
         );
 
         $app->setVarDir(self::varDir($baseDir));
-        $app->configureServices($serviceConfigurator)->configureSecurity($securityConfigurator)->boot();
+        // Modules first: the application's services.php must win for shared ids.
+        $app->configureModules($configDir.'/modules.php')
+            ->configureServices($serviceConfigurator)
+            ->configureSecurity($securityConfigurator)
+            ->boot();
 
         // JsonApiController isn't in config/controllers.php, so its
         // constructor is auto-wired by reflection; the untyped $configPath

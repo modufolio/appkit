@@ -16,6 +16,9 @@ use Modufolio\Appkit\Security\Exception\BadCredentialsException;
 use Modufolio\Appkit\Security\Exception\TwoFactorRequiredException;
 use Modufolio\Appkit\Security\Exception\UnsupportedUserException;
 use Modufolio\Appkit\Security\Exception\UserNotFoundException;
+use Modufolio\Appkit\Security\FirewallConfiguration;
+use Modufolio\Appkit\Security\RoleHierarchy;
+use Modufolio\Appkit\Security\SecurityConfigurator;
 use Modufolio\Appkit\Security\Token\RememberMeToken;
 use Modufolio\Appkit\Security\Token\TokenInterface;
 use Modufolio\Appkit\Security\Token\TwoFactorToken;
@@ -30,6 +33,7 @@ use Negotiation\BaseAccept;
 use Negotiation\Negotiator;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Symfony\Component\Config\Definition\Processor;
 
 /**
  * Security trait for authentication and authorization functionality.
@@ -911,6 +915,174 @@ trait AppSecurity
             $parameters['_is_granted_roles'] ?? [],
             $this->tokenStorage()->getToken(),
             $request?->getMethod(),
+        );
+    }
+
+    // ============================================================================
+    // FIREWALL & SECURITY CONFIGURATION (moved from Kernel)
+    // ============================================================================
+
+    /**
+     * @param array<string, mixed> $config
+     */
+    public function configureFirewall(array $config): self
+    {
+        $this->assertValidFirewallConfig($config['firewalls'] ?? []);
+        $this->firewallConfig = $config['firewalls'] ?? [];
+        $this->accessControlRules = $config['access_control'] ?? [];
+        $this->roleHierarchy = new RoleHierarchy($config['role_hierarchy'] ?? []);
+        $this->denyUnmatchedAccess = (bool) ($config['deny_unmatched'] ?? false);
+        $this->accessDecisionEngine = null;
+
+        // Sync firewall config to application state if it exists
+        $this->state?->setFirewallConfig($this->firewallConfig);
+
+        return $this;
+    }
+
+    /**
+     * Configure security using SecurityConfigurator (new fluent API).
+     */
+    public function configureSecurity(SecurityConfigurator $configurator): static
+    {
+        $this->assertValidFirewallConfig($configurator->getFirewalls());
+        $this->firewallConfig = $configurator->getFirewalls();
+        $this->accessControlRules = $configurator->getAccessControlRules();
+        $this->roleHierarchy = $configurator->getRoleHierarchy();
+        $this->denyUnmatchedAccess = $configurator->deniesUnmatchedRequests();
+        $this->accessDecisionEngine = null;
+        $this->state?->setFirewallConfig($this->firewallConfig);
+
+        return $this;
+    }
+
+    /**
+     * Validate firewall configuration against the FirewallConfiguration schema.
+     *
+     * Type-checks the keys appkit itself consumes and rejects `methods` — a key
+     * that reads as a per-method firewall filter but is silently ignored by
+     * firewall selection (which matches on pattern alone), so it fails open.
+     * App-specific keys the schema does not know are passed through untouched,
+     * since firewall config is handed to the app's own ApplicationState.
+     *
+     * Skipped in prod. Config configuration runs on every request in appkit's
+     * per-request boot, and building + normalizing the schema tree is not free;
+     * paying that on every production hit to re-check config that has not
+     * changed since deploy mirrors nothing Symfony does — Symfony validates at
+     * container compile time and serves a cached, pre-validated result at
+     * runtime. Here the equivalent is to validate in dev/test (and CI), where
+     * the config is authored and the failure is wanted loud and immediate, and
+     * to trust the already-validated config in prod. Deploys that never run
+     * dev/test should validate in CI (the schema is public: run the Processor
+     * against FirewallConfiguration there).
+     *
+     * @param array<string, array<string, mixed>> $firewalls
+     *
+     * @throws \Symfony\Component\Config\Definition\Exception\InvalidConfigurationException
+     */
+    private function assertValidFirewallConfig(array $firewalls): void
+    {
+        if ($this->environment()->isProd()) {
+            return;
+        }
+
+        (new Processor())->processConfiguration(
+            new FirewallConfiguration(),
+            [['firewalls' => $firewalls]],
+        );
+    }
+
+    /**
+     * @return array<string, \Closure>
+     */
+    public function authenticators(): array
+    {
+        return $this->authenticators;
+    }
+
+    /**
+     * Register or override an authenticator factory at runtime.
+     *
+     * Useful for tests that need a specific authenticator configuration
+     * without modifying the global config file.
+     */
+    public function registerAuthenticator(string $name, \Closure $factory): static
+    {
+        $this->authenticators[$name] = $factory;
+
+        return $this;
+    }
+
+    public function getFirewallName(string $path): ?string
+    {
+        if (null === $this->state) {
+            throw new \RuntimeException('Firewall resolution is not available. ApplicationState must be initialized by handling a request first.');
+        }
+
+        return $this->state->getFirewallName($path);
+    }
+
+    /**
+     * Resolve the firewall for a request, honouring pattern + methods + host +
+     * ips restrictions (Symfony-style). Security-critical selection uses this.
+     */
+    public function getFirewallNameForRequest(ServerRequestInterface $request): ?string
+    {
+        if (null === $this->state) {
+            throw new \RuntimeException('Firewall resolution is not available. ApplicationState must be initialized by handling a request first.');
+        }
+
+        return $this->state->getFirewallNameForRequest($request);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function getFirewallConfig(string $firewallName): array
+    {
+        return $this->firewallConfig[$firewallName] ?? [];
+    }
+
+    /**
+     * All configured firewalls, keyed by name, in declaration order.
+     *
+     * @return array<string, array<string, mixed>>
+     */
+    public function getFirewalls(): array
+    {
+        return $this->firewallConfig;
+    }
+
+    /**
+     * The configured access-control rules, in declaration order.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function getAccessControlRules(): array
+    {
+        return $this->accessControlRules ?? [];
+    }
+
+    public function getRoleHierarchy(): ?RoleHierarchy
+    {
+        return $this->roleHierarchy;
+    }
+
+    /**
+     * The engine enforcing access-control rules and #[IsGranted] attributes.
+     *
+     * Built lazily from the configured rules and role hierarchy; rebuilt when
+     * configureFirewall()/configureSecurity() replaces the configuration.
+     * Register custom rule constraints on it during application setup:
+     *
+     *   $app->accessDecisionEngine()->registerConstraint(new OfficeHoursConstraint());
+     */
+    public function accessDecisionEngine(): AccessDecisionEngine
+    {
+        return $this->accessDecisionEngine ??= new AccessDecisionEngine(
+            rules: $this->accessControlRules ?? [],
+            roleHierarchy: $this->roleHierarchy,
+            denyByDefault: $this->denyUnmatchedAccess,
         );
     }
 }

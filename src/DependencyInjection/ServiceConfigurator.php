@@ -55,6 +55,9 @@ final class ServiceConfigurator
     /** @var array<string, true> */
     public array $shared = [];
 
+    /** @var array<string, string> Deprecated id => message */
+    public array $deprecated = [];
+
     /**
      * Register a service factory. The closure receives the application and is
      * invoked on every `get($id)`.
@@ -104,6 +107,32 @@ final class ServiceConfigurator
         self::assertResolvableId($target);
 
         return $this->set($alias, fn (\Psr\Container\ContainerInterface $app) => $app->get($target));
+    }
+
+    /**
+     * Mark a service id as deprecated: resolving it still works but triggers
+     * an E_USER_DEPRECATED warning once per process, pointing consumers at
+     * the replacement. Works on aliases too — the classic use is renaming a
+     * service while keeping the old id alive for one release:
+     *
+     * ```php
+     * $services
+     *     ->set(MediaRepository::class, fn (App $app) => ...)
+     *     ->alias(MediaStore::class, MediaRepository::class)
+     *     ->deprecate(MediaStore::class, 'The "MediaStore" id is deprecated, use "MediaRepository".');
+     * ```
+     *
+     * The id must already be declared in this configurator.
+     */
+    public function deprecate(string $id, string $message): self
+    {
+        if (!isset($this->definitions[$id])) {
+            throw new \LogicException(sprintf('Cannot deprecate "%s": no such service is declared in this configurator.', $id));
+        }
+
+        $this->deprecated[$id] = $message;
+
+        return $this;
     }
 
     /**

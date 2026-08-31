@@ -15,6 +15,23 @@ The kernel pre-wires its own core services (router, session, entity manager, CSR
 
 > **Legacy layout.** Older applications split service definitions across `config/interfaces.php` (closures bound to the kernel via `$this`) and `config/factories.php` (closures receiving the container). That split was stylistic, not architectural — both files fed the same lookup, and nothing enforced which file a service belonged in. The layout still works: pass `interfaces` in `fileMap` and `factories` to the constructor as before. New applications should use `config/services.php`; a migrated app drops both files, the `interfaces` fileMap entry, and the `factories` argument.
 
+## Failure diagnostics
+
+The container invests in its error paths so a wiring mistake is a one-glance fix:
+
+- **Unknown ids suggest near-misses.** `get()` on a misspelled id lists close matches from every source the container knows — and when a match was registered by a module, says which one: `Did you mean "Modufolio\Blog\Model\PostModel" (from module "blog")?`. When the miss happens inside another service's factory, the message also names the requester: `(needed by "App\Service\Mailer")`.
+- **Circular dependencies print the full chain.** Two factories resolving each other — even indirectly, through any number of `get()` calls — fail with `Circular dependency detected: A -> B -> C -> A` instead of a stack overflow.
+- **Service ids can be deprecated.** Renaming a service while keeping the old id alive for one release:
+
+```php
+$services
+    ->set(MediaRepository::class, fn (App $app) => /* ... */)
+    ->alias(MediaStore::class, MediaRepository::class)
+    ->deprecate(MediaStore::class, 'The "MediaStore" id is deprecated, use "MediaRepository".');
+```
+
+Resolving the deprecated id still works but triggers an `E_USER_DEPRECATED` warning once per process. This is the intended migration path for module service renames.
+
 ## Wiring a controller
 
 When a controller has constructor dependencies, list the interface or class names in `config/controllers.php`. In a plain list the array order must match the constructor parameter order.
