@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Modufolio\Appkit\Tests\App;
 
-use Doctrine\DBAL\Exception;
+use Doctrine\DBAL\Exception as DbalException;
 use Modufolio\Appkit\Core\Kernel;
 use Modufolio\Appkit\Core\NativeApplicationState;
 use Modufolio\Appkit\Core\ResetInterface;
@@ -114,6 +114,7 @@ class App extends Kernel
 
     /**
      * Get user provider (repository-based).
+     * @throws DbalException
      */
     public function userProvider(): UserProviderInterface
     {
@@ -192,6 +193,7 @@ class App extends Kernel
 
     /**
      * Get TOTP service for two-factor authentication.
+     * @throws DbalException
      */
     public function totpService(): TotpService
     {
@@ -253,9 +255,6 @@ class App extends Kernel
         );
     }
 
-    /**
-     * @throws Exception
-     */
     public function parameterResolver(): ParameterResolverInterface
     {
         $serializer = $this->serializer();
@@ -285,6 +284,10 @@ class App extends Kernel
             ->getValidator();
     }
 
+
+    /**
+     * @throws DbalException
+     */
     private function totpSecretRepository(): UserTotpSecretRepositoryInterface
     {
         $repository = $this->getRepository(UserTotpSecretRepository::class);

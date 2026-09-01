@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Modufolio\Appkit\Tests\Unit\Database;
 
-use Doctrine\DBAL\Exception;
+use Doctrine\DBAL\Exception as DbalException;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Types\Exception\TypesException;
-use Modufolio\Appkit\Tests\Traits\DatabaseTestingCapabilities;
+use Modufolio\Appkit\Testing\DatabaseTestingCapabilities;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -19,7 +19,7 @@ final class ExampleDatabaseTest extends TestCase
     use DatabaseTestingCapabilities;
 
     /**
-     * @throws Exception
+     * @throws DbalException
      */
     protected function setUp(): void
     {
@@ -64,7 +64,7 @@ final class ExampleDatabaseTest extends TestCase
     /**
      * Test basic CRUD operations with query tracking.
      *
-     * @throws Exception
+     * @throws DbalException
      */
     public function testBasicCrudOperations(): void
     {
@@ -121,7 +121,7 @@ final class ExampleDatabaseTest extends TestCase
     /**
      * Test query counting by type.
      *
-     * @throws Exception
+     * @throws DbalException
      */
     public function testQueryCountingByType(): void
     {
@@ -154,7 +154,7 @@ final class ExampleDatabaseTest extends TestCase
     /**
      * Test asserting specific tables were NOT queried.
      *
-     * @throws Exception
+     * @throws DbalException
      */
     public function testTableNotQueried(): void
     {
@@ -177,7 +177,7 @@ final class ExampleDatabaseTest extends TestCase
     /**
      * Test query performance assertions.
      *
-     * @throws Exception
+     * @throws DbalException
      */
     public function testQueryPerformance(): void
     {
@@ -200,7 +200,7 @@ final class ExampleDatabaseTest extends TestCase
     /**
      * Test query log filtering.
      *
-     * @throws Exception
+     * @throws DbalException
      */
     public function testQueryLogFiltering(): void
     {
@@ -238,7 +238,7 @@ final class ExampleDatabaseTest extends TestCase
     /**
      * Test using debug stack directly.
      *
-     * @throws Exception
+     * @throws DbalException
      */
     public function testDebugStackAccess(): void
     {
@@ -269,7 +269,7 @@ final class ExampleDatabaseTest extends TestCase
     /**
      * Test performance reporting.
      *
-     * @throws Exception
+     * @throws DbalException
      */
     public function testPerformanceReporting(): void
     {
@@ -300,7 +300,7 @@ final class ExampleDatabaseTest extends TestCase
     /**
      * Test database assertions.
      *
-     * @throws Exception
+     * @throws DbalException
      */
     public function testDatabaseAssertions(): void
     {
@@ -335,7 +335,7 @@ final class ExampleDatabaseTest extends TestCase
     /**
      * Example showing how to use fixtures.
      *
-     * @throws Exception
+     * @throws DbalException
      */
     public function testWithFixtures(): void
     {

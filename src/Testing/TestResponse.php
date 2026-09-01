@@ -1,6 +1,6 @@
 <?php
 
-namespace Modufolio\Appkit\Tests\Response;
+namespace Modufolio\Appkit\Testing;
 
 use PHPUnit\Framework\Assert;
 use Psr\Http\Message\ResponseInterface;
@@ -24,7 +24,7 @@ class TestResponse
     // Status Assertions
     // ----------------------------
 
-    public function assertStatus(int $expected): self
+    public function assertStatus(int $expected): static
     {
         Assert::assertSame(
             $expected,
@@ -35,7 +35,12 @@ class TestResponse
         return $this;
     }
 
-    public function assertRedirect(?string $uri = null): self
+    public function assertOk(): static
+    {
+        return $this->assertStatus(200);
+    }
+
+    public function assertRedirect(?string $uri = null): static
     {
         $status = $this->response->getStatusCode();
         Assert::assertTrue(
@@ -54,7 +59,7 @@ class TestResponse
     // Header Assertions
     // ----------------------------
 
-    public function assertHeader(string $name, string $expected): self
+    public function assertHeader(string $name, string $expected): static
     {
         $actual = $this->response->getHeaderLine($name);
         Assert::assertSame(
@@ -117,7 +122,7 @@ class TestResponse
     // Inertia.js Specific Assertions
     // ----------------------------
 
-    public function assertInertia(): self
+    public function assertInertia(): static
     {
         $data = $this->jsonData();
 
@@ -134,7 +139,7 @@ class TestResponse
         return $this;
     }
 
-    public function component(string $expected): self
+    public function component(string $expected): static
     {
         $data = $this->jsonData();
         $actual = $data['component'] ?? null;
@@ -143,7 +148,7 @@ class TestResponse
         return $this;
     }
 
-    public function hasProp(string $key): self
+    public function hasProp(string $key): static
     {
         $data = $this->jsonData();
         $props = $data['props'] ?? [];
@@ -152,7 +157,7 @@ class TestResponse
         return $this;
     }
 
-    public function whereProp(string $key, mixed $expected): self
+    public function whereProp(string $key, mixed $expected): static
     {
         $data = $this->jsonData();
         $props = $data['props'] ?? [];
@@ -162,7 +167,7 @@ class TestResponse
         return $this;
     }
 
-    public function propEquals(string $key, mixed $expected): self
+    public function propEquals(string $key, mixed $expected): static
     {
         return $this->whereProp($key, $expected);
     }
@@ -190,7 +195,7 @@ class TestResponse
         return $array;
     }
 
-    public function dump(): self
+    public function dump(): static
     {
         echo 'Status: '.$this->response->getStatusCode()."\n";
         echo 'Headers: '.json_encode($this->response->getHeaders())."\n";

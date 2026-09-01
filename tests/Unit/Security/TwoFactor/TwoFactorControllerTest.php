@@ -15,7 +15,7 @@ use Modufolio\Appkit\Tests\App\Entity\User;
 use Modufolio\Appkit\Tests\App\Entity\UserTotpSecret;
 use Modufolio\Appkit\Tests\App\Repository\UserRepository;
 use Modufolio\Appkit\Tests\Case\AppTestCase;
-use Modufolio\Appkit\Tests\Traits\DatabaseTestingCapabilities;
+use Modufolio\Appkit\Testing\DatabaseTestingCapabilities;
 use OTPHP\TOTP;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;

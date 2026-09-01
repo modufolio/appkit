@@ -2,22 +2,20 @@
 
 declare(strict_types=1);
 
-namespace Modufolio\Appkit\Tests\Traits;
+namespace Modufolio\Appkit\Testing;
 
 use Doctrine\DBAL\Configuration;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Driver\AbstractSQLiteDriver\Middleware\EnableForeignKeys;
 use Doctrine\DBAL\Driver\OCI8\Middleware\InitializeSession;
 use Doctrine\DBAL\DriverManager;
-use Doctrine\DBAL\Exception;
+use Doctrine\DBAL\Exception as DbalException;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Schema\DefaultSchemaManagerFactory;
 use Doctrine\DBAL\Schema\Schema;
 use Modufolio\Appkit\Doctrine\Middleware\Debug\DebugMiddleware;
 use Modufolio\Appkit\Doctrine\Middleware\Debug\DebugStack;
 use Modufolio\Appkit\Doctrine\Middleware\Debug\Query;
-use Modufolio\Appkit\Doctrine\OrmConfigurator;
-use Modufolio\Appkit\Tests\App\AppFactory;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
 
@@ -90,7 +88,7 @@ trait DatabaseTestingCapabilities
     /**
      * Set up the test case with enhanced features.
      *
-     * @throws Exception
+     * @throws DbalException
      */
     #[Before]
     protected function setUpDatabase(): void
@@ -114,7 +112,7 @@ trait DatabaseTestingCapabilities
     /**
      * Tear down with cleanup and assertions.
      *
-     * @throws Exception
+     * @throws DbalException
      */
     #[After]
     protected function tearDownDatabase(): void
@@ -127,7 +125,7 @@ trait DatabaseTestingCapabilities
     }
 
     /**
-     * @throws Exception
+     * @throws DbalException
      */
     #[After]
     final protected function disconnect(): void
@@ -158,6 +156,48 @@ trait DatabaseTestingCapabilities
     /** Whether the database schema is initialized. */
     private static bool $initialized = false;
 
+    /**
+     * Where the suite runs: SQLite in memory by default, so a checkout tests
+     * with no setup at all. Set DB_DRIVER to run the same suite against a
+     * real engine — the point being the places they disagree: booleans, NULL
+     * ordering, identifier quoting, empty IN () lists.
+     *
+     *   DB_DRIVER=pdo_mysql DB_PORT=3308 DB_USER=root DB_PASSWORD=secret vendor/bin/phpunit
+     *
+     * Override to source parameters differently (a config file, a DSN).
+     *
+     * @return array<string, mixed>
+     */
+    protected function connectionParams(): array
+    {
+        $driver = getenv('DB_DRIVER') ?: 'pdo_sqlite';
+
+        if ('pdo_sqlite' === $driver) {
+            return ['driver' => 'pdo_sqlite', 'memory' => true];
+        }
+
+        $params = [
+            'driver' => $driver,
+            'host' => getenv('DB_HOST') ?: '127.0.0.1',
+            'dbname' => getenv('DB_NAME') ?: 'appkit_test',
+            'user' => getenv('DB_USER') ?: 'root',
+            'password' => getenv('DB_PASSWORD') ?: '',
+        ];
+
+        if (false !== getenv('DB_PORT') && '' !== getenv('DB_PORT')) {
+            $params['port'] = (int) getenv('DB_PORT');
+        }
+
+        // ODBC driver 18 encrypts by default and rejects the self-signed
+        // certificate a containerised SQL Server presents. String-keyed
+        // driverOptions are appended to the DSN verbatim, hence '1'.
+        if (str_contains($driver, 'sqlsrv')) {
+            $params['driverOptions']['TrustServerCertificate'] = '1';
+        }
+
+        return $params;
+    }
+
     public function getConnection(): Connection
     {
         if (null !== self::$sharedConnection) {
@@ -167,12 +207,7 @@ trait DatabaseTestingCapabilities
             return self::$sharedConnection;
         }
 
-        $configurator = new OrmConfigurator();
-
-        $closure = require AppFactory::configDir(dirname(__DIR__, 2)).'/test/doctrine.php';
-        $closure($configurator);
-
-        $params = $configurator->connectionParams;
+        $params = $this->connectionParams();
 
         self::$sharedConnection = DriverManager::getConnection(
             $params,
@@ -370,7 +405,7 @@ trait DatabaseTestingCapabilities
     /**
      * Fixture management.
      *
-     * @throws Exception
+     * @throws DbalException
      */
     protected function loadFixtures(): void
     {
@@ -380,9 +415,9 @@ trait DatabaseTestingCapabilities
     }
 
     /**
-     * @throws Exception
-     *
      * @param array<string, mixed> $data
+     *
+     * @throws DbalException
      */
     protected function loadFixtureData(string $table, array $data): void
     {
@@ -394,7 +429,7 @@ trait DatabaseTestingCapabilities
     }
 
     /**
-     * @throws Exception
+     * @throws DbalException
      */
     protected function truncateTables(): void
     {
@@ -430,7 +465,7 @@ trait DatabaseTestingCapabilities
      * Run $callback with foreign key enforcement disabled, using the
      * platform-appropriate statements, and re-enable afterwards.
      *
-     * @throws Exception
+     * @throws DbalException
      */
     private function withForeignKeysDisabled(callable $callback): void
     {
@@ -462,7 +497,7 @@ trait DatabaseTestingCapabilities
     /**
      * Database snapshot functionality.
      *
-     * @throws Exception
+     * @throws DbalException
      */
     protected function createDatabaseSnapshot(): void
     {
@@ -477,7 +512,7 @@ trait DatabaseTestingCapabilities
     }
 
     /**
-     * @throws Exception
+     * @throws DbalException
      */
     protected function restoreDatabaseSnapshot(): void
     {
@@ -864,7 +899,7 @@ trait DatabaseTestingCapabilities
     /**
      * Create test database schema.
      *
-     * @throws Exception
+     * @throws DbalException
      */
     protected function createTestSchema(): void
     {
@@ -902,9 +937,9 @@ trait DatabaseTestingCapabilities
     /**
      * Assert database state matches expected data.
      *
-     * @throws Exception
-     *
      * @param array<string, mixed> $criteria
+     *
+     * @throws DbalException
      */
     protected function assertDatabaseHas(string $table, array $criteria): void
     {
@@ -933,9 +968,9 @@ trait DatabaseTestingCapabilities
     /**
      * Assert database state does not match criteria.
      *
-     * @throws Exception
-     *
      * @param array<string, mixed> $criteria
+     *
+     * @throws DbalException
      */
     protected function assertDatabaseMissing(string $table, array $criteria): void
     {
@@ -997,9 +1032,9 @@ trait DatabaseTestingCapabilities
     /**
      * Seed database with custom data.
      *
-     * @throws Exception
-     *
      * @param list<array<string, mixed>> $data
+     *
+     * @throws DbalException
      */
     protected function seed(string $table, array $data): void
     {
@@ -1011,7 +1046,7 @@ trait DatabaseTestingCapabilities
     /**
      * Truncate specific tables.
      *
-     * @throws Exception
+     * @throws DbalException
      */
     protected function truncate(string ...$tables): void
     {
@@ -1027,9 +1062,9 @@ trait DatabaseTestingCapabilities
     /**
      * Execute raw SQL for testing.
      *
-     * @throws Exception
-     *
      * @param array<string, mixed> $params
+     *
+     * @throws DbalException
      */
     protected function executeSql(string $sql, array $params = []): void
     {
@@ -1039,11 +1074,11 @@ trait DatabaseTestingCapabilities
     /**
      * Fetch data for assertions.
      *
-     * @throws Exception
-     *
      * @param array<string, mixed> $criteria
      *
      * @return array<string, mixed>
+     *
+     * @throws DbalException
      */
     protected function fetchFromDatabase(string $table, array $criteria = []): ?array
     {
@@ -1062,7 +1097,7 @@ trait DatabaseTestingCapabilities
     /**
      * Drop test database schema.
      *
-     * @throws Exception
+     * @throws DbalException
      */
     protected function dropTestSchema(): void
     {
@@ -1082,7 +1117,7 @@ trait DatabaseTestingCapabilities
                 foreach ($remaining as $table) {
                     try {
                         $this->connection()->executeStatement("DROP TABLE IF EXISTS {$table->getObjectName()->toString()}{$cascade}");
-                    } catch (Exception) {
+                    } catch (DbalException) {
                         $failed[] = $table;
                     }
                 }

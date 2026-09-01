@@ -4,7 +4,7 @@ namespace Modufolio\Appkit\Tests\Unit\Database;
 
 use Doctrine\DBAL\Exception;
 use Modufolio\Appkit\Tests\Traits\DatabaseTestConfiguration;
-use Modufolio\Appkit\Tests\Traits\DatabaseTestingCapabilities;
+use Modufolio\Appkit\Testing\DatabaseTestingCapabilities;
 use PHPUnit\Framework\TestCase;
 
 class MyServiceTest extends TestCase
