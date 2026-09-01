@@ -303,6 +303,23 @@ class QueryBuilderTest extends TestCase
         $this->assertArrayHasKey('title', $results[0]);
     }
 
+    public function testOrWhereExpression(): void
+    {
+        // Arrange
+        $this->seedUsers();
+        $qb = new QueryBuilder($this->connection());
+
+        // Act — a base predicate OR'd with a parenthesised expression group.
+        $results = $qb->from('users')
+            ->select()
+            ->where('name', '=', 'John Doe')
+            ->orWhereExpression(fn ($expr) => $expr->eq('name', $expr->literal('Jane Smith')))
+            ->get();
+
+        // Assert
+        $this->assertCount(2, $results);
+    }
+
     public function testLeftJoin(): void
     {
         // Arrange
@@ -317,6 +334,76 @@ class QueryBuilderTest extends TestCase
 
         // Assert
         $this->assertGreaterThanOrEqual(3, count($results)); // At least all users
+    }
+
+    public function testWhereRawBindsPositionalPlaceholders(): void
+    {
+        // Arrange
+        $this->seedUsers();
+        $qb = new QueryBuilder($this->connection());
+
+        // Act — the caller writes ?; the builder owns the parameter names.
+        $results = $qb->from('users')
+            ->select()
+            ->whereRaw('age > ?', [25])
+            ->get();
+
+        // Assert
+        $this->assertCount(2, $results);
+    }
+
+    public function testRawBindingsComposeWithNamedParameters(): void
+    {
+        // Arrange — where() binds a named parameter first, so the raw
+        // placeholders must not collide with it however many exist.
+        $this->seedUsers();
+        $qb = new QueryBuilder($this->connection());
+
+        // Act
+        $results = $qb->from('users')
+            ->selectRaw('age + ? AS age_plus', [1])
+            ->where('status', '=', 'active')
+            ->whereRaw('name = ?', ['John Doe'])
+            ->get();
+
+        // Assert
+        $this->assertCount(1, $results);
+        $this->assertArrayHasKey('age_plus', $results[0]);
+    }
+
+    public function testWhereRawWithMoreBindingsThanPlaceholdersThrows(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('fewer ? placeholders than bindings');
+
+        (new QueryBuilder($this->connection()))
+            ->from('users')
+            ->whereRaw('age > ?', [25, 30]);
+    }
+
+    public function testJoinBeforeFromThrows(): void
+    {
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('Call from() before adding a join.');
+
+        (new QueryBuilder($this->connection()))->join('posts', 'u.id', '=', 'p.user_id', 'p');
+    }
+
+    public function testRightJoin(): void
+    {
+        // Arrange — RIGHT JOIN needs SQLite >= 3.39 (bundled since PHP 8.2 CI images).
+        $this->seedUsersAndPosts();
+        $qb = new QueryBuilder($this->connection());
+
+        // Act — every post is kept even when its author row would not match.
+        $results = $qb->from('users', 'u')
+            ->select('u.name', 'p.title')
+            ->rightJoin('posts', 'u.id', '=', 'p.user_id', 'p')
+            ->get();
+
+        // Assert
+        $this->assertNotEmpty($results);
+        $this->assertArrayHasKey('title', $results[0]);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════════
@@ -599,6 +686,35 @@ class QueryBuilderTest extends TestCase
         $this->assertEquals(3, $count);
     }
 
+    public function testCountGuardsAgainstAMissingSelectClause(): void
+    {
+        // from() sets no SELECT expressions, so getSQL() inside count() throws
+        // Doctrine's QueryException. count() catches it as DbalException and
+        // falls back to select('*') — this test pins that the DBAL exception
+        // hierarchy still satisfies the catch. If it ever fails after a DBAL
+        // upgrade, the narrowed `catch (DbalException)` in count() no longer
+        // matches what getSQL() throws.
+        $this->seedUsers();
+
+        $count = (new QueryBuilder($this->connection()))->from('users')->count();
+
+        $this->assertEquals(3, $count);
+    }
+
+    public function testCountKeepsAnExplicitSelect(): void
+    {
+        // The missing-SELECT fallback must not fire when a select was set:
+        // the wrapped subquery keeps the caller's projection.
+        $this->seedUsers();
+
+        $count = (new QueryBuilder($this->connection()))
+            ->from('users')
+            ->select('id')
+            ->count();
+
+        $this->assertEquals(3, $count);
+    }
+
     public function testCountWithWhere(): void
     {
         // Arrange
@@ -789,6 +905,22 @@ class QueryBuilderTest extends TestCase
 
         // Assert - an empty IN() list matches nothing
         $this->assertCount(0, $results);
+    }
+
+    public function testEmptyWhereNotIn(): void
+    {
+        // Arrange
+        $this->seedUsers();
+        $qb = new QueryBuilder($this->connection());
+
+        // Act
+        $results = $qb->from('users')
+            ->select()
+            ->whereNotIn('name', [])
+            ->get();
+
+        // Assert - excluding nothing keeps every row
+        $this->assertCount(3, $results);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════════

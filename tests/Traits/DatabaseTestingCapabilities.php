@@ -37,6 +37,9 @@ trait DatabaseTestingCapabilities
     private static ?Connection $sharedConnection = null;
     private static ?DebugStack $sharedDebugStack = null;
 
+    /** @var string|null Hash of the DDL the live test tables were created from */
+    private static ?string $schemaFingerprint = null;
+
     protected ?Connection $connection = null;
 
     /**
@@ -142,6 +145,10 @@ trait DatabaseTestingCapabilities
             self::$sharedConnection = null;
         }
 
+        // A new connection means a new database for in-memory SQLite: the
+        // tables the fingerprint vouches for no longer exist.
+        self::$schemaFingerprint = null;
+
         $this->connection()->close();
         unset($this->connection); // @phpstan-ignore unset.possiblyHookedProperty
 
@@ -192,6 +199,24 @@ trait DatabaseTestingCapabilities
         $configuration->setSchemaManagerFactory(new DefaultSchemaManagerFactory());
 
         return $configuration;
+    }
+
+    /**
+     * The driver the suite is currently running against (DB_DRIVER, SQLite by
+     * default). For tests that must assert or skip something engine-specific.
+     */
+    protected static function driver(): string
+    {
+        return getenv('DB_DRIVER') ?: 'pdo_sqlite';
+    }
+
+    /**
+     * DBAL-style platform guard: `if (self::isDriverOneOf('pdo_sqlsrv')) {
+     * self::markTestSkipped(...); }`.
+     */
+    protected static function isDriverOneOf(string ...$names): bool
+    {
+        return \in_array(self::driver(), $names, true);
     }
 
     /**
@@ -375,11 +400,28 @@ trait DatabaseTestingCapabilities
     {
         $platform = $this->connection()->getDatabasePlatform();
 
-        $this->withForeignKeysDisabled(function () use ($platform): void {
-            foreach (array_reverse($this->cleanupTables) as $table) {
-                $this->connection()->executeStatement($platform->getTruncateTableSQL($table));
+        if ($platform instanceof \Doctrine\DBAL\Platforms\PostgreSQLPlatform) {
+            // TRUNCATE enforces foreign keys regardless of the replica role;
+            // truncating all tables in one statement with CASCADE is the
+            // PostgreSQL way.
+            if ([] !== $this->cleanupTables) {
+                $this->connection()->executeStatement(
+                    'TRUNCATE '.implode(', ', $this->cleanupTables).' RESTART IDENTITY CASCADE'
+                );
             }
-        });
+        } elseif ($platform instanceof \Doctrine\DBAL\Platforms\SQLServerPlatform) {
+            // TRUNCATE fails on any FK-referenced table and there is no
+            // session toggle; DELETE in reverse declaration order instead.
+            foreach (array_reverse($this->cleanupTables) as $table) {
+                $this->connection()->executeStatement('DELETE FROM '.$table);
+            }
+        } else {
+            $this->withForeignKeysDisabled(function () use ($platform): void {
+                foreach (array_reverse($this->cleanupTables) as $table) {
+                    $this->connection()->executeStatement($platform->getTruncateTableSQL($table));
+                }
+            });
+        }
 
         $this->cleanupTables = [];
     }
@@ -393,17 +435,27 @@ trait DatabaseTestingCapabilities
     private function withForeignKeysDisabled(callable $callback): void
     {
         $platform = $this->connection()->getDatabasePlatform();
-        $isSqlite = $platform instanceof \Doctrine\DBAL\Platforms\SQLitePlatform;
 
-        [$off, $on] = $isSqlite
-            ? ['PRAGMA foreign_keys = OFF', 'PRAGMA foreign_keys = ON']
-            : ['SET FOREIGN_KEY_CHECKS = 0', 'SET FOREIGN_KEY_CHECKS = 1'];
+        // PostgreSQL's replica role suppresses the FK triggers; SQL Server
+        // has no session-level toggle at all — callers cope with ordering
+        // there (multi-pass drops, DELETE instead of TRUNCATE).
+        $toggle = match (true) {
+            $platform instanceof \Doctrine\DBAL\Platforms\SQLitePlatform => ['PRAGMA foreign_keys = OFF', 'PRAGMA foreign_keys = ON'],
+            $platform instanceof \Doctrine\DBAL\Platforms\AbstractMySQLPlatform => ['SET FOREIGN_KEY_CHECKS = 0', 'SET FOREIGN_KEY_CHECKS = 1'],
+            $platform instanceof \Doctrine\DBAL\Platforms\PostgreSQLPlatform => ['SET session_replication_role = replica', 'SET session_replication_role = origin'],
+            default => null,
+        };
 
-        $this->connection()->executeStatement($off);
+        if (null !== $toggle) {
+            $this->connection()->executeStatement($toggle[0]);
+        }
+
         try {
             $callback();
         } finally {
-            $this->connection()->executeStatement($on);
+            if (null !== $toggle) {
+                $this->connection()->executeStatement($toggle[1]);
+            }
         }
     }
 
@@ -818,28 +870,31 @@ trait DatabaseTestingCapabilities
     {
         $schema = $this->getTestSchema();
         $platform = $this->connection()->getDatabasePlatform();
-        $schemaManager = $this->connection()->createSchemaManager();
+        $queries = $schema->toSql($platform);
 
-        // Get the list of tables defined in the schema
-        $schemaTables = $schema->getTables();
-        $existingTables = $schemaManager->listTableNames();
-
-        // Check if any of the schema's tables already exist
-        $tablesExist = false;
-        foreach ($schemaTables as $table) {
-            if (\in_array($table->getName(), $existingTables)) {
-                $tablesExist = true;
-                break;
-            }
+        // SQLite in memory dies with the process, but a real engine keeps
+        // tables across test classes and across runs — and different classes
+        // declare different shapes for the same table names. The live tables
+        // are reused only when they were created from this exact schema;
+        // anything else (another class's shape, a previous crashed run) is
+        // dropped and rebuilt.
+        // The existence probe covers the other direction: an AppTestCase-based
+        // test refreshing the ORM schema drops these tables while the
+        // fingerprint still vouches for them.
+        $fingerprint = md5(implode(';', $queries));
+        if (self::$schemaFingerprint === $fingerprint
+            && $this->connection()->createSchemaManager()->tablesExist([$schema->getTables()[0]->getName()])
+        ) {
+            return;
         }
 
-        // If no tables exist, execute the schema creation queries
-        if (!$tablesExist) {
-            $queries = $schema->toSql($platform);
-            foreach ($queries as $query) {
-                $this->connection()->executeStatement($query);
-            }
+        $this->dropTestSchema();
+
+        foreach ($queries as $query) {
+            $this->connection()->executeStatement($query);
         }
+
+        self::$schemaFingerprint = $fingerprint;
     }
 
     abstract public function getTestSchema(): Schema;
@@ -1014,18 +1069,29 @@ trait DatabaseTestingCapabilities
         $schemaManager = $this->connection()->createSchemaManager();
         $schema = $schemaManager->introspectSchema();
 
-        // Drop all tables in reverse order to handle foreign keys
-        $tables = $schema->getTables();
+        // Suspended referential checks where the platform has a toggle,
+        // CASCADE on PostgreSQL, and multiple passes for engines with
+        // neither (SQL Server): introspection order is not FK-sorted.
+        $platform = $this->connection()->getDatabasePlatform();
+        $cascade = $platform instanceof \Doctrine\DBAL\Platforms\PostgreSQLPlatform ? ' CASCADE' : '';
 
-        // Disable foreign key checks
-        // $this->connection()->executeStatement('SET FOREIGN_KEY_CHECKS = 0');
+        $this->withForeignKeysDisabled(function () use ($schema, $cascade): void {
+            $remaining = array_reverse($schema->getTables());
+            do {
+                $failed = [];
+                foreach ($remaining as $table) {
+                    try {
+                        $this->connection()->executeStatement("DROP TABLE IF EXISTS {$table->getObjectName()->toString()}{$cascade}");
+                    } catch (Exception) {
+                        $failed[] = $table;
+                    }
+                }
+                $progress = \count($failed) < \count($remaining);
+                $remaining = $failed;
+            } while ([] !== $remaining && $progress);
+        });
 
-        foreach (array_reverse($tables) as $table) {
-            $this->connection()->executeStatement("DROP TABLE IF EXISTS {$table->getObjectName()->toString()}");
-        }
-
-        // Re-enable foreign key checks
-        // $this->connection()->executeStatement('SET FOREIGN_KEY_CHECKS = 1');
+        self::$schemaFingerprint = null;
     }
 
     /**

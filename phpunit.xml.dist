@@ -13,6 +13,13 @@
   <testsuites>
     <testsuite name="Classes">
       <directory>./tests</directory>
+      <exclude>./tests/Unit/Database</exclude>
+    </testsuite>
+    <!-- Platform-sensitive Doctrine tests: SQLite in memory by default, and
+         the suite CI reruns against MySQL/PostgreSQL/SQL Server via DB_DRIVER
+         (see tests/fixtures/config/test/doctrine.php and docker-compose.yml). -->
+    <testsuite name="Database">
+      <directory>./tests/Unit/Database</directory>
     </testsuite>
   </testsuites>
   <php>

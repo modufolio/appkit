@@ -67,14 +67,14 @@ final class QueryBuilder
     }
 
     /**
+     * Select a raw expression. Each `?` placeholder is bound to the matching
+     * value, in order: `selectRaw('age + ? AS age_plus', [1])`.
+     *
      * @param list<mixed> $bindings
      */
     public function selectRaw(string $expression, array $bindings = []): self
     {
-        $this->queryBuilder->addSelect($expression);
-        foreach ($bindings as $value) {
-            $this->addBinding($value);
-        }
+        $this->queryBuilder->addSelect($this->bindPositional($expression, $bindings));
 
         return $this;
     }
@@ -102,25 +102,48 @@ final class QueryBuilder
     }
 
     /**
+     * An empty list matches no rows. That is rendered as `1 = 0` rather than
+     * `IN ()`, which SQLite happens to parse but MySQL rejects outright.
+     *
      * @param list<mixed> $values
      */
     public function whereIn(string $column, array $values): self
     {
-        $params = [];
-        foreach ($values as $value) {
-            $param = $this->newParamName();
-            $params[] = ':'.$param;
-            $this->queryBuilder->setParameter($param, $value);
+        if ([] === $values) {
+            $this->queryBuilder->andWhere('1 = 0');
+
+            return $this;
         }
-        $this->queryBuilder->andWhere($this->expr->in($column, $params));
+
+        $this->queryBuilder->andWhere($this->expr->in($column, $this->bindList($values)));
 
         return $this;
     }
 
     /**
+     * An empty list excludes no rows, so the clause is simply omitted.
+     *
      * @param list<mixed> $values
      */
     public function whereNotIn(string $column, array $values): self
+    {
+        if ([] === $values) {
+            return $this;
+        }
+
+        $this->queryBuilder->andWhere($this->expr->notIn($column, $this->bindList($values)));
+
+        return $this;
+    }
+
+    /**
+     * Bind each value to a generated named parameter, returning placeholders.
+     *
+     * @param non-empty-list<mixed> $values
+     *
+     * @return non-empty-list<string>
+     */
+    private function bindList(array $values): array
     {
         $params = [];
         foreach ($values as $value) {
@@ -128,9 +151,8 @@ final class QueryBuilder
             $params[] = ':'.$param;
             $this->queryBuilder->setParameter($param, $value);
         }
-        $this->queryBuilder->andWhere($this->expr->notIn($column, $params));
 
-        return $this;
+        return $params;
     }
 
     public function whereNull(string $column): self
@@ -164,14 +186,16 @@ final class QueryBuilder
     }
 
     /**
+     * Raw WHERE expression. Each `?` placeholder is bound to the matching
+     * value, in order: `whereRaw('age > ?', [25])`. The caller never sees or
+     * names the underlying parameters, so raw clauses compose safely with
+     * where()/whereIn() no matter how many parameters are already bound.
+     *
      * @param list<mixed> $bindings
      */
     public function whereRaw(string $expression, array $bindings = []): self
     {
-        $this->queryBuilder->andWhere($expression);
-        foreach ($bindings as $value) {
-            $this->addBinding($value);
-        }
+        $this->queryBuilder->andWhere($this->bindPositional($expression, $bindings));
 
         return $this;
     }
@@ -248,6 +272,7 @@ final class QueryBuilder
 
     /**
      * @param array<string, mixed> $values
+     * @throws DbalException
      */
     public function insert(array $values): int
     {
@@ -306,6 +331,7 @@ final class QueryBuilder
 
     /**
      * @return array<string, mixed>|null
+     * @throws DbalException
      */
     public function first(): ?array
     {
@@ -314,12 +340,15 @@ final class QueryBuilder
         return $result[0] ?? null;
     }
 
+    /**
+     * @throws DbalException
+     */
     public function count(): int
     {
         // Ensure there's a SELECT clause - check if query type is set
         try {
             $sql = $this->queryBuilder->getSQL();
-        } catch (\Exception $e) {
+        } catch (DbalException $e) {
             // No SELECT set yet, add default
             $this->queryBuilder->select('*');
             $sql = $this->queryBuilder->getSQL();
@@ -369,10 +398,36 @@ final class QueryBuilder
     // Internal helpers
     // ────────────────────────────────────────────────────────────────────────────────
 
-    private function addBinding(mixed $value): void
+    /**
+     * Rewrite `?` placeholders in a raw expression to freshly generated named
+     * parameters and bind the values. DBAL forbids mixing positional and
+     * named parameters in one query, and where()/whereIn() already bind named
+     * ones — rewriting keeps raw clauses composable with them.
+     *
+     * Too many bindings for the placeholders is always a bug and throws; a
+     * leftover `?` is left alone, since it may be a literal inside the
+     * expression (the database reports a genuinely missing parameter).
+     *
+     * @param list<mixed> $bindings
+     */
+    private function bindPositional(string $expression, array $bindings): string
     {
-        $param = $this->newParamName();
-        $this->queryBuilder->setParameter($param, $value);
+        foreach ($bindings as $value) {
+            $position = strpos($expression, '?');
+            if (false === $position) {
+                throw new \InvalidArgumentException(sprintf(
+                    'Raw expression "%s" has fewer ? placeholders than bindings (%d given).',
+                    $expression,
+                    count($bindings),
+                ));
+            }
+
+            $param = $this->newParamName();
+            $this->queryBuilder->setParameter($param, $value);
+            $expression = substr_replace($expression, ':'.$param, $position, 1);
+        }
+
+        return $expression;
     }
 
     private function newParamName(): string

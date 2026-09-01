@@ -7,6 +7,7 @@ namespace Modufolio\Appkit\Doctrine;
 use Doctrine\ORM\EntityManagerInterface;
 use Faker\Factory;
 use Modufolio\Appkit\Toolkit\A;
+use Symfony\Component\Serializer\Exception\ExceptionInterface;
 use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
 use Symfony\Component\Validator\Exception\ValidationFailedException;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
@@ -46,6 +47,8 @@ final class EntityFactory
     /**
      * @param class-string         $className
      * @param array<string, mixed> $attributes
+     *
+     * @throws ExceptionInterface
      */
     public function create(string $className, array $attributes = []): self
     {
@@ -72,6 +75,8 @@ final class EntityFactory
      * @param array<string, mixed> $data
      *
      * @return array<string, mixed>
+     *
+     * @throws ExceptionInterface
      */
     private function resolveRelations(string $className, array $data): array
     {

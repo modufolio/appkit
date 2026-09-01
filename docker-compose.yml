@@ -25,3 +25,43 @@ services:
     volumes:
       - ./:/app:cached
     command: sh -c "composer update --no-interaction && vendor/bin/phpunit"
+
+  # Databases for running the Database suite against a real engine.
+  #
+  #   docker compose up -d mysql postgres
+  #   DB_DRIVER=pdo_mysql DB_PORT=3308 DB_USER=root DB_PASSWORD=secret composer test:db
+  #   DB_DRIVER=pdo_pgsql DB_PORT=5434 DB_USER=postgres DB_PASSWORD=secret composer test:db
+  #   DB_DRIVER=pdo_sqlsrv DB_PORT=1435 DB_USER=sa DB_PASSWORD='Secret_1234' composer test:db
+  #
+  # Ports are shifted off the defaults (and off json-api's shifted ports) so
+  # these never collide with an engine already running on the host. SQLite
+  # needs nothing and stays the default.
+  mysql:
+    image: mysql:8.4
+    ports: ['3308:3306']
+    environment:
+      MYSQL_ROOT_PASSWORD: secret
+      MYSQL_DATABASE: appkit_test
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', '127.0.0.1', '-psecret']
+      interval: 5s
+      retries: 20
+
+  postgres:
+    image: postgres:16
+    ports: ['5434:5432']
+    environment:
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: appkit_test
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 5s
+      retries: 20
+
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    ports: ['1435:1433']
+    environment:
+      ACCEPT_EULA: 'Y'
+      MSSQL_SA_PASSWORD: 'Secret_1234'
+      MSSQL_PID: Developer

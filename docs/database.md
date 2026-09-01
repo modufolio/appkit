@@ -314,14 +314,14 @@ $posts = $qb->from('posts')
 |--------|-------------|
 | `from(string $table, ?string $alias)` | Set the table |
 | `select(string ...$columns)` | Select columns |
-| `selectRaw(string $expr, array $bindings)` | Select a raw expression |
+| `selectRaw(string $expr, array $bindings)` | Select a raw expression; `?` placeholders bind in order |
 | `where(string $col, string $op, mixed $val)` | Add a WHERE condition |
 | `orWhere(string $col, string $op, mixed $val)` | Add an OR WHERE condition |
 | `whereIn(string $col, array $values)` | WHERE IN clause |
 | `whereNotIn(string $col, array $values)` | WHERE NOT IN clause |
 | `whereNull(string $col)` | WHERE IS NULL |
 | `whereNotNull(string $col)` | WHERE IS NOT NULL |
-| `whereRaw(string $expr, array $bindings)` | Raw WHERE expression |
+| `whereRaw(string $expr, array $bindings)` | Raw WHERE expression; `?` placeholders bind in order, e.g. `whereRaw('age > ?', [25])` |
 | `join(...)` | INNER JOIN |
 | `leftJoin(...)` | LEFT JOIN |
 | `rightJoin(...)` | RIGHT JOIN |

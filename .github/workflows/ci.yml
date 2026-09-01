@@ -63,6 +63,126 @@ jobs:
           files: coverage.xml
           fail_ci_if_error: false
 
+  databases:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: MySQL 8.4
+            driver: pdo_mysql
+            extensions: pdo_mysql
+            port: 3306
+            user: root
+            password: secret
+          - name: PostgreSQL 16
+            driver: pdo_pgsql
+            extensions: pdo_pgsql
+            port: 5432
+            user: postgres
+            password: secret
+          - name: SQL Server 2022
+            driver: pdo_sqlsrv
+            extensions: sqlsrv, pdo_sqlsrv
+            port: 1433
+            user: sa
+            password: Secret_1234
+
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: secret
+          MYSQL_DATABASE: appkit_test
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -psecret"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: secret
+          POSTGRES_DB: appkit_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+
+      sqlserver:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: 'Y'
+          MSSQL_SA_PASSWORD: Secret_1234
+          MSSQL_PID: Developer
+        ports: ['1433:1433']
+        # No healthcheck: it would have to run sqlcmd inside the container, and
+        # that path has already moved once (/opt/mssql-tools →
+        # /opt/mssql-tools18). Readiness is polled from the runner instead,
+        # against the client this job actually uses.
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      # The sqlsrv extension is a shim over Microsoft's ODBC driver, which the
+      # Ubuntu runner image no longer ships and setup-php does not install —
+      # without it every connection fails with SQLSTATE[IMSSP]. It has to be
+      # installed *before* setup-php, which needs the unixODBC headers to build
+      # the extension.
+      - name: Install the Microsoft ODBC driver
+        if: matrix.driver == 'pdo_sqlsrv'
+        run: |
+          curl -sSL -O https://packages.microsoft.com/config/ubuntu/$(grep VERSION_ID /etc/os-release | cut -d '"' -f 2)/packages-microsoft-prod.deb
+          sudo dpkg -i packages-microsoft-prod.deb
+          rm packages-microsoft-prod.deb
+          sudo apt-get update
+          sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18 mssql-tools18 unixodbc-dev
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+          extensions: curl, dom, exif, fileinfo, gd, intl, libxml, pdo, pdo_sqlite, simplexml, sqlite3, zip, ${{ matrix.extensions }}
+
+      - name: Install dependencies
+        run: composer update --no-interaction --prefer-dist --optimize-autoloader
+
+      # The SQL Server image has no MSSQL_DATABASE equivalent, so the database
+      # the suite connects to has to be created before it starts. -C trusts the
+      # container's self-signed certificate, which driver 18 requires by default.
+      - name: Wait for SQL Server
+        if: matrix.driver == 'pdo_sqlsrv'
+        run: |
+          for i in $(seq 1 30); do
+            if /opt/mssql-tools18/bin/sqlcmd -C -S 127.0.0.1,1433 -U sa -P 'Secret_1234' -Q 'SELECT 1' >/dev/null 2>&1; then
+              echo "SQL Server is up after ${i} attempt(s)."
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "SQL Server did not become reachable within 150s." >&2
+          exit 1
+
+      - name: Create the SQL Server database
+        if: matrix.driver == 'pdo_sqlsrv'
+        run: >-
+          /opt/mssql-tools18/bin/sqlcmd -C -S 127.0.0.1,1433 -U sa -P 'Secret_1234'
+          -Q "IF DB_ID('appkit_test') IS NULL CREATE DATABASE appkit_test"
+
+      - name: Run the Database suite against ${{ matrix.name }}
+        env:
+          DB_DRIVER: ${{ matrix.driver }}
+          DB_HOST: 127.0.0.1
+          DB_PORT: ${{ matrix.port }}
+          DB_NAME: appkit_test
+          DB_USER: ${{ matrix.user }}
+          DB_PASSWORD: ${{ matrix.password }}
+        run: composer test:db
+
   phpstan:
     runs-on: ubuntu-latest
 

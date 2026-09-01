@@ -4,6 +4,9 @@ namespace Modufolio\Appkit\Tests\Case;
 
 use Doctrine\Common\DataFixtures\Executor\ORMExecutor;
 use Doctrine\Common\DataFixtures\Purger\ORMPurger;
+use Doctrine\DBAL\Exception as DbalException;
+use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
+use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Doctrine\ORM\Tools\SchemaTool;
 use Modufolio\Appkit\Doctrine\EntityFactory;
@@ -65,6 +68,9 @@ abstract class AppTestCase extends BaseTestCase
         $this->app()->initializeTestState();
     }
 
+    /**
+     * @throws DbalException
+     */
     protected function refreshDatabase(): void
     {
         // Get EntityManager and metadata WITHOUT closing/resetting
@@ -93,23 +99,53 @@ abstract class AppTestCase extends BaseTestCase
                 foreach ($tables as $table) {
                     try {
                         $connection->executeStatement(sprintf('DROP TABLE IF EXISTS %s', $table));
-                    } catch (\Exception $e) {
+                    } catch (DbalException $e) {
                         // Continue even if drop fails
                     }
                 }
-            } catch (\Exception $e) {
+            } catch (DbalException $e) {
                 // No tables to drop
             }
 
             // Re-enable foreign keys
             $connection->executeStatement('PRAGMA foreign_keys = ON');
         } else {
-            // For other databases, use Doctrine's dropSchema
-            $schemaTool = new SchemaTool($em);
+            // A real engine keeps tables across runs — including unmapped
+            // ones left by the DBAL-trait tests, whose foreign keys block
+            // dropping the mapped tables. SchemaTool::dropSchema() swallows
+            // those failures, so the collision would only surface on the next
+            // createSchema(). Drop everything visible instead, with
+            // referential checks suspended where the platform supports it and
+            // multiple passes where it does not.
+            $schemaManager = $connection->createSchemaManager();
+            $mysql = $platform instanceof AbstractMySQLPlatform;
+
+            if ($mysql) {
+                $connection->executeStatement('SET FOREIGN_KEY_CHECKS = 0');
+            }
+
             try {
-                $schemaTool->dropSchema($metadata);
-            } catch (\Exception $e) {
-                // Schema might not exist yet, that's okay
+                do {
+                    $remaining = $schemaManager->listTableNames();
+                    $dropped = 0;
+                    foreach ($remaining as $table) {
+                        try {
+                            $connection->executeStatement(
+                                $platform instanceof PostgreSQLPlatform
+                                    ? sprintf('DROP TABLE IF EXISTS %s CASCADE', $table)
+                                    : sprintf('DROP TABLE IF EXISTS %s', $table)
+                            );
+                            ++$dropped;
+                        } catch (DbalException) {
+                            // Still referenced by a table later in the list —
+                            // the next pass gets it once the referrer is gone.
+                        }
+                    }
+                } while ([] !== $remaining && $dropped > 0);
+            } finally {
+                if ($mysql) {
+                    $connection->executeStatement('SET FOREIGN_KEY_CHECKS = 1');
+                }
             }
         }
 
@@ -140,6 +176,8 @@ abstract class AppTestCase extends BaseTestCase
     /**
      * @param array<string, string> $headers
      * @param array<string, mixed>  $query
+     *
+     * @throws \JsonException
      */
     protected function get(string $uri, array $query = [], array $headers = []): TestResponse
     {
@@ -153,6 +191,8 @@ abstract class AppTestCase extends BaseTestCase
     /**
      * @param array<string, mixed>  $data
      * @param array<string, string> $headers
+     *
+     * @throws \JsonException
      */
     protected function post(string $uri, array $data = [], array $headers = []): TestResponse
     {
@@ -162,6 +202,8 @@ abstract class AppTestCase extends BaseTestCase
     /**
      * @param array<string, mixed>  $data
      * @param array<string, string> $headers
+     *
+     * @throws \JsonException
      */
     protected function put(string $uri, array $data = [], array $headers = []): TestResponse
     {
@@ -171,6 +213,8 @@ abstract class AppTestCase extends BaseTestCase
     /**
      * @param array<string, mixed>  $data
      * @param array<string, string> $headers
+     *
+     * @throws \JsonException
      */
     protected function patch(string $uri, array $data = [], array $headers = []): TestResponse
     {
@@ -180,6 +224,8 @@ abstract class AppTestCase extends BaseTestCase
     /**
      * @param array<string, mixed>  $data
      * @param array<string, string> $headers
+     *
+     * @throws \JsonException
      */
     protected function delete(string $uri, array $data = [], array $headers = []): TestResponse
     {
@@ -188,6 +234,8 @@ abstract class AppTestCase extends BaseTestCase
 
     /**
      * @param array<string, mixed> $data
+     *
+     * @throws \JsonException
      */
     protected function form(string $uri, array $data = []): TestResponse
     {
@@ -202,6 +250,8 @@ abstract class AppTestCase extends BaseTestCase
     /**
      * @param array<string, mixed>  $data
      * @param array<string, string> $headers
+     *
+     * @throws \JsonException
      */
     protected function json(string $method, string $uri, array $data = [], array $headers = []): TestResponse
     {
@@ -416,6 +466,9 @@ abstract class AppTestCase extends BaseTestCase
     // Auth helpers
     // ----------------------------
 
+    /**
+     * @throws \JsonException
+     */
     protected function actingAs(string $email, string $password): void
     {
         // Get CSRF token for authentication
@@ -445,6 +498,9 @@ abstract class AppTestCase extends BaseTestCase
         $this->assertInstanceOf(UserInterface::class, $user, 'Expected a valid User instance after login.');
     }
 
+    /**
+     * @throws \JsonException
+     */
     protected function login(): void
     {
         $this->actingAs('johndoe@example.com', 'secret');
