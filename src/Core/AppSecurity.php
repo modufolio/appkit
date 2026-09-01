@@ -919,7 +919,7 @@ trait AppSecurity
     }
 
     // ============================================================================
-    // FIREWALL & SECURITY CONFIGURATION (moved from Kernel)
+    // FIREWALL & SECURITY CONFIGURATION
     // ============================================================================
 
     /**

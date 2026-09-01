@@ -39,7 +39,7 @@ trait AppModules
         foreach ($this->modules as $module) {
             $before = array_keys($configurator->definitions);
             $module->services($configurator, ModuleRegistry::configFor($this->baseDir, $module));
-            // Remember which module declared each id, so a typo'd lookup can
+            // Remember which module declared each id, so a typo's lookup can
             // say where the near-miss came from.
             foreach (array_diff(array_keys($configurator->definitions), $before) as $id) {
                 $this->serviceProvenance[$id] = $module->name();

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Modufolio\Appkit\Core;
 
-use Doctrine\DBAL\Exception;
+use Doctrine\DBAL\Exception as DbalException;
 use Doctrine\ORM\EntityManagerInterface;
 use Modufolio\Appkit\DependencyInjection\ParameterBag;
 use Modufolio\Appkit\DependencyInjection\ServiceConfigurator;
@@ -52,7 +52,7 @@ trait AppContainer
      * @throws ContainerExceptionInterface
      * @throws NotFoundExceptionInterface
      * @throws \Exception
-     * @throws Exception
+     * @throws DbalException
      */
     public function get(string $id, ?string $interface = null): mixed
     {
@@ -112,7 +112,7 @@ trait AppContainer
      * @param array<string, true> $resolving
      *
      * @throws NotFoundException
-     * @throws Exception
+     * @throws DbalException
      */
     protected function resolve(string $id, ?string $interface, array $resolving): mixed
     {
@@ -178,6 +178,7 @@ trait AppContainer
      * Craft the not-found message: name the requesting service when the miss
      * happened inside another factory, and suggest near-miss ids — including
      * which module registered them, when a module did.
+     * @throws DbalException
      */
     private function notFoundMessage(string $id): string
     {
@@ -240,7 +241,7 @@ trait AppContainer
     }
 
     /**
-     * @throws Exception
+     * @throws DbalException
      */
     public function has(string $id): bool
     {
@@ -270,7 +271,7 @@ trait AppContainer
     /**
      * @return array<class-string, class-string>
      *
-     * @throws Exception
+     * @throws DbalException
      */
     public function repositories(): array
     {
@@ -280,7 +281,7 @@ trait AppContainer
     /**
      * @return array<class-string, class-string>
      *
-     * @throws Exception
+     * @throws DbalException
      */
     protected function getRepositoriesAndEntities(): array
     {
@@ -297,7 +298,7 @@ trait AppContainer
     }
 
     /**
-     * @throws Exception
+     * @throws DbalException
      */
     public function getRepository(string $repositoryClass): object
     {

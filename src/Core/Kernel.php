@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Modufolio\Appkit\Core;
 
-use Doctrine\DBAL\Exception;
 use Doctrine\ORM\EntityManagerInterface;
 use Modufolio\Appkit\DependencyInjection\ParameterBag;
 use Modufolio\Appkit\Doctrine\EntityManagerFactory;
@@ -205,41 +204,6 @@ abstract class Kernel implements AppInterface
     abstract public function userProvider(): UserProviderInterface;
 
     // ============================================================================
-    // ROUTING & CONTROLLER RESOLUTION
-    // ============================================================================
-
-    /**
-     * Prime request-scoped state with a synthetic request, for callers that
-     * need the container (e.g. getController()) outside of a real HTTP
-     * request/response cycle — CLI commands and test suites.
-     *
-     * Idempotent: a request already primed by handle() (or a prior call) is
-     * left untouched.
-     */
-    public function initializeConsoleState(): static
-    {
-        if (null === $this->state) {
-            $request = new ServerRequest(
-                method: 'GET',
-                uri: new Uri('http://127.0.0.1'),
-                headers: [],
-                body: Stream::create(''),
-                version: '1.1',
-                serverParams: [
-                    'HTTP_HOST' => '127.0.0.1',
-                    'REQUEST_METHOD' => 'GET',
-                    'REQUEST_URI' => '/',
-                    'SERVER_PROTOCOL' => 'HTTP/1.1',
-                ]
-            );
-
-            $this->state = new NativeApplicationState($request, $this->baseDir, $this->firewallConfig, $this->varDir());
-        }
-
-        return $this;
-    }
-
-    // ============================================================================
     // CORE SERVICE ACCESSORS (can be overridden)
     // ============================================================================
 
@@ -315,9 +279,6 @@ abstract class Kernel implements AppInterface
         return $this->logger;
     }
 
-    /**
-     * @throws Exception
-     */
     public function prepareResponse(): PrepareResponseInterface
     {
         return $this->prepareResponse ??= new PrepareResponse();
@@ -353,20 +314,39 @@ abstract class Kernel implements AppInterface
     }
 
     // ============================================================================
-    // CONTAINER / DEPENDENCY INJECTION
+    // STATE MANAGEMENT
     // ============================================================================
 
-    // ============================================================================
-    // CONFIGURATION
-    // ============================================================================
+    /**
+     * Prime request-scoped state with a synthetic request, for callers that
+     * need the container (e.g. getController()) outside of a real HTTP
+     * request/response cycle — CLI commands and test suites.
+     *
+     * Idempotent: a request already primed by handle() (or a prior call) is
+     * left untouched.
+     */
+    public function initializeConsoleState(): static
+    {
+        if (null === $this->state) {
+            $request = new ServerRequest(
+                method: 'GET',
+                uri: new Uri('http://127.0.0.1'),
+                headers: [],
+                body: Stream::create(''),
+                version: '1.1',
+                serverParams: [
+                    'HTTP_HOST' => '127.0.0.1',
+                    'REQUEST_METHOD' => 'GET',
+                    'REQUEST_URI' => '/',
+                    'SERVER_PROTOCOL' => 'HTTP/1.1',
+                ]
+            );
 
-    // ============================================================================
-    // UTILITIES
-    // ============================================================================
+            $this->state = new NativeApplicationState($request, $this->baseDir, $this->firewallConfig, $this->varDir());
+        }
 
-    // ============================================================================
-    // STATE MANAGEMENT & CLEANUP
-    // ============================================================================
+        return $this;
+    }
 
     public function getState(): ?ApplicationStateInterface
     {
