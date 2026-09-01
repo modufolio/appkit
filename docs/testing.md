@@ -24,14 +24,86 @@ vendor/bin/phpunit tests/Unit/Entity/UserTest.php
 
 ## Test suites
 
-`phpunit.xml.dist` defines a single suite, `Classes`, covering `./tests`.
+`phpunit.xml.dist` defines two suites: `Classes` covers `./tests` minus the
+database tests, and `Database` holds the platform-sensitive Doctrine tests.
+The default run executes both; `composer test:db` runs the Database suite
+alone — against SQLite in memory by default, or any real engine via
+`DB_DRIVER` (see [Testing against real databases](#testing-against-real-databases)).
 
-> **The test helpers below are `autoload-dev` only.** `Modufolio\Appkit\Tests\`
-> maps to `tests/`, which Composer does not install for consumers of this package.
-> `TestResponse` and `DatabaseTestingCapabilities` are therefore available when
-> working *on* AppKit, but not to applications that depend on it. A downstream
-> project needs its own equivalents — copy them, or add the package as a path
-> repository during development.
+## The shipped test harness
+
+The framework ships its test harness under `Modufolio\Appkit\Testing\` — the
+same classes AppKit's own suite runs on. PHPUnit stays in your `require-dev`;
+the classes simply aren't loadable without it, which only test code minds.
+
+Your application's base test case fills exactly one seam — how your app is
+built — and inherits the rest: in-process request dispatch with SAPI-faithful
+server params (`get`/`post`/`form`/`json`/`request`), session and CSRF
+continuity across requests, engine-agnostic `refreshDatabase()`, and
+`actingAs()`/`logout()` against the framework's form-login conventions.
+
+```php
+// tests/Case/AppTestCase.php
+namespace App\Tests\Case;
+
+use App\App;
+use App\AppFactory;
+use Modufolio\Appkit\Testing\AppTestCase as BaseAppTestCase;
+
+abstract class AppTestCase extends BaseAppTestCase
+{
+    private static ?App $app = null;
+
+    // The one required seam. Declaring your concrete App as the return
+    // type gives every test typed access to your accessors.
+    protected function app(): App
+    {
+        if (self::$app === null) {
+            self::$app = AppFactory::create(dirname(__DIR__, 2), 'test');
+            self::$app->initializeConsoleState();
+        }
+
+        return self::$app;
+    }
+}
+```
+
+Optional hooks, all no-ops by default:
+
+| Hook | When it runs | Override it to |
+|------|--------------|----------------|
+| `loadFixtures()` | on demand from your tests | seed Doctrine fixtures |
+| `resetAppConfiguration()` | in `tearDown()`, after `reset()` | undo per-test config changes (e.g. restore firewalls) |
+| `afterSchemaCreate()` | at the end of `refreshDatabase()` | apply DDL SchemaTool doesn't know — triggers, views |
+| `actingAs()` / `logout()` | when your tests call them | match your login route and field names |
+
+Responses come back wrapped in `Modufolio\Appkit\Testing\TestResponse`
+(status, header, JSON and Inertia assertions — see below). Database-level
+tests `use Modufolio\Appkit\Testing\DatabaseTestingCapabilities;` for query
+tracking, fixtures, snapshots and schema management against a DBAL connection.
+
+## Testing against real databases
+
+Both the harness trait and a `config/test/doctrine.php` built on the same
+convention read the connection from the environment — SQLite in memory when
+nothing is set, so a fresh checkout tests with zero setup:
+
+```bash
+docker compose up -d mysql postgres
+DB_DRIVER=pdo_mysql DB_PORT=3308 DB_USER=root DB_PASSWORD=secret composer test:db
+DB_DRIVER=pdo_pgsql DB_PORT=5434 DB_USER=postgres DB_PASSWORD=secret composer test:db
+```
+
+`DB_DRIVER`, `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` are
+recognised; SQL Server additionally gets `TrustServerCertificate` set for the
+self-signed certificate a containerised server presents. The harness keeps
+teardown portable — referential checks are suspended per platform, and
+schema changes between test classes are detected and rebuilt. For tests that
+must skip or assert something engine-specific, the trait exposes
+`self::driver()` and `self::isDriverOneOf('pdo_sqlsrv', ...)`.
+
+CI runs the Database suite against MySQL 8.4, PostgreSQL 16 and SQL Server
+2022 on every push.
 
 ## Writing a unit test
 
