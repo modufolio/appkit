@@ -786,7 +786,14 @@ class QueryBuilderTest extends TestCase
             ->limit(5)
             ->get();
 
-        // Assert
+        // Assert — pdo_sqlsrv stringifies every scalar it fetches; normalise
+        // the one integer column so the comparison stays strict everywhere else.
+        $results = array_map(static function (array $row): array {
+            $row['views'] = (int) $row['views'];
+
+            return $row;
+        }, $results);
+
         $this->assertSame([
             ['name' => 'John Doe', 'title' => 'First Post', 'views' => 100],
             ['name' => 'Jane Smith', 'title' => 'Second Post', 'views' => 50],

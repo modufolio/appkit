@@ -23,7 +23,9 @@ class MyServiceTest extends TestCase
             ->setSlowQueryThreshold(0.5)   // 500ms slow query threshold
             ->withFixtures([                // Load test data
                 'users' => [
-                    ['id' => 1, 'name' => 'John', 'email' => 'john@example.com'],
+                    // No explicit id: it is an identity column, and SQL Server
+                    // refuses explicit values for those.
+                    ['name' => 'John', 'email' => 'john@example.com'],
                 ],
             ]);
     }
@@ -35,7 +37,6 @@ class MyServiceTest extends TestCase
     {
         // Execute your code
         $this->connection()->insert('users', [
-            'id' => 1,
             'name' => 'John',
             'email' => 'john@example.com',
             'created_at' => (new \DateTime())->format('Y-m-d H:i:s'),
@@ -53,7 +54,6 @@ class MyServiceTest extends TestCase
     {
         $this->connection()->beginTransaction();
         $this->connection()->insert('users', [
-            'id' => 2,
             'name' => 'Jane',
             'email' => 'jane@example.com',
             'created_at' => (new \DateTime())->format('Y-m-d H:i:s'),
@@ -71,7 +71,6 @@ class MyServiceTest extends TestCase
     {
         $this->connection()->beginTransaction();
         $this->connection()->insert('users', [
-            'id' => 3,
             'name' => 'Joe',
             'email' => 'joe@example.com',
             'created_at' => (new \DateTime())->format('Y-m-d H:i:s'),
@@ -80,6 +79,6 @@ class MyServiceTest extends TestCase
 
         $this->syncQueryTracking();
         $this->assertTransactionRolledBack();
-        $this->assertDatabaseMissing('users', ['id' => 3]);
+        $this->assertDatabaseMissing('users', ['email' => 'joe@example.com']);
     }
 }
