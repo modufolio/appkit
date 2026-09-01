@@ -2,7 +2,7 @@
 
 namespace Modufolio\Appkit\Core;
 
-use Doctrine\DBAL\Exception;
+use Doctrine\DBAL\Exception as DbalException;
 use Doctrine\ORM\EntityManagerInterface;
 use Modufolio\Appkit\Security\Token\TokenStorageInterface;
 use Modufolio\Appkit\Security\User\UserInterface;
@@ -32,7 +32,7 @@ class AbstractController implements AppAwareInterface
     protected ValidatorInterface $validator;
 
     /**
-     * @throws Exception
+     * @throws DbalException
      */
     public function setSubscribedServices(AppInterface $app): void
     {

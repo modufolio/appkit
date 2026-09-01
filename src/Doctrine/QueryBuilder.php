@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Modufolio\Appkit\Doctrine;
 
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\Exception;
+use Doctrine\DBAL\Exception as DbalException;
 use Doctrine\DBAL\Query\Expression\ExpressionBuilder;
 use Doctrine\DBAL\Query\QueryBuilder as DBALQueryBuilder;
 
@@ -265,7 +265,7 @@ final class QueryBuilder
     /**
      * @param array<string, mixed> $values
      *
-     * @throws Exception
+     * @throws DbalException
      */
     public function update(array $values): int
     {
@@ -281,7 +281,7 @@ final class QueryBuilder
     }
 
     /**
-     * @throws Exception
+     * @throws DbalException
      */
     public function delete(): int
     {
@@ -297,7 +297,7 @@ final class QueryBuilder
     /**
      * @return list<array<string, mixed>>
      *
-     * @throws Exception
+     * @throws DbalException
      */
     public function get(): array
     {
@@ -336,7 +336,7 @@ final class QueryBuilder
     /**
      * @return list<mixed>
      *
-     * @throws Exception
+     * @throws DbalException
      */
     public function fetchColumn(string $column): array
     {
@@ -348,7 +348,7 @@ final class QueryBuilder
     // ────────────────────────────────────────────────────────────────────────────────
 
     /**
-     * @throws Exception
+     * @throws DbalException
      */
     public function toSql(): string
     {
