@@ -21,6 +21,7 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
  */
 trait AppRouting
 {
+    #[\Modufolio\Appkit\Attributes\Service]
     public function router(): RouterInterface
     {
         return $this->router ??= new Router(
@@ -66,6 +67,7 @@ trait AppRouting
         return $this->router()->generateUrl($name, $parameters, $referenceType);
     }
 
+    #[\Modufolio\Appkit\Attributes\Service]
     public function urlGenerator(): UrlGeneratorInterface
     {
         return $this->router()->getUrlGenerator();

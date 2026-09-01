@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modufolio\Appkit\Core;
 
+use Modufolio\Appkit\Attributes\Service;
 use Modufolio\Appkit\DependencyInjection\ReflectionControllerArgumentResolver;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -167,8 +168,8 @@ trait AppControllers
 
         if (str_starts_with($dep, '@')) {
             $method = substr($dep, 1);
-            if (!method_exists($this, $method)) {
-                throw new \InvalidArgumentException("Service method '{$method}' not found.");
+            if (!isset($this->serviceMethods()[$method])) {
+                throw new \InvalidArgumentException($this->unknownServiceMethodMessage($method));
             }
 
             return $this->$method();
@@ -179,6 +180,97 @@ trait AppControllers
         }
 
         return $dep;
+    }
+
+    /**
+     * The allowlist behind the `'@method'` dependency form: every method on
+     * the concrete App annotated #[Service], including annotations on the
+     * kernel declaration a method overrides. Built by reflection once per
+     * process — deliberately not dumped to var/: reflecting one class costs
+     * microseconds at boot, and a disk artifact could go stale against the
+     * code it describes.
+     *
+     * @return array<string, true>
+     */
+    protected function serviceMethods(): array
+    {
+        if (null !== $this->serviceMethods) {
+            return $this->serviceMethods;
+        }
+
+        // Every place a method can be declared: the concrete class, its
+        // parents, and the interfaces. An override inherits the annotation
+        // from any of them — so annotating the kernel's abstract
+        // userProvider() covers every App implementation.
+        $owners = [];
+        for ($class = new \ReflectionClass(static::class); false !== $class; $class = $class->getParentClass()) {
+            $owners[] = $class;
+        }
+        foreach ((new \ReflectionClass(static::class))->getInterfaces() as $interface) {
+            $owners[] = $interface;
+        }
+
+        $map = [];
+        foreach ((new \ReflectionClass(static::class))->getMethods() as $method) {
+            $name = $method->getName();
+            foreach ($owners as $owner) {
+                if ($owner->hasMethod($name)
+                    && [] !== $owner->getMethod($name)->getAttributes(Service::class)
+                ) {
+                    $map[$name] = true;
+                    break;
+                }
+            }
+        }
+
+        return $this->serviceMethods = $map;
+    }
+
+    /**
+     * Refuse controller maps referencing '@' methods outside the #[Service]
+     * allowlist — at boot, all mistakes at once, instead of one request-time
+     * explosion per typo. Covers the application's map and every module's.
+     */
+    protected function validateControllerDependencies(): void
+    {
+        $errors = [];
+
+        foreach ($this->controllers as $controller => $dependencies) {
+            foreach ($dependencies as $dep) {
+                if (!\is_string($dep) || !str_starts_with($dep, '@')) {
+                    continue;
+                }
+
+                $method = substr($dep, 1);
+                if (!isset($this->serviceMethods()[$method])) {
+                    $errors[] = sprintf('%s: %s', $controller, $this->unknownServiceMethodMessage($method));
+                }
+            }
+        }
+
+        if ([] !== $errors) {
+            throw new \LogicException("Invalid '@' service references in the controller map:\n - ".implode("\n - ", $errors));
+        }
+    }
+
+    private function unknownServiceMethodMessage(string $method): string
+    {
+        $message = sprintf("'@%s' is not a #[Service] method.", $method);
+
+        $alternatives = [];
+        foreach (array_keys($this->serviceMethods()) as $candidate) {
+            if (levenshtein($method, $candidate) <= \strlen($method) / 3 || str_contains($candidate, $method)) {
+                $alternatives[] = "'@{$candidate}'";
+            }
+        }
+
+        if ([] !== $alternatives) {
+            $message .= ' Did you mean '.implode(', ', \array_slice($alternatives, 0, 3)).'?';
+        } elseif (method_exists($this, $method)) {
+            $message .= sprintf(' The method exists — annotate %s::%s() with #[Service] to make it injectable.', static::class, $method);
+        }
+
+        return $message;
     }
 
     /**

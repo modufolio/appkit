@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modufolio\Appkit\Core;
 
 use Doctrine\ORM\EntityManagerInterface;
+use Modufolio\Appkit\Attributes\Service;
 use Modufolio\Appkit\DependencyInjection\ParameterBag;
 use Modufolio\Appkit\Doctrine\EntityManagerFactory;
 use Modufolio\Appkit\Doctrine\Middleware\Debug\DebugStack;
@@ -112,6 +113,8 @@ abstract class Kernel implements AppInterface
     protected array $modules = [];
     /** @var array<string, string> Service id => module name, for diagnostics on module-registered ids */
     protected array $serviceProvenance = [];
+    /** @var array<string, true>|null Methods injectable via '@name' — the #[Service] allowlist, reflected once per process */
+    protected ?array $serviceMethods = null;
     /** @var array<string, string> Deprecated service id => message, triggered once per process on first resolve */
     protected array $deprecatedServices = [];
     /** @var array<string, true> Deprecated ids already warned about this process */
@@ -169,6 +172,11 @@ abstract class Kernel implements AppInterface
             'strict_requirements' => true,
         ]);
 
+        // Every '@' reference in the controller map (application and modules
+        // alike) must name a #[Service] method — checked here so all mistakes
+        // surface at boot, not one request at a time.
+        $this->validateControllerDependencies();
+
         // Modules boot last, once the kernel's own setup is in place, so their
         // boot() can reach core services. Each module's merged config is
         // published as the "module.<name>" parameter first.
@@ -195,18 +203,23 @@ abstract class Kernel implements AppInterface
 
     abstract public function reset(): void;
 
+    #[Service]
     abstract public function serializer(): SerializerInterface;
 
+    #[Service]
     abstract public function parameterResolver(): ParameterResolverInterface;
 
+    #[Service]
     abstract public function validator(): ValidatorInterface;
 
+    #[Service]
     abstract public function userProvider(): UserProviderInterface;
 
     // ============================================================================
     // CORE SERVICE ACCESSORS (can be overridden)
     // ============================================================================
 
+    #[Service]
     public function emitter(): EmitterInterface
     {
         return $this->emitter ??= new Emitter();
@@ -242,11 +255,13 @@ abstract class Kernel implements AppInterface
         return $this;
     }
 
+    #[Service]
     public function environment(): Environment
     {
         return $this->environment ??= Environment::from(env('APP_ENV', 'prod'));
     }
 
+    #[Service]
     public function entityManager(): EntityManagerInterface
     {
         return $this->entityManagerFactory()->get();
@@ -266,6 +281,7 @@ abstract class Kernel implements AppInterface
         );
     }
 
+    #[Service]
     public function exceptionHandler(): ExceptionHandlerInterface
     {
         return $this->exceptionHandler ??= new ExceptionHandler(
@@ -274,16 +290,19 @@ abstract class Kernel implements AppInterface
         );
     }
 
+    #[Service]
     public function logger(): LoggerInterface
     {
         return $this->logger;
     }
 
+    #[Service]
     public function prepareResponse(): PrepareResponseInterface
     {
         return $this->prepareResponse ??= new PrepareResponse();
     }
 
+    #[Service]
     public function session(): FlashBagAwareSessionInterface
     {
         if (null === $this->state) {
@@ -293,6 +312,7 @@ abstract class Kernel implements AppInterface
         return $this->state->getSession();
     }
 
+    #[Service]
     public function tokenStorage(): TokenStorageInterface
     {
         if (null === $this->state) {
@@ -308,6 +328,7 @@ abstract class Kernel implements AppInterface
      * workers — no request-scoped state is cached across requests. Applications
      * that want a memoized instance override this and reset it themselves.
      */
+    #[Service]
     public function csrfTokenManager(): CsrfTokenManagerInterface
     {
         return new CsrfTokenManager($this->session());

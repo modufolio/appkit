@@ -275,7 +275,18 @@ public function mailer(): Mailer
 
 ### Wiring with the `@` string
 
-Once you have a direct method on `App`, reference it by name in `config/controllers.php` using the `@` prefix. This calls the method directly on the kernel — no `get()` resolution chain, no interface map lookup:
+Once you have a direct method on `App`, annotate it `#[Service]` and reference it by name in `config/controllers.php` using the `@` prefix. This calls the method directly on the kernel — no `get()` resolution chain, no interface map lookup:
+
+```php
+// src/App.php
+use Modufolio\Appkit\Attributes\Service;
+
+#[Service]
+public function mailer(): Mailer
+{
+    return $this->mailer ??= new Mailer(/* ... */);
+}
+```
 
 ```php
 // config/controllers.php
@@ -287,6 +298,18 @@ return [
     ],
 ];
 ```
+
+The attribute is the allowlist: without it, every method on the App —
+including protected kernel internals — would be one config string away from
+being invoked. The kernel reflects the map once per process at boot (nothing
+is dumped or cached on disk) and validates **every** `@` reference in the
+controller map — the application's and each module's — right there, so all
+mistakes surface at boot as one aggregate error instead of one request-time
+explosion per typo. A typo gets a did-you-mean; an existing-but-unannotated
+method gets told exactly which attribute to add. The kernel's own accessors
+(`session`, `entityManager`, `tokenStorage`, …) and its abstract declarations
+(`serializer`, `validator`, `userProvider`, `parameterResolver`) are already
+annotated — an App override inherits the annotation from the declaration.
 
 The three dependency syntaxes in `config/controllers.php`:
 

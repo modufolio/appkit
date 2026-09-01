@@ -114,6 +114,7 @@ class App extends Kernel
 
     /**
      * Get user provider (repository-based).
+     *
      * @throws DbalException
      */
     public function userProvider(): UserProviderInterface
@@ -138,6 +139,7 @@ class App extends Kernel
     /**
      * Get brute force protection service (stub for testing).
      */
+    #[\Modufolio\Appkit\Attributes\Service]
     public function bruteForceProtection(): BruteForceProtectionInterface
     {
         return $this->bruteForceProtection ??= new StubBruteForceProtection();
@@ -193,8 +195,10 @@ class App extends Kernel
 
     /**
      * Get TOTP service for two-factor authentication.
+     *
      * @throws DbalException
      */
+    #[\Modufolio\Appkit\Attributes\Service]
     public function totpService(): TotpService
     {
         return $this->totpServiceInstance ??= new TotpService(
@@ -283,7 +287,6 @@ class App extends Kernel
             ->enableAttributeMapping()
             ->getValidator();
     }
-
 
     /**
      * @throws DbalException
