@@ -5,6 +5,101 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.15.0] - 2026-09-01
+
+### Added
+
+- **Module system.** A module is a self-contained package that plugs services,
+  controllers, entities, migrations, templates and translations into an
+  application: `Modufolio\Appkit\Module\{ModuleInterface, AbstractModule,
+  ModuleRegistry}`, an explicit `config/modules.php` manifest, and
+  `Kernel::configureModules()`. Modules declare config defaults (published as
+  the `module.<name>` parameter, unknown declared keys fail loudly), a
+  controller dependency map merged under the application's, and
+  `requires()` — verified against the manifest order, never auto-resolved.
+  The whole manifest is validated up front and reported as one aggregate
+  error. See [docs/modules.md](docs/modules.md).
+- **Shipped test harness.** `Modufolio\Appkit\Testing\{AppTestCase,
+  TestResponse, DatabaseTestingCapabilities}` — the same classes this
+  package's own suite runs on. An application subclasses `AppTestCase`,
+  implements `app()`, and inherits request dispatch, session/CSRF continuity,
+  engine-agnostic database refreshing and auth helpers. Hooks:
+  `loadFixtures()`, `resetAppConfiguration()`, `afterSchemaCreate()`.
+- **Container diagnostics.** Unknown service ids suggest near-misses — naming
+  the module that registered a candidate; misses inside a factory name the
+  requesting service. Circular dependencies report the full chain
+  (`A -> B -> A`) instead of overflowing the stack, including cycles through
+  nested `get()` calls that previously went undetected.
+- `ServiceConfigurator::deprecate(id, message)` — resolving the id still
+  works but warns once per process. Aliases deprecate independently of their
+  target, which is the intended migration path for service renames.
+- `Kernel::onReset(callable)` — one-shot cleanup callbacks for `shared()`
+  factories that take per-request leases; run and cleared by
+  `resetModules(bool $terminate = false)`, which now also survives a
+  throwing callback and distinguishes request-end from worker shutdown.
+- **Cross-engine database testing.** The `Database` test suite runs against
+  MySQL 8.4, PostgreSQL 16 and SQL Server 2022 in CI, with docker-compose
+  services and `composer test:db` for local runs. Connections are env-driven
+  (`DB_DRIVER`, SQLite in memory by default).
+- Soft-deletable users: `SoftDeletableUserInterface`; `EntityUserProvider`
+  refuses to load or refresh deleted users and `UserChecker` backstops
+  custom providers, with a deliberately generic "disabled" message.
+- Service ids are validated at definition time, diagnosing `use`-import
+  swallowed namespaces with the exact fix.
+- **`#[Service]` allowlist for `'@method'` controller dependencies.** The
+  `@` form previously called any method on the App, protected kernel
+  internals included, and a typo only exploded at request time. Methods must
+  now carry `Modufolio\Appkit\Attributes\Service` (the kernel's own
+  accessors and abstract declarations already do — overrides inherit the
+  annotation). The map is reflected once per process at boot — nothing
+  dumped to disk — and every `@` reference in the controller map, modules
+  included, is validated at boot with one aggregate error, did-you-mean
+  suggestions, and an "annotate X::y() with #[Service]" hint for methods
+  that exist but are not yet opted in. *Breaking:* apps referencing
+  unannotated methods via `@` must add the attribute.
+- **Redirect routes.** `Modufolio\Appkit\Routing\{RedirectConfigurator,
+  Loader\RedirectRouteLoader, Loader\RedirectController}` — declare
+  `$redirects->redirect('/home', '/', 301)` in a config file, import it with
+  the `redirect` route type, and each entry becomes a route served by a
+  controller that emits the status, a `Location` header and an escaped
+  interstitial body. Route names hash source|target, so reordering entries
+  never renames a route. `redirectToRoute('/old', 'blog_index')` targets a
+  named route instead of a literal URL — generated when the redirect is
+  served, so renames propagate and an unknown name throws instead of
+  pointing at a 404. Status codes are validated against redirect semantics
+  (301/302/303/307/308) at configure time, and cycles between literal-path
+  redirects are refused at load time with the full chain printed
+  (`/a -> /b -> /a`).
+
+### Changed
+
+- **The Kernel is composed from per-concern traits** — `AppContainer`,
+  `AppControllers`, `AppModules`, `AppRouting` join the existing
+  `AppSecurity`; the class keeps state, lifecycle and accessors (~400 lines,
+  down from ~1,200). Every method kept its name, visibility and signature:
+  no consumer-facing change.
+- **Raw query-builder bindings use positional `?` placeholders.**
+  `whereRaw('age > ?', [25])` — placeholders are rewritten to generated
+  named parameters, so raw clauses compose with `where()`/`whereIn()` no
+  matter how many parameters are already bound. *Breaking:* bindings
+  previously attached to generated `:pN` names the caller had to guess.
+- `ServiceConfigurator` ids are declared `string`, not `class-string` — the
+  runtime contract (legacy non-namespaced ids stay accepted, everything else
+  validated) now matches the signature.
+- `Doctrine\DBAL\Exception` is imported as `DbalException` everywhere, so a
+  `catch` clause reads unambiguously against `\Exception`.
+
+### Fixed
+
+- `QueryBuilder::whereIn()` with an empty list rendered `IN ()`, which SQLite
+  parses but MySQL rejects; it now renders a no-match predicate, and an empty
+  `whereNotIn()` omits the clause entirely.
+- `QueryBuilder::count()` caught every exception while probing for a missing
+  SELECT clause, silently patching in `select('*')`; it now catches only DBAL
+  failures, so foreign exceptions propagate.
+- `Template` no longer renders a dangling `host:` colon when PSR-7 reports a
+  null port for the scheme's default.
+
 ## [0.14.0] - 2026-08-29
 
 ### Added
