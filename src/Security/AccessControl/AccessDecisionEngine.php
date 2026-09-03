@@ -196,4 +196,20 @@ final class AccessDecisionEngine
             $this->roleEvaluator->assert(array_values((array) $roles), $token, 'route');
         }
     }
+
+    /**
+     * Whether the token satisfies any one of the given attributes, without
+     * throwing. Attributes may be ordinary roles (resolved through the role
+     * hierarchy) or trust-level attributes (IS_AUTHENTICATED_FULLY,
+     * IS_IMPERSONATOR, …), exactly as in access-control rules and #[IsGranted].
+     *
+     * Exposed for callers that must decide rather than enforce — the
+     * switch-user gate, and templates hiding controls a user cannot use.
+     *
+     * @param list<string> $orGroup
+     */
+    public function isGranted(array $orGroup, #[\SensitiveParameter] ?TokenInterface $token): bool
+    {
+        return $this->roleEvaluator->isGranted($orGroup, $token);
+    }
 }
