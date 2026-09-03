@@ -200,7 +200,10 @@ Firewall option reference:
 | `logout.path` | `string` | POST URL to log out |
 | `logout.target` | `string` | Redirect destination after logout |
 | `two_factor_path` | `string` | Path for TOTP code entry (default `/2fa`) |
-| `switch_user` | `array` | Impersonation config (`parameter`, `role`) |
+| `switch_user.enabled` | `bool` | `true` turns on impersonation (default `false`) |
+| `switch_user.role` | `string` | Role the impersonator must hold (default `ROLE_ALLOWED_TO_SWITCH`) |
+| `switch_user.parameter` | `string` | POST field carrying the target identifier (default `_switch_user`) |
+| `switch_user.target` | `string` | Redirect destination after switching |
 
 ## `config/doctrine.php`
 
