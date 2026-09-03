@@ -7,6 +7,7 @@ namespace Modufolio\Appkit\Core;
 use Modufolio\Appkit\Exception\NotFoundException;
 use Modufolio\Appkit\Security\AccessControl\AccessDecisionEngine;
 use Modufolio\Appkit\Security\AccessControl\RequestMatcher;
+use Modufolio\Appkit\Security\Authenticator\AmbientCredentialInterface;
 use Modufolio\Appkit\Security\Authenticator\RememberMeAuthenticator;
 use Modufolio\Appkit\Security\Csrf\CsrfTokenManagerInterface;
 use Modufolio\Appkit\Security\Exception\AccessDeniedException;
@@ -20,6 +21,7 @@ use Modufolio\Appkit\Security\FirewallConfiguration;
 use Modufolio\Appkit\Security\RoleHierarchy;
 use Modufolio\Appkit\Security\SecurityConfigurator;
 use Modufolio\Appkit\Security\Token\RememberMeToken;
+use Modufolio\Appkit\Security\Token\SwitchUserToken;
 use Modufolio\Appkit\Security\Token\TokenInterface;
 use Modufolio\Appkit\Security\Token\TwoFactorToken;
 use Modufolio\Appkit\Security\TokenUnserializer;
@@ -52,6 +54,12 @@ use Symfony\Component\Config\Definition\Processor;
  */
 trait AppSecurity
 {
+    /**
+     * Reserved switch-user identifier that ends an impersonation and returns
+     * the session to the impersonator's own account.
+     */
+    public const SWITCH_USER_EXIT = '_exit';
+
     // ============================================================================
     // AUTHENTICATION FLOW
     // ============================================================================
@@ -113,6 +121,14 @@ trait AppSecurity
                 return $csrfFailure;
             }
 
+            // Impersonation runs on an already-authenticated token and only on
+            // this path — the same position Symfony's SwitchUserListener holds
+            // in the firewall chain: after the session context is restored and
+            // CSRF is settled, before access control and the controller.
+            if (null !== ($switched = $this->handleSwitchUser($request, $config, $firewallName))) {
+                return $switched;
+            }
+
             return $this->controllerResolver($request);
         }
 
@@ -140,7 +156,8 @@ trait AppSecurity
         // so the browser stores the freshly rotated value.
         $reissueCookies = [];
 
-        $result = $this->tryAuthenticators($request, $config, $firewallName, $stateless, $staleCookies, $reissueCookies);
+        $ambientCredential = false;
+        $result = $this->tryAuthenticators($request, $config, $firewallName, $stateless, $staleCookies, $reissueCookies, $ambientCredential);
 
         // Handle ResponseInterface (e.g., 2FA redirect)
         if ($result instanceof ResponseInterface) {
@@ -149,12 +166,15 @@ trait AppSecurity
 
         // Handle TokenInterface (successful authentication)
         if ($result instanceof TokenInterface) {
-            // A token minted from an ambient cookie credential (remember-me) is
-            // forgeable cross-site the same way a restored session is, so a
-            // state-changing first request must still carry a valid CSRF token.
-            // Bearer/API-key tokens are not ambient (the browser does not attach
-            // them automatically) and are intentionally exempt.
-            if ($result instanceof RememberMeToken) {
+            // A token minted from an ambient credential — one the browser
+            // re-attaches on its own, such as a remember-me cookie or a cached
+            // HTTP Basic realm — is forgeable cross-site the same way a
+            // restored session is, so a state-changing first request must still
+            // carry a valid CSRF token. Bearer/API-key tokens are not ambient
+            // and are intentionally exempt. Keyed on the authenticator rather
+            // than the token class: BasicAuthenticator also mints a plain
+            // UsernamePasswordToken, so a token-class check silently missed it.
+            if ($ambientCredential) {
                 $csrfFailure = $this->enforceCsrf($request, $config);
                 if (null !== $csrfFailure) {
                     return $this->withStaleCookiesExpired($csrfFailure, $staleCookies);
@@ -372,12 +392,43 @@ trait AppSecurity
      */
     private function assertValidLogoutCsrfToken(ServerRequestInterface $request, array $config): void
     {
+        $this->assertValidActionCsrfToken($request, $config, 'logout', 'logout');
+    }
+
+    /**
+     * Validate the CSRF token on a framework-owned, state-changing action
+     * (logout, switch-user) that no controller gets to guard itself.
+     *
+     * Two equivalent proofs are accepted:
+     *
+     *  - HTML forms submit the action's dedicated token as the `_csrf_token`
+     *    body field, obtained via `$csrfTokenManager->getToken($formTokenId)`.
+     *  - fetch/XHR clients (SPAs) send the firewall's session token
+     *    (`csrf_token_id`, default `csrf`) in the `X-CSRF-Token` /
+     *    `X-XSRF-Token` header — the same header the general CSRF layer
+     *    accepts for every other state-changing request.
+     *
+     * Both prove the same thing: same-origin JavaScript or markup with access
+     * to the user's session minted the request. This runs independently of the
+     * firewall's `csrf` setting — these actions are reachable on any firewall
+     * and are exactly the ones an attacker most wants to trigger cross-site.
+     *
+     * @param array<string, mixed> $config
+     *
+     * @throws AuthenticationException when no valid token is presented
+     */
+    private function assertValidActionCsrfToken(
+        ServerRequestInterface $request,
+        array $config,
+        string $formTokenId,
+        string $purpose,
+    ): void {
         $manager = $this->csrfTokenManager();
 
         $body = $request->getParsedBody();
         $bodyToken = is_array($body) ? ($body['_csrf_token'] ?? null) : null;
 
-        if (is_string($bodyToken) && $manager->validateToken('logout', $bodyToken)) {
+        if (is_string($bodyToken) && $manager->validateToken($formTokenId, $bodyToken)) {
             return;
         }
 
@@ -390,7 +441,7 @@ trait AppSecurity
             }
         }
 
-        throw new AuthenticationException('Invalid CSRF token for logout.');
+        throw new AuthenticationException(sprintf('Invalid CSRF token for %s.', $purpose));
     }
 
     /**
@@ -680,6 +731,7 @@ trait AppSecurity
         bool $stateless,
         array &$staleCookies = [],
         array &$reissueCookies = [],
+        bool &$ambientCredential = false,
     ): TokenInterface|ResponseInterface|null {
         // Iterate in the order the firewall declares its authenticators, not the
         // order of the global registry. array_intersect_key() would key off the
@@ -704,6 +756,10 @@ trait AppSecurity
 
                     $token = $authenticator->createToken($user, $firewallName);
 
+                    // Whether the browser attaches this credential by itself,
+                    // which decides if the caller must enforce CSRF.
+                    $ambientCredential = $authenticator instanceof AmbientCredentialInterface;
+
                     // Persistent remember-me rotates its cookie value on each
                     // use; carry the fresh Set-Cookie back so the caller can
                     // attach it to the response.
@@ -727,8 +783,26 @@ trait AppSecurity
                             $user = $e->getUser();
                             $twoFactorToken = new TwoFactorToken($user, $firewallName, $user->getRoles());
 
+                            // Rotate the session id before binding the pending
+                            // 2FA state to it, for the same reason the
+                            // successful-login path migrates (see above): the
+                            // password has just been proven, so any id an
+                            // attacker pre-set on the victim must not survive
+                            // into the authenticated session the 2FA step is
+                            // about to produce. Without this, enabling 2FA
+                            // would REMOVE the fixation protection a
+                            // password-only login already has, because the
+                            // authenticator-success path that migrates is
+                            // never reached for a 2FA account.
+                            $session = $this->session();
+                            if (!$session->isStarted()) {
+                                $session->start();
+                            }
+                            $session->migrate(true);
+                            $this->csrfTokenManager()->clear();
+
                             // Store partial token in session
-                            $this->session()->set('_2fa_token', serialize($twoFactorToken));
+                            $session->set('_2fa_token', serialize($twoFactorToken));
 
                             // Set flash message for 2FA screen
                             $this->session()->getFlashBag()->add('info', '2FA code required');
@@ -800,6 +874,258 @@ trait AppSecurity
         }
 
         return $response;
+    }
+
+    /**
+     * Handle a user-impersonation request ("su"), when the firewall enables it:
+     *
+     *     'switch_user' => [
+     *         'enabled'   => true,
+     *         'role'      => 'ROLE_SUPER_ADMIN',   // the impersonator must hold this
+     *         'parameter' => '_switch_user',       // carries the target identifier
+     *         'target'    => '/dashboard',         // optional landing path
+     *     ]
+     *
+     * Sending `{parameter}={identifier}` switches the session to that user;
+     * sending the reserved value `_exit` (SWITCH_USER_EXIT) returns to the
+     * impersonator's own account. Returns null when the request is not a
+     * switch-user request, so the caller continues normally.
+     *
+     * Unlike Symfony — whose listener also accepts a plain `?_switch_user=…`
+     * link — appkit requires POST plus a CSRF token, exactly as it does for
+     * logout. A GET link would let `<img src="/panel?_switch_user=victim">` on
+     * any third-party page silently switch an administrator's session into
+     * another account, and the impersonator's own identity is the last thing
+     * that should be forgeable cross-site.
+     *
+     * @param array<string, mixed> $config
+     *
+     * @throws AccessDeniedException   when the impersonator lacks the configured role
+     * @throws AuthenticationException when the CSRF token is missing or invalid
+     */
+    private function handleSwitchUser(
+        ServerRequestInterface $request,
+        array $config,
+        string $firewallName,
+    ): ?ResponseInterface {
+        $switch = $config['switch_user'] ?? null;
+
+        if (!is_array($switch) || true !== ($switch['enabled'] ?? false)) {
+            return null;
+        }
+
+        if ('POST' !== $request->getMethod()) {
+            return null;
+        }
+
+        $parameter = $switch['parameter'] ?? '_switch_user';
+        $body = $request->getParsedBody();
+        $identifier = is_array($body) ? ($body[$parameter] ?? null) : null;
+
+        // Identifiers can be falsy-looking strings ("0"), so only null/'' opt out.
+        if (!is_string($identifier) || '' === $identifier) {
+            return null;
+        }
+
+        $this->assertValidActionCsrfToken($request, $config, 'switch_user', 'switch user');
+
+        $token = $this->tokenStorage()->getToken();
+
+        if (null === $token) {
+            throw new AuthenticationException('Could not find original Token object.');
+        }
+
+        $newToken = self::SWITCH_USER_EXIT === $identifier
+            ? $this->attemptExitSwitchUser($token)
+            : $this->attemptSwitchUser($request, $token, $identifier, $switch, $firewallName);
+
+        $this->tokenStorage()->setToken($newToken);
+
+        if (!($config['stateless'] ?? false)) {
+            $session = $this->session();
+            if (!$session->isStarted()) {
+                $session->start();
+            }
+            $session->set('_security_'.$firewallName, serialize($newToken));
+
+            // The effective identity just changed — the same reason login
+            // migrates the session. Without this, the pre-switch session ID
+            // stays valid while carrying the impersonated identity.
+            $session->migrate(true);
+            $session->save();
+        }
+
+        return Response::redirect(
+            $this->switchUserTarget($request, $switch, $token, $newToken)
+        );
+    }
+
+    /**
+     * Build the token impersonating $identifier, after checking the current
+     * token is allowed to.
+     *
+     * @param array<string, mixed> $switch
+     *
+     * @throws AccessDeniedException
+     */
+    private function attemptSwitchUser(
+        ServerRequestInterface $request,
+        #[\SensitiveParameter] TokenInterface $token,
+        string $identifier,
+        array $switch,
+        string $firewallName,
+    ): TokenInterface {
+        // Already impersonating: unwind first, so the original token always
+        // holds the real administrator. Chained switches must not nest — that
+        // would make "exit" step back into another impersonation.
+        if ($token instanceof SwitchUserToken) {
+            if ($token->getUserIdentifier() === $identifier) {
+                return $token;
+            }
+
+            $token = $this->attemptExitSwitchUser($token);
+        }
+
+        $role = $switch['role'] ?? 'ROLE_ALLOWED_TO_SWITCH';
+
+        // Decided through the role hierarchy, so configuring
+        // 'role' => 'ROLE_SUPER_ADMIN' also admits anything that reaches it.
+        if (!$this->accessDecisionEngine()->isGranted([$role], $token)) {
+            throw new AccessDeniedException(sprintf('Switching users requires %s.', $role));
+        }
+
+        try {
+            $targetUser = $this->userProvider()->loadUserByIdentifier($identifier);
+
+            $userChecker = $this->get(UserCheckerInterface::class);
+            assert($userChecker instanceof UserCheckerInterface);
+            $userChecker->checkPreAuth($targetUser);
+            $userChecker->checkPostAuth($targetUser);
+        } catch (AuthenticationException|AccountStatusException) {
+            // Deliberately indistinguishable from "not allowed": a caller who
+            // has cleared the role check must not be able to probe which
+            // identifiers exist, or which accounts are locked or expired.
+            throw new AccessDeniedException('Switch user failed.');
+        }
+
+        return new SwitchUserToken(
+            user: $targetUser,
+            firewallName: $firewallName,
+            roles: $targetUser->getRoles(),
+            originalToken: $token,
+            originatedFromUri: $this->switchUserOriginUri($request),
+        );
+    }
+
+    /**
+     * Restore the impersonator's own token.
+     *
+     * @throws AuthenticationException when the session is not impersonating
+     */
+    private function attemptExitSwitchUser(#[\SensitiveParameter] TokenInterface $token): TokenInterface
+    {
+        if (!$token instanceof SwitchUserToken) {
+            throw new AuthenticationException('Could not find original Token object.');
+        }
+
+        $original = $token->getOriginalToken();
+
+        // Re-read the impersonator from the provider: roles or account status
+        // may have changed while the switch was in effect, and the returning
+        // session must reflect that rather than the snapshot taken at switch time.
+        return $this->refreshUser($original) ?? throw new AuthenticationException('Original user is no longer valid.');
+    }
+
+    /**
+     * Where to land after switching or exiting.
+     *
+     * @param array<string, mixed> $switch
+     */
+    private function switchUserTarget(
+        ServerRequestInterface $request,
+        array $switch,
+        #[\SensitiveParameter] TokenInterface $previousToken,
+        #[\SensitiveParameter] TokenInterface $newToken,
+    ): string {
+        // Exiting returns to wherever the switch was started from, when known.
+        if (!$newToken instanceof SwitchUserToken
+            && $previousToken instanceof SwitchUserToken
+            && null !== ($origin = $previousToken->getOriginatedFromUri())) {
+            return $origin;
+        }
+
+        $body = $request->getParsedBody();
+        $targetPath = is_array($body) ? ($body['_target_path'] ?? null) : null;
+
+        // Only same-site paths — a caller-supplied absolute URL would turn the
+        // redirect into an open redirect.
+        if (is_string($targetPath) && null !== ($safe = $this->sameSitePath($targetPath, $request))) {
+            return $safe;
+        }
+
+        $configured = $switch['target'] ?? null;
+
+        return is_string($configured) && '' !== $configured ? $configured : '/';
+    }
+
+    /**
+     * The page the impersonator was on when starting the switch, recorded on
+     * the token so exiting can return there. Taken from the submitted target
+     * path or the Referer, and only when it is a same-site absolute path.
+     */
+    private function switchUserOriginUri(ServerRequestInterface $request): ?string
+    {
+        $body = $request->getParsedBody();
+        $candidates = [
+            is_array($body) ? ($body['_target_path'] ?? null) : null,
+            $request->getHeaderLine('Referer'),
+        ];
+
+        foreach ($candidates as $candidate) {
+            if (!is_string($candidate) || '' === $candidate) {
+                continue;
+            }
+
+            $path = $this->sameSitePath($candidate, $request);
+
+            if (null !== $path) {
+                return $path;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Reduce a submitted path or a Referer to a same-site absolute path, or
+     * null when it points anywhere else. Used to keep switch-user redirects
+     * from becoming an open redirect.
+     */
+    private function sameSitePath(string $candidate, ServerRequestInterface $request): ?string
+    {
+        // A Referer is an absolute URL: accept it only when its host matches
+        // ours, and keep just the path.
+        if (null !== parse_url($candidate, PHP_URL_SCHEME)) {
+            if (parse_url($candidate, PHP_URL_HOST) !== $request->getUri()->getHost()) {
+                return null;
+            }
+
+            $candidate = parse_url($candidate, PHP_URL_PATH) ?: '/';
+        }
+
+        // A single leading slash only — `//evil.example` is a protocol-relative
+        // URL, which the browser would follow off-site.
+        //
+        // Backslashes are folded first: the WHATWG URL parser treats `\` as `/`
+        // while reading the authority, so `/\evil.example` resolves to
+        // `//evil.example` and leaves the site just as surely. Normalising is
+        // safer than enumerating the shapes — `/\`, `/\/`, `\\` and friends all
+        // collapse to the same check.
+        $normalised = str_replace('\\', '/', $candidate);
+
+        return str_starts_with($normalised, '/') && !str_starts_with($normalised, '//')
+            ? $candidate
+            : null;
     }
 
     /**

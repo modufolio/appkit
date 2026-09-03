@@ -23,7 +23,7 @@ use Psr\Http\Message\ServerRequestInterface;
  * @copyright Modufolio
  * @license   https://opensource.org/licenses/MIT
  */
-class BasicAuthenticator extends AbstractAuthenticator
+class BasicAuthenticator extends AbstractAuthenticator implements AmbientCredentialInterface
 {
     /**
      * Pre-computed bcrypt hash of a random string. Used as a dummy target for

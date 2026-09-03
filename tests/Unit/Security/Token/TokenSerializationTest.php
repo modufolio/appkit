@@ -57,6 +57,25 @@ class TokenSerializationTest extends TestCase
         $this->assertSame('john@example.com', $restored->getUserIdentifier());
     }
 
+    /**
+     * The remember-me secret is the application-wide signing key. Persisting it
+     * would leave a copy at rest in every session record, so one read of the
+     * session store would yield cookie-forging capability for every user.
+     */
+    public function testRememberMeTokenDoesNotPersistTheSecret(): void
+    {
+        $token = new RememberMeToken($this->user(), 'main', 'super-secret-signing-key');
+
+        $serialized = serialize($token);
+
+        $this->assertStringNotContainsString('super-secret-signing-key', $serialized);
+
+        $restored = unserialize($serialized);
+
+        $this->assertInstanceOf(RememberMeToken::class, $restored);
+        $this->assertSame('', $restored->getSecret(), 'A restored token carries no secret');
+    }
+
     public function testApiKeyTokenRoundTrip(): void
     {
         $token = new ApiKeyToken($this->user(), 'main', 'key-123', ['ROLE_API_USER']);

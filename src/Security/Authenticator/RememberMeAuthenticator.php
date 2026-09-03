@@ -23,7 +23,7 @@ use Psr\Http\Message\ServerRequestInterface;
  * @copyright Modufolio
  * @license   https://opensource.org/licenses/MIT
  */
-class RememberMeAuthenticator extends AbstractAuthenticator
+class RememberMeAuthenticator extends AbstractAuthenticator implements AmbientCredentialInterface
 {
     /** @var array<string, mixed> */
     private array $options;

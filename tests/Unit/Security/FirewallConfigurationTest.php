@@ -71,12 +71,46 @@ class FirewallConfigurationTest extends TestCase
             'main' => [
                 'pattern' => '/',
                 'context' => 'app',
-                'switch_user' => ['enabled' => true, 'role' => 'ROLE_ADMIN'],
+                'tenant_header' => 'X-Tenant',
             ],
         ]);
 
         $this->assertSame('app', $result['main']['context']);
-        $this->assertSame(['enabled' => true, 'role' => 'ROLE_ADMIN'], $result['main']['switch_user']);
+        $this->assertSame('X-Tenant', $result['main']['tenant_header']);
+    }
+
+    public function testSwitchUserDefaultsAreFilledIn(): void
+    {
+        $result = $this->process([
+            'main' => [
+                'pattern' => '/',
+                'switch_user' => ['enabled' => true, 'role' => 'ROLE_SUPER_ADMIN'],
+            ],
+        ]);
+
+        $this->assertSame([
+            'enabled' => true,
+            'role' => 'ROLE_SUPER_ADMIN',
+            'parameter' => '_switch_user',
+            'target' => null,
+        ], $result['main']['switch_user']);
+    }
+
+    public function testSwitchUserIsDisabledUnlessEnabled(): void
+    {
+        // Declaring the section must not be enough to turn impersonation on.
+        $result = $this->process(['main' => ['pattern' => '/']]);
+
+        $this->assertFalse($result['main']['switch_user']['enabled']);
+    }
+
+    public function testSwitchUserRejectsEmptyRole(): void
+    {
+        $this->expectException(InvalidConfigurationException::class);
+
+        $this->process([
+            'main' => ['pattern' => '/', 'switch_user' => ['enabled' => true, 'role' => '']],
+        ]);
     }
 
     public function testWrongScalarTypeIsRejected(): void

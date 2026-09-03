@@ -70,6 +70,33 @@ final class FirewallConfiguration implements ConfigurationInterface
                                     ->scalarNode('target')->end()
                                 ->end()
                             ->end()
+                            // User impersonation ("su"). Declaring the section
+                            // is not enough — `enabled` must be true, matching
+                            // Symfony's `switch_user` semantics.
+                            ->arrayNode('switch_user')
+                                ->canBeEnabled()
+                                ->children()
+                                    // Request parameter carrying the target
+                                    // user identifier; the value `_exit`
+                                    // (SWITCH_USER_EXIT) returns to the
+                                    // impersonator's own account.
+                                    ->scalarNode('parameter')
+                                        ->cannotBeEmpty()
+                                        ->defaultValue('_switch_user')
+                                    ->end()
+                                    // Role the *impersonator* must hold. Read
+                                    // through the role hierarchy, so a role
+                                    // that reaches it also grants the switch.
+                                    ->scalarNode('role')
+                                        ->cannotBeEmpty()
+                                        ->defaultValue('ROLE_ALLOWED_TO_SWITCH')
+                                    ->end()
+                                    // Where to land after switching. Defaults
+                                    // to the current URI with the parameter
+                                    // stripped, like Symfony.
+                                    ->scalarNode('target')->defaultNull()->end()
+                                ->end()
+                            ->end()
                         ->end()
                     ->end()
                 ->end()
