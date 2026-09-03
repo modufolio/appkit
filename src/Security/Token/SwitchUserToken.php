@@ -26,11 +26,16 @@ class SwitchUserToken extends AbstractToken
     private TokenInterface $originalToken;
     private string $firewallName;
 
+    /**
+     * @param string|null $originatedFromUri the URI the impersonator was on when
+     *                                       switching, so exiting can return there
+     */
     public function __construct(
         UserInterface $user,
         string $firewallName,
         array $roles,
         #[\SensitiveParameter] TokenInterface $originalToken,
+        private ?string $originatedFromUri = null,
     ) {
         parent::__construct($roles);
 
@@ -72,9 +77,17 @@ class SwitchUserToken extends AbstractToken
         return true;
     }
 
+    /**
+     * The URI the impersonator was on when the switch happened, if recorded.
+     */
+    public function getOriginatedFromUri(): ?string
+    {
+        return $this->originatedFromUri;
+    }
+
     public function __serialize(): array
     {
-        return [$this->firewallName, $this->originalToken, parent::__serialize()];
+        return [$this->firewallName, $this->originalToken, parent::__serialize(), $this->originatedFromUri];
     }
 
     /**
@@ -84,11 +97,21 @@ class SwitchUserToken extends AbstractToken
     {
         // Block gadget-chain "trampolines": a forged payload placing an object
         // in a string slot would otherwise fire its __toString on assignment.
-        if (($data[0] ?? null) instanceof \Stringable) {
+        if (($data[0] ?? null) instanceof \Stringable || ($data[3] ?? null) instanceof \Stringable) {
             throw new \BadMethodCallException('Cannot unserialize '.self::class);
         }
 
+        // The URI is appended last so sessions serialized before it existed
+        // (3-element payloads) still restore — they simply carry no URI.
         [$this->firewallName, $this->originalToken, $parentData] = $data;
+        $this->originatedFromUri = $data[3] ?? null;
+
+        // See UsernamePasswordToken::__unserialize(): a nested unserialize()
+        // would not inherit TokenUnserializer's allowed_classes list.
+        if (!\is_array($parentData)) {
+            throw new \BadMethodCallException('Cannot unserialize '.self::class);
+        }
+
         parent::__unserialize($parentData);
     }
 }

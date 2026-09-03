@@ -39,6 +39,11 @@ class RememberMeToken extends AbstractToken
         return $this->firewallName;
     }
 
+    /**
+     * The signing secret this token was minted with. Empty on a token restored
+     * from a session — the secret is deliberately not persisted, see
+     * __serialize().
+     */
     public function getSecret(): string
     {
         return $this->secret;
@@ -46,7 +51,13 @@ class RememberMeToken extends AbstractToken
 
     public function __serialize(): array
     {
-        return [null, $this->firewallName, $this->secret, parent::__serialize()];
+        // The secret is deliberately NOT serialized. It is the application-wide
+        // remember-me signing key, so persisting it would put a copy at rest in
+        // every session record: one read of the session store would then be
+        // enough to forge remember-me cookies for every user, not just to
+        // hijack the session it came from. Symfony omits it for the same
+        // reason, and nothing reads it back off a restored token.
+        return [null, $this->firewallName, parent::__serialize()];
     }
 
     /**
@@ -55,13 +66,25 @@ class RememberMeToken extends AbstractToken
     public function __unserialize(array $data): void
     {
         // Block gadget-chain "trampolines": a forged payload placing an object
-        // in a string slot (firewallName, secret) would otherwise fire its
-        // __toString when assigned to the typed property.
-        if (($data[1] ?? null) instanceof \Stringable || ($data[2] ?? null) instanceof \Stringable) {
+        // in a string slot would otherwise fire its __toString when assigned to
+        // the typed property.
+        if (($data[1] ?? null) instanceof \Stringable) {
             throw new \BadMethodCallException('Cannot unserialize '.self::class);
         }
 
-        [, $this->firewallName, $this->secret, $parentData] = $data;
+        // Sessions written before the secret was dropped carry it in slot 2,
+        // with the parent payload shifted one along. Read past it — the value
+        // is discarded rather than restored.
+        $parentData = 4 === \count($data) ? ($data[3] ?? null) : ($data[2] ?? null);
+        $this->firewallName = $data[1];
+        $this->secret = '';
+
+        // See UsernamePasswordToken::__unserialize(): a nested unserialize()
+        // would not inherit TokenUnserializer's allowed_classes list.
+        if (!\is_array($parentData)) {
+            throw new \BadMethodCallException('Cannot unserialize '.self::class);
+        }
+
         parent::__unserialize($parentData);
     }
 }

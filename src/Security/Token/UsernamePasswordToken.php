@@ -50,7 +50,15 @@ class UsernamePasswordToken extends AbstractToken
         }
 
         [, $this->firewallName, $parentData] = $data;
-        $parentData = \is_array($parentData) ? $parentData : unserialize($parentData);
+        // The parent payload is always an array (see __serialize()); anything
+        // else is forged or corrupt. Reject it rather than calling unserialize()
+        // again: a nested call does NOT inherit the allowed_classes list that
+        // TokenUnserializer passes, so it would happily construct any
+        // autoloadable class and defeat the allowlist entirely.
+        if (!\is_array($parentData)) {
+            throw new \BadMethodCallException('Cannot unserialize '.self::class);
+        }
+
         parent::__unserialize($parentData);
     }
 }
