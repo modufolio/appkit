@@ -103,6 +103,16 @@ abstract class AbstractApplicationState implements ApplicationStateInterface
         return $this;
     }
 
+    /**
+     * scheme://host[:port] of the request, or "" when the URI has no
+     * scheme/host.
+     *
+     * The host comes straight from the request. That is only safe because the
+     * kernel validates it against the trusted-hosts allowlist before this
+     * state is constructed (Kernel::createState()); configure
+     * `trusted_hosts` in production so a spoofed Host header cannot become
+     * the base of every absolute URL the response generates.
+     */
     protected function calculateBaseUrl(ServerRequestInterface $request): string
     {
         $uri = $request->getUri();

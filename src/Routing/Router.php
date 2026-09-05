@@ -3,6 +3,7 @@
 namespace Modufolio\Appkit\Routing;
 
 use Modufolio\Appkit\Core\ResetInterface;
+use Modufolio\Appkit\Http\TrustedHosts;
 use Psr\Http\Message\ServerRequestInterface;
 use Symfony\Component\Config\ConfigCacheFactory;
 use Symfony\Component\Config\ConfigCacheFactoryInterface;
@@ -36,6 +37,7 @@ class Router implements RouterInterface, ResetInterface
     private ?RequestContext $context = null;
     private ?RouteCollection $collection = null;
     private ?ConfigCacheFactoryInterface $configCacheFactory = null;
+    private ?TrustedHosts $trustedHosts = null;
 
     /**
      * Static cache for compiled routes. Cleared in reset() to prevent memory leaks
@@ -67,7 +69,11 @@ class Router implements RouterInterface, ResetInterface
             // when building absolute URLs. Empty = trust the request Host header
             // (fine behind a trusted proxy/load balancer that pins Host, unsafe
             // otherwise). Populate it in production to block Host-header poisoning
-            // of generated links (e.g. password-reset URLs). Compared case-insensitively.
+            // of generated links (e.g. password-reset URLs). Takes the same
+            // entries as Symfony's framework.trusted_hosts (regexes such as
+            // "^(.+\.)?example\.com$") plus "example.com" / "*.example.com"
+            // shorthands — see TrustedHosts. The kernel applies the same list
+            // before request state is built; this covers standalone router use.
             'trusted_hosts' => [],
         ], $this->options);
     }
@@ -239,24 +245,17 @@ class Router implements RouterInterface, ResetInterface
      *
      * A no-op when 'trusted_hosts' is empty (opt-in). When configured, an
      * unlisted host throws instead of being propagated into generated URLs.
+     *
+     * @throws \Modufolio\Appkit\Exception\UntrustedHostException
      */
     private function assertHostTrusted(string $host): void
     {
-        $trusted = $this->options['trusted_hosts'] ?? [];
+        $this->trustedHosts()->assert($host);
+    }
 
-        if ([] === $trusted) {
-            return;
-        }
-
-        $host = strtolower($host);
-
-        foreach ($trusted as $trustedHost) {
-            if ($host === strtolower((string) $trustedHost)) {
-                return;
-            }
-        }
-
-        throw new \RuntimeException(sprintf('Untrusted request host "%s".', $host));
+    public function trustedHosts(): TrustedHosts
+    {
+        return $this->trustedHosts ??= new TrustedHosts($this->options['trusted_hosts'] ?? []);
     }
 
     /**

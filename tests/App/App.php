@@ -96,10 +96,10 @@ class App extends Kernel
     {
         $this->state?->reset();
 
-        // Create fresh application state for this request
-        $this->state = new NativeApplicationState($request, $this->baseDir, $this->firewallConfig, $this->varDir());
-
         try {
+            // Fresh request-scoped state. createState() rejects an untrusted
+            // Host header before the state (and its base URL) exists.
+            $this->state = $this->createState($request);
             $response = $this->handleAuthentication($request);
         } catch (\Throwable $e) {
             $response = $this->exceptionHandler()->handle($e, $request);

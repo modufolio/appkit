@@ -318,6 +318,18 @@ final class ExceptionHandler implements ExceptionHandlerInterface
             ];
         });
 
+        // Host header not on the trusted-hosts allowlist. Registered ahead of
+        // the \RuntimeException catch-all so it maps to 400, not 500. The
+        // rejected host is deliberately not echoed — it is attacker input and
+        // is available in the log entry instead.
+        $this->registerException(UntrustedHostException::class, static function (UntrustedHostException $e) {
+            return [
+                'status' => 400,
+                'title' => 'Bad Request',
+                'detail' => 'The request host is not allowed.',
+            ];
+        }, true);
+
         // Fallback for any LogicException (developer errors)
         // Hide details in production as these are internal logic errors
         $this->registerException(\LogicException::class, function (\LogicException $e) {

@@ -317,6 +317,11 @@ class Template implements \Stringable
 
     /**
      * Calculate base URL from request.
+     *
+     * The host is copied from the request as-is; the kernel has already checked
+     * it against the trusted-hosts allowlist before any request state or
+     * template exists (see Kernel::createState()). Templates rendered outside
+     * the kernel must be handed a request whose host is known to be safe.
      */
     protected function calculateBaseUrl(ServerRequestInterface $request): string
     {

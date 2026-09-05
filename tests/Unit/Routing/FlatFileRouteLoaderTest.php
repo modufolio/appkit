@@ -346,4 +346,19 @@ class FlatFileRouteLoaderTest extends TestCase
 
         return $route;
     }
+
+    public function testViewlessTemplatesGetNoRoute(): void
+    {
+        $loader = new FlatFileRouteLoader(
+            new \Symfony\Component\Config\FileLocator([\dirname(__DIR__, 2).'/App/FlatFile']),
+            FlatFileController::class,
+            viewlessTemplates: ['about'],
+        );
+
+        $routes = $loader->load('fixtures', 'flat_file');
+        $paths = array_map(static fn ($r) => $r->getPath(), iterator_to_array($routes));
+
+        $this->assertNotContains('/about', $paths, 'A viewless template must not be routed.');
+        $this->assertContains('/', $paths, 'Other templates keep their routes.');
+    }
 }

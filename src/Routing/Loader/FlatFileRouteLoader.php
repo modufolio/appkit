@@ -30,11 +30,19 @@ class FlatFileRouteLoader extends Loader
         '@eaDir',
     ];
 
+    /**
+     * @param list<string> $viewlessTemplates Template names whose pages are
+     *                                        editable content but get no
+     *                                        public route — footer blocks,
+     *                                        reusable snippets. Their
+     *                                        subfolders still route normally.
+     */
     public function __construct(
         private FileLocatorInterface $locator,
         private readonly string $controllerClass,
         private string $fileExtension = 'txt',
         private string $homeFolder = 'home',
+        private array $viewlessTemplates = [],
     ) {
         parent::__construct();
     }
@@ -73,6 +81,11 @@ class FlatFileRouteLoader extends Loader
             $contentFiles = glob($root.'/*.'.$this->fileExtension) ?: [];
             foreach ($contentFiles as $contentFilePath) {
                 $contentFileName = basename($contentFilePath, '.'.$this->fileExtension);
+
+                // Viewless page types are content without an address.
+                if (in_array($contentFileName, $this->viewlessTemplates, true)) {
+                    break;
+                }
 
                 $routePath = '/'.$urlPath;
                 $routeName = str_replace('/', '_', $urlPath) ?: 'home';

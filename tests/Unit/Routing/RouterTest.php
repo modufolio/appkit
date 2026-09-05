@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modufolio\Appkit\Tests\Unit\Routing;
 
+use Modufolio\Appkit\Exception\UntrustedHostException;
 use Modufolio\Appkit\Routing\Router;
 use Modufolio\Psr7\Http\ServerRequest;
 use Modufolio\Psr7\Http\Uri;
@@ -592,6 +593,36 @@ class RouterTest extends TestCase
         $result = $router->match($request);
 
         $this->assertSame('TestController', $result['_controller']);
+    }
+
+    public function testUntrustedHostThrowsTheDedicatedException(): void
+    {
+        $loader = $this->createLoader();
+        $router = new Router($loader, 'routes.php', ['trusted_hosts' => ['example.com']]);
+
+        $this->expectException(UntrustedHostException::class);
+        $router->match($this->createRequest('GET', '/test', 'attacker.test', 'https', 443));
+    }
+
+    public function testTrustedHostWildcardMatchesSubdomains(): void
+    {
+        $loader = $this->createLoader();
+        $router = new Router($loader, 'routes.php', ['trusted_hosts' => ['*.example.com']]);
+
+        $result = $router->match($this->createRequest('GET', '/test', 'www.example.com', 'https', 443));
+        $this->assertSame('TestController', $result['_controller']);
+
+        $this->expectException(UntrustedHostException::class);
+        $router->match($this->createRequest('GET', '/test', 'example.com', 'https', 443));
+    }
+
+    public function testTrustedHostsExposesTheConfiguredAllowlist(): void
+    {
+        $loader = $this->createLoader();
+        $router = new Router($loader, 'routes.php', ['trusted_hosts' => ['Example.com']]);
+
+        $this->assertSame(['example.com'], $router->trustedHosts()->toArray());
+        $this->assertTrue((new Router($loader, 'routes.php'))->trustedHosts()->isEmpty());
     }
 
     public function testEmptyTrustedHostsAllowsAnyHost(): void

@@ -11,6 +11,7 @@ use Modufolio\Appkit\Doctrine\EntityManagerFactory;
 use Modufolio\Appkit\Doctrine\Middleware\Debug\DebugStack;
 use Modufolio\Appkit\Exception\ExceptionHandler;
 use Modufolio\Appkit\Exception\ExceptionHandlerInterface;
+use Modufolio\Appkit\Http\TrustedHosts;
 use Modufolio\Appkit\Resolver\ParameterResolverInterface;
 use Modufolio\Appkit\Routing\Router;
 use Modufolio\Appkit\Routing\RouterInterface;
@@ -145,6 +146,8 @@ abstract class Kernel implements AppInterface
     /** @var array<string, mixed> */
     protected array $routerOptions = [];
     protected mixed $routeResource = null;
+    /** Built from the "trusted_hosts" router option; see AppRouting::trustedHosts() */
+    protected ?TrustedHosts $trustedHosts = null;
 
     public function boot(): static
     {
@@ -367,6 +370,35 @@ abstract class Kernel implements AppInterface
         }
 
         return $this;
+    }
+
+    /**
+     * Build the request-scoped state for an incoming request.
+     *
+     * This is the intended first step of handle(): the request's Host header is
+     * checked against the trusted-hosts allowlist *before* the state exists, so
+     * an untrusted host is rejected (400) without ever being copied into the
+     * base URL that url(), templates and absolute route generation build on.
+     *
+     *     public function handle(ServerRequestInterface $request): ResponseInterface
+     *     {
+     *         $this->state?->reset();
+     *         try {
+     *             $this->state = $this->createState($request);
+     *             $response = $this->handleAuthentication($request);
+     *         } catch (\Throwable $e) {
+     *             $response = $this->exceptionHandler()->handle($e, $request);
+     *         }
+     *         ...
+     *     }
+     *
+     * @throws \Modufolio\Appkit\Exception\UntrustedHostException
+     */
+    protected function createState(ServerRequestInterface $request): ApplicationStateInterface
+    {
+        $this->assertTrustedHost($request);
+
+        return new NativeApplicationState($request, $this->baseDir, $this->firewallConfig, $this->varDir());
     }
 
     public function getState(): ?ApplicationStateInterface

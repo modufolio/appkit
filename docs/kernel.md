@@ -28,7 +28,7 @@ These six abstract methods are your integration points. The skeleton's `src/App.
 
 1. `public/index.php` calls `AppFactory::create($baseDir)` — this instantiates `App`, loads config files, and calls `boot()`.
 2. `boot()` applies error-output hardening for the environment (see [Exception handling](exception-handling.md#error-output-hardening)), wires the kernel core services (or loads a legacy `config/interfaces.php` when mapped), sets up the router cache directory, and freezes the token unserializer whitelist.
-3. `handle(ServerRequestInterface $request)` is called. It creates a fresh `NativeApplicationState` for the request, then calls `handleAuthentication()`.
+3. `handle(ServerRequestInterface $request)` is called. It creates a fresh `NativeApplicationState` for the request via `createState()` — which first rejects a `Host` header that is not on the [trusted-hosts](security.md#trusted-hosts) allowlist — then calls `handleAuthentication()`.
 4. `handleAuthentication()` determines the active firewall, attempts session token restoration, runs authenticators if needed, and either calls `controllerResolver()` or returns an authentication response.
 5. `controllerResolver()` enforces global access control, matches the route, enforces attribute-level access control (`#[IsGranted]`), instantiates the controller, resolves method parameters, and calls the controller method.
 6. The controller returns a `ResponseInterface`. `prepareResponse()` finalises headers and cookies.
@@ -128,6 +128,8 @@ $this->generateUrl('post.show', ['slug' => 'hello']);          // /posts/hello
 ```
 
 `generateUrl()` wraps Symfony's `UrlGenerator`. The third argument accepts `UrlGeneratorInterface::ABSOLUTE_URL` to force a full URL.
+
+The scheme and host in all of these come from the request. Configure [trusted hosts](security.md#trusted-hosts) so a spoofed `Host` header cannot become the base of every absolute URL the response generates.
 
 ## Parameter bag
 

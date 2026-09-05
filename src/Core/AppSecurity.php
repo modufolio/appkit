@@ -74,6 +74,13 @@ trait AppSecurity
      */
     public function handleAuthentication(ServerRequestInterface $request): ResponseInterface
     {
+        // Backstop for applications that build their request state by hand
+        // instead of via createState(): nothing below may run for a request
+        // whose Host header is not on the trusted-hosts allowlist, or that host
+        // would end up in entry-point redirects, https upgrades and every
+        // absolute URL the response generates. No-op when the list is empty.
+        $this->assertTrustedHost($request);
+
         $firewallName = $this->getFirewallNameForRequest($request);
 
         if (null === $firewallName) {

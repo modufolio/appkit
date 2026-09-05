@@ -135,7 +135,7 @@ class MyController extends AbstractController
 In a class that does *not* extend `AbstractController`, inject
 `UrlGeneratorInterface` through `config/controllers.php` as normal.
 
-`generate()` returns an absolute path by default. Pass `UrlGeneratorInterface::ABSOLUTE_URL` as the third argument for a full URL including scheme and host.
+`generate()` returns an absolute path by default. Pass `UrlGeneratorInterface::ABSOLUTE_URL` as the third argument for a full URL including scheme and host. The host is the request's `Host` header, so absolute URLs that leave the response (password-reset emails, canonical links) need the [trusted-hosts allowlist](security.md#trusted-hosts) configured, or a spoofed header ends up in the link.
 
 ## Debugging routes
 

@@ -6,6 +6,7 @@ namespace Modufolio\Appkit\Tests\Unit\Exception;
 
 use Modufolio\Appkit\Core\Environment;
 use Modufolio\Appkit\Exception\ExceptionHandler;
+use Modufolio\Appkit\Exception\UntrustedHostException;
 use Modufolio\Psr7\Http\ServerRequest;
 use Modufolio\Psr7\Http\Uri;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -94,6 +95,15 @@ class ExceptionHandlerTest extends TestCase
         );
 
         $this->assertSame(400, $response->getStatusCode());
+    }
+
+    public function testUntrustedHostIsA400ThatDoesNotEchoTheHost(): void
+    {
+        $request = new ServerRequest(method: 'GET', uri: new Uri('/'));
+        $response = $this->handler->handle(new UntrustedHostException('attacker.test'), $request);
+
+        $this->assertSame(400, $response->getStatusCode());
+        $this->assertStringNotContainsString('attacker.test', (string) $response->getBody());
     }
 
     public function testHandleLogicException(): void

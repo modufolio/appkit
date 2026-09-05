@@ -38,6 +38,12 @@ final class ChannelConstraint implements RuleConstraintInterface
 
         // Same URL over https on the default port. Preserving the path+query
         // means the redirect lands the user exactly where they intended.
+        //
+        // The host is taken from the request, which is only safe because the
+        // kernel has already checked it against the trusted-hosts allowlist
+        // (Kernel::createState() / handleAuthentication()) before access
+        // control runs. Without that list an attacker-chosen Host header would
+        // be reflected straight into this Location header.
         $secureUri = $uri->withScheme('https')->withPort(null);
 
         throw new InsecureChannelException((string) $secureUri);
