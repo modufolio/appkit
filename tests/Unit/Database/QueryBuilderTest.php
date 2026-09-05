@@ -934,6 +934,168 @@ class QueryBuilderTest extends TestCase
     // Helper Methods
     // ═══════════════════════════════════════════════════════════════════════════════
 
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // Identifier validation
+    // ═══════════════════════════════════════════════════════════════════════════════
+
+    public function testOrderByRejectsAnythingThatIsNotAnIdentifier(): void
+    {
+        $qb = new QueryBuilder($this->connection());
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Invalid column identifier');
+        $qb->from('users')->orderBy('name; DROP TABLE users; --');
+    }
+
+    public function testOrderByAcceptsQualifiedColumns(): void
+    {
+        $this->seedUsers();
+        $qb = new QueryBuilder($this->connection());
+
+        $results = $qb->from('users', 'u')->select('u.name')->orderBy('u.name', 'desc')->get();
+
+        $this->assertSame(['John Doe', 'Jane Smith', 'Bob Wilson'], array_column($results, 'name'));
+    }
+
+    public function testOrderByAllowedMapsPublicKeysToColumns(): void
+    {
+        $this->seedUsers();
+        $qb = new QueryBuilder($this->connection());
+
+        $results = $qb->from('users')
+            ->select('name')
+            ->orderByAllowed('name', 'DESC', ['name' => 'name', 'joined' => 'created_at'])
+            ->get();
+
+        $this->assertSame('John Doe', $results[0]['name']);
+    }
+
+    public function testOrderByAllowedAcceptsAPlainList(): void
+    {
+        $this->seedUsers();
+        $qb = new QueryBuilder($this->connection());
+
+        $results = $qb->from('users')->select('name')->orderByAllowed('name', 'asc', ['name', 'email'])->get();
+
+        $this->assertSame('Bob Wilson', $results[0]['name']);
+    }
+
+    public function testOrderByAllowedRejectsAColumnOutsideTheAllowlist(): void
+    {
+        $qb = new QueryBuilder($this->connection());
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Cannot sort by "password"');
+        $qb->from('users')->orderByAllowed('password', 'asc', ['name', 'email']);
+    }
+
+    public function testOrderByAllowedRejectsABadDirection(): void
+    {
+        $qb = new QueryBuilder($this->connection());
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Invalid order direction');
+        $qb->from('users')->orderByAllowed('name', 'sideways', ['name']);
+    }
+
+    public function testSelectRejectsExpressions(): void
+    {
+        $qb = new QueryBuilder($this->connection());
+
+        $this->expectException(\InvalidArgumentException::class);
+        $qb->from('users')->select('COUNT(*)');
+    }
+
+    public function testSelectAcceptsWildcardAndAliasForms(): void
+    {
+        $this->seedUsers();
+        $qb = new QueryBuilder($this->connection());
+
+        $results = $qb->from('users', 'u')->select('u.*', ['u.name' => 'label'])->limit(1)->get();
+
+        $this->assertArrayHasKey('email', $results[0]);
+        $this->assertArrayHasKey('label', $results[0]);
+    }
+
+    public function testSelectRejectsAnInvalidAlias(): void
+    {
+        $qb = new QueryBuilder($this->connection());
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Invalid alias identifier');
+        $qb->from('users')->select(['name' => 'n FROM users; --']);
+    }
+
+    public function testWhereRejectsAnInvalidColumn(): void
+    {
+        $qb = new QueryBuilder($this->connection());
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Invalid column identifier');
+        $qb->from('users')->where('1=1 OR name', '=', 'x');
+    }
+
+    public function testWhereRejectsAnUnknownOperator(): void
+    {
+        $qb = new QueryBuilder($this->connection());
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Invalid comparison operator');
+        $qb->from('users')->where('name', '= "x" OR 1=1 OR name =', 'x');
+    }
+
+    public function testWhereNormalisesOperatorCaseAndSpacing(): void
+    {
+        $this->seedUsers();
+        $qb = new QueryBuilder($this->connection());
+
+        $results = $qb->from('users')->select('name')->where('name', ' not   like ', 'J%')->get();
+
+        $this->assertSame(['Bob Wilson'], array_column($results, 'name'));
+    }
+
+    public function testGroupByRejectsExpressions(): void
+    {
+        $qb = new QueryBuilder($this->connection());
+
+        $this->expectException(\InvalidArgumentException::class);
+        $qb->from('users')->groupBy('name, (SELECT 1)');
+    }
+
+    public function testFromRejectsAnInvalidTable(): void
+    {
+        $qb = new QueryBuilder($this->connection());
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Invalid table identifier');
+        $qb->from('users; DROP TABLE users');
+    }
+
+    public function testJoinRejectsAnInvalidCondition(): void
+    {
+        $qb = new QueryBuilder($this->connection());
+
+        $this->expectException(\InvalidArgumentException::class);
+        $qb->from('users', 'u')->join('posts', 'u.id', '=', 'p.user_id OR 1=1', 'p');
+    }
+
+    public function testInsertRejectsAnInvalidColumnName(): void
+    {
+        $qb = new QueryBuilder($this->connection());
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Invalid column identifier');
+        $qb->from('users')->insert(['name) VALUES (1); --' => 'x']);
+    }
+
+    public function testUpdateRejectsAnInvalidColumnName(): void
+    {
+        $qb = new QueryBuilder($this->connection());
+
+        $this->expectException(\InvalidArgumentException::class);
+        $qb->from('users')->update(['name = "x", password' => 'y']);
+    }
+
     private function seedUsers(): void
     {
         $this->seed('users', [

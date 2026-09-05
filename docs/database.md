@@ -308,12 +308,28 @@ $posts = $qb->from('posts')
     ->get();
 ```
 
+### Identifiers are validated, values are bound
+
+Values always travel as bound parameters. Identifiers — table, column and alias names given to `from()`, `select()`, `where*()`, `join*()`, `orderBy()`, `groupBy()`, `insert()` and `update()` — are checked against a strict grammar (`name`, `alias.name`, `schema.table.name`, `*`, `alias.*`) and rejected with an `InvalidArgumentException` otherwise; comparison operators are allowlisted (`=`, `<>`, `!=`, `<`, `<=`, `>`, `>=`, `LIKE`, `NOT LIKE`, `ILIKE`, `NOT ILIKE`). A request value that reaches `orderBy()` therefore cannot inject SQL — but it can still name any column. For user-selectable sorting use `orderByAllowed()`, which restricts the column to a list you define and maps public keys to real columns:
+
+```php
+$qb->from('users', 'u')
+    ->orderByAllowed($query['sort'] ?? 'name', $query['dir'] ?? 'asc', [
+        'name' => 'u.name',
+        'date' => 'u.created_at',
+    ]);
+```
+
+An unknown key or direction throws an `InvalidArgumentException`, which the exception handler turns into a 400 — the right answer to a tampered `?sort=`.
+
+Expressions (`COUNT(*)`, `CASE ...`, arithmetic) do not pass the identifier check; use `selectRaw()`, `whereRaw()` or `whereExpression()` for them. Those are raw by design and must never receive request input.
+
 ### Method reference
 
 | Method | Description |
 |--------|-------------|
 | `from(string $table, ?string $alias)` | Set the table |
-| `select(string ...$columns)` | Select columns |
+| `select(string ...$columns)` | Select columns (`id`, `u.name`, `u.*`, or `['col' => 'alias']`); expressions go through `selectRaw()` |
 | `selectRaw(string $expr, array $bindings)` | Select a raw expression; `?` placeholders bind in order |
 | `where(string $col, string $op, mixed $val)` | Add a WHERE condition |
 | `orWhere(string $col, string $op, mixed $val)` | Add an OR WHERE condition |
@@ -325,7 +341,8 @@ $posts = $qb->from('posts')
 | `join(...)` | INNER JOIN |
 | `leftJoin(...)` | LEFT JOIN |
 | `rightJoin(...)` | RIGHT JOIN |
-| `orderBy(string $col, string $dir)` | ORDER BY |
+| `orderBy(string $col, string $dir)` | ORDER BY — `$col` must be a plain column reference |
+| `orderByAllowed(string $col, string $dir, array $allowed)` | ORDER BY restricted to an allowlist; safe for request-controlled sorting |
 | `groupBy(string ...$cols)` | GROUP BY |
 | `limit(int $n)` | LIMIT |
 | `offset(int $n)` | OFFSET |

@@ -10,12 +10,50 @@ use Doctrine\DBAL\Query\Expression\ExpressionBuilder;
 use Doctrine\DBAL\Query\QueryBuilder as DBALQueryBuilder;
 
 /**
+ * Fluent wrapper around DBAL's query builder.
+ *
+ * Values are always bound as parameters. Identifiers — table, column and
+ * alias names handed to from(), select(), where*(), join*(), orderBy(),
+ * groupBy(), insert() and update() — are validated against a strict
+ * identifier grammar (`name`, `alias.name`, `schema.table.name`, `*`,
+ * `alias.*`) and rejected with an InvalidArgumentException otherwise. This
+ * closes the classic injection through `orderBy($_GET['sort'])`: a value that
+ * is not a plain identifier never reaches the SQL string. Comparison
+ * operators are allowlisted the same way.
+ *
+ * Validation does not make a request-controlled identifier *safe*, only
+ * non-injectable — it can still name any column. For user-selectable sorting
+ * use orderByAllowed(), which additionally restricts the column to a list you
+ * define. Anything that needs an expression (functions, CASE, arithmetic) goes
+ * through selectRaw(), whereRaw() or whereExpression(), which are raw by
+ * design and must never be fed request input.
+ *
  * @author    Maarten Thiebou
  * @copyright Modufolio
  * @license   https://opensource.org/licenses/MIT
  */
 final class QueryBuilder
 {
+    /**
+     * A bare identifier: letters, digits and underscores, not starting with a digit.
+     */
+    private const IDENTIFIER = '[A-Za-z_][A-Za-z0-9_]*';
+
+    /**
+     * A column reference: `name`, `alias.name`, `schema.table.name`, plus the
+     * `*` / `alias.*` forms select() accepts.
+     */
+    private const COLUMN_PATTERN = '/^(?:\*|'.self::IDENTIFIER.'(?:\.'.self::IDENTIFIER.'){0,2}(?:\.\*)?)$/';
+
+    /**
+     * A table reference: `table` or `schema.table`.
+     */
+    private const TABLE_PATTERN = '/^'.self::IDENTIFIER.'(?:\.'.self::IDENTIFIER.')?$/';
+
+    private const NAME_PATTERN = '/^'.self::IDENTIFIER.'$/';
+
+    private const OPERATORS = ['=', '<>', '!=', '<', '<=', '>', '>=', 'LIKE', 'NOT LIKE', 'ILIKE', 'NOT ILIKE'];
+
     private Connection $connection;
     private DBALQueryBuilder $queryBuilder;
     private ExpressionBuilder $expr;
@@ -35,6 +73,11 @@ final class QueryBuilder
 
     public function from(string $table, ?string $alias = null): self
     {
+        $this->assertTable($table);
+        if (null !== $alias) {
+            $this->assertName($alias, 'alias');
+        }
+
         $this->table = $table;
         $this->alias = $alias ?? $table;
         $this->queryBuilder->from($table, $this->alias);
@@ -43,6 +86,10 @@ final class QueryBuilder
     }
 
     /**
+     * Select columns by name (`id`, `u.name`, `u.*`), or `['column' => 'alias']`
+     * to alias them. Expressions such as `COUNT(*)` are rejected — use
+     * selectRaw() for those.
+     *
      * @param string|array<string, string> ...$columns
      */
     public function select(string|array ...$columns): self
@@ -56,9 +103,12 @@ final class QueryBuilder
         foreach ($columns as $column) {
             if (is_array($column)) {
                 foreach ($column as $col => $alias) {
+                    $this->assertColumn((string) $col);
+                    $this->assertName($alias, 'alias');
                     $this->queryBuilder->addSelect(sprintf('%s AS %s', $col, $alias));
                 }
             } else {
+                $this->assertColumn($column);
                 $this->queryBuilder->addSelect($column);
             }
         }
@@ -85,6 +135,9 @@ final class QueryBuilder
 
     public function where(string $column, string $operator, mixed $value): self
     {
+        $this->assertColumn($column);
+        $operator = $this->normalizeOperator($operator);
+
         $param = $this->newParamName();
         $this->queryBuilder->andWhere($this->expr->comparison($column, $operator, ':'.$param));
         $this->queryBuilder->setParameter($param, $value);
@@ -94,6 +147,9 @@ final class QueryBuilder
 
     public function orWhere(string $column, string $operator, mixed $value): self
     {
+        $this->assertColumn($column);
+        $operator = $this->normalizeOperator($operator);
+
         $param = $this->newParamName();
         $this->queryBuilder->orWhere($this->expr->comparison($column, $operator, ':'.$param));
         $this->queryBuilder->setParameter($param, $value);
@@ -109,6 +165,8 @@ final class QueryBuilder
      */
     public function whereIn(string $column, array $values): self
     {
+        $this->assertColumn($column);
+
         if ([] === $values) {
             $this->queryBuilder->andWhere('1 = 0');
 
@@ -127,6 +185,8 @@ final class QueryBuilder
      */
     public function whereNotIn(string $column, array $values): self
     {
+        $this->assertColumn($column);
+
         if ([] === $values) {
             return $this;
         }
@@ -157,6 +217,7 @@ final class QueryBuilder
 
     public function whereNull(string $column): self
     {
+        $this->assertColumn($column);
         $this->queryBuilder->andWhere($this->expr->isNull($column));
 
         return $this;
@@ -164,6 +225,7 @@ final class QueryBuilder
 
     public function whereNotNull(string $column): self
     {
+        $this->assertColumn($column);
         $this->queryBuilder->andWhere($this->expr->isNotNull($column));
 
         return $this;
@@ -207,7 +269,7 @@ final class QueryBuilder
     public function join(string $table, string $first, string $operator, string $second, ?string $alias = null): self
     {
         $alias ??= $table;
-        $this->queryBuilder->innerJoin($this->requireAlias(), $table, $alias, "{$first} {$operator} {$second}");
+        $this->queryBuilder->innerJoin($this->requireAlias(), $table, $alias, $this->joinCondition($table, $alias, $first, $operator, $second));
 
         return $this;
     }
@@ -215,7 +277,7 @@ final class QueryBuilder
     public function leftJoin(string $table, string $first, string $operator, string $second, ?string $alias = null): self
     {
         $alias ??= $table;
-        $this->queryBuilder->leftJoin($this->requireAlias(), $table, $alias, "{$first} {$operator} {$second}");
+        $this->queryBuilder->leftJoin($this->requireAlias(), $table, $alias, $this->joinCondition($table, $alias, $first, $operator, $second));
 
         return $this;
     }
@@ -223,7 +285,7 @@ final class QueryBuilder
     public function rightJoin(string $table, string $first, string $operator, string $second, ?string $alias = null): self
     {
         $alias ??= $table;
-        $this->queryBuilder->rightJoin($this->requireAlias(), $table, $alias, "{$first} {$operator} {$second}");
+        $this->queryBuilder->rightJoin($this->requireAlias(), $table, $alias, $this->joinCondition($table, $alias, $first, $operator, $second));
 
         return $this;
     }
@@ -232,20 +294,54 @@ final class QueryBuilder
     // Sorting, grouping, limits
     // ────────────────────────────────────────────────────────────────────────────────
 
+    /**
+     * `$column` must be a plain column reference; an expression or anything
+     * else that is not an identifier throws. Prefer orderByAllowed() when the
+     * column comes from the request.
+     */
     public function orderBy(string $column, string $direction = 'ASC'): self
     {
-        $direction = strtoupper($direction);
-        if (!in_array($direction, ['ASC', 'DESC'], true)) {
-            throw new \InvalidArgumentException("Invalid order direction: {$direction}");
-        }
-        $this->queryBuilder->addOrderBy($column, $direction);
+        $this->assertColumn($column, allowWildcard: false);
+        $this->queryBuilder->addOrderBy($column, $this->normalizeDirection($direction));
 
         return $this;
+    }
+
+    /**
+     * Sort by a request-controlled column safely.
+     *
+     * `$allowed` is the set of columns the caller permits: either a list of
+     * column references (`['name', 'created_at']`) or a map from the public
+     * sort key to the real column (`['name' => 'u.name', 'date' => 'u.created_at']`).
+     * A `$column` outside that set, or a `$direction` other than asc/desc,
+     * throws an InvalidArgumentException — which the exception handler turns
+     * into a 400, the right answer to a tampered `?sort=` parameter.
+     *
+     *     $qb->orderByAllowed($query['sort'] ?? 'name', $query['dir'] ?? 'asc', [
+     *         'name' => 'u.name',
+     *         'date' => 'u.created_at',
+     *     ]);
+     *
+     * @param array<int|string, string> $allowed
+     */
+    public function orderByAllowed(string $column, string $direction, array $allowed): self
+    {
+        $map = [];
+        foreach ($allowed as $key => $target) {
+            $map[is_int($key) ? $target : (string) $key] = $target;
+        }
+
+        if (!array_key_exists($column, $map)) {
+            throw new \InvalidArgumentException(sprintf('Cannot sort by "%s"; allowed: %s.', $column, implode(', ', array_map(static fn (string $k): string => '"'.$k.'"', array_keys($map)))));
+        }
+
+        return $this->orderBy($map[$column], $direction);
     }
 
     public function groupBy(string ...$columns): self
     {
         foreach ($columns as $column) {
+            $this->assertColumn($column, allowWildcard: false);
             $this->queryBuilder->addGroupBy($column);
         }
 
@@ -272,6 +368,7 @@ final class QueryBuilder
 
     /**
      * @param array<string, mixed> $values
+     *
      * @throws DbalException
      */
     public function insert(array $values): int
@@ -279,6 +376,7 @@ final class QueryBuilder
         $this->queryBuilder->insert($this->table);
 
         foreach ($values as $column => $value) {
+            $this->assertName((string) $column, 'column');
             $param = $column;
             $this->queryBuilder->setValue($column, ':'.$param);
             $this->queryBuilder->setParameter($param, $value);
@@ -297,6 +395,7 @@ final class QueryBuilder
         $this->queryBuilder->update($this->table);
 
         foreach ($values as $column => $value) {
+            $this->assertName((string) $column, 'column');
             $param = $column;
             $this->queryBuilder->set($column, ':'.$param);
             $this->queryBuilder->setParameter($param, $value);
@@ -331,6 +430,7 @@ final class QueryBuilder
 
     /**
      * @return array<string, mixed>|null
+     *
      * @throws DbalException
      */
     public function first(): ?array
@@ -415,11 +515,7 @@ final class QueryBuilder
         foreach ($bindings as $value) {
             $position = strpos($expression, '?');
             if (false === $position) {
-                throw new \InvalidArgumentException(sprintf(
-                    'Raw expression "%s" has fewer ? placeholders than bindings (%d given).',
-                    $expression,
-                    count($bindings),
-                ));
+                throw new \InvalidArgumentException(sprintf('Raw expression "%s" has fewer ? placeholders than bindings (%d given).', $expression, count($bindings)));
             }
 
             $param = $this->newParamName();
@@ -445,5 +541,79 @@ final class QueryBuilder
         }
 
         return $this->alias;
+    }
+
+    // ────────────────────────────────────────────────────────────────────────────────
+    // Identifier validation
+    // ────────────────────────────────────────────────────────────────────────────────
+
+    /**
+     * @throws \InvalidArgumentException when $column is not a plain column reference
+     */
+    private function assertColumn(string $column, bool $allowWildcard = true): void
+    {
+        if (1 !== preg_match(self::COLUMN_PATTERN, $column) || (!$allowWildcard && str_contains($column, '*'))) {
+            throw new \InvalidArgumentException(sprintf('Invalid column identifier "%s": expected a plain name such as "id" or "u.name". Use selectRaw()/whereRaw() for expressions.', $column));
+        }
+    }
+
+    /**
+     * @throws \InvalidArgumentException when $table is not `table` or `schema.table`
+     */
+    private function assertTable(string $table): void
+    {
+        if (1 !== preg_match(self::TABLE_PATTERN, $table)) {
+            throw new \InvalidArgumentException(sprintf('Invalid table identifier "%s".', $table));
+        }
+    }
+
+    /**
+     * @throws \InvalidArgumentException when $name is not a bare identifier
+     */
+    private function assertName(string $name, string $what): void
+    {
+        if (1 !== preg_match(self::NAME_PATTERN, $name)) {
+            throw new \InvalidArgumentException(sprintf('Invalid %s identifier "%s".', $what, $name));
+        }
+    }
+
+    /**
+     * @throws \InvalidArgumentException when $operator is not an allowlisted comparison
+     */
+    private function normalizeOperator(string $operator): string
+    {
+        $normalized = strtoupper(trim(preg_replace('/\s+/', ' ', $operator) ?? $operator));
+
+        if (!in_array($normalized, self::OPERATORS, true)) {
+            throw new \InvalidArgumentException(sprintf('Invalid comparison operator "%s"; allowed: %s.', $operator, implode(', ', self::OPERATORS)));
+        }
+
+        return $normalized;
+    }
+
+    /**
+     * @throws \InvalidArgumentException when $direction is not asc/desc
+     */
+    private function normalizeDirection(string $direction): string
+    {
+        $direction = strtoupper(trim($direction));
+        if (!in_array($direction, ['ASC', 'DESC'], true)) {
+            throw new \InvalidArgumentException("Invalid order direction: {$direction}");
+        }
+
+        return $direction;
+    }
+
+    /**
+     * Validated `first <op> second` join condition.
+     */
+    private function joinCondition(string $table, string $alias, string $first, string $operator, string $second): string
+    {
+        $this->assertTable($table);
+        $this->assertName($alias, 'alias');
+        $this->assertColumn($first, allowWildcard: false);
+        $this->assertColumn($second, allowWildcard: false);
+
+        return $first.' '.$this->normalizeOperator($operator).' '.$second;
     }
 }
