@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modufolio\Appkit\Tests\Unit\Core;
 
 use Modufolio\Appkit\Exception\UntrustedHostException;
+use Modufolio\Appkit\Routing\Router;
 use Modufolio\Appkit\Security\SecurityConfigurator;
 use Modufolio\Appkit\Tests\Case\AppTestCase;
 use Modufolio\Psr7\Http\ServerRequest;
@@ -46,7 +47,11 @@ final class TrustedHostsKernelTest extends AppTestCase
         $this->app()->setRouterOptions(['trusted_hosts' => ['example.com', '*.example.com']]);
 
         $this->assertSame(['example.com', '*.example.com'], $this->app()->trustedHosts()->toArray());
-        $this->assertSame(['example.com', '*.example.com'], $this->app()->router()->trustedHosts()->toArray());
+
+        // The router built from the options carries the same list.
+        $router = $this->app()->router();
+        $this->assertInstanceOf(Router::class, $router);
+        $this->assertSame(['example.com', '*.example.com'], $router->trustedHosts()->toArray());
     }
 
     public function testUnknownRouterOptionsStillThrow(): void
