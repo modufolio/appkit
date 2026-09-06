@@ -100,7 +100,7 @@ final class Segment
         }
 
         // trying to access further segments on a scalar/null value
-        static::error($base, $this->method, 'method/property');
+        Segment::error($base, $this->method, 'method/property');
     }
 
     /**
@@ -155,7 +155,7 @@ final class Segment
 
         // last, the standard error for trying to access something
         // that does not exist
-        static::error($array, $this->method, 'property');
+        Segment::error($array, $this->method, 'property');
     }
 
     /**
@@ -177,14 +177,36 @@ final class Segment
         if (
             [] === $args
             && (
-                true === property_exists($object, $this->method)
+                true === array_key_exists($this->method, get_object_vars($object))
                 || true === method_exists($object, '__get')
             )
         ) {
             return $object->{$this->method};
         }
 
+        if ([] === $args) {
+            $getter = $this->accessor($object);
+
+            if (null !== $getter) {
+                return $object->{$getter}();
+            }
+        }
+
         $label = ([] === $args) ? 'method/property' : 'method';
-        static::error($object, $this->method, $label);
+        Segment::error($object, $this->method, $label);
+    }
+
+    /** The get/is/has accessor for this segment on the object, or null when it has none. */
+    private function accessor(object $object): ?string
+    {
+        $studly = str_replace('_', '', ucwords($this->method, '_'));
+
+        foreach (['get', 'is', 'has'] as $prefix) {
+            if (true === method_exists($object, $prefix.$studly)) {
+                return $prefix.$studly;
+            }
+        }
+
+        return null;
     }
 }
