@@ -6,12 +6,16 @@ namespace Modufolio\Appkit\Core;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Modufolio\Appkit\Attributes\Service;
+use Modufolio\Appkit\Debug\NullProfiler;
+use Modufolio\Appkit\Debug\ProfilerInterface;
+use Modufolio\Appkit\DependencyInjection\ContainerFactoryInterface;
 use Modufolio\Appkit\DependencyInjection\ParameterBag;
 use Modufolio\Appkit\Doctrine\EntityManagerFactory;
 use Modufolio\Appkit\Doctrine\Middleware\Debug\DebugStack;
 use Modufolio\Appkit\Exception\ExceptionHandler;
 use Modufolio\Appkit\Exception\ExceptionHandlerInterface;
 use Modufolio\Appkit\Http\TrustedHosts;
+use Modufolio\Appkit\Module\ModuleInterface;
 use Modufolio\Appkit\Resolver\ParameterResolverInterface;
 use Modufolio\Appkit\Routing\Router;
 use Modufolio\Appkit\Routing\RouterInterface;
@@ -35,6 +39,7 @@ use Psr\Log\LoggerInterface;
 use Symfony\Component\Config\Loader\LoaderInterface;
 use Symfony\Component\HttpFoundation\Session\FlashBagAwareSessionInterface;
 use Symfony\Component\Serializer\SerializerInterface;
+use Symfony\Component\Stopwatch\Stopwatch;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 /**
@@ -110,7 +115,7 @@ abstract class Kernel implements AppInterface
     protected array $interfaceMap = [];
     /** @var array<string, \Closure> Definitions from config/services.php via configureServices() */
     protected array $services = [];
-    /** @var list<\Modufolio\Appkit\Module\ModuleInterface> Modules from config/modules.php via configureModules() */
+    /** @var list<ModuleInterface> Modules from config/modules.php via configureModules() */
     protected array $modules = [];
     /** @var array<string, string> Service id => module name, for diagnostics on module-registered ids */
     protected array $serviceProvenance = [];
@@ -127,6 +132,8 @@ abstract class Kernel implements AppInterface
     /** @var array<string, true> Service ids resolved once per request, cached in the instance table */
     protected array $sharedServices = [];
     private ?ContainerInterface $fallbackContainer = null;
+    /** Builds the fallback container during boot(), when set by configureContainer() */
+    private ?ContainerFactoryInterface $containerFactory = null;
 
     // Security components
     /** @var array<string, array<string, mixed>> */
@@ -141,6 +148,10 @@ abstract class Kernel implements AppInterface
     // Request-scoped state (created per request in handle())
     protected ?ApplicationStateInterface $state = null;
     public DebugStack $debugStack;
+    /** Timeline of the request: the kernel records its own phases, a profiler reads them */
+    protected ?Stopwatch $stopwatch = null;
+    /** The profiling seam; NullProfiler until config/services.php or a module declares one */
+    protected ?ProfilerInterface $profiler = null;
 
     // Router configuration
     /** @var array<string, mixed> */
@@ -160,7 +171,8 @@ abstract class Kernel implements AppInterface
         }
 
         $this->parameterBag = new ParameterBag();
-        $this->debugStack = new DebugStack();
+        // Query origins cost a backtrace per query: dev only.
+        $this->debugStack = new DebugStack(collectOrigin: $this->environment()->isDev());
         $this->routeResource = 'routes.php';
         // Legacy interfaces.php file, when mapped; otherwise the kernel wires
         // its own core services and config/services.php supplies the rest.
@@ -185,6 +197,17 @@ abstract class Kernel implements AppInterface
         // published as the "module.<name>" parameter first.
         foreach ($this->modules as $module) {
             $this->parameterBag->set('module.'.$module->name(), $module->config());
+        }
+
+        // The optional second container is built here, not in
+        // configureContainer(): it reads the parameter bag and the module
+        // parameters, which only exist now, and a module's boot() below may
+        // already reach into it.
+        if (null !== $this->containerFactory) {
+            $this->setFallbackContainer($this->containerFactory->create($this));
+        }
+
+        foreach ($this->modules as $module) {
             $module->boot($this);
         }
 
@@ -196,6 +219,88 @@ abstract class Kernel implements AppInterface
         TokenUnserializer::freeze();
 
         return $this;
+    }
+
+    /**
+     * Opt in to a second container behind this one — the Symfony container,
+     * through {@see \Modufolio\Appkit\DependencyInjection\Symfony\ContainerFactory},
+     * or any PSR-11 container a factory adapts.
+     *
+     * The kernel keeps answering every id it declares itself; only an id it
+     * does not know reaches the fallback. Call before boot(), after
+     * configureModules() and configureServices(): the factory runs during
+     * boot() so it can see the finished declarations, the parameter bag and
+     * each module's published configuration.
+     */
+    public function configureContainer(ContainerFactoryInterface $factory): static
+    {
+        $this->containerFactory = $factory;
+
+        return $this;
+    }
+
+    /**
+     * The modules loaded by configureModules(), in manifest order.
+     *
+     * @return list<ModuleInterface>
+     */
+    public function modules(): array
+    {
+        return $this->modules;
+    }
+
+    /**
+     * Every id this container answers by its own declarations: the core
+     * services, config/services.php and module definitions, the configured
+     * repositories and any legacy factories. What a container behind this one
+     * needs in order to expose the kernel's services to its own graph.
+     *
+     * Repositories discovered lazily from the entity metadata are not listed
+     * — that would build the entity manager at boot — so a fallback container
+     * reaches them through EntityManagerInterface instead.
+     *
+     * @return list<string>
+     */
+    public function declaredServiceIds(): array
+    {
+        return array_values(array_unique([
+            ...array_keys($this->services),
+            ...array_keys($this->interfaceMap),
+            ...array_keys($this->repositories ?? []),
+            ...array_keys($this->factories),
+        ]));
+    }
+
+    /**
+     * The #[Service] accessors on this application whose return type is a
+     * class or interface not already declared as a service id, keyed by that
+     * type: `[ThumbnailGenerator::class => 'thumbnailGenerator']`. A fallback
+     * container registers each under its type so the accessor answers an
+     * autowired argument, the way the '@method' controller form does here.
+     *
+     * @return array<class-string, string>
+     */
+    public function serviceAccessors(): array
+    {
+        $declared = array_fill_keys($this->declaredServiceIds(), true);
+        $accessors = [];
+
+        foreach (array_keys($this->serviceMethods()) as $method) {
+            $type = (new \ReflectionMethod($this, $method))->getReturnType();
+
+            if (!$type instanceof \ReflectionNamedType || $type->isBuiltin()) {
+                continue;
+            }
+
+            /** @var class-string $name */
+            $name = $type->getName();
+
+            if (!isset($declared[$name]) && !isset($accessors[$name]) && !$this->isKernelClass($name)) {
+                $accessors[$name] = $method;
+            }
+        }
+
+        return $accessors;
     }
 
     // ============================================================================
@@ -302,7 +407,46 @@ abstract class Kernel implements AppInterface
     #[Service]
     public function prepareResponse(): PrepareResponseInterface
     {
-        return $this->prepareResponse ??= new PrepareResponse();
+        return $this->prepareResponse ??= new PrepareResponse($this->profiler());
+    }
+
+    /**
+     * The request timeline. The kernel starts and stops an event around each
+     * phase it owns — security.session, security.authenticate, routing,
+     * security.access_control, controller — and a profiler reads the events;
+     * application code may add its own around anything it wants to see there.
+     * Reset between requests by resetModules().
+     */
+    #[Service]
+    public function stopwatch(): Stopwatch
+    {
+        return $this->stopwatch ??= new Stopwatch(true);
+    }
+
+    /**
+     * The profiler the response goes through at the end of every request:
+     * a NullProfiler until the application (or a module, from boot()) installs
+     * one with setProfiler(), or the App overrides this accessor. Like every
+     * core accessor, a config/services.php entry for ProfilerInterface changes
+     * what get() hands to controllers, not what the kernel itself calls.
+     */
+    #[Service]
+    public function profiler(): ProfilerInterface
+    {
+        return $this->profiler ??= new NullProfiler();
+    }
+
+    /**
+     * Install the profiler. Modules call this from boot(); the application
+     * factory can call it after boot(). Takes effect for the next request.
+     */
+    public function setProfiler(ProfilerInterface $profiler): static
+    {
+        $this->profiler = $profiler;
+        // The response preparer captured the previous profiler; rebuild lazily.
+        $this->prepareResponse = null;
+
+        return $this;
     }
 
     #[Service]
@@ -397,6 +541,10 @@ abstract class Kernel implements AppInterface
     protected function createState(ServerRequestInterface $request): ApplicationStateInterface
     {
         $this->assertTrustedHost($request);
+
+        // The timeline is request-scoped like the state: a new request starts
+        // it empty, whether or not the runtime called reset() in between.
+        $this->stopwatch?->reset();
 
         return new NativeApplicationState($request, $this->baseDir, $this->firewallConfig, $this->varDir());
     }

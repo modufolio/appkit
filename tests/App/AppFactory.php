@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace Modufolio\Appkit\Tests\App;
 
+use Modufolio\Appkit\DependencyInjection\ContainerFactoryInterface;
 use Modufolio\Appkit\DependencyInjection\ServiceConfigurator;
+use Modufolio\Appkit\DependencyInjection\Symfony\ContainerFactory;
 use Modufolio\Appkit\Routing\Loader\ArrayRouteLoader;
 use Modufolio\Appkit\Routing\Loader\AttributeClassLoader;
 use Modufolio\Appkit\Routing\Loader\JsonApiRouteLoader;
 use Modufolio\Appkit\Security\SecurityConfigurator;
 use Modufolio\Appkit\Security\TokenUnserializer;
+use Modufolio\Appkit\Tests\App\Debug\RecordingProfiler;
 use Modufolio\Appkit\Tests\App\Entity\User;
 use Modufolio\Appkit\Tests\App\JsonApi\JsonApiController;
 use Modufolio\Appkit\Tests\App\Repository\UserRepository;
@@ -26,6 +29,12 @@ class AppFactory
     public static function configDir(string $baseDir): string
     {
         return $baseDir.'/tests/fixtures/config';
+    }
+
+    /** The test app's Symfony definitions, relative to the base directory as ContainerFactory expects. */
+    public static function containerFile(string $baseDir): string
+    {
+        return substr(self::configDir($baseDir), \strlen($baseDir) + 1).'/container.php';
     }
 
     /**
@@ -46,7 +55,11 @@ class AppFactory
         return $baseDir.'/var/test/'.preg_replace('/[^A-Za-z0-9_-]/', '', (string) $token);
     }
 
-    public static function create(string $baseDir, ?string $env = null): App
+    /**
+     * @param ContainerFactoryInterface|null $container the Symfony container behind the kernel; null for the default factory
+     * @param string|null                    $varDir    a writable directory other than the shared test one
+     */
+    public static function create(string $baseDir, ?string $env = null, ?ContainerFactoryInterface $container = null, ?string $varDir = null): App
     {
         // Allow the test User class to be unserialized from session-stored tokens.
         TokenUnserializer::register(User::class);
@@ -88,10 +101,12 @@ class AppFactory
             repositories: F::load($configDir.'/repositories.php', []),
         );
 
-        $app->setVarDir(self::varDir($baseDir));
+        $app->setVarDir($varDir ?? self::varDir($baseDir));
         // Modules first: the application's services.php must win for shared ids.
+        // The Symfony container sits behind both, built during boot().
         $app->configureModules($configDir.'/modules.php')
             ->configureServices($serviceConfigurator)
+            ->configureContainer($container ?? new ContainerFactory(self::containerFile($baseDir)))
             ->configureSecurity($securityConfigurator)
             ->boot();
 
@@ -100,6 +115,9 @@ class AppFactory
         // string argument resolves to this container parameter by name.
         // Requires boot() to have run first (initializes $parameterBag).
         $app->setParameter('configPath', $configDir.'/json_api.php');
+
+        // The profiling seam, installed the way a module would from boot().
+        $app->setProfiler(new RecordingProfiler($app->stopwatch()));
 
         return $app;
     }

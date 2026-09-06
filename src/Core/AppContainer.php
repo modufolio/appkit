@@ -6,6 +6,7 @@ namespace Modufolio\Appkit\Core;
 
 use Doctrine\DBAL\Exception as DbalException;
 use Doctrine\ORM\EntityManagerInterface;
+use Modufolio\Appkit\Debug\ProfilerInterface;
 use Modufolio\Appkit\DependencyInjection\ParameterBag;
 use Modufolio\Appkit\DependencyInjection\ServiceConfigurator;
 use Modufolio\Appkit\Doctrine\Middleware\Debug\DebugStack;
@@ -32,6 +33,7 @@ use Symfony\Component\HttpFoundation\Session\FlashBagAwareSessionInterface;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Serializer\SerializerInterface;
+use Symfony\Component\Stopwatch\Stopwatch;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 /**
@@ -93,12 +95,14 @@ trait AppContainer
             FlashBagAwareSessionInterface::class => fn () => $this->session(),
             FlashBagInterface::class => fn () => $this->session()->getFlashBag(),
             ParameterResolverInterface::class => fn () => $this->parameterResolver(),
+            ProfilerInterface::class => fn () => $this->profiler(),
             ResponseFactoryInterface::class => fn () => new Psr17Factory(),
             ResponseInterface::class => fn () => new Response(),
             RouterInterface::class => fn () => $this->router(),
             SerializerInterface::class => fn () => $this->serializer(),
             ServerRequestInterface::class => fn () => $this->request(),
             SessionInterface::class => fn () => $this->session(),
+            Stopwatch::class => fn () => $this->stopwatch(),
             TokenStorageInterface::class => fn () => $this->tokenStorage(),
             UrlGeneratorInterface::class => fn () => $this->urlGenerator(),
             UserCheckerInterface::class => fn () => new UserChecker(),
@@ -153,7 +157,7 @@ trait AppContainer
                 $instance = $this->authenticators[$id]($this);
             } elseif (isset($this->factories[$id])) {
                 $instance = $this->factories[$id]($this);
-            } elseif ($this->fallbackContainer?->has($id)) {
+            } elseif ($this->fallbackHas($id)) {
                 $instance = $this->fallbackContainer->get($id);
             } else {
                 throw new NotFoundException($this->notFoundMessage($id));
@@ -178,6 +182,7 @@ trait AppContainer
      * Craft the not-found message: name the requesting service when the miss
      * happened inside another factory, and suggest near-miss ids — including
      * which module registered them, when a module did.
+     *
      * @throws DbalException
      */
     private function notFoundMessage(string $id): string
@@ -191,6 +196,12 @@ trait AppContainer
             $message .= sprintf(' (needed by "%s")', $stack[count($stack) - 2]);
         }
 
+        // Not a typo: the id exists behind the kernel but the compiler
+        // dropped it. Say exactly that instead of guessing near-misses.
+        if (null !== $hint = $this->fallbackRemovalHint($id)) {
+            return $message.' '.$hint;
+        }
+
         $known = [
             ...array_keys($this->services),
             ...array_keys($this->interfaceMap),
@@ -199,6 +210,14 @@ trait AppContainer
             ...array_keys($this->authenticators),
             ...array_keys($this->factories),
         ];
+
+        // A Symfony container behind this one lists its ids too, so a typo in
+        // a container.php service is caught by the same message.
+        if (null !== $this->fallbackContainer && method_exists($this->fallbackContainer, 'getServiceIds')) {
+            /** @var list<string> $fallbackIds */
+            $fallbackIds = $this->fallbackContainer->getServiceIds();
+            $known = [...$known, ...$fallbackIds];
+        }
 
         $alternatives = [];
         foreach (array_unique($known) as $candidate) {
@@ -216,6 +235,27 @@ trait AppContainer
         }
 
         return $message;
+    }
+
+    /**
+     * The actionable half of a miss: the id was declared in the Symfony
+     * container behind this one, but private, so the compiler removed it
+     * (or kept it injectable only). Null when that is not what happened.
+     */
+    private function fallbackRemovalHint(string $id): ?string
+    {
+        if (null === $this->fallbackContainer || !method_exists($this->fallbackContainer, 'getRemovedIds')) {
+            return null;
+        }
+
+        /** @var array<string, true> $removed */
+        $removed = $this->fallbackContainer->getRemovedIds();
+
+        if (!isset($removed[$id])) {
+            return null;
+        }
+
+        return sprintf('"%s" is declared in the Symfony container but private, so it cannot be fetched by id: mark it public, tag it "appkit.controller" or name it *Controller if it is one, or build the container with ContainerFactory(public: true).', $id);
     }
 
     /**
@@ -254,7 +294,22 @@ trait AppContainer
             || array_key_exists($id, $this->interfaceMap)
             || array_key_exists($id, $this->repositories())
             || isset($this->factories[$id])
-            || ($this->fallbackContainer?->has($id) ?? false);
+            || $this->fallbackHas($id);
+    }
+
+    /**
+     * Whether the container behind this one can actually hand out $id. A
+     * compiled ContainerBuilder still answers has() for a definition the
+     * compiler kept private and then throws on get(); a dumped container says
+     * no. Ask the same question of both.
+     *
+     * @phpstan-assert-if-true !null $this->fallbackContainer
+     */
+    private function fallbackHas(string $id): bool
+    {
+        return null !== $this->fallbackContainer
+            && $this->fallbackContainer->has($id)
+            && null === $this->fallbackRemovalHint($id);
     }
 
     public function setFallbackContainer(?ContainerInterface $container): static

@@ -38,9 +38,21 @@ trait AppControllers
      */
     public function controllerResolver(ServerRequestInterface $request): ResponseInterface
     {
-        $this->enforceAccessControl($request);
+        $stopwatch = $this->stopwatch();
 
-        $parameters = $this->router()->match($request);
+        $stopwatch->start('security.access_control', 'security');
+        try {
+            $this->enforceAccessControl($request);
+        } finally {
+            $stopwatch->stop('security.access_control');
+        }
+
+        $stopwatch->start('routing', 'routing');
+        try {
+            $parameters = $this->router()->match($request);
+        } finally {
+            $stopwatch->stop('routing');
+        }
 
         $controller = $parameters['_controller'] ?? null;
 
@@ -87,7 +99,12 @@ trait AppControllers
         // order of the method signature. array_values() would hand a route
         // parameter to the first argument whenever a resolver later in the
         // pipeline supplied an earlier parameter.
-        return $classObject->{$method}(...$arg);
+        $stopwatch->start('controller', 'controller');
+        try {
+            return $classObject->{$method}(...$arg);
+        } finally {
+            $stopwatch->stop('controller');
+        }
     }
 
     public function getController(string $id): object
@@ -99,6 +116,31 @@ trait AppControllers
         // Check request-scoped cache first
         if ($this->state()->hasRequestInstance($id)) {
             return $this->state()->getRequestInstance($id);
+        }
+
+        // A controller the fallback container declares (a Symfony-autowired
+        // controller, typically) is built there. The explicit map still wins:
+        // an entry in config/controllers.php is a decision, not a default.
+        if (!isset($this->controllers[$id]) && $this->fallbackHas($id)) {
+            $controller = $this->fallbackContainer->get($id);
+
+            if (!\is_object($controller)) {
+                throw new \LogicException(sprintf('The fallback container returned %s for controller "%s".', get_debug_type($controller), $id));
+            }
+
+            if ($controller instanceof AppAwareInterface) {
+                $controller->setSubscribedServices($this);
+            }
+
+            $this->state()->setRequestInstance($id, $controller);
+
+            return $controller;
+        }
+
+        // A controller the Symfony container declared but kept private would
+        // otherwise be rebuilt here by reflection, ignoring its definition.
+        if (!isset($this->controllers[$id]) && null !== $hint = $this->fallbackRemovalHint($id)) {
+            throw new \LogicException($hint);
         }
 
         $namedDependencies = $this->getControllerDependencies($id);

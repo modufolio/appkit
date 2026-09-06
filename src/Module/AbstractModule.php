@@ -132,18 +132,13 @@ abstract class AbstractModule implements ModuleInterface
     protected function validateConfig(array $declared): void
     {
         $known = $this->defaultConfig();
-        if ($known === []) {
+        if ([] === $known) {
             return;
         }
 
         $unknown = array_diff_key($declared, $known);
-        if ($unknown !== []) {
-            throw new \LogicException(sprintf(
-                'Unknown config key(s) [%s] declared for module "%s" in config/modules.php — known keys: [%s].',
-                implode(', ', array_keys($unknown)),
-                $this->name(),
-                implode(', ', array_keys($known)),
-            ));
+        if ([] !== $unknown) {
+            throw new \LogicException(sprintf('Unknown config key(s) [%s] declared for module "%s" in config/modules.php — known keys: [%s].', implode(', ', array_keys($unknown)), $this->name(), implode(', ', array_keys($known))));
         }
     }
 

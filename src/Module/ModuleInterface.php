@@ -19,11 +19,16 @@ use Modufolio\Appkit\DependencyInjection\ServiceConfigurator;
  * stay in lock-step.
  *
  * The contract borrows the shape of a bundle system, trimmed to AppKit's
- * scale and container — deliberately *not* named "bundle" because it is not a
- * Symfony bundle and takes no ContainerBuilder:
+ * scale and container:
  *   - wiring seam       → services(ServiceConfigurator, config)
  *   - runtime lifecycle → boot()/reset()          (for worker models)
  *   - path conventions  → *Paths() methods        (resolved from path())
+ * It takes no ContainerBuilder: the module contract, and AbstractModule, do
+ * not depend on symfony/dependency-injection. When an application opts in
+ * with Kernel::configureContainer(), the Symfony factory loads a module's
+ * `config/container.php` by convention, and a module that wants
+ * programmatic definitions or compiler passes additionally implements the
+ * separate {@see \Modufolio\Appkit\DependencyInjection\Symfony\ContainerBuilderAwareInterface}.
  *
  * @author    Maarten Thiebou
  * @copyright Modufolio

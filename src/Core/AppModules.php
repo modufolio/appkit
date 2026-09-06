@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modufolio\Appkit\Core;
 
+use Modufolio\Appkit\DependencyInjection\ContainerFactoryInterface;
 use Modufolio\Appkit\DependencyInjection\ServiceConfigurator;
 use Modufolio\Appkit\Module\ModuleRegistry;
 
@@ -33,7 +34,7 @@ trait AppModules
      */
     public function configureModules(?string $file = null): static
     {
-        $this->modules = ModuleRegistry::load($this->baseDir, $file ?? $this->baseDir.'/config/modules.php');
+        $this->modules = ModuleRegistry::load($this->baseDir, $file ?? $this->baseDir.'/config/modules.php', $this->environment());
 
         $configurator = new ServiceConfigurator();
         foreach ($this->modules as $module) {
@@ -74,9 +75,37 @@ trait AppModules
             }
         }
 
+        // Framework-owned per-request state: the request timeline and whatever
+        // the profiler buffered. The DebugStack stays the application's to
+        // reset, as it always was.
+        $this->stopwatch?->reset();
+        try {
+            $this->profiler?->reset();
+        } catch (\Throwable $e) {
+            $failure ??= $e;
+        }
+
         foreach ($this->modules as $module) {
             try {
                 $module->reset();
+            } catch (\Throwable $e) {
+                $failure ??= $e;
+            }
+        }
+
+        // A resettable container behind this one (Symfony's, typically) drops
+        // its service instances the same way a shared() service is dropped:
+        // one request, then rebuilt. Symfony's reset() drops synthetic
+        // instances too, so the kernel is handed back under the id the
+        // bridge published it as. Duck-typed: the kernel names no Symfony
+        // class, so it runs without symfony/dependency-injection installed.
+        if (null !== $this->fallbackContainer && method_exists($this->fallbackContainer, 'reset')) {
+            try {
+                $this->fallbackContainer->reset();
+
+                if (method_exists($this->fallbackContainer, 'set')) {
+                    $this->fallbackContainer->set(ContainerFactoryInterface::KERNEL_ID, $this);
+                }
             } catch (\Throwable $e) {
                 $failure ??= $e;
             }
