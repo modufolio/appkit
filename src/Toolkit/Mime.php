@@ -138,7 +138,11 @@ class Mime
             ],
         ];
 
-        if ($mode = ($map[$mime][$extension] ?? null)) {
+        // Guarded: a null mime or extension would index the map with null,
+        // which PHP 8.5 deprecates.
+        $mode = (null !== $mime && null !== $extension) ? ($map[$mime][$extension] ?? null) : null;
+
+        if ($mode) {
             if (true === is_callable($mode)) {
                 return $mode($file, $mime, $extension);
             }
@@ -168,10 +172,9 @@ class Mime
     {
         if (true === function_exists('finfo_file') && true === file_exists($file)) {
             $finfo = finfo_open(FILEINFO_MIME_TYPE);
-            $mime = finfo_file($finfo, $file);
-            finfo_close($finfo);
 
-            return $mime;
+            // No finfo_close(): the object frees itself, and 8.5 deprecates the call.
+            return finfo_file($finfo, $file);
         }
 
         return false;

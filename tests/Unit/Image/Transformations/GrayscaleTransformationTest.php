@@ -24,7 +24,6 @@ class GrayscaleTransformationTest extends TestCase
 
         $image = imagecreatetruecolor(10, 10);
         imagepng($image, $this->tmp.'/photo.png');
-        imagedestroy($image);
 
         file_put_contents($this->tmp.'/notes.txt', 'text');
 

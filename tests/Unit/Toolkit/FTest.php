@@ -574,7 +574,6 @@ class FTest extends TestCase
         $file = $this->tmp.'/no-extension';
         $image = imagecreatetruecolor(2, 2);
         imagepng($image, $file);
-        imagedestroy($image);
         $this->assertSame('image', F::type($file));
     }
 
@@ -673,6 +672,13 @@ class FTest extends TestCase
     {
         Dir::make($dir = $this->tmp.'/protected');
         chmod($dir, 0o555);
+
+        // Root writes into a mode-555 directory regardless (Docker, CI
+        // containers), so there is nothing to assert there.
+        if (is_writable($dir)) {
+            chmod($dir, 0o755);
+            self::markTestSkipped('chmod cannot take write access away from this user.');
+        }
 
         $file = $dir.'/write.txt';
 

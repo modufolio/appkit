@@ -72,7 +72,6 @@ class CropTransformationTest extends TestCase
     {
         $image = imagecreatetruecolor(10, 10);
         imagepng($image, $this->tmp.'/photo.png');
-        imagedestroy($image);
 
         $storage = new Storage();
         $file = new File($this->tmp.'/photo.png', 'default', $storage);

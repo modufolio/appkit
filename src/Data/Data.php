@@ -61,10 +61,13 @@ class Data
         // normalize the type
         $type = strtolower($type);
 
-        // find a handler or alias
-        $handler = static::$handlers[$type] ??
-            static::$handlers[static::$aliases[$type] ?? null] ??
-            null;
+        // find a handler, or the handler behind an alias — without ever
+        // indexing with null, which PHP 8.5 deprecates
+        $handler = static::$handlers[$type] ?? null;
+
+        if (null === $handler && isset(static::$aliases[$type])) {
+            $handler = static::$handlers[static::$aliases[$type]] ?? null;
+        }
 
         if (null === $handler) {
             throw new \RuntimeException('Missing handler for type: "'.$type.'"');

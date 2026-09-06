@@ -133,7 +133,6 @@ class GdLibTest extends TestCase
         $r = ($rgb >> 16) & 0xFF;
         $g = ($rgb >> 8) & 0xFF;
         $b = $rgb & 0xFF;
-        imagedestroy($image);
 
         $this->assertLessThanOrEqual(2, max($r, $g, $b) - min($r, $g, $b));
     }
@@ -170,7 +169,6 @@ class GdLibTest extends TestCase
         $gd = new GdLib();
 
         $method = new \ReflectionMethod(get_class($gd), 'sharpen');
-        $method->setAccessible(true);
 
         $simpleImage = new SimpleImageMock();
 
@@ -186,7 +184,6 @@ class GdLibTest extends TestCase
         $gd = new GdLib();
 
         $method = new \ReflectionMethod(get_class($gd), 'sharpen');
-        $method->setAccessible(true);
 
         $simpleImage = new SimpleImageMock();
 

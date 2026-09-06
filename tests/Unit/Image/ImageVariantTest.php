@@ -20,7 +20,6 @@ class ImageVariantTest extends TestCase
         $this->testFile = sys_get_temp_dir().'/appkit-'.uniqid().'.png';
         $image = imagecreatetruecolor(10, 10);
         imagepng($image, $this->testFile);
-        imagedestroy($image);
 
         $this->original = new File($this->testFile);
     }

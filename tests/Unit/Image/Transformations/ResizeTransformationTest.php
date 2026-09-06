@@ -75,7 +75,6 @@ class ResizeTransformationTest extends TestCase
         $imagePath = sys_get_temp_dir().'/appkit-'.uniqid().'.png';
         $image = imagecreatetruecolor(10, 10);
         imagepng($image, $imagePath);
-        imagedestroy($image);
 
         try {
             $storage = new Storage();

@@ -33,7 +33,6 @@ class PhotoLabTest extends TestCase
         $this->testImage = $this->tmp.'/uploads/photo.png';
         $image = imagecreatetruecolor(40, 30);
         imagepng($image, $this->testImage);
-        imagedestroy($image);
 
         $this->storage = new Storage(
             baseMediaRoot: $this->tmp.'/media',

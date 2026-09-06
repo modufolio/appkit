@@ -41,7 +41,6 @@ class ImageProcessorTest extends TestCase
         $this->testImage = $this->tmp.'/uploads/test-image.png';
         $image = imagecreatetruecolor(20, 20);
         imagepng($image, $this->testImage);
-        imagedestroy($image);
 
         $this->storage = new Storage(
             baseMediaRoot: $this->tmp.'/media',
@@ -165,6 +164,13 @@ class ImageProcessorTest extends TestCase
         $processor = new ImageProcessor($file, $this->jobStorage);
 
         chmod($this->testImage, 0o000);
+
+        // Root reads a mode-000 file regardless (Docker, CI containers), so
+        // there is nothing to assert there.
+        if (is_readable($this->testImage)) {
+            chmod($this->testImage, 0o644);
+            self::markTestSkipped('chmod cannot take read access away from this user.');
+        }
 
         try {
             $this->expectException(ImageException::class);
