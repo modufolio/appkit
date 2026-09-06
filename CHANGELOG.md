@@ -5,6 +5,129 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+## [0.16.0] - 2026-09-06
+
+### Added
+
+- **`Query\Segment` falls back to accessors.** A segment that names neither
+  a method nor a public property on an object now tries the conventional
+  `get`, `is` and `has` prefixes, reading `snake_case` as `camelCase`, so
+  `movie.released_on` reaches `getReleasedOn()` on a Doctrine entity the way
+  `page.title` reaches `title()` on a Kirby object. Only ever a fallback: an
+  object that names the method itself is never second-guessed. Alongside, a
+  property is read only when it is public — `property_exists()` said yes to a
+  private one and the read then threw before any fallback could run.
+
+- **Firewall-level user impersonation.** The `switch_user` firewall key is now
+  implemented rather than merely tolerated — previously it was accepted by the
+  config schema and silently ignored, so applications had to build the token by
+  hand. The switch must be a POST carrying a CSRF token; a `?_switch_user=`
+  query-string link is not honoured. See
+  [docs/security.md](docs/security.md#impersonation-switch-user).
+- `AccessDecisionEngine::isGranted(array $orGroup, ?TokenInterface $token)` —
+  decide a role or trust-level attribute group without throwing, sharing the
+  evaluator behind access-control rules and `#[IsGranted]`.
+- `SwitchUserToken::getOriginatedFromUri()` and the matching constructor
+  argument — the page the switch started from, used to return there on exit.
+  Appended last in the serialized payload, so existing sessions still restore.
+- **Trusted hosts.** `setRouterOptions(['trusted_hosts' => [...]])` is now
+  accepted by the kernel (the router already implemented the option but the
+  kernel rejected it). Entries are regular expressions such as
+  `^(.+\.)?example\.com$` (compiled case-insensitively, not anchored for
+  you), or the `example.com` / `*.example.com` shorthands. The host is
+  compared trimmed, lower-cased and without its port. Backed by the new
+  `Modufolio\Appkit\Http\TrustedHosts` value object. See
+  [docs/security.md](docs/security.md#trusted-hosts).
+- `Kernel::createState(ServerRequestInterface $request)` — builds the
+  request-scoped `NativeApplicationState` after checking the Host header
+  against the trusted-hosts allowlist. Use it in `handle()` instead of
+  constructing the state directly.
+- `Kernel::trustedHosts()`, `Kernel::assertTrustedHost()` and
+  `Router::trustedHosts()` expose the configured allowlist.
+- `UntrustedHostException` (400 Bad Request via the exception handler; the
+  rejected host is logged, not echoed).
+- `QueryBuilder::orderByAllowed(string $column, string $direction, array $allowed)`
+  — sort by a request-controlled column restricted to an allowlist, with
+  optional public-key → column mapping. Unknown keys throw an
+  `InvalidArgumentException` (→ 400).
+
+### Security
+
+- ⚠️ **Host-header poisoning of absolute URLs.** The `Host` header reached
+  `Kernel::baseUrl()`/`url()`, the template `url()` helper, absolute route
+  generation and the `requires_channel` https redirect unchecked, and the
+  router's `trusted_hosts` option — the only defence — could not be enabled
+  through the kernel. A request with `Host: attacker.example` therefore
+  produced `https://attacker.example/...` links (password-reset emails being
+  the classic target) and a `Location: https://attacker.example/...` upgrade
+  redirect. The option is now accepted, and once configured the kernel
+  rejects an unlisted host with 400 *before* request state is built
+  (`createState()`), again at the top of `handleAuthentication()` for
+  applications that build state by hand, and in the router itself. A host
+  that is not syntactically valid (hostname characters, an IPv4 address or a
+  bracketed IPv6 literal) is refused even without a list. Otherwise the
+  default (no list) is unchanged; configure it unless a proxy pins `Host`.
+- ⚠️ **`QueryBuilder` identifiers were raw SQL.** Table, column, alias and
+  join arguments — and comparison operators — were interpolated into DBAL
+  unescaped; only values were bound, so `orderBy($_GET['sort'])` was an SQL
+  injection. Identifiers are now validated against a strict grammar
+  (`name`, `alias.name`, `schema.table.name`, `*`, `alias.*`) and operators
+  against an allowlist; anything else throws an `InvalidArgumentException`.
+  Expressions must go through `selectRaw()` / `whereRaw()` /
+  `whereExpression()`, which remain raw by design. Existing code that passed
+  an expression to `select()`, `orderBy()` or `groupBy()` now throws — move it
+  to the raw method. `insert()`/`update()` column keys are validated too.
+- ⚠️ **The token deserialization allowlist was bypassable.** `UsernamePasswordToken`,
+  `ApiKeyToken`, `JwtToken` and `TwoFactorToken` ended `__unserialize()` with a
+  `unserialize($parentData)` fallback for a non-array parent slot. PHP applies
+  `allowed_classes` per call, so that nested call ran with the default
+  `allowed_classes: true` — a forged session value could construct any
+  autoloadable class and fire its `__wakeup`/`__destruct`, defeating the
+  allowlist `TokenUnserializer` exists to enforce. `__serialize()` always writes
+  an array there, so the fallback only ever served forged input; it now throws.
+  `SwitchUserToken` and `RememberMeToken` gained the same guard.
+- ⚠️ **2FA logins did not rotate the session id.** The kernel stored the pending
+  `_2fa_token` without calling `session()->migrate()`, which the password-only
+  path does. A pre-planted session id therefore survived password + TOTP and
+  ended up fully authenticated — enabling 2FA *removed* the session-fixation
+  protection a password-only login already had. The kernel now migrates (and
+  clears CSRF tokens) before binding the pending 2FA state.
+- ⚠️ **The remember-me secret was persisted in every session.**
+  `RememberMeToken::__serialize()` included the application-wide signing key, so
+  one read of the session store yielded cookie-forging capability for every
+  user. It is no longer serialized; `getSecret()` returns `''` on a restored
+  token, and sessions written by earlier versions still restore.
+- **HTTP Basic bypassed the CSRF check.** The ambient-credential CSRF rule keyed
+  on `RememberMeToken`, but `BasicAuthenticator` mints a plain
+  `UsernamePasswordToken` — and browsers re-attach cached Basic credentials on
+  their own. The rule now keys on the new
+  `Security\Authenticator\AmbientCredentialInterface`, implemented by
+  `RememberMeAuthenticator` and `BasicAuthenticator`. Custom authenticators
+  whose credential the browser attaches unprompted should implement it.
+
+### Changed
+
+- `setRouterOptions()` discards a router built from the previous options, so
+  options set after the first `router()` call now take effect instead of
+  being silently ignored.
+
+### Fixed
+
+- **PHP 8.5 deprecations.** `Data::handler()` indexed the handler map with
+  `null` when an alias was missing, `Mime::fix()`'s override map
+  was indexed with a null mime or extension, and `Mime::fromFileInfo()`
+  called `finfo_close()`, which 8.5 deprecates because the object frees
+  itself. All three are gone, as are the `imagedestroy()` and
+  `setAccessible()` calls in the test suite that have had no effect since
+  8.0 and 8.1. The unit suite runs clean on 8.5, and the two tests that take
+  read or write access away with chmod skip themselves where the user is
+  root, since chmod cannot take anything away from root.
+- Firewall config validation now type-checks the `switch_user` section and
+  fills in its defaults, instead of passing it through as an unrecognised
+  application key.
+
 ## [0.15.0] - 2026-09-01
 
 ### Added
