@@ -74,11 +74,43 @@ class PrepareResponse implements PrepareResponseInterface
                 $response = $response->withStatus(303);
             }
 
+            // One URL answers HTML or JSON depending on X-Inertia (and on
+            // Accept), so a cache in between must key on both. Merged, not
+            // set: an adapter upstream may already have named X-Inertia.
             $response = $response
-                ->withHeader('Vary', 'Accept')
+                ->withHeader('Vary', self::vary($response, ['Accept', 'X-Inertia']))
                 ->withHeader('X-Inertia', 'true');
         }
 
         return $this->profiler?->collect($request, $response) ?? $response;
+    }
+
+    /**
+     * The Vary header with the given names added once each, in the order
+     * they were first seen.
+     *
+     * @param list<string> $names
+     */
+    private static function vary(ResponseInterface $response, array $names): string
+    {
+        $values = [];
+
+        foreach ($response->getHeader('Vary') as $line) {
+            foreach (explode(',', $line) as $value) {
+                $value = trim($value);
+
+                if ($value !== '' && !in_array(strtolower($value), array_map('strtolower', $values), true)) {
+                    $values[] = $value;
+                }
+            }
+        }
+
+        foreach ($names as $name) {
+            if (!in_array(strtolower($name), array_map('strtolower', $values), true)) {
+                $values[] = $name;
+            }
+        }
+
+        return implode(', ', $values);
     }
 }
