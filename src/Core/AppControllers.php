@@ -6,6 +6,8 @@ namespace Modufolio\Appkit\Core;
 
 use Modufolio\Appkit\Attributes\Service;
 use Modufolio\Appkit\DependencyInjection\ReflectionControllerArgumentResolver;
+use Modufolio\Appkit\Http\ResponsableInterface;
+use Modufolio\Appkit\Inertia\Inertia;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
@@ -101,10 +103,36 @@ trait AppControllers
         // pipeline supplied an earlier parameter.
         $stopwatch->start('controller', 'controller');
         try {
-            return $classObject->{$method}(...$arg);
+            $result = $classObject->{$method}(...$arg);
         } finally {
             $stopwatch->stop('controller');
         }
+
+        // A controller may hand back what the response is made of instead of
+        // the response itself, and the kernel finishes it here with the
+        // request it is handling. An Inertia page first of all: the renderer
+        // the host wired builds the page object against the request's
+        // partial-reload headers, as JSON or inside the host's document.
+        if ($result instanceof Inertia) {
+            $result = $this->inertia()->respond($result, $request);
+        }
+
+        if ($result instanceof ResponsableInterface) {
+            $result = $result->toResponse($request);
+        }
+
+        if (!$result instanceof ResponseInterface) {
+            throw new \LogicException(sprintf(
+                '%s::%s() must return a response, an %s page or a %s, %s returned.',
+                $class,
+                $method,
+                Inertia::class,
+                ResponsableInterface::class,
+                get_debug_type($result),
+            ));
+        }
+
+        return $result;
     }
 
     public function getController(string $id): object
@@ -128,7 +156,7 @@ trait AppControllers
                 throw new \LogicException(sprintf('The fallback container returned %s for controller "%s".', get_debug_type($controller), $id));
             }
 
-            if ($controller instanceof AppAwareInterface) {
+            if ($controller instanceof AbstractController) {
                 $controller->setSubscribedServices($this);
             }
 
@@ -322,7 +350,10 @@ trait AppControllers
     {
         $controller = new $id(...$resolved);
 
-        if ($controller instanceof AppAwareInterface) {
+        // The base controller is the one place the kernel hands services to
+        // an instance after construction; a controller wanting anything else
+        // declares it in its constructor.
+        if ($controller instanceof AbstractController) {
             $controller->setSubscribedServices($this);
         }
 

@@ -26,6 +26,16 @@ return [
         'methods' => ['GET', 'POST'],
         'controller' => [TestController::class, 'public'],
     ],
+    'public_responsable' => [
+        'pattern' => '/public/responsable',
+        'methods' => ['GET'],
+        'controller' => [TestController::class, 'responsable'],
+    ],
+    'public_inertia' => [
+        'pattern' => '/public/inertia',
+        'methods' => ['GET'],
+        'controller' => [TestController::class, 'inertia'],
+    ],
     'submit' => [
         'pattern' => '/submit',
         'methods' => ['POST'],

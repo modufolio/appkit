@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modufolio\Appkit\Tests\Unit\Module;
 
 use Modufolio\Appkit\Core\Environment;
+use Modufolio\Appkit\Inertia\InertiaModule;
 use Modufolio\Appkit\Module\ModuleRegistry;
 use Modufolio\Appkit\Tests\App\Module\Bare\BareModule;
 use Modufolio\Appkit\Tests\App\Module\Demo\DemoModule;
@@ -29,9 +30,10 @@ class ModuleRegistryTest extends TestCase
     {
         $modules = ModuleRegistry::load('base-a', self::MANIFEST);
 
-        $this->assertCount(2, $modules);
+        $this->assertCount(3, $modules);
         $this->assertInstanceOf(DemoModule::class, $modules[0]);
         $this->assertInstanceOf(BareModule::class, $modules[1]);
+        $this->assertInstanceOf(InertiaModule::class, $modules[2]);
 
         $this->assertSame(['per_page' => 25], ModuleRegistry::configFor('base-a', $modules[0]));
         $this->assertSame([], ModuleRegistry::configFor('base-a', $modules[1]));
@@ -60,7 +62,7 @@ class ModuleRegistryTest extends TestCase
     {
         $modules = ModuleRegistry::load('base-a', self::MANIFEST, Environment::PROD);
 
-        $this->assertCount(2, $modules);
+        $this->assertCount(3, $modules);
         $this->assertNull(ModuleRegistry::environmentsFor('base-a', $modules[0]));
         $this->assertSame([], ModuleRegistry::inactive('base-a'));
     }

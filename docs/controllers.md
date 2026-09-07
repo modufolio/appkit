@@ -25,6 +25,12 @@ class AboutController extends AbstractController
 }
 ```
 
+## Returning a page instead of a response
+
+A controller may return an `Inertia` page (`Inertia::render($component,
+$props)`) or any `Http\ResponsableInterface`; the kernel turns it into the
+response with the request it is handling. See [Inertia](inertia.md).
+
 ## What `AbstractController` provides
 
 `AbstractController` receives framework services via `setSubscribedServices()`, called automatically by the Kernel on instantiation. These protected properties are available in every controller method:
@@ -37,6 +43,7 @@ class AboutController extends AbstractController
 | `$urlGenerator` | `UrlGeneratorInterface` | Route URL generator |
 | `$userProvider` | `UserProviderInterface` | Load users by identifier |
 | `$validator` | `ValidatorInterface` | Symfony validator |
+| `$inertia` | `InertiaRenderer` | Set when the host wired Inertia; `flash()` before a redirect |
 
 One method is available for getting the current user:
 
@@ -228,7 +235,7 @@ public function list(#[MapFilter] PostFilter $filter): ResponseInterface
 
 ## Constructor dependencies
 
-If your controller needs services beyond what `AbstractController` provides, declare them as constructor arguments and wire them in `config/controllers.php`.
+If your controller needs services beyond what `AbstractController` provides, declare them as constructor arguments and wire them in `config/controllers.php`. An application that uses [the Symfony container behind the kernel](dependency-injection.md#the-symfony-container-behind-the-kernel) can let it autowire the controller instead — `load()` over `src/Controller/` — and an entry in `controllers.php` still wins for any controller it names.
 
 ```php
 class PostController extends AbstractController

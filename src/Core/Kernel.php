@@ -15,9 +15,10 @@ use Modufolio\Appkit\Doctrine\Middleware\Debug\DebugStack;
 use Modufolio\Appkit\Exception\ExceptionHandler;
 use Modufolio\Appkit\Exception\ExceptionHandlerInterface;
 use Modufolio\Appkit\Http\TrustedHosts;
+use Modufolio\Appkit\Inertia\InertiaModule;
+use Modufolio\Appkit\Inertia\InertiaRenderer;
 use Modufolio\Appkit\Module\ModuleInterface;
 use Modufolio\Appkit\Resolver\ParameterResolverInterface;
-use Modufolio\Appkit\Routing\Router;
 use Modufolio\Appkit\Routing\RouterInterface;
 use Modufolio\Appkit\Security\AccessControl\AccessDecisionEngine;
 use Modufolio\Appkit\Security\Csrf\CsrfTokenManager;
@@ -28,7 +29,6 @@ use Modufolio\Appkit\Security\TokenUnserializer;
 use Modufolio\Appkit\Security\User\UserProviderInterface;
 use Modufolio\Psr7\Http\Emitter;
 use Modufolio\Psr7\Http\EmitterInterface;
-use Modufolio\Psr7\Http\Response;
 use Modufolio\Psr7\Http\ServerRequest;
 use Modufolio\Psr7\Http\Stream;
 use Modufolio\Psr7\Http\Uri;
@@ -481,6 +481,21 @@ abstract class Kernel implements AppInterface
         return new CsrfTokenManager($this->session());
     }
 
+    /**
+     * What finishes the Inertia pages controllers return: the host wires it
+     * by listing {@see InertiaModule} in
+     * config/modules.php (or declaring InertiaRenderer in config/services.php).
+     */
+    #[Service]
+    public function inertia(): InertiaRenderer
+    {
+        if (!$this->has(InertiaRenderer::class)) {
+            throw new \LogicException(sprintf('A controller returned an Inertia page, but Inertia is not wired: list %s in config/modules.php, or declare %s in config/services.php.', InertiaModule::class, InertiaRenderer::class));
+        }
+
+        return $this->get(InertiaRenderer::class, InertiaRenderer::class);
+    }
+
     // ============================================================================
     // STATE MANAGEMENT
     // ============================================================================
@@ -543,7 +558,7 @@ abstract class Kernel implements AppInterface
         $this->assertTrustedHost($request);
 
         // The timeline is request-scoped like the state: a new request starts
-        // it empty, whether or not the runtime called reset() in between.
+        // it empty, whether the runtime called reset() in between.
         $this->stopwatch?->reset();
 
         return new NativeApplicationState($request, $this->baseDir, $this->firewallConfig, $this->varDir());

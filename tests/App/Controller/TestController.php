@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Modufolio\Appkit\Tests\App\Controller;
 
+use Modufolio\Appkit\Http\ResponsableInterface;
+use Modufolio\Appkit\Inertia\Inertia;
 use Modufolio\Psr7\Http\Response;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -35,6 +37,26 @@ class TestController
     public function submit(ServerRequestInterface $request): ResponseInterface
     {
         return new Response(200, [], 'Submitted');
+    }
+
+    /**
+     * Not a response but something that becomes one: the kernel converts it
+     * with the request it is handling.
+     */
+    public function responsable(ServerRequestInterface $request): ResponsableInterface
+    {
+        return new class implements ResponsableInterface {
+            public function toResponse(ServerRequestInterface $request): ResponseInterface
+            {
+                return new Response(200, ['X-Converted-For' => $request->getUri()->getPath()], 'converted');
+            }
+        };
+    }
+
+    /** An Inertia page, finished by the kernel with the renderer the test app wired. */
+    public function inertia(ServerRequestInterface $request): Inertia
+    {
+        return Inertia::render('Test/Page', ['a' => 1, 'lazy' => fn () => 'computed'])->flash('saved', true);
     }
 
     public function public(ServerRequestInterface $request): ResponseInterface

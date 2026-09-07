@@ -39,7 +39,7 @@ class ModulesListCommandTest extends TestCase
         $this->assertStringContainsString('DemoModule', $display);
         $this->assertStringContainsString('per_page', $display);
         $this->assertStringContainsString('1 controllers', $display);
-        $this->assertStringContainsString('2 module(s)', $display);
+        $this->assertStringContainsString('3 module(s)', $display);
     }
 
     public function testAnEmptyManifestSaysSoInsteadOfPrintingAnEmptyTable(): void
