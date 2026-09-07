@@ -9,6 +9,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Inertia is part of the kernel.** `Modufolio\Appkit\Inertia` carries the
+  Inertia 3.0 server protocol, as `@inertiajs/*` 3.0 reads it: the page
+  object with partial reloads matching dot paths at any depth,
+  `Inertia::optional()`, `defer()` (groups, `rescue`), `always()`, `merge()`
+  / `deepMerge()` (`prepend()`, `append()`, `matchOn()`), `once()` (`as()`,
+  `until()`, `fresh()`) and `scroll()` with `ScrollMetadata`; `sharedProps`,
+  `flash`, `preserveFragment`, history flags, error bags, the asset-version
+  handshake (409 + `X-Inertia-Location`), `Inertia::location()`, and the
+  boot snippet in the script-element form the 3.0 client reads. A controller
+  returns `Inertia::render($component, $props)` — a plain value — and the
+  kernel finishes it with the `InertiaRenderer` the host wired, against the
+  request it is handling. `Kernel::inertia()` is that renderer, a `#[Service]`
+  accessor; `AbstractController` offers it as `$this->inertia`, for
+  `flash()` before a redirect. `InertiaModule` (config/modules.php,
+  `version` / `version_file`) builds the renderer from the host's
+  `RootViewInterface`, optional `SharedPropsInterface` and flash store
+  (`FlashStoreInterface`; the session's flash bag by default).
+  `Testing\InertiaPage` reads a page back out of a response, JSON or document.
+- **A controller may return an `Http\ResponsableInterface`** instead of a
+  finished response: the kernel calls `toResponse()` with the request it is
+  handling. The generic seam beside Inertia — a download that needs the
+  request, a document that negotiates its format. Anything else than a
+  response, an Inertia page or a responsable is refused with a message
+  naming the method.
+- **`modufolio/http` is a runtime requirement (`^0.2`).** The kernel builds
+  its responses with it; it had been listed under require-dev at `^0.1.0`.
+
+### Removed
+
+- **`AppAwareInterface`.** The kernel hands services to one class after
+  construction — `AbstractController`, whose `setSubscribedServices()` is
+  final — so nothing else can be handed the whole app. A controller that
+  needs anything beyond the base controller's services declares it in its
+  constructor and in `config/controllers.php`.
+
+### Fixed
+
+- **`PrepareResponse` merges `Vary` instead of replacing it.** An Inertia
+  response now varies on `Accept` *and* `X-Inertia`, and a `Vary` set
+  upstream is kept rather than overwritten.
+
+### Added
+
 - **The Symfony container as an optional second layer, and modules as
   bundles.** `Kernel::configureContainer(new ContainerFactory())` puts a
   Symfony `ContainerBuilder` behind the kernel: `config/container.php`

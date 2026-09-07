@@ -188,6 +188,12 @@ Clear the router cache:
 rm -rf var/cache/prod/router/
 ```
 
+If the application uses [the Symfony container behind the kernel](dependency-injection.md#the-symfony-container-behind-the-kernel), the compiled container lives next to it. A changed module set (`config/modules.php`) rebuilds it on its own — a hash of the resolved manifest sits beside the class — but a changed `config/container.php` or a module's `container.php` does not, so clear it on deploy:
+
+```bash
+rm -rf var/cache/prod/container/
+```
+
 ## RoadRunner
 
 > **Reference implementation:** [`modufolio/appkit-roadrunner`](https://github.com/modufolio/appkit-roadrunner)
