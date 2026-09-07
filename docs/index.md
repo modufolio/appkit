@@ -1,6 +1,6 @@
 # AppKit
 
-AppKit is a lean PHP framework for building modern web applications. It works well with [Inertia.js](https://inertiajs.com/) and Vue.js — controllers return JSON props to Inertia while the PHP template engine handles server-rendered views. Routes are declared with attributes, dependencies are wired in config files. No magic, no auto-wiring surprises.
+AppKit is a lean PHP framework for building modern web applications. It works well with [Inertia.js](https://inertiajs.com/) and Vue.js — controllers return JSON props to Inertia while the PHP template engine handles server-rendered views. Routes are declared with attributes, dependencies are wired in config files. No magic, no auto-wiring surprises — and when an application grows past hand-wiring, Symfony's DI container is one line away, behind the kernel rather than in front of it.
 
 AppKit makes deliberate choices to stay small and fast. There is no application-level event bus — extension happens through named interfaces, plus Doctrine's lifecycle events at the persistence layer. If you need a full event system, use Symfony.
 
@@ -9,6 +9,8 @@ AppKit makes deliberate choices to stay small and fast. There is no application-
 **Your App class is the container.** Symfony compiles a container class you never read; Laravel hides its container behind facades. In AppKit, the container is a class you write: services are typed methods on your `App`, lazily constructed and cached in properties you can see. `config/services.php` is the thin layer that answers `get()` calls — controller dependencies and package interfaces — mostly by delegating to those methods. There is nothing to compile because you already wrote what a compiler would generate.
 
 **Explicit over implicit.** Every dependency is declared in a config file or an `App` method you can open and read top to bottom. There is no classpath scanning, no annotation magic, no container that builds itself at runtime. You can grep any interface name and find exactly where it is wired.
+
+**Grows with the application.** Creating services on the kernel is the right size for a small application, and it stays right for the core of a large one. When the graph gets bigger — autowired service trees, tagged services collected by compiler passes, modules that ship their own definitions — Symfony's DI container is the best answer, and AppKit does not pretend otherwise: `Kernel::configureContainer()` puts it *behind* the kernel. The kernel resolves everything it declares itself; only an unknown id reaches Symfony; nothing Symfony does can override a line in `config/services.php` or an `App` method. The explicit layer stays the one you read first, and the compiled layer takes what benefits from compilation. See [The Symfony container behind the kernel](dependency-injection.md#the-symfony-container-behind-the-kernel).
 
 **Readable auth flow.** AppKit does not use a PSR-15 middleware pipeline for authentication. Middleware pipelines are order-dependent — move one layer and authentication silently breaks. A fixed pipeline solves the ordering problem but hides the flow across multiple classes. AppKit's authentication lives in one place and reads as a straight sequence: restore session → run authenticators → enforce access control → resolve controller. You can follow it in the source without jumping between files. This is the default, not a wall: your `App` implements `handle()` itself (it is a PSR-15 request handler), so when a project genuinely needs a middleware stack you can wrap one around the kernel flow in your own `handle()` — AppKit simply doesn't impose one.
 
@@ -21,7 +23,7 @@ AppKit makes deliberate choices to stay small and fast. There is no application-
 ## What you get
 
 - Attribute-based routing via Symfony Routing
-- Explicit, hand-wired dependency injection through config files — no auto-wiring
+- Explicit, hand-wired dependency injection through config files — with Symfony's DI container as an opt-in layer behind the kernel for applications that outgrow it
 - Inertia.js-compatible JSON responses out of the box
 - PHP template engine for server-rendered views
 - Form login, HTTP Basic, API key, JWT, OAuth 2.1 (your app as provider), "Sign in with Google", remember-me, and TOTP two-factor authentication
@@ -49,6 +51,7 @@ AppKit makes deliberate choices to stay small and fast. There is no application-
 | [Kernel](kernel.md) | The Kernel: request lifecycle, service container, boot |
 | [Routing](routing.md) | Declaring routes, route parameters, access control |
 | [Controllers](controllers.md) | Writing controllers and using parameter attributes |
+| [Inertia](inertia.md) | Returning Inertia pages; the renderer, the module, shared props, flash |
 | [Dependency injection](dependency-injection.md) | The App-class container, `services.php`, controller wiring |
 | [Modules](modules.md) | Self-contained feature packages: manifest, conventions, lifecycle |
 | [Templates](templates.md) | Layouts, snippets, sections, and asset helpers |

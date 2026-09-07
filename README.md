@@ -8,7 +8,8 @@
 A small, hand-wired PHP application kernel built on Symfony components,
 Doctrine ORM, Firebase JWT, and a strict-typed PSR-7 fork. Designed for
 security-conscious SaaS applications that want Symfony-grade components
-without Symfony's full kernel, bundle system, and compile step.
+without Symfony's full kernel, bundle system, and compile step — until the
+application is big enough to want the last two, at which point it opts in.
 
 **In AppKit, your App class is the container.** Symfony compiles a container
 class you never read; Laravel hides its container behind facades. Here the
@@ -16,6 +17,14 @@ container is a class you write: services are typed methods on your `App`,
 lazily constructed and cached in properties you can see. There is nothing to
 compile, because you already wrote what a compiler would generate — and
 `grep` is the container debugger.
+
+That is the right size for a small application, and it stays the kernel's
+model at every size. When the service graph outgrows hand-wiring — autowired
+trees, tags, compiler passes, modules that ship their own definitions — the
+application puts Symfony's DI container *behind* the kernel with one line.
+The kernel keeps first say on every id it declares; only an unknown id
+reaches Symfony. See
+[The Symfony container behind the kernel](docs/dependency-injection.md#the-symfony-container-behind-the-kernel).
 
 ## Why it exists
 
@@ -58,8 +67,10 @@ Each of these is a stated choice with a documented alternative, not a gap:
 
 ## What it solves
 
-- **Fast boot.** No DI compile step, no cache invalidation. Config files are
-  loaded with `require`; OPcache handles the rest.
+- **Fast boot.** No DI compile step, no cache invalidation, by default.
+  Config files are loaded with `require`; OPcache handles the rest. The
+  opt-in Symfony container is compiled per boot outside prod and dumped
+  once in prod.
 - **Transparent control flow.** No event dispatcher by design. Reading
   `handleAuthentication()` top-to-bottom shows exactly what runs.
 - **RoadRunner-aware.** Every stateful service implements
@@ -121,6 +132,7 @@ Full guides under [docs/](docs/index.md):
 - [Kernel](docs/kernel.md) — request lifecycle, service container, boot
 - [Routing](docs/routing.md) — routes, parameters, access control
 - [Controllers](docs/controllers.md) — controllers and parameter attributes
+- [Inertia](docs/inertia.md) — returning Inertia pages, the renderer, the module
 - [Dependency injection](docs/dependency-injection.md) — wiring services with config files
 - [Templates](docs/templates.md) — layouts, snippets, sections, asset helpers
 - [Security](docs/security.md) — firewalls, access control, CSRF, roles, trust levels
