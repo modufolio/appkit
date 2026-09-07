@@ -421,8 +421,8 @@ return static function (ContainerConfigurator $container): void {
 A controller the Symfony container knows is built there — autowired — the
 moment a route names it, before the reflection fallback is considered. An
 entry in `config/controllers.php` still wins: the explicit map is a decision,
-not a default. Container-built controllers that implement `AppAwareInterface`
-receive the app like any other.
+not a default. A container-built controller extending `AbstractController`
+receives the base services like any other.
 
 ### What the Symfony side sees of the kernel
 

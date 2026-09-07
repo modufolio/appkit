@@ -62,7 +62,7 @@ class SymfonyContainerTest extends AppTestCase
 
         $this->assertInstanceOf(GreeterController::class, $controller);
         $this->assertInstanceOf(Greeter::class, $controller->greeter, 'Autowired by Symfony, public by the Controller suffix.');
-        $this->assertSame($this->app(), $controller->app, 'AppAware still applies to a container-built controller.');
+        $this->assertSame($this->app()->get(Greeter::class), $controller->greeter, 'Autowired from the container.');
         $this->assertSame($controller, $this->app()->getController(GreeterController::class), 'Cached per request like any controller.');
     }
 
