@@ -7,6 +7,86 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **The Symfony container as an optional second layer, and modules as
+  bundles.** `Kernel::configureContainer(new ContainerFactory())` puts a
+  Symfony `ContainerBuilder` behind the kernel: `config/container.php`
+  declares services with the Symfony PHP DSL (autowiring, `load()` over a
+  directory, tags, compiler passes), and every module contributes its own
+  `config/container.php` — loaded by the factory by convention — plus, for a
+  module that implements the optional `ContainerBuilderAwareInterface`, a
+  `build(ContainerBuilder, array $config)` hook next to `loadServices()`.
+  The module contract and `AbstractModule` take no `ContainerBuilder` and
+  stay free of `symfony/dependency-injection`; the kernel is fully usable
+  without the package. Nothing on the kernel side changes: it keeps answering every id it
+  declares itself, and only an unknown id reaches the Symfony container;
+  `getController()` builds a controller the Symfony container knows
+  (autowired) before the reflection fallback. The bridge exposes the kernel's
+  services to the Symfony graph — every declared id and every `#[Service]`
+  accessor with a class return type, as *non-shared* factory services, so a
+  Symfony service autowires `EntityManagerInterface` or `ThumbnailGenerator`
+  and receives whatever the kernel hands out for the current request. The
+  kernel itself is never bridged under its own type; `appkit.kernel` is the
+  PSR-11 escape hatch. Module config arrives as the parameters
+  `module.<name>` and `module.<name>.<key>`, alongside `kernel.base_dir`,
+  `kernel.environment`, `kernel.debug`, `kernel.cache_dir`, `kernel.var_dir`.
+  Every definition is public by default because the kernel fetches by id
+  (`PublicServicesPass`; `public: false` keeps Symfony's private default for
+  everything but controllers). Outside prod the compiled builder is the
+  runtime container, so edits need no cache clear; in prod the container is
+  dumped to `var/cache/prod/container/` (`dump:` forces either mode).
+  `resetModules()` resets the Symfony container between requests, so its
+  services live one request like a `shared()` service. Unknown-id messages
+  suggest Symfony ids too. `symfony/dependency-injection` is suggested, not
+  required: an application that never calls `configureContainer()` needs
+  nothing. New: `DependencyInjection\ContainerFactoryInterface`,
+  `DependencyInjection\Symfony\{ContainerFactory, ContainerBuilderAwareInterface,
+  PublicServicesPass, UserProviderPass}`, `Kernel::{configureContainer, modules,
+  declaredServiceIds, serviceAccessors}`, `ContainerFactory::manifestHash()`.
+  The other direction — Symfony in front, the kernel behind — was tried and
+  costs every application a kernel rewrite; the fallback is the settled one.
+- **Per-environment modules.** The reserved manifest key `envs` limits an
+  entry to the environments it lists (`DebugModule::class => ['envs' =>
+  ['dev', 'test'], …]`); the key never reaches the module's config. A gated
+  entry outside its environments is not instantiated at all.
+  `ModuleRegistry::load()` takes the `Environment` (the kernel passes its
+  own; default `APP_ENV`), `environmentsFor()` and `inactive()` expose the
+  gate to tooling, and `modules:list` gained an *Envs* column plus the
+  entries left out of the current environment. Invalid `envs` values fail
+  with the manifest's aggregate error.
+- **The profiling seam.** `Kernel::stopwatch()` (a `symfony/stopwatch`
+  instance, now a dependency) records the phases the kernel owns —
+  `security.session`, `security.authenticate`, `security.access_control`,
+  `routing`, `controller` — and `Kernel::profiler()` is a
+  `Debug\ProfilerInterface` whose `collect(request, response)`
+  `PrepareResponse` calls once the response is final, returning the response
+  to send. The default is `Debug\NullProfiler`; install one with
+  `Kernel::setProfiler()` (from a module's `boot()`, or the app factory after
+  `boot()`). `resetModules()` resets both between requests. In `dev` the
+  `DebugStack` records each query's application origin (`Query::$file`,
+  `Query::$line`; `DebugStack::collectOrigin()`), so an N+1 report can name
+  the loop. Both core ids (`ProfilerInterface`, `Stopwatch`) are injectable.
+  See [docs/kernel.md](docs/kernel.md#the-profiling-seam).
+- **Framework-owned tags.** `appkit.controller` keeps a definition reachable
+  as a controller under `ContainerFactory(public: false)` (the tag was
+  documented before but never checked); `appkit.user_provider` elects the
+  firewall's user provider inside the Symfony graph: `UserProviderPass`
+  aliases `UserProviderInterface` to the single tagged service and publishes
+  it as `appkit.user_provider`, so an application's `userProvider()` can be
+  `return $this->get('appkit.user_provider')`. Two tagged providers fail at
+  compile time.
+- **Cache coherence for the dumped container.** A hash of the resolved module
+  set (class + merged config per module) is written beside the compiled
+  class; a mismatch rebuilds the container in every environment, prod
+  included, so a changed `config/modules.php` can never leave the kernel and
+  the Symfony container disagreeing about which modules exist.
+- **Actionable misses on private services.** Fetching an id the Symfony
+  compiler kept private (`public: false`) now fails with "declared but
+  private — mark it public, tag it `appkit.controller`, or use
+  `public: true`" instead of a did-you-mean guess, and `getController()`
+  refuses to rebuild such a controller by reflection behind its definition.
+
 ## [0.16.0] - 2026-09-06
 
 ### Added

@@ -2,7 +2,7 @@
 
 A module is a self-contained package that plugs its own services, controllers, entities, migrations, templates and translations into an application without living under the app's namespace. Use one when a feature is a reusable unit — a user directory, a blog, a media library — that more than one application should be able to install by adding a single line to a manifest.
 
-The contract deliberately borrows the *shape* of a bundle system while staying on AppKit's container: there is no `ContainerBuilder`, no compile step, and nothing to cache-clear. A module contributes closures to the same `ServiceConfigurator` your `config/services.php` uses. It is called a module — not a bundle — precisely because it is not a Symfony bundle.
+The contract borrows the *shape* of a bundle system while staying on AppKit's container: a module contributes closures to the same `ServiceConfigurator` your `config/services.php` uses, with no compile step and nothing to cache-clear. It is called a module rather than a bundle because that is all it has to be. An application that puts [the Symfony container behind the kernel](dependency-injection.md#the-symfony-container-behind-the-kernel) gets the other half too: the same module then contributes to a `ContainerBuilder` like a bundle would — see [Modules as bundles](#modules-as-bundles).
 
 ## Registering modules
 
@@ -26,6 +26,22 @@ $app->configureModules()                        // config/modules.php
 ```
 
 The override order is: kernel core services → module definitions → the application's `config/services.php`. Your app can re-declare any id a module set, the same way it overrides a kernel core service. `configureModules()` accepts an explicit manifest path for layouts where config does not live at `<baseDir>/config`.
+
+### Per-environment modules
+
+The reserved config key `envs` limits an entry to the environments it names — the case for a profiler or a fixture loader that must not exist in prod:
+
+```php
+return [
+    \Modufolio\User\UserModule::class,                       // every environment
+    \Modufolio\Clockwork\ClockworkModule::class => [
+        'envs' => ['dev', 'test'],                             // only here
+        'max_profiles' => 100,                                 // ordinary config
+    ],
+];
+```
+
+The key is the manifest's, not the module's: it is read and removed before the config reaches `defaultConfig()`, so a module never sees it. An entry outside its environments is not instantiated at all — no services, routes, entities or migrations — as if the line were not there; a module listed for every environment that `requires()` a dev-only one therefore fails in prod with the usual "not listed" error, which is the right outcome. `modules:list` shows each module's gate and the entries left out of the current environment. The environment is the kernel's (`APP_ENV`); the Symfony container's cache hash covers the resolved set, so a prod dump can never include a dev module.
 
 ## Writing a module
 
@@ -72,7 +88,7 @@ public function requires(): array
 }
 ```
 
-The registry never loads or reorders anything — the manifest order stays authoritative. It only *verifies* that each required module is listed, and listed **before** the requirer, and refuses the manifest otherwise. Since `config/modules.php` is plain PHP, environment-conditional module sets are just code — return a different list for an HTTP worker than for a queue worker, or gate an entry on `env('APP_ENV')`.
+The registry never loads or reorders anything — the manifest order stays authoritative. It only *verifies* that each required module is listed, and listed **before** the requirer, and refuses the manifest otherwise. Since `config/modules.php` is plain PHP, conditional module sets beyond the [`envs` key](#per-environment-modules) are just code — return a different list for an HTTP worker than for a queue worker.
 
 ### The phase contract
 
@@ -119,6 +135,79 @@ protected function loadServices(ServiceConfigurator $services, array $config): v
     $services->set(FeedRenderer::class, fn () => new FeedRenderer($config['per_page']));
 }
 ```
+
+### Modules as bundles
+
+When the application opted in to [the Symfony container behind the
+kernel](dependency-injection.md#the-symfony-container-behind-the-kernel), a
+module is also a bundle: the factory loads `<module>/config/container.php`
+with the Symfony PHP DSL, and a module that implements the optional
+`DependencyInjection\Symfony\ContainerBuilderAwareInterface` gets `build()`
+called for programmatic definitions and compiler passes — the Symfony-side
+counterparts of `config/services.php` and `loadServices()`. The module
+contract and `AbstractModule` know nothing of Symfony: a module that ships
+only `container.php` needs no interface and no dependency.
+
+```php
+// modules/blog/config/container.php
+use Modufolio\Blog\Service\Feed;
+use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
+
+return static function (ContainerConfigurator $container): void {
+    $container->services()
+        ->set(Feed::class)
+            ->autowire()
+            ->args(['$perPage' => '%module.blog.per_page%']);
+};
+```
+
+```php
+use Modufolio\Appkit\DependencyInjection\Symfony\ContainerBuilderAwareInterface;
+use Symfony\Component\DependencyInjection\ContainerBuilder;
+
+final class BlogModule extends AbstractModule implements ContainerBuilderAwareInterface
+{
+    public function build(ContainerBuilder $container, array $config): void
+    {
+        $container->addCompilerPass(new RegisterFeedFormatsPass());
+    }
+}
+```
+
+A module that owns the users tags its provider, and the application's
+`userProvider()` fetches it by the published id without naming the module:
+
+```php
+// modules/user/config/container.php
+return static function (ContainerConfigurator $container): void {
+    $container->services()
+        ->set(UserRepository::class)
+            ->factory([service(EntityManagerInterface::class), 'getRepository'])
+            ->args([User::class])
+            ->tag('appkit.user_provider');
+};
+```
+
+```php
+// src/App.php
+public function userProvider(): UserProviderInterface
+{
+    return $this->get('appkit.user_provider', UserProviderInterface::class);
+}
+```
+
+See [Tags the framework owns](dependency-injection.md#tags-the-framework-owns)
+for the full list.
+
+The module's merged configuration arrives as the parameters `module.<name>`
+and `module.<name>.<key>`. A module that ships no `container.php` and no
+`build()` costs nothing, and a module that does is ignored by an application
+that never calls `configureContainer()`.
+
+Phase contract: `build()` runs during `Kernel::boot()`, after every module's
+`services()` and before any module's `boot()`, and the container is compiled
+once the last module's `build()` returns — so register definitions, never
+resolve. In `boot()` the finished container is reachable through the kernel.
 
 ### Lifecycle
 

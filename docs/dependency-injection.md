@@ -10,6 +10,7 @@ Two config files control how services are resolved:
 |------|---------|
 | `config/controllers.php` | Maps controller classes to their constructor dependencies |
 | `config/services.php` | Declares the application's services via `ServiceConfigurator` |
+| `config/container.php` | Optional: Symfony definitions behind the kernel — see [The Symfony container behind the kernel](#the-symfony-container-behind-the-kernel) |
 
 The kernel pre-wires its own core services (router, session, entity manager, CSRF, serializer, …), so `config/services.php` only declares what the application adds on top — and can override any core service by re-declaring its id.
 
@@ -224,6 +225,8 @@ If a controller class is not listed in `config/controllers.php`, AppKit falls ba
 
 > **Treat this as a safety net, not a wiring strategy.** It exists so a freshly scaffolded controller runs before you have wired it — nothing more. It runs reflection at request time, and it can silently produce wrong results: a parameter with a default value receives that default instead of the wired service. Every request that takes the fallback **logs a warning** naming the unwired controller, so the miss is visible in your logs rather than silent. Wire every controller explicitly in `config/controllers.php`; a controller that only works through the fallback is working by accident.
 
+The full order for a controller is: `config/controllers.php` → [the Symfony container behind the kernel](#the-symfony-container-behind-the-kernel), when the application configured one and it knows the class (autowired, no warning) → reflection. An application that has outgrown `controllers.php` moves its controllers to Symfony, not to the fallback.
+
 ## Circular dependency detection
 
 AppKit detects circular dependencies during resolution and throws a `RuntimeException`. Separately, you cannot inject the kernel itself into a service — that is blocked explicitly and throws a `LogicException`.
@@ -231,6 +234,8 @@ AppKit detects circular dependencies during resolution and throws a `RuntimeExce
 ## The App class as a precompiled container
 
 The kernel is a hand-wired, precompiled container — not an auto-wiring, reflection-based DI system. Every service is explicitly registered. There is no runtime class scanning, no annotation parsing at boot, and no dynamic instantiation. `get()` is a table lookup, not a factory.
+
+That is the right size for a small application and stays the kernel's model at any size. When the graph outgrows it, the answer is not to make the kernel cleverer but to put [the Symfony container behind it](#the-symfony-container-behind-the-kernel): the tables below stay exactly as they are, and only an id none of them answers goes further.
 
 When you call `$this->get(SomeInterface::class)`, AppKit walks the lookup tables in order:
 
@@ -240,6 +245,7 @@ When you call `$this->get(SomeInterface::class)`, AppKit walks the lookup tables
 4. Repositories
 5. Authenticators
 6. Legacy factories (`config/factories.php`)
+7. The container behind the kernel, when the application configured one — the only step that is not a table on the kernel
 
 For services used on every request, the fastest path skips `get()` entirely. Add a direct typed method to your `App` class. AppKit's own `App.php` does this for `csrfTokenManager()`, `userProvider()`, `serializer()`, and `validator()`.
 
@@ -249,6 +255,8 @@ For services used on every request, the fastest path skips `get()` entirely. Add
 - **`config/services.php` entry** when *something asks the container* for it — a controller constructor dependency, a framework interface, a package contract. These entries usually delegate to the method: `->set(TotpService::class, fn (App $app) => $app->totpService())`.
 
 One service, one construction site: the method. The `services.php` entry is just its container-facing name.
+
+- **`config/container.php` definition** when the service wants Symfony's compiler rather than the App's accessors — an autowired tree of plain classes, something tagged for a compiler pass, a module's own definitions. See [Which container declares what](#which-container-declares-what).
 
 ### Overrides do not intercept method calls
 
@@ -356,4 +364,132 @@ See [Deployment](deployment.md#the-reset-contract) for what
 
 If you run only PHP-FPM, you never need to touch `reset()`.
 
+## The Symfony container behind the kernel
+
+The kernel is the container, and stays it. What an application can add is a
+second container *behind* it: a Symfony `ContainerBuilder`, compiled the way
+Symfony compiles it, holding services declared with Symfony's PHP DSL. The
+kernel keeps first say on every id it declares — core accessors,
+`config/services.php`, module services, repositories — and only an id it does
+not know reaches the Symfony container. Nothing already written changes.
+
+The direction is deliberate and settled. The other way round — Symfony in
+front, the kernel reduced to a library of components — was built and
+abandoned: it costs every application a kernel rewrite, because the
+pre-wired core services (session, router, entity manager, CSRF, serializer,
+validator, exception handler, …) all have to be declared again in Symfony
+terms. The fallback keeps that wiring and lets Symfony add what it is good
+at: autowired trees, `load()` over a directory, tags and compiler passes.
+
+Opting in is one line in the application factory, after the modules and
+services are configured and before `boot()`:
+
+```php
+use Modufolio\Appkit\DependencyInjection\Symfony\ContainerFactory;
+
+$app->configureModules()
+    ->configureServices($serviceConfigurator)
+    ->configureContainer(new ContainerFactory())
+    ->configureSecurity($securityConfigurator)
+    ->boot();
+```
+
+`symfony/dependency-injection` is a suggested dependency: require it in the
+application that opts in. An application that never calls
+`configureContainer()` needs nothing.
+
+### `config/container.php`
+
+Plain Symfony. The kernel's services are already there to autowire (see the
+bridge below), so a service directory can be loaded wholesale:
+
+```php
+// config/container.php
+use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
+
+return static function (ContainerConfigurator $container): void {
+    $services = $container->services()
+        ->defaults()
+            ->autowire()
+            ->autoconfigure();
+
+    $services->load('App\\Service\\', '../src/Service/');
+    $services->load('App\\Controller\\', '../src/Controller/');
+};
+```
+
+A controller the Symfony container knows is built there — autowired — the
+moment a route names it, before the reflection fallback is considered. An
+entry in `config/controllers.php` still wins: the explicit map is a decision,
+not a default. Container-built controllers that implement `AppAwareInterface`
+receive the app like any other.
+
+### What the Symfony side sees of the kernel
+
+The bridge registers, underneath whatever `container.php` and the modules
+declared:
+
+| Symfony id | Answered by |
+|------------|-------------|
+| every id the kernel declares (`EntityManagerInterface`, `SessionInterface`, each `config/services.php` and module id, each configured repository) | `$kernel->get($id)`, **non-shared** — the kernel decides sharing, so a Symfony service autowiring `ServerRequestInterface` sees the current request |
+| every `#[Service]` accessor with a class return type (`thumbnailGenerator(): ThumbnailGenerator`) | that accessor, under the return type |
+| `appkit.kernel` | the kernel as a PSR-11 container — the escape hatch, never autowired by type |
+
+The kernel is never registered under its own class or `AppInterface`; the rule
+that the app is not an injectable dependency holds on both sides. A
+definition in `container.php` with the same id as a bridged service replaces
+it inside the Symfony graph only.
+
+Parameters: `kernel.base_dir`, `kernel.var_dir`, `kernel.cache_dir`,
+`kernel.environment`, `kernel.debug`, everything in the kernel's parameter bag,
+and each module's configuration as `module.<name>` (the array) and
+`module.<name>.<key>` (each scalar).
+
+### Lifetime, reachability, compilation
+
+- **One request.** `resetModules()` resets the Symfony container between
+  requests under a worker runtime, so a Symfony service lives exactly as long
+  as a `shared()` kernel service. A service holding per-request state needs
+  nothing more.
+- **Public by default.** Symfony makes services private and removes the
+  unreferenced ones at compile time — but the kernel *fetches* by id. So every
+  definition is made public (`PublicServicesPass`). `new ContainerFactory(public:
+  false)` keeps Symfony's default for everything except controllers (tagged
+  `appkit.controller`, or named `*Controller`), for an application that fetches
+  nothing else by id and wants the compiler's inlining. Fetching an id the
+  compiler kept private then fails with a message that says so — mark it
+  public, tag it, or go back to `public: true` — rather than a near-miss
+  guess; and `getController()` refuses to rebuild such a controller by
+  reflection behind its definition's back.
+- **No cache to clear in dev.** Outside prod the compiled builder is the
+  runtime container, rebuilt on every boot. In prod the container is dumped to
+  `var/cache/prod/container/` once and loaded from there; `dump: true|false`
+  forces either mode. A deploy that changes `config/container.php` or a
+  module's definitions still clears `var/cache/prod/` as usual — with one
+  guard: a hash of the resolved module set (each module's class and merged
+  config) is written beside the dumped class, and a mismatch rebuilds the
+  container in every environment. The kernel reads `config/modules.php` live
+  on every boot; a stale dump could otherwise disagree with it about which
+  modules exist.
+
+### Tags the framework owns
+
+| Tag | Effect |
+|-----|--------|
+| `appkit.controller` | Keeps the definition public under `public: false`, so `getController()` can fetch it — for a controller not named `*Controller`. |
+| `appkit.user_provider` | Elects the firewall's user provider inside the Symfony graph: `UserProviderPass` aliases `UserProviderInterface` to the tagged service and publishes it as `appkit.user_provider`, so the application's `userProvider()` can be one line — `return $this->get('appkit.user_provider')`. Exactly one tagged service; two fail at compile time, none leaves the bridged kernel provider in place. |
+
+There is deliberately no `appkit.command` tag: the console does not build the
+container — see [Console](console.md#how-the-console-is-bootstrapped) for why
+that isolation is kept.
+
+### Which container declares what
+
+`config/services.php` is the kernel's edge: closures over `App` accessors,
+explicit, request-scoped by choice. `config/container.php` is for what wants
+Symfony's compiler — autowired trees of plain services, tags and compiler
+passes, definitions a bundle-shaped module ships. Both stay legible; the
+line between them is whether a service wants the App's typed accessors or
+Symfony's graph. A module can ship either half or both — see
+[Modules as bundles](modules.md#modules-as-bundles).
 
