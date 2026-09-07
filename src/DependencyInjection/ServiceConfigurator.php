@@ -153,12 +153,12 @@ final class ServiceConfigurator
 
         $hint = '';
         $parts = explode('\\', $id);
-        for ($drop = 1; $drop < count($parts) - 1; $drop++) {
+        for ($drop = 1; $drop < count($parts) - 1; ++$drop) {
             $candidate = implode('\\', array_slice($parts, $drop));
             if (class_exists($candidate) || interface_exists($candidate)) {
                 $hint = sprintf(
                     ' "%s" does exist — a `use` import in the config file has probably swallowed the'
-                    . ' namespace (e.g. `use %s;`). Write the id with a leading backslash: \\%s::class.',
+                    .' namespace (e.g. `use %s;`). Write the id with a leading backslash: \\%s::class.',
                     $candidate,
                     implode('\\', array_slice($parts, 0, $drop + 1)),
                     $candidate
@@ -167,8 +167,6 @@ final class ServiceConfigurator
             }
         }
 
-        throw new \InvalidArgumentException(
-            sprintf('Service id "%s" is not an existing class or interface.%s', $id, $hint)
-        );
+        throw new \InvalidArgumentException(sprintf('Service id "%s" is not an existing class or interface.%s', $id, $hint));
     }
 }
