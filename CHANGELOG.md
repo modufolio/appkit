@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.17.0] - 2026-09-07
+
 ### Added
 
 - **Inertia is part of the kernel.** `Modufolio\Appkit\Inertia` carries the
