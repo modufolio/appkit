@@ -4,6 +4,16 @@ The Kernel is the heart of every AppKit application. It acts as the HTTP request
 
 The class itself stays small: it owns the state (every property lives on the Kernel), the boot/reset lifecycle, and the core service accessors. Behavior is composed from one trait per concern — `AppContainer` (service resolution, repositories, parameters), `AppControllers` (controller wiring and instantiation), `AppModules` (module lifecycle), `AppRouting` (router and URL generation), and `AppSecurity` (authentication flow and firewall configuration). Traits hold no state of their own, and every method kept its name, visibility and signature when it moved — from your `App` subclass, nothing changed. Read the trait for the concern you care about; the Kernel file tells you the order things happen in.
 
+## The profiling seam
+
+The kernel does not profile; it makes profiling possible through one interface and one timer, the way it makes authentication extensible through `AuthenticatorInterface`:
+
+- **`stopwatch()`** — a `Symfony\Component\Stopwatch\Stopwatch` on which the kernel records the phases it owns: `security.session`, `security.authenticate`, `security.access_control`, `routing`, `controller`. Application code can `start()`/`stop()` its own events around anything it wants on the timeline. Reset by `resetModules()`.
+- **`profiler()`** — a `Debug\ProfilerInterface` whose `collect(request, response)` is called by `PrepareResponse` once the response is final, the last thing every `handle()` does; it returns the response to send, so a profiler can add a header naming the stored profile. The default is `NullProfiler`. Install one with `setProfiler()` — from a module's `boot()`, or in the application factory after `boot()` — or override the accessor.
+- **Query origins.** In `dev` the `DebugStack` records the application file and line that issued each query (`Query::$file` / `$line`), so a repeated-query report can name the loop. A backtrace per query, so never outside dev; `DebugStack::collectOrigin()` toggles it.
+
+What a profiler *sees* beyond that comes from decorators, not hooks: wrap an authenticator, the validator or the exception handler in `config/services.php` with a recording decorator in dev, exactly as Symfony's `Traceable*` classes do. Symfony reaches the same three points through event listeners; here they are explicit calls because the request flow is.
+
 ## Extending the Kernel
 
 ```php
@@ -27,7 +37,7 @@ These six abstract methods are your integration points. The skeleton's `src/App.
 ## The request lifecycle
 
 1. `public/index.php` calls `AppFactory::create($baseDir)` — this instantiates `App`, loads config files, and calls `boot()`.
-2. `boot()` applies error-output hardening for the environment (see [Exception handling](exception-handling.md#error-output-hardening)), wires the kernel core services (or loads a legacy `config/interfaces.php` when mapped), sets up the router cache directory, and freezes the token unserializer whitelist.
+2. `boot()` applies error-output hardening for the environment (see [Exception handling](exception-handling.md#error-output-hardening)), wires the kernel core services (or loads a legacy `config/interfaces.php` when mapped), sets up the router cache directory, builds [the Symfony container behind the kernel](dependency-injection.md#the-symfony-container-behind-the-kernel) if `configureContainer()` asked for one (before any module's `boot()`), and freezes the token unserializer whitelist.
 3. `handle(ServerRequestInterface $request)` is called. It creates a fresh `NativeApplicationState` for the request via `createState()` — which first rejects a `Host` header that is not on the [trusted-hosts](security.md#trusted-hosts) allowlist — then calls `handleAuthentication()`.
 4. `handleAuthentication()` determines the active firewall, attempts session token restoration, runs authenticators if needed, and either calls `controllerResolver()` or returns an authentication response.
 5. `controllerResolver()` enforces global access control, matches the route, enforces attribute-level access control (`#[IsGranted]`), instantiates the controller, resolves method parameters, and calls the controller method.
@@ -150,6 +160,6 @@ Parameters are available inside controller config as `%app.name%` strings.
 1. Registers `User::class` with `TokenUnserializer` (whitelist-based session deserialization).
 2. Creates a route loader that scans `src/Controller/` for `#[Route]` attributes and also loads PHP route files.
 3. Reads `config/security.php` into a `SecurityConfigurator` and `config/services.php` into a `ServiceConfigurator`.
-4. Passes all config arrays to `App`, calls `configureServices()` and `configureSecurity()`, and calls `boot()`.
+4. Passes all config arrays to `App`, calls `configureServices()` and `configureSecurity()`, and calls `boot()`. An application that has outgrown hand-wiring adds `configureContainer(new ContainerFactory())` between the two — after modules and services, so the Symfony container sees the finished declarations; before `boot()`, which builds it.
 
 You can create your own factory if you need a different setup.

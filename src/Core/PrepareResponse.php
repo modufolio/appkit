@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modufolio\Appkit\Core;
 
+use Modufolio\Appkit\Debug\ProfilerInterface;
 use Modufolio\Psr7\Http\Stream;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -23,6 +24,15 @@ use Psr\Http\Message\ServerRequestInterface;
  */
 class PrepareResponse implements PrepareResponseInterface
 {
+    /**
+     * @param ProfilerInterface|null $profiler collects once the response is final —
+     *                                         this is the last step of every handle(),
+     *                                         which is what makes it the profiling seam
+     */
+    public function __construct(private readonly ?ProfilerInterface $profiler = null)
+    {
+    }
+
     /**
      * Prepare the response before emission.
      *
@@ -69,6 +79,6 @@ class PrepareResponse implements PrepareResponseInterface
                 ->withHeader('X-Inertia', 'true');
         }
 
-        return $response;
+        return $this->profiler?->collect($request, $response) ?? $response;
     }
 }

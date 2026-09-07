@@ -32,8 +32,32 @@ final class DebugStack
      */
     private int $maxQueries = 100;
 
+    /**
+     * @param bool $collectOrigin record the application file and line that issued each
+     *                            query (a backtrace per query — dev only; the kernel
+     *                            turns it on there). What makes an N+1 report say
+     *                            which loop, not just which SQL.
+     */
+    public function __construct(private bool $collectOrigin = false)
+    {
+    }
+
+    public function collectOrigin(bool $collect = true): void
+    {
+        $this->collectOrigin = $collect;
+    }
+
+    public function isCollectingOrigin(): bool
+    {
+        return $this->collectOrigin;
+    }
+
     public function append(Query $query): void
     {
+        if ($this->collectOrigin && null === $query->file && null !== ($origin = $this->origin())) {
+            $query = $query->withOrigin(...$origin);
+        }
+
         $this->queries[] = $query;
 
         // Implement circular buffer: remove oldest queries when limit exceeded
@@ -53,6 +77,31 @@ final class DebugStack
     public function resetQueries(): void
     {
         $this->queries = [];
+    }
+
+    /**
+     * The first frame that belongs to the application: not Doctrine, not this
+     * middleware, not anything installed under vendor/ — for a consumer that
+     * includes the framework itself, so a repository base class or the query
+     * builder never counts as the origin.
+     *
+     * @return array{string, int}|null
+     */
+    private function origin(): ?array
+    {
+        foreach (debug_backtrace(\DEBUG_BACKTRACE_IGNORE_ARGS, 60) as $frame) {
+            $file = $frame['file'] ?? null;
+
+            if (null === $file
+                || str_contains($file, \DIRECTORY_SEPARATOR.'vendor'.\DIRECTORY_SEPARATOR)
+                || str_contains($file, \DIRECTORY_SEPARATOR.'src'.\DIRECTORY_SEPARATOR.'Doctrine'.\DIRECTORY_SEPARATOR)) {
+                continue;
+            }
+
+            return [$file, (int) ($frame['line'] ?? 0)];
+        }
+
+        return null;
     }
 
     /**

@@ -100,7 +100,14 @@ trait AppSecurity
             return $this->logout($firewallName);
         }
 
-        if ($token = $this->tryRestoreSessionToken($firewallName, $stateless)) {
+        $this->stopwatch()->start('security.session', 'security');
+        try {
+            $token = $this->tryRestoreSessionToken($firewallName, $stateless);
+        } finally {
+            $this->stopwatch()->stop('security.session');
+        }
+
+        if ($token) {
             $token = $this->refreshUser($token);
             if (null === $token) {
                 return $this->logout($firewallName);
@@ -164,7 +171,12 @@ trait AppSecurity
         $reissueCookies = [];
 
         $ambientCredential = false;
-        $result = $this->tryAuthenticators($request, $config, $firewallName, $stateless, $staleCookies, $reissueCookies, $ambientCredential);
+        $this->stopwatch()->start('security.authenticate', 'security');
+        try {
+            $result = $this->tryAuthenticators($request, $config, $firewallName, $stateless, $staleCookies, $reissueCookies, $ambientCredential);
+        } finally {
+            $this->stopwatch()->stop('security.authenticate');
+        }
 
         // Handle ResponseInterface (e.g., 2FA redirect)
         if ($result instanceof ResponseInterface) {
