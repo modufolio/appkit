@@ -4,7 +4,8 @@ namespace Modufolio\Appkit\Core;
 
 use Doctrine\DBAL\Exception as DbalException;
 use Doctrine\ORM\EntityManagerInterface;
-use Modufolio\Appkit\Inertia\InertiaRenderer;
+use Modufolio\Appkit\Inertia\InertiaRendererInterface;
+use Modufolio\Appkit\Inertia\UnwiredRenderer;
 use Modufolio\Appkit\Security\Token\TokenStorageInterface;
 use Modufolio\Appkit\Security\User\UserInterface;
 use Modufolio\Appkit\Security\User\UserProviderInterface;
@@ -35,11 +36,13 @@ class AbstractController
     protected UserProviderInterface $userProvider;
     protected ValidatorInterface $validator;
     /**
-     * Set when the host wired Inertia ({@see AppInterface::inertia()}): for
-     * `$this->inertia->flash()` before a redirect, or to render a page
-     * yourself. Returning an Inertia page needs neither — the kernel finishes it.
+     * For `$this->inertia->flash()` before a redirect, or to render a page
+     * yourself. Returning an Inertia page needs neither — the kernel
+     * finishes it. Always set: where the host never wired Inertia, using it
+     * fails with the message that names what to add
+     * ({@see AppInterface::inertia()}).
      */
-    protected InertiaRenderer $inertia;
+    protected InertiaRendererInterface $inertia;
 
     /**
      * @throws DbalException
@@ -54,8 +57,13 @@ class AbstractController
         $this->userProvider = $app->userProvider();
         $this->validator = $app->validator();
 
-        if ($app->has(InertiaRenderer::class)) {
+        // Never left unassigned: reading an uninitialized typed property
+        // raises a fatal Error, which says nothing about the module the host
+        // forgot. The unwired renderer raises the kernel's own message.
+        try {
             $this->inertia = $app->inertia();
+        } catch (\LogicException) {
+            $this->inertia = new UnwiredRenderer();
         }
     }
 
