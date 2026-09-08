@@ -316,9 +316,8 @@ enforced for:
   or HTTP Basic, whose cached realm the browser re-sends on its own. The
   kernel keys this on the authenticator implementing
   `AmbientCredentialInterface` (`RememberMeAuthenticator` and
-  `BasicAuthenticator` do), not on the token class. This branch runs
-  regardless of `stateless`, so a stateless HTTP Basic firewall that accepts
-  writes needs `csrf => false` or a `csrf_validator`,
+  `BasicAuthenticator` do), not on the token class. Session-backed
+  firewalls only — see the stateless note below,
 - **anonymous requests to public paths** — an anonymous session cookie (a guest
   cart, wizard progress) is just as ambient as an authenticated one, so a
   cross-site POST against it is forgeable in exactly the same way,
@@ -338,9 +337,14 @@ usual checks when absent):
 
 Not checked by the kernel:
 
-- **stateless firewalls** on the restored-session and public-path routes —
-  no session, nothing ambient to forge (the ambient-credential case above is
-  the one exception),
+- **stateless firewalls**, on every branch — `stateless => true` implies no
+  kernel CSRF check. No session is ever restored there, so no token was
+  minted for the client to present and a check could only fail. That
+  includes HTTP Basic on a stateless firewall: the browser still re-sends a
+  cached realm on its own, so a stateless Basic API *is* driveable
+  cross-site from a browser that has authenticated to it. Keep such an API
+  for non-browser clients (curl, server-to-server), or make the firewall
+  session-backed so the ambient-credential check above applies,
 - bearer/API-key/JWT/OAuth requests — the page attaches those credentials
   deliberately; no browser sends them unprompted, and their authenticators do
   not implement `AmbientCredentialInterface`. HTTP Basic is *not* in this

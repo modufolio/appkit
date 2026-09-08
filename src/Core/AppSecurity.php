@@ -193,7 +193,14 @@ trait AppSecurity
             // and are intentionally exempt. Keyed on the authenticator rather
             // than the token class: BasicAuthenticator also mints a plain
             // UsernamePasswordToken, so a token-class check silently missed it.
-            if ($ambientCredential) {
+            //
+            // Not on a stateless firewall, though: no session is ever
+            // restored there, so no token was minted for the client to
+            // present and the check could only fail — every write with valid
+            // credentials answered 403. Stateless implies no CSRF check, the
+            // same rule the restored-session and public-path branches apply;
+            // a session-backed firewall with Basic or remember-me keeps it.
+            if ($ambientCredential && !$stateless) {
                 $csrfFailure = $this->enforceCsrf($request, $config);
                 if (null !== $csrfFailure) {
                     return $this->withStaleCookiesExpired($csrfFailure, $staleCookies);
@@ -466,11 +473,13 @@ trait AppSecurity
     /**
      * CSRF protection for session-authenticated, state-changing requests.
      *
-     * Why this is safe for APIs: it runs only on the restored-session path of
-     * handleAuthentication(), which stateless firewalls never reach. REST and
-     * GraphQL endpoints configured as `stateless` authenticate with a bearer
-     * token or API key — credentials the browser does NOT attach automatically —
-     * so they cannot be driven cross-site and require no CSRF token.
+     * Why this is safe for APIs: every caller in handleAuthentication() skips
+     * it for a `stateless` firewall — the restored-session, ambient-credential
+     * and public-path branches alike. Such a firewall never restores a session,
+     * so there is no token to compare against. REST and GraphQL endpoints
+     * configured as `stateless` authenticate with a bearer token or API key —
+     * credentials the browser does NOT attach automatically — so they cannot
+     * be driven cross-site and require no CSRF token.
      *
      * Safe HTTP methods (GET/HEAD/OPTIONS/TRACE) are never checked.
      *
