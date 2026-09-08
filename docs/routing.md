@@ -201,6 +201,50 @@ Keep literal targets static. The moment request data reaches `redirect()`, the r
 
 `RedirectRouteLoader` is shipped, not pre-registered: it has to be in the `LoaderResolver` your application builds (see below).
 
+## Array routes
+
+For routes you would rather read in one file than find across controller attributes — a small site, a legacy URL map, routes that point at controllers you do not own — declare them as a PHP array and import it with the `array` type:
+
+```php
+// config/routes/site.php
+use App\Controller\PageController;
+
+return [
+    'home' => [
+        'pattern' => '/',
+        'controller' => [PageController::class, 'home'],
+    ],
+    'page' => [
+        'pattern' => '/{slug}',
+        'controller' => [PageController::class, 'show'],
+        'requirements' => ['slug' => '[a-z0-9-]+'],
+    ],
+    'contact' => [
+        'pattern' => '/contact',
+        'methods' => ['GET', 'POST'],
+        'controller' => [PageController::class, 'contact'],
+    ],
+];
+```
+
+```php
+// config/routes.php
+$routes->import('routes/site.php', 'array');
+```
+
+Each entry becomes one Symfony `Route`:
+
+| Key | Required | Meaning |
+|-----|----------|---------|
+| `pattern` | yes | The path, with `{placeholders}` as in `#[Route]`. |
+| `controller` | yes | Becomes the route's `_controller` default — `[Class::class, 'method']`, resolved like any attribute route. Not a closure: the compiled route collection is cached in production, and a closure cannot be serialized. |
+| `methods` | no | HTTP verbs; defaults to `['GET']`, unlike `#[Route]`, which matches every method when omitted. |
+| `requirements` | no | Placeholder patterns, `['slug' => '[a-z0-9-]+']`. |
+
+The array key is the route name, used by `generate()` and `#[IsGranted]` alike; an entry without a string key is named after its pattern. Other keys — defaults, options, host, schemes — are not read; a route that needs them belongs in `#[Route]` or in `config/routes.php` through `$routes->add()`. The file is located through the loader's `FileLocator`, so the path is relative to your config directory, and it is `include`d, so it may compute its entries.
+
+`ArrayRouteLoader` is shipped, not pre-registered: the skeleton's `AppFactory` registers only the attribute and PHP-file loaders, so add `new ArrayRouteLoader($locator)` to its `LoaderResolver` first (see below).
+
 ## Route loading
 
 Your application builds a `DelegatingLoader` over a `LoaderResolver` and hands it to the `App`; the resolver picks the loader whose `supports()` accepts the type string. Symfony's `PhpFileLoader` reads `config/routes.php` and its `AttributeDirectoryLoader` scans directories with AppKit's `AttributeClassLoader`, so you never register controllers — dropping a class into `src/Controller/` with a `#[Route]` attribute is enough.
@@ -212,7 +256,7 @@ AppKit ships these route loaders:
 | Loader | Type string | Use case |
 |--------|-------------|----------|
 | `AttributeClassLoader` | `attribute` (through Symfony's `AttributeDirectoryLoader`) | `#[Route]` attributes on controller classes |
-| `ArrayRouteLoader` | `array` | Explicit PHP array route definitions |
+| `ArrayRouteLoader` | `array` | Explicit PHP array route definitions — see [Array routes](#array-routes) |
 | `FlatFileRouteLoader` | `flat_file` | Filesystem-based routing — folder structure maps to URLs |
 | `JsonApiRouteLoader` | `json_api` | Auto-generated JSON:API CRUD routes — see [modufolio/json-api](https://github.com/modufolio/json-api) |
 | `RedirectRouteLoader` | `redirect` | Redirects declared through `RedirectConfigurator` — see [Redirects](#redirects) |
