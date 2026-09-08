@@ -382,6 +382,15 @@ abstract class Kernel implements AppInterface
             baseDir: $this->baseDir,
             environment: $this->environment(),
             configuratorFactory: function ($configurator): void {
+                // Guarded at the read, the way `fileMap['interfaces']` above
+                // is and the way Symfony's compiled container reads its own
+                // fileMap: without this, a host that never mapped the file
+                // gets "Undefined array key" and a fatal `require ''`
+                // instead of the name of what it left out.
+                if (!isset($this->fileMap['doctrine'])) {
+                    throw new \LogicException('The database needs its Doctrine configuration: pass a "doctrine" entry in the kernel\'s $fileMap, pointing at the file that returns the configurator closure (config/doctrine.php).');
+                }
+
                 $closure = require $this->fileMap['doctrine'];
                 $closure($configurator);
             },
