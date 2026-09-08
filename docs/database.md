@@ -60,7 +60,7 @@ $orm->connection([
 | `connection(array $params)` | Set DBAL connection parameters |
 | `entities(string ...$paths)` | Scan one or more directories for entity classes (variadic — pass as many paths as you need) |
 | `addFilter(string $name, string $class)` | Register a Doctrine filter (e.g. soft delete) |
-| `middlewares(array $middlewares)` | Add DBAL middleware stack entries |
+| `middlewares(array $middlewares)` | Set the DBAL middleware stack — replaces any earlier list, so pass the full stack |
 | `addSubscriber(EventSubscriber $subscriber)` | Register a Doctrine event subscriber |
 | `cache(?CacheItemPoolInterface $metadata, ?CacheItemPoolInterface $query, ?CacheItemPoolInterface $result)` | Configure caches for metadata, queries, and results |
 
@@ -127,9 +127,11 @@ return function (OrmConfigurator $orm) use ($projectDir): void {
 ```
 
 This works because `connection()` replaces its parameters wholesale, custom
-types are guarded by `hasType()`, and `addFilter()` overwrites by name. Only
-`entities()` appends — so do not call it again in the environment file unless
-you are adding an extra path.
+types are guarded by `hasType()`, and `addFilter()` overwrites by name.
+`middlewares()` replaces too — calling it in the environment file drops the
+base file's list, so pass the complete stack. Only `entities()` appends — so
+do not call it again in the environment file unless you are adding an extra
+path.
 
 ## Defining an entity
 
@@ -401,19 +403,30 @@ $range   = $pagination->range(5); // array of page numbers around current page
 
 ## Soft delete
 
-Register `SoftDeleteFilter` to exclude soft-deleted records from all queries automatically.
+`SoftDeleteFilter` excludes soft-deleted records from queries. Registering it only makes it known to Doctrine — `OrmConfigurator::addFilter()` calls `Configuration::addFilter()` and nothing more — so nothing is filtered until you enable it on the entity manager:
 
 ```php
 // config/doctrine.php
 $orm->addFilter('soft_delete', \Modufolio\Appkit\Doctrine\Filter\SoftDeleteFilter::class);
 ```
 
-Your entity needs a `deletedAt` column. Add a `#[ORM\Column(nullable: true)]` property of type `DateTimeImmutable`. When `deletedAt` is not null, the record is hidden from queries while the filter is enabled.
+```php
+// After the entity manager exists — in a service, a controller, or once
+// after boot. The setting belongs to the entity manager instance, so a
+// worker runtime that reset() the app has to enable it again.
+$this->entityManager->getFilters()->enable('soft_delete');
+```
 
-Enable or disable the filter at runtime:
+The filter appends `deleted_at IS NULL` to every entity that maps a `deletedAt` field and leaves other entities alone. Both names are fixed. AppKit configures no naming strategy, so Doctrine's default would name the column `deletedAt`; give the column its name explicitly:
 
 ```php
-$this->entityManager->getFilters()->enable('soft_delete');
+#[ORM\Column(name: 'deleted_at', nullable: true)]
+private ?\DateTimeImmutable $deletedAt = null;
+```
+
+Disable the filter for queries that must see soft-deleted rows:
+
+```php
 $this->entityManager->getFilters()->disable('soft_delete');
 ```
 

@@ -109,7 +109,7 @@ AppKit looks for `resources/views/cards/post.php`. The array passed as the secon
 | `$template->end()` | Stop capturing the current section. |
 | `$template->section(string $name, string $default = '')` | Output a named section in the layout. |
 | `$template->snippet(string $name, array $data = [])` | Render a partial template. |
-| `$this->esc(?string $value, string $context = 'html')` | Context-aware output escaping (`html`, `attr`, `js`, `css`, `url`). |
+| `$this->esc(string\|int\|float\|\Stringable\|null $value, string $context = 'html')` | Context-aware output escaping (`html`, `attr`, `js`, `css`, `url`). |
 | `$this->url(string $path = '')` | Prepend the request's base URL (scheme + host + port) to a path. |
 | `$this->css(string\|array $url)` | Queue a stylesheet for `renderCss()`. |
 | `$this->js(string\|array $url)` | Queue a script for `renderJs()`. |
@@ -158,15 +158,40 @@ For blocks of HTML you generate and trust yourself, output directly with `<?=`.
 
 ## Error templates
 
-AppKit uses `resources/views/errors/default.php` for HTTP errors. The exception handler renders it and passes three variables:
+The framework's `ExceptionHandler` turns an exception into an associative array — `status`, `title`, `detail` — and hands it to a formatter chosen by content negotiation. Its built-in `text/html` formatter (`ExceptionHandler::renderHtml()`) produces one self-contained document with no assets and no links, because the handler cannot know where your home page is. To render errors through your own template, register a `text/html` formatter that builds a `Template`:
+
+```php
+$handler->registerFormatter('text/html', static function (array $data) use ($baseDir, $request): Response {
+    $status = (int) ($data['status'] ?? 500);
+
+    $body = (new Template(
+        name:          'errors/default',
+        templatePaths: [$baseDir . '/resources/views'],
+        layoutPaths:   [$baseDir . '/resources/views/layouts'],
+        request:       $request,
+    ))->render([
+        'status' => $status,
+        'title'  => $data['title'] ?? 'Error',
+        'detail' => $data['detail'] ?? null,
+    ]);
+
+    return new Response($status, ['Content-Type' => 'text/html; charset=utf-8'], $body);
+});
+```
+
+In an application built on the framework `Kernel`, the place to do this is the `configureExceptionHandler()` hook, called once before the handler's first use. See [HTML error pages](exception-handling.md#html-error-pages) for the full pattern, including what to do when the template file is missing.
+
+> **Application code.** `resources/views/errors/default.php` is not part of the framework. The skeleton (`modufolio/appkit-skeleton`) ships a starting version, rendered by exactly the formatter above from `src/DependencyInjection/ExceptionHandlerFactory.php` (wired as `ExceptionHandlerInterface` in `config/services.php`); both are yours to change.
+
+The template receives three variables:
 
 | Variable | Type | Description |
 |----------|------|-------------|
 | `$status` | `int` | HTTP status code (404, 500, etc.) |
 | `$title` | `string` | Short error title |
-| `$detail` | `string\|null` | Longer description (only in `dev` and `test` environments) |
+| `$detail` | `string\|null` | Longer description — see below for when it carries the exception message |
 
-Customise this template to match your design.
+`$detail` is not hidden outside `dev` across the board. Only the handlers that call `shouldShowDetails()` — `UnresolvableServiceException`, `\LogicException`, `\RuntimeException`, and the fallback for unregistered exceptions — replace the message with `An unexpected error occurred. Please try again later.` in `prod`. The 400, 413 and 422 handlers (`\InvalidArgumentException`, `PayloadTooLargeException`, `\JsonException`, the two-factor exceptions) pass `$e->getMessage()` through in every environment, as do the 404 and 405 handlers with Symfony's routing messages. Escape `$detail` like any other untrusted value.
 
 ## The `Template` constructor
 

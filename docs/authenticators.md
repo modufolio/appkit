@@ -20,10 +20,10 @@ The most common authenticator. Checks `POST /login` for email and password field
 
 ```php
 // config/authenticators.php
-use App\Repository\UserRepository;
 use Modufolio\Appkit\Security\Authenticator\FormLoginAuthenticator;
 use Modufolio\Appkit\Security\Csrf\CsrfTokenManagerInterface;
 use Modufolio\Appkit\Security\User\UserPasswordHasherInterface;
+use Modufolio\Appkit\Security\User\UserProviderInterface;
 use Symfony\Component\HttpFoundation\Session\FlashBagAwareSessionInterface;
 
 return [
@@ -59,7 +59,7 @@ use Modufolio\Appkit\Security\BruteForce\FileBruteForceProtection;
 new FormLoginAuthenticator(
     // ...
     bruteForce: new FileBruteForceProtection(
-        storageDir:      $baseDir . '/storage/brute-force',
+        storageDir:      dirname(__DIR__) . '/storage/brute-force', // config/ sits one level below the project root
         maxAttempts:     5,
         lockoutDuration: 900,   // 15 minutes
         windowDuration:  300,   // 5-minute sliding window
@@ -78,7 +78,7 @@ new FormLoginAuthenticator(
 );
 ```
 
-`RedisBruteForceProtection::fromDsn()` accepts `redis://`, `rediss://`, and Unix socket DSNs. It requires the phpredis extension.
+`RedisBruteForceProtection::fromDsn()` accepts `redis://[user:password@]host[:port][/db]` and a Unix socket written as `redis:///path/to/redis.sock`. Only the `redis://` scheme is accepted — `rediss://` (TLS) is rejected with a `RuntimeException`. It requires the phpredis extension.
 
 `BasicAuthenticator` accepts the same optional `BruteForceProtectionInterface` as its third constructor argument, so password-based HTTP Basic endpoints can be throttled the same way.
 
@@ -112,6 +112,9 @@ $security->firewall('api', [
 
 ```php
 // config/authenticators.php
+use Modufolio\Appkit\Security\Authenticator\JwtAuthenticator;
+use Modufolio\Appkit\Security\User\UserProviderInterface;
+
 'jwt' => function ($container) {
     return new JwtAuthenticator(
         userProvider: $container->get(UserProviderInterface::class),
@@ -123,7 +126,7 @@ $security->firewall('api', [
 },
 ```
 
-The authenticator extracts the token from `Authorization: Bearer <token>` and validates the signature. `secret_key` is only valid for HMAC algorithms (HS256/HS384/HS512); for asymmetric algorithms (RS*/ES*) pass `signing_key` and `verification_key` separately.
+The authenticator extracts the token from `Authorization: Bearer <token>` and validates the signature. `secret_key` is only valid for HMAC algorithms (HS256/HS384/HS512); for asymmetric algorithms (RS*, ES*, EdDSA) pass `signing_key` and `verification_key` separately.
 
 ## API key authenticator
 
@@ -134,6 +137,9 @@ individual settings are keys inside `options`, not constructor parameters of the
 own, so `header_name` goes in the array rather than being passed as `headerName:`.
 
 ```php
+use Modufolio\Appkit\Security\Authenticator\ApiKeyAuthenticator;
+use Modufolio\Appkit\Security\User\UserProviderInterface;
+
 'api_key' => function ($container) {
     return new ApiKeyAuthenticator(
         userProvider: $container->get(UserProviderInterface::class),
@@ -160,6 +166,7 @@ own, so `header_name` goes in the array rather than being passed as `headerName:
 ```php
 // config/authenticators.php
 use Modufolio\Appkit\Security\Authenticator\RememberMeAuthenticator;
+use Modufolio\Appkit\Security\User\UserProviderInterface;
 
 return [
     'remember_me' => function ($container) {
@@ -223,13 +230,38 @@ Auto-issue only requires the `remember_me` authenticator to be listed on the fir
 
 If you need to mint the cookie outside the interactive login flow — for example right after programmatic registration — you can still build it yourself:
 
+Authenticators live in the container under their `config/authenticators.php` key, and a controller has no `get()`, so give the class id an alias and inject it:
+
 ```php
+// config/services.php
+$services->set(RememberMeAuthenticator::class, fn (App $app) => $app->get('remember_me'));
+
+// config/controllers.php
+RegistrationController::class => [RememberMeAuthenticator::class],
+```
+
+```php
+use Modufolio\Appkit\Core\AbstractController;
 use Modufolio\Appkit\Security\Authenticator\RememberMeAuthenticator;
+use Modufolio\Psr7\Http\Response;
 
-// Retrieve the registered authenticator from the container
-$rememberMe = $this->get(RememberMeAuthenticator::class);
+final class RegistrationController extends AbstractController
+{
+    public function __construct(private readonly RememberMeAuthenticator $rememberMe)
+    {
+    }
 
-$response = Response::redirect($urlGenerator->generate('dashboard'));
+    // ...
+}
+```
+
+Then, inside the action, after the user is registered:
+
+```php
+$rememberMe = $this->rememberMe;
+
+// $user is the User you just registered; $this->urlGenerator comes with AbstractController
+$response = Response::redirect($this->urlGenerator->generate('dashboard'));
 
 // buildRememberMeCookieHeader() produces the complete Set-Cookie value
 return $response->withAddedHeader(
@@ -279,11 +311,12 @@ Pass a `RememberMeTokenProviderInterface` as the third constructor argument:
 ```php
 use Modufolio\Appkit\Security\Authenticator\RememberMeAuthenticator;
 use Modufolio\Appkit\Security\RememberMe\FileTokenProvider;
+use Modufolio\Appkit\Security\User\UserProviderInterface;
 
 new RememberMeAuthenticator(
     userProvider: $container->get(UserProviderInterface::class),
     options: ['secret' => env()->getRequired('APP_SECRET'), /* cookie_* … */],
-    tokenProvider: new FileTokenProvider(storageDir: $baseDir . '/var/remember-me'),
+    tokenProvider: new FileTokenProvider(storageDir: dirname(__DIR__) . '/var/remember-me'),
 );
 ```
 
@@ -291,11 +324,41 @@ With a provider configured, each cookie carries a **series** id and a one-time
 **value**:
 
 - On every successful use the value is **rotated** — a fresh value is stored and
-  re-issued in the cookie, so a captured cookie is good for at most one request.
-- If a cookie presents a known series with the **wrong** value, that is the
-  fingerprint of a stolen-and-replayed cookie: all tokens in the series are
-  deleted (logging the device out everywhere) and `CookieTheftException` is
-  raised.
+  re-issued in the cookie, so a captured cookie is good for at most one request
+  (plus the parallel-request window below).
+- If a cookie presents a known series with a value that is neither the current
+  one nor the one it just replaced, that is the fingerprint of a
+  stolen-and-replayed cookie: all tokens in the series are deleted (logging the
+  device out everywhere) and `CookieTheftException` is raised.
+
+#### Parallel requests
+
+This authenticator runs precisely when there is no session yet, so the requests
+a page fires on load — an Inertia visit plus its XHRs — arrive together, all
+carrying the same cookie value. Only one of them can win the rotation.
+
+Two things keep that from reading as theft:
+
+- The value a rotation replaced stays acceptable for 60 seconds — a private
+  constant on `RememberMeAuthenticator` (`PARALLEL_REQUEST_GRACE_SECONDS`),
+  not an option. A request that
+  loaded the token after the winner wrote it still authenticates, and
+  deliberately does *not* rotate or re-issue the cookie — the winner's response
+  already carries the new value.
+- `updateExistingToken()` is a compare-and-swap: it rotates only if the stored
+  value is still the one the caller read. A request that loaded before the
+  winner and writes after is refused, so it cannot overwrite the winner's value
+  and leave the live cookie orphaned.
+
+The trade is explicit: a cookie captured and replayed within 60 seconds of a
+legitimate use is accepted once instead of detected. Nothing distinguishes it
+from the straggler at that point. Beyond the window, replay is theft as before.
+
+A custom provider **must** implement the compare-and-swap atomically — a
+`UPDATE … WHERE token_value = ?` and its affected-row count, or a held lock. One
+that ignores `$expectedCurrentValue` and always writes reintroduces the race,
+whose failure mode is logging the user out of every device on an ordinary page
+load.
 
 `FileTokenProvider` (filesystem) and `InMemoryTokenProvider` (tests) ship with
 the framework; implement `RememberMeTokenProviderInterface` to back tokens with
@@ -370,6 +433,7 @@ The client depends only on PSR-18 (an HTTP client) and PSR-17 (message factories
 // config/services.php — register the client once
 use Modufolio\Appkit\Security\OAuth\Google\GoogleOAuthClient;
 use Modufolio\Appkit\Security\OAuth\Google\GoogleOAuthClientInterface;
+use Modufolio\Psr7\Http\Factory\Psr17Factory;
 
 $services->set(GoogleOAuthClientInterface::class, fn () => new GoogleOAuthClient(
     clientId:       env()->getString('GOOGLE_CLIENT_ID', ''),
@@ -384,6 +448,9 @@ $services->set(GoogleOAuthClientInterface::class, fn () => new GoogleOAuthClient
 ```php
 // config/authenticators.php
 use Modufolio\Appkit\Security\Authenticator\GoogleAuthenticator;
+use Modufolio\Appkit\Security\OAuth\Google\GoogleOAuthClientInterface;
+use Modufolio\Appkit\Security\User\UserProviderInterface;
+use Symfony\Component\HttpFoundation\Session\SessionInterface;
 
 'google_login' => function ($container) {
     return new GoogleAuthenticator(
@@ -511,6 +578,7 @@ eraseCredentials(): void     // clear any transient sensitive data
 Authenticators look users up through a `UserProviderInterface`. You can implement it on your Doctrine repository, or use the built-in `EntityUserProvider` as a drop-in instead of hand-rolling `loadUserByIdentifier`/`refreshUser`/`supportsClass`:
 
 ```php
+use Doctrine\ORM\EntityManagerInterface;
 use Modufolio\Appkit\Security\User\EntityUserProvider;
 
 'user_provider' => fn ($container) => new EntityUserProvider(
@@ -545,7 +613,7 @@ $valid = $hasher->isPasswordValid($user, $plainPassword);
 $needs = $hasher->needsRehash($user); // true when algorithm changed
 ```
 
-The `hashPassword()` and `isPasswordValid()` methods use PHP 8.4's `#[\SensitiveParameter]` on the plaintext argument, so it is excluded from stack traces and error logs.
+The `hashPassword()` and `isPasswordValid()` methods use PHP 8.2's `#[\SensitiveParameter]` on the plaintext argument, so it is excluded from stack traces and error logs.
 
 ### Transparent password rehashing
 

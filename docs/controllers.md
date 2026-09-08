@@ -94,7 +94,7 @@ public function search(ServerRequestInterface $request): ResponseInterface
 
 ## Returning responses
 
-`Modufolio\Psr7\Http\Response` provides static factory methods for the most common response types. Every controller method must return a `ResponseInterface`.
+`Modufolio\Psr7\Http\Response` provides static factory methods for the most common response types. A controller method returns a `ResponseInterface`, or one of the two things the kernel finishes into one — an `Inertia` page or a `Http\ResponsableInterface` (see [above](#returning-a-page-instead-of-a-response)). Anything else is a `LogicException`.
 
 ```php
 use Modufolio\Psr7\Http\Response;
@@ -225,7 +225,7 @@ Use this for individual scalars; reach for `#[MapQueryString]` or `#[MapFilter]`
 
 ### `#[MapFilter]`
 
-Builds a filter object from query parameters. Your filter class must implement `MapFilterInterface`, which requires a static `fromArray(array $data): self`. Implementing `fromArray()` without the interface fails an assertion at resolution time.
+Builds a filter object from query parameters. Your filter class must implement `MapFilterInterface`, which requires a static `fromArray(array $data): self`. The resolver checks the interface with `assert()`, so a class that only has a `fromArray()` fails in development (`zend.assertions=1`) and passes unnoticed where assertions are compiled out (`zend.assertions=-1`, the production default).
 
 The whole query array is passed to `fromArray()` — parameters are flat (`?search=x`), not namespaced under `filter[...]`.
 

@@ -32,11 +32,13 @@ class App extends Kernel
 }
 ```
 
-These six abstract methods are your integration points. The skeleton's `src/App.php` provides a complete implementation you can use as a reference.
+These six abstract methods are your integration points. The framework's test application (`tests/App/App.php`) provides a complete implementation you can use as a reference.
 
 ## The request lifecycle
 
-1. `public/index.php` calls `AppFactory::create($baseDir)` — this instantiates `App`, loads config files, and calls `boot()`.
+> **Application code.** `AppFactory` is not part of the framework. The skeleton (`modufolio/appkit-skeleton`) does not ship one — it boots through its own `src/Kernel.php` and `public/index.php` — and the framework's test application keeps a reference version in `tests/App/AppFactory.php`; it is yours to write.
+
+1. `public/index.php` calls your application factory — `AppFactory::create($baseDir)` in the test app — which instantiates `App`, loads config files, and calls `boot()`.
 2. `boot()` applies error-output hardening for the environment (see [Exception handling](exception-handling.md#error-output-hardening)), wires the kernel core services (or loads a legacy `config/interfaces.php` when mapped), sets up the router cache directory, builds [the Symfony container behind the kernel](dependency-injection.md#the-symfony-container-behind-the-kernel) if `configureContainer()` asked for one (before any module's `boot()`), and freezes the token unserializer whitelist.
 3. `handle(ServerRequestInterface $request)` is called. It creates a fresh `NativeApplicationState` for the request via `createState()` — which first rejects a `Host` header that is not on the [trusted-hosts](security.md#trusted-hosts) allowlist — then calls `handleAuthentication()`.
 4. `handleAuthentication()` determines the active firewall, attempts session token restoration, runs authenticators if needed, and either calls `controllerResolver()` or returns an authentication response.
@@ -94,7 +96,8 @@ Resolution order:
 4. Repositories (Doctrine entity repositories)
 5. Authenticators (`config/authenticators.php`)
 6. Legacy factories (`config/factories.php`)
-7. `NotFoundException` if nothing matched
+7. [The Symfony container behind the kernel](dependency-injection.md#the-symfony-container-behind-the-kernel), when the application configured one with `configureContainer()` and it knows the id
+8. `NotFoundException` if nothing matched
 
 ```php
 use Doctrine\ORM\EntityManagerInterface;
@@ -155,7 +158,9 @@ Parameters are available inside controller config as `%app.name%` strings.
 
 ## Booting the application
 
-`AppFactory::create(string $baseDir)` is the standard entry point. The factory pattern is inspired by [Slim PHP](https://www.slimframework.com/). It:
+> **Application code.** `AppFactory` is not part of the framework. The skeleton (`modufolio/appkit-skeleton`) does not ship one — it boots through its own `src/Kernel.php` and `public/index.php` — and the framework's test application keeps a reference version in `tests/App/AppFactory.php`; it is yours to write.
+
+`AppFactory::create(string $baseDir)` — the test app's factory — is the standard entry point. The factory pattern is inspired by [Slim PHP](https://www.slimframework.com/). It:
 
 1. Registers `User::class` with `TokenUnserializer` (whitelist-based session deserialization).
 2. Creates a route loader that scans `src/Controller/` for `#[Route]` attributes and also loads PHP route files.

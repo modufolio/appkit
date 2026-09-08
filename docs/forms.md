@@ -30,12 +30,14 @@ Call `validate()` with the raw data:
 
 ```php
 $form = new CreatePostForm();
-$result = $form->validate($request->getParsedBody());
+$result = $form->validate((array) $request->getParsedBody());
 
 if ($result->hasErrors()) {
     // show errors
 }
 ```
+
+`validate()` takes an array. `getParsedBody()` is `null` on a request without a body and may be an object for other media types, so cast it first — passing the bare `null` is a `TypeError`.
 
 ## `ValidationResult`
 
@@ -64,13 +66,23 @@ try {
 }
 ```
 
-The exception handler registers `ValidationException` by default and returns a `422` JSON response with the violation details.
+The exception handler does not know this class. `Form\ValidationException` extends `\RuntimeException`, so one that escapes a controller falls through to the built-in `\RuntimeException` handler and becomes a **500 "Runtime error"** — the 422 mapping is registered for Symfony's `ValidationFailedException` only. To turn a `Form` result into a 422, throw that exception yourself with the result's violations:
+
+```php
+use Symfony\Component\Validator\Exception\ValidationFailedException;
+
+if ($result->hasErrors()) {
+    throw new ValidationFailedException($data, $result->violations());
+}
+```
+
+Or register `Form\ValidationException` with its own handler in `configureExceptionHandler()` — see [Exception handling](exception-handling.md).
 
 ## Mapping request payloads automatically
 
 Use `#[MapRequestPayload]` to skip writing `$form->validate()` manually. AppKit deserialises the request body and validates it against the DTO's constraints in one step.
 
-Deserialization is handled by **Symfony's `ObjectNormalizer`**. How it populates your DTO depends on the property visibility you choose.
+Deserialization goes through whatever your `App::serializer()` returns — the framework declares that method abstract, and the resolver only requires a `DenormalizerInterface`. The framework's own test app wires a `Serializer` with Symfony's `ObjectNormalizer` (`tests/App/App.php`), and the notes below assume that normalizer: how it populates your DTO depends on the property visibility you choose. A different denormalizer brings its own rules.
 
 ### DTOs with public properties
 
@@ -193,7 +205,7 @@ public function index(#[MapQueryString] SearchQuery $query): ResponseInterface
 
 ## Filter objects
 
-`#[MapFilter]` is designed for filter objects with a `fromArray()` static method. The class must implement `MapFilterInterface` — a `fromArray()` without the interface fails an assertion at resolution time. AppKit calls `fromArray($request->getQueryParams())` and injects the result.
+`#[MapFilter]` is designed for filter objects with a `fromArray()` static method. The class must implement `MapFilterInterface`. The resolver checks that with `assert()`, so a class that merely has a `fromArray()` fails in development (`zend.assertions=1`) but passes unnoticed where assertions are compiled out (`zend.assertions=-1`, the production default) — implement the interface rather than lean on the check. AppKit calls `fromArray($request->getQueryParams())` and injects the result.
 
 ```php
 // src/Filter/PostFilter.php

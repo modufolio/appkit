@@ -5,12 +5,12 @@
 Before going live, confirm each of these.
 
 - [ ] `APP_ENV=prod` in your server environment
-- [ ] `APP_URL` set to your production domain (e.g. `https://example.com`)
+- [ ] Any variable your own code reads through `env()` is set. The skeleton's `.env.example` also lists `APP_URL`, but nothing in the framework or in the skeleton's shipped code reads it — base URLs come from the request
 - [ ] `COOKIE_SECURE=true`
 - [ ] `composer install --no-dev --classmap-authoritative` completed — see [Autoloader](#autoloader)
 - [ ] `npm run build` completed and compiled assets uploaded to `public/assets/`
 - [ ] `php bin/console migrations:migrate` completed
-- [ ] `php bin/console security:validate` passes — config validation is skipped at runtime in `prod`, so this is the last gate that catches a bad firewall or access-control rule (see [Security](security.md#validating-configuration))
+- [ ] `php bin/console security:validate` passes — config validation is skipped at runtime in `prod`, so this is the last gate that catches a bad firewall or access-control rule (see [Security](security.md#validating-configuration)). The framework ships the command as `SecurityValidateCommand`; the skeleton's console does not register it, so add it to your runner first
 - [ ] `storage/logs/` is writable by the web server user
 - [ ] `var/` is writable by both the web server user and the CLI user
 - [ ] Any secrets (JWT keys, OAuth secrets, DB passwords) are in the server environment, not in `.env` files
@@ -37,7 +37,6 @@ server {
         fastcgi_pass unix:/run/php/php8.2-fpm.sock;
         fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
         fastcgi_param APP_ENV prod;
-        fastcgi_param APP_URL https://example.com;
         fastcgi_param COOKIE_SECURE true;
         include fastcgi_params;
     }
@@ -57,7 +56,6 @@ example.com {
     root * /var/www/my-app/public
     php_fastcgi unix//run/php-fpm/php-fpm.sock {
         env APP_ENV prod
-        env APP_URL https://example.com
         env COOKIE_SECURE true
     }
     file_server
@@ -77,6 +75,8 @@ example.com {
 
 Everything else should be read-only for the web server user.
 
+> **Application code.** `storage/logs/` and `bin/console` are not framework paths. The skeleton (`modufolio/appkit-skeleton`) creates `storage/logs/` for its `FileLogger` and boots the console from `config/console.php`; both are yours to change. The framework's own writes — sessions, caches, proxies — go under `var/` (`Kernel::setVarDir()` moves them).
+
 ## Compiled assets
 
 `public/assets/css/app.css`, `public/assets/js/app.js`, and `public/assets/js/app.js.map` are gitignored. Rebuild them as part of every deployment.
@@ -86,7 +86,7 @@ npm ci
 npm run build
 ```
 
-If you use a CDN or object storage for assets, copy the compiled files there and update `APP_URL` or your asset base URL accordingly.
+If you use a CDN or object storage for assets, copy the compiled files there and reference them with plain `<link>`/`<script>` tags in your layout. `$this->css()` and `$this->js()` cannot take a full URL: `Template::url()` prefixes every queued asset with the request's base URL, so `css('https://cdn.example.com/app.css')` renders `href="https://example.com/https://cdn.example.com/app.css"`. Setting `APP_URL` changes nothing: neither the framework nor the skeleton's shipped code reads it, so it only matters if your own code does through `env('APP_URL')`.
 
 ## Switching from SQLite
 
@@ -120,29 +120,40 @@ After switching drivers, generate a fresh migration from your entities and run i
 
 ## Logging
 
-`FileLogger` writes to two files:
+> **Application code.** `FileLogger` is not part of the framework. The skeleton (`modufolio/appkit-skeleton`) ships a starting version in `src/Logger/FileLogger.php`; it is yours to change. The framework only asks for a PSR-3 `LoggerInterface` and logs through whatever you give it.
+
+The skeleton's `FileLogger` writes to two files:
 
 | File | Contains |
 |------|---------|
 | `storage/logs/app.log` | All log levels |
 | `storage/logs/error.log` | Emergency, alert, critical, error |
 
-Context fields named `password`, `plainPassword`, `token`, `authorization`, and `cookie` are automatically redacted before writing.
+Context fields named `password`, `plainPassword`, `token`, `authorization`, and `cookie` are redacted before writing (`scrubContext()`).
 
-To replace `FileLogger` with Monolog or another PSR-3 implementation, swap it in `AppFactory::create()`:
+The skeleton wires it in `config/services.php`:
 
 ```php
-use Monolog\Logger;
-use Monolog\Handler\StreamHandler;
-
-$logger = new Logger('app');
-$logger->pushHandler(new StreamHandler($baseDir . '/storage/logs/app.log'));
-
-return (new App(
-    // ...
-    logger: $logger,
-))->configureSecurity($security)->boot();
+$services->set(LoggerInterface::class, FileLogger::class)
+    ->args(['%app.base_dir%/storage/logs']);
 ```
+
+To replace it with Monolog or another PSR-3 implementation, change that one definition — nothing else in the skeleton refers to `FileLogger`:
+
+```php
+use Monolog\Handler\StreamHandler;
+use Monolog\Logger;
+use Psr\Log\LoggerInterface;
+
+$services->set(StreamHandler::class)
+    ->args(['%app.base_dir%/storage/logs/app.log']);
+
+$services->set(LoggerInterface::class, Logger::class)
+    ->args(['app'])
+    ->call('pushHandler', [service(StreamHandler::class)]);
+```
+
+An application built directly on the framework `Kernel`, like the RoadRunner reference (`modufolio/appkit-roadrunner`), passes the logger to its `App` constructor instead; there the `logger:` argument in `AppFactory::create()` is the place to swap.
 
 ## Autoloader
 
@@ -260,6 +271,8 @@ while (true) {
 }
 ```
 
+> **Application code.** `AppFactory` and `RoadRunnerApp` are not part of the framework. They come from `modufolio/appkit-roadrunner` — `src/AppFactory.php`, whose signature is `create(string $baseDir, string $appClass = App::class)`, and `src/RoadRunnerApp.php` — and are yours to change. The skeleton (`modufolio/appkit-skeleton`) has neither: its `public/index.php` constructs `new Kernel(baseDir: …, environment: …)`, a class of its own that does not extend the framework `Kernel`.
+
 Three details that are easy to miss:
 
 - `waitRequest()` returning `null` means shutdown — break, do not `continue`
@@ -273,7 +286,7 @@ Three details that are easy to miss:
 application supplies its own and is responsible for tearing down whatever the
 framework does not.
 
-`AbstractApplicationState::reset()` clears exactly five things:
+`AbstractApplicationState::reset()` clears exactly six things:
 
 | Cleared | Not cleared |
 |---|---|
@@ -282,8 +295,9 @@ framework does not.
 | `tokenStorage` (token set to `null` first) | Emitter |
 | `requestInstances` | Environment |
 | `firewallNameCache` | Cached service instances |
+| `firewallRequestCache` | |
 
-Everything in the right column is yours. A typical `App::reset()`:
+Everything in the right column is yours. A typical `App::reset()`, abridged from the reference implementation:
 
 ```php
 public function reset(): void

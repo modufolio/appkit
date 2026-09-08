@@ -68,6 +68,8 @@ abstract class AppTestCase extends BaseAppTestCase
 }
 ```
 
+> **Application code.** `AppFactory` is not part of the framework. The skeleton (`modufolio/appkit-skeleton`) ships the application bootstrap (its `src/Kernel.php`; the framework's own test app uses a `tests/App/AppFactory.php` of the same shape); it is yours to change.
+
 Optional hooks, all no-ops by default:
 
 | Hook | When it runs | Override it to |
@@ -134,9 +136,11 @@ final class UserTest extends TestCase
 
 ## The test environment
 
-Set `APP_ENV=test` to activate the test environment. The Kernel will use `ArrayAdapter` for Doctrine's metadata and query caches instead of `FilesystemAdapter`, keeping tests fast.
+Set `APP_ENV=test` to activate the test environment. In any environment other than `prod`, `EntityManagerFactory` uses `ArrayAdapter` for Doctrine's metadata and query caches instead of `FilesystemAdapter`, keeping tests fast.
 
-If you create `config/test/doctrine.php`, the console will use it when you pass `--env=test`. This is useful for running migrations against an in-memory SQLite database.
+If you create `config/test/doctrine.php`, the console uses it when you pass `--env=test`. This is useful for running migrations against an in-memory SQLite database.
+
+> **Application code.** `bin/console` and its `--env`/`--test` options are not part of the framework. The skeleton (`modufolio/appkit-skeleton`) ships them in `bin/console` and `src/Console/ConsoleRunner.php`; they are yours to change.
 
 ```php
 // config/test/doctrine.php
@@ -157,62 +161,64 @@ vendor/bin/phpunit
 
 ## `EntityFactory`
 
-`Modufolio\Appkit\Doctrine\EntityFactory` creates and persists test fixtures.
+`Modufolio\Appkit\Doctrine\EntityFactory` creates and persists test fixtures. It takes the entity manager, any `DenormalizerInterface` (your app's serializer) and a validator; every entity is validated before it is persisted.
+
+`create()` refuses a class it has no configuration for (`InvalidArgumentException`), so load the config first. Defaults sit under a `fields` key; a closure is called per instance and receives Faker as its first argument:
 
 ```php
-use Modufolio\Appkit\Doctrine\EntityFactory;
 use App\Entity\User;
+use Modufolio\Appkit\Doctrine\EntityFactory;
 
-$factory = new EntityFactory(
+$factory = (new EntityFactory(
     entityManager: $em,
     serializer:    $serializer,
     validator:     $validator,
-);
+))->loadConfig([
+    User::class => [
+        'fields' => [
+            'email'    => fn ($faker) => $faker->unique()->safeEmail(),
+            'password' => fn () => password_hash('secret', PASSWORD_BCRYPT),
+            'roles'    => ['ROLE_USER'],
+            'enabled'  => true,
+        ],
+    ],
+]);
 
-// Create and persist one entity
-$factory->create(User::class, [
-    'email'    => 'test@example.com',
-    'password' => 'hashed-password',
-    'roles'    => ['ROLE_USER'],
-])->store();
+// Create and persist one entity; attributes override the defaults
+$factory->create(User::class, ['email' => 'test@example.com'])->store();
 
-// Create many entities
+// Create many entities — the callback receives the index
 $factory->createMany(User::class, 10, function (int $i): array {
-    return [
-        'email' => "user{$i}@example.com",
-    ];
+    return ['email' => "user{$i}@example.com"];
 })->store();
 ```
 
-Pass a config file to predefine factory defaults:
+`create()` persists, `store()` flushes. An array value on an association field is denormalised into the target entity; an entity instance is passed through as is. The framework's own suite keeps this config in `tests/fixtures/config/fixture_factories.php` and builds the factory in `tests/Case/AppTestCase.php`'s `loadFixtures()`.
+
+`withResolverArgs()` does not override fields — per-instance overrides go to `create()`. It adds arguments that every field closure receives after Faker, in the order they were added, for the `create()` calls that follow:
 
 ```php
-$factory->loadConfig([
-    User::class => [
-        'roles'   => ['ROLE_USER'],
-        'enabled' => true,
-    ],
-]);
-```
+$factory->withResolverArgs(['account' => $account]);
 
-Override specific fields per instance:
-
-```php
-$factory->create(User::class, ['email' => 'admin@example.com'])
-    ->withResolverArgs(['roles' => ['ROLE_ADMIN']])
-    ->store();
+// Field closures in the config now receive ($faker, $account):
+// 'account' => fn ($faker, Account $account) => $account,
+$factory->create(Contact::class)->store();
 ```
 
 ## `TestResponse`
 
-`Modufolio\Appkit\Tests\Response\TestResponse` wraps a PSR-7 `ResponseInterface` and provides a fluent assertion API inspired by Laravel's `TestResponse`. Use it in feature tests to assert HTTP responses without parsing raw headers or body strings.
+`Modufolio\Appkit\Testing\TestResponse` wraps a PSR-7 `ResponseInterface` and provides a fluent assertion API inspired by Laravel's `TestResponse`. Use it in feature tests to assert HTTP responses without parsing raw headers or body strings.
 
-The recommended shape for feature tests is: boot the *real* app once via your `AppFactory`, build PSR-7 requests, pass them to `$app->handle()`, and assert on the wrapped response — no mocking of framework internals. AppKit's own suite does exactly this; its [`tests/Case/AppTestCase.php`](https://github.com/modufolio/appkit/blob/main/tests/Case/AppTestCase.php) (with `get()`/`post()` helpers, automatic session cookies and CSRF headers, and an `actingAs()` login helper) is the reference implementation to copy into your project.
+The recommended shape for feature tests is: boot the *real* app once through the `app()` seam, dispatch requests in-process, and assert on the wrapped response — no mocking of framework internals. The request helpers (`get()`/`post()`/`put()`/`patch()`/`delete()`/`form()`/`json()`/`request()`), session and CSRF continuity between requests, and `actingAs()`/`logout()` all live in the framework's `Modufolio\Appkit\Testing\AppTestCase` and return a `TestResponse`. AppKit's own [`tests/Case/AppTestCase.php`](https://github.com/modufolio/appkit/blob/main/tests/Case/AppTestCase.php) adds only the `app()` seam and Doctrine fixture loading on top — there is nothing to copy; extend the base class as shown in [The shipped test harness](#the-shipped-test-harness).
 
 ```php
-use Modufolio\Appkit\Tests\Response\TestResponse;
+use Modufolio\Appkit\Testing\TestResponse;
 
-$response = new TestResponse($this->app->handle($request));
+// Through the harness — already wrapped
+$response = $this->get('/dashboard');
+
+// By hand, for a request you built yourself
+$response = new TestResponse($this->app()->handle($request));
 
 $response->assertStatus(200);
 $response->assertHeader('Content-Type', 'application/json');
@@ -226,7 +232,7 @@ $response->assertStatus(422);
 $response->assertRedirect('/login');
 ```
 
-`assertRedirect()` checks that the status is a 3xx code and that the `Location` header matches the given URL.
+`assertRedirect()` checks that the status is one of `301`, `302`, `303`, `307` or `308` and, when a URL is given, that the `Location` header equals it.
 
 ### Header assertions
 
@@ -266,15 +272,38 @@ $response->dd();   // print and exit
 
 ## `DatabaseTestingCapabilities`
 
-`Modufolio\Appkit\Tests\Traits\DatabaseTestingCapabilities` is a PHPUnit trait that adds query tracking, database assertions, fixture seeding, and performance monitoring to any test class. It registers its hooks with `#[Before]` and `#[After]` so no `setUp()`/`tearDown()` wiring is needed.
+`Modufolio\Appkit\Testing\DatabaseTestingCapabilities` is a PHPUnit trait that adds query tracking, database assertions, fixture seeding, and performance monitoring to any test class. It registers its hooks with `#[Before]` and `#[After]` so no `setUp()`/`tearDown()` wiring is needed. It runs on a plain DBAL connection built from the `DB_*` variables (SQLite in memory by default — see [Testing against real databases](#testing-against-real-databases)), independent of the app.
+
+The trait declares one abstract method, `getTestSchema(): Schema`, describing the tables the tests need; `createTestSchema()` builds them and reuses live tables that were created from the same DDL. The framework's own [`tests/Unit/Database/ExampleDatabaseTest.php`](https://github.com/modufolio/appkit/blob/main/tests/Unit/Database/ExampleDatabaseTest.php) is the reference:
 
 ```php
-use Modufolio\Appkit\Tests\Traits\DatabaseTestingCapabilities;
+use Doctrine\DBAL\Schema\Schema;
+use Modufolio\Appkit\Testing\DatabaseTestingCapabilities;
 use PHPUnit\Framework\TestCase;
 
 final class UserFeatureTest extends TestCase
 {
     use DatabaseTestingCapabilities;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->createTestSchema();
+        $this->cleanupTables = ['users'];
+    }
+
+    public function getTestSchema(): Schema
+    {
+        $schema = new Schema();
+
+        $users = $schema->createTable('users');
+        $users->addColumn('id', 'integer', ['autoincrement' => true]);
+        $users->addColumn('email', 'string', ['length' => 255]);
+        $users->addColumn('roles', 'string', ['length' => 255]);
+        $users->setPrimaryKey(['id']);
+
+        return $schema;
+    }
 
     // ...
 }
@@ -282,22 +311,16 @@ final class UserFeatureTest extends TestCase
 
 ### Seeding fixtures
 
-Assign rows to `$this->fixtures` before the test runs, or call `seed()` inside the test body:
+Seed with `seed()` — in `setUp()` after `createTestSchema()`, or inside the test body — and list the tables in `$this->cleanupTables` so the `#[After]` hook truncates them:
 
 ```php
-// Declarative — set before the test
-$this->fixtures = [
-    'users' => [
-        ['email' => 'alice@example.com', 'roles' => '["ROLE_USER"]'],
-        ['email' => 'bob@example.com',   'roles' => '["ROLE_ADMIN"]'],
-    ],
-];
-
-// Imperative — call inside the test
 $this->seed('users', [
-    ['email' => 'charlie@example.com'],
+    ['email' => 'alice@example.com', 'roles' => '["ROLE_USER"]'],
+    ['email' => 'bob@example.com',   'roles' => '["ROLE_ADMIN"]'],
 ]);
 ```
+
+The trait also has a `$this->fixtures` property, but there is no place to set it from: the `#[Before]` hook resets it to `[]` immediately before reading it, and that hook runs before `setUp()`. Rows assigned to the property are never inserted.
 
 ### Database assertions
 
@@ -373,13 +396,18 @@ $log = $this->getQueryLog('SELECT', 'users'); // filter by type and table
 composer stan
 ```
 
-PHPStan runs at level 8 — the framework and the skeleton both hold that level. The config file is `phpstan.php` in the project root:
+PHPStan runs at level 8. The config file is `phpstan.php` in the project root; the framework's own analyses `src/` and `tests/` and pulls in its Doctrine extension and `phpstan-phpunit` — trimmed to the parts that matter:
 
 ```php
 return [
+    'includes' => [
+        __DIR__.'/extension.php',
+        __DIR__.'/vendor/phpstan/phpstan-phpunit/extension.neon',
+    ],
     'parameters' => [
         'level' => 8,
-        'paths' => ['src'],
+        'paths' => ['src', 'tests'],
+        'excludePaths' => ['analyseAndScan' => ['vendor/*', /* … */]],
     ],
 ];
 ```
@@ -394,7 +422,7 @@ Fix errors before committing. PHPStan catches type mismatches, undefined variabl
 composer fix
 ```
 
-Reformats all PHP files in `src/` to match the configured coding standard. Run this before every commit to keep the diff clean.
+Runs `php-cs-fixer fix --config=.php-cs-fixer.php`, whose finder covers `src/`, `tests/` (including `tests/fixtures/config/`), `bootstrap.php` and the config file itself. Run this before every commit to keep the diff clean.
 
 Check what would change without modifying files:
 
@@ -420,8 +448,8 @@ php bin/console migrations:migrate --no-interaction
 # 4. Run the test suite
 vendor/bin/phpunit
 
-# 5. Run static analysis
-vendor/bin/phpstan analyse
+# 5. Run static analysis (phpstan does not discover phpstan.php on its own)
+vendor/bin/phpstan analyse --configuration phpstan.php
 ```
 
 For the artifact you actually deploy, build separately with `composer install --no-dev --optimize-autoloader`.

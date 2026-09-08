@@ -159,7 +159,7 @@ return function (ServiceConfigurator $services): void {
 
 ## `config/repositories.php`
 
-Maps repository classes to their Doctrine entity class.
+Optional. Maps repository classes to their Doctrine entity class. Without it the kernel derives the same map from Doctrine's metadata; an application that hands the file's array to the kernel replaces that derivation — and an empty array disables it, so a file that exists must be complete. See [Wiring repositories](dependency-injection.md#wiring-repositories).
 
 ```php
 return [
@@ -192,18 +192,28 @@ Firewall option reference:
 
 | Option | Type | Description |
 |--------|------|-------------|
-| `pattern` | `string` | Path prefix or `segment:pos` pattern |
+| `pattern` | `string` | Path prefix (whole segments: `/admin` matches `/admin/users`, not `/administrator`) or `segment:pos` pattern |
 | `authenticators` | `string[]` | Names from `config/authenticators.php` |
 | `entry_point` | `string` | Redirect destination for unauthenticated requests |
 | `stateless` | `bool` | `true` disables session for this firewall |
 | `security` | `bool` | `false` disables all security for this firewall |
+| `methods` | `string[]` | Only handle these HTTP methods; other methods fall through to the next firewall |
+| `host` | `string` | Only handle this host (case-insensitive, plain match) |
+| `ips` | `string[]` | Only handle requests from these client IPs / CIDR ranges |
 | `logout.path` | `string` | POST URL to log out |
 | `logout.target` | `string` | Redirect destination after logout |
 | `two_factor_path` | `string` | Path for TOTP code entry (default `/2fa`) |
+| `csrf` | `bool` | `false` turns off the kernel CSRF check for this firewall (default `true`) |
+| `csrf_token_id` | `string` | Id of the session token sent in `X-CSRF-Token` (default `csrf`) |
+| `csrf_delegated_paths` | `string[]` | Paths (firewall pattern syntax) whose controller validates its own CSRF token |
+| `csrf_form_tokens` | `array<string,string>` | Symfony-form token shapes to accept: form name → token id |
+| `csrf_validator` | `callable` | Custom check `function ($request, $tokenManager): ?bool`; must be callable |
 | `switch_user.enabled` | `bool` | `true` turns on impersonation (default `false`) |
 | `switch_user.role` | `string` | Role the impersonator must hold (default `ROLE_ALLOWED_TO_SWITCH`) |
 | `switch_user.parameter` | `string` | POST field carrying the target identifier (default `_switch_user`) |
-| `switch_user.target` | `string` | Redirect destination after switching |
+| `switch_user.target` | `string` | Redirect destination after switching (default: the current URI with the parameter stripped) |
+
+Keys the schema does not know (an app-specific `context`, say) are kept, not rejected. The CSRF and restriction options are explained in [Security](security.md#defining-a-firewall).
 
 ## `config/doctrine.php`
 
@@ -245,12 +255,18 @@ return [
 
 Bootstrap file for `bin/console`. It creates a `ConsoleRunner` and registers command groups — see [Console](console.md) for the full picture.
 
+> **Application code.** `ConsoleRunner` is not part of the framework. The skeleton (`modufolio/appkit-skeleton`) ships a starting version in `src/Console/ConsoleRunner.php`; it is yours to change.
+
 ```php
 use App\Console\ConsoleRunner;
 
+require dirname(__DIR__) . '/bootstrap.php';
+
+// Composer's autoloader returns the ClassLoader; the maker commands need it
+$classLoader = require dirname(__DIR__) . '/vendor/autoload.php';
+
 $console = new ConsoleRunner(
     classLoader: $classLoader,
-    userClass:   App\Entity\User::class,
     projectDir:  dirname(__DIR__),
 );
 
@@ -292,6 +308,8 @@ A process that never runs the bootstrap — a one-off CLI script, a worker — s
 ## `public/index.php`
 
 The HTTP entry point. Creates the application, handles the request, and emits the response.
+
+> **Application code.** `AppFactory` is not part of the framework. The skeleton (`modufolio/appkit-skeleton`) does not ship one — it boots through its own `src/Kernel.php` and `public/index.php` — and the framework's test application keeps a reference version in `tests/App/AppFactory.php`; it is yours to write.
 
 ```php
 require dirname(__DIR__) . '/bootstrap.php';

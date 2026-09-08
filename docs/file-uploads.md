@@ -8,6 +8,7 @@ Get the uploaded file from the request, pass it to `UploadedFileErrorHandler::fr
 
 ```php
 use Modufolio\Appkit\Http\UploadedFileErrorHandler;
+use Modufolio\Appkit\Toolkit\Str;
 use Psr\Http\Message\ServerRequestInterface;
 
 #[Route(path: '/upload', name: 'upload', methods: ['POST'])]
@@ -41,7 +42,7 @@ All validation methods return `$this`, so they chain.
 |--------|-------------|
 | `hasExtension(string\|array $ext, ?string $message)` | Require a specific file extension or list of extensions. |
 | `hasMimeType(string\|array $mime, ?string $message)` | Require a specific MIME type or list. |
-| `isImage(?string $message)` | Shorthand for common raster image MIME types (jpeg, png, gif, webp). SVG is excluded — it can carry scripts; allow it with `hasMimeType('image/svg+xml')` only after sanitising. |
+| `isImage(?string $message)` | Shorthand for common raster image MIME types (jpeg, png, gif, webp). SVG is excluded — it can carry scripts. Allowing it takes two steps: validate with `hasMimeType('image/svg+xml')`, and pass `allowUnsafeExtension: true` to `saveTo()`, because `svg` is on the extension denylist and is refused at save time regardless of the MIME check. Do both only after sanitising the markup. |
 | `maxSize(int $bytes, ?string $message)` | Reject files larger than `$bytes`. |
 | `minSize(int $bytes, ?string $message)` | Reject files smaller than `$bytes`. |
 | `matchesFilenamePattern(string $pattern, ?string $message)` | Validate the original filename against a regex. |
@@ -66,15 +67,41 @@ $upload->assert(function (\Psr\Http\Message\UploadedFileInterface $file): bool {
 ## Saving files
 
 ```php
-$upload->saveTo('/absolute/path/to/directory');
+saveTo(string $path, ?string $filename = null, bool $allowUnsafeExtension = false): self
+```
+
+```php
+$upload->saveTo('/absolute/path/to/directory');   // keeps the client filename
 
 // With a custom filename — used verbatim, so INCLUDE the extension yourself
-$upload->saveTo('/absolute/path/to/directory', 'profile-123.jpg');
+$upload->saveTo('/absolute/path/to/directory', Str::uuid() . '.jpg');
 ```
 
 The filename is passed through `F::safeName()` and used as given; no extension is
 appended. Omitting it writes an extensionless file, which then breaks anything
 downstream that infers type from the path — image processing in particular.
+
+`saveTo()` never overwrites: if the target already exists it throws. So the
+filename must be unique per upload — a UUID, a database id, a timestamp plus
+random suffix — not a fixed name derived from the user, which collides the second
+time that user uploads.
+
+By default it also refuses server-executable and config extensions (`php`,
+`phtml`, `phar`, `sh`, `htaccess`, `ini`, `exe`, `svg`, …) even when no validator
+was chained, so a forgotten `isImage()` cannot drop a `.php` file into a served
+directory. `allowUnsafeExtension: true` switches that check off for the one call;
+use it only for a directory you fully control that is not served as code.
+
+SVG is the usual reason to reach for it. An SVG can carry scripts, so sanitise
+the markup before it is ever served inline, and keep the MIME check:
+
+```php
+$upload->hasMimeType('image/svg+xml')->maxSize(512 * 1024);
+
+if (!$upload->hasErrors()) {
+    $upload->saveTo($dir, Str::uuid() . '.svg', allowUnsafeExtension: true);
+}
+```
 
 `safeName()` slugs the name (lowercase, strict character set), which is the right
 choice when you are minting a fresh storage name. It is the wrong choice when the
@@ -88,10 +115,15 @@ To keep the original extension:
 
 ```php
 $ext = pathinfo($upload->getFile()->getClientFilename(), PATHINFO_EXTENSION);
-$upload->saveTo($dir, 'profile-123.' . $ext);
+$upload->saveTo($dir, Str::uuid() . '.' . $ext);
 ```
 
-If validation fails, `saveTo()` throws `\InvalidArgumentException`. Always check `hasErrors()` *before* calling `saveTo()` (or wrap it in a try/catch).
+`saveTo()` throws `\InvalidArgumentException` in four cases: validation errors are
+present, the resolved filename is empty, the extension is on the denylist and
+`allowUnsafeExtension` is false, or the target file already exists. It throws
+`\RuntimeException` when the directory cannot be created. Always check
+`hasErrors()` *before* calling `saveTo()`, and pick a filename that cannot exist
+yet; wrap the call in a try/catch for the rest.
 
 ## Reading errors and the stored path
 
@@ -119,7 +151,10 @@ foreach ($files['gallery'] as $uploaded) {
         continue;
     }
 
-    $handler->saveTo('/storage/gallery');
+    // Two files in one batch can share a client filename, and saveTo()
+    // refuses to overwrite — mint a unique name per file.
+    $ext = pathinfo($uploaded->getClientFilename(), PATHINFO_EXTENSION);
+    $handler->saveTo('/storage/gallery', Str::uuid() . '.' . $ext);
 }
 ```
 
@@ -140,8 +175,10 @@ public function updateAvatar(
         return Response::redirect($this->urlGenerator->generate('profile'));
     }
 
+    // Not 'user-{id}.{ext}': saveTo() refuses to overwrite, so a fixed name
+    // throws the second time this user changes their avatar.
     $ext = pathinfo($upload->getFile()->getClientFilename(), PATHINFO_EXTENSION);
-    $upload->saveTo($this->baseDir . '/storage/avatars', 'user-' . $user->getId() . '.' . $ext);
+    $upload->saveTo($this->baseDir . '/storage/avatars', Str::uuid() . '.' . $ext);
 
     $user->setAvatarPath($upload->getStoredFilePath());
     $this->entityManager->flush();
@@ -162,7 +199,7 @@ Set these in `php.ini` or a `.user.ini` file in `public/`. AppKit cannot overrid
 
 ## Large and resumable uploads
 
-For large files — videos, high-resolution images, bulk imports — use [`modufolio/tus-psr7`](https://github.com/modufolio/tus-psr7). It implements the [TUS resumable upload protocol](https://tus.io/) and is PSR-7 native, so it slots directly into an AppKit controller.
+[`modufolio/tus-psr7`](https://github.com/modufolio/tus-psr7) is a separate package, not part of AppKit — install it with `composer require modufolio/tus-psr7`. For large files — videos, high-resolution images, bulk imports — it implements the [TUS resumable upload protocol](https://tus.io/) and is PSR-7 native, so it slots directly into an AppKit controller.
 
 ```bash
 composer require modufolio/tus-psr7

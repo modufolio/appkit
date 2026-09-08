@@ -43,7 +43,7 @@ Firewall options:
 
 | Key | Type | Description |
 |-----|------|-------------|
-| `pattern` | `string` | Path prefix to guard. `/admin` matches `/admin` and everything below it. |
+| `pattern` | `string` | Path prefix to guard, matched on whole segments: `/admin` matches `/admin` and `/admin/users`, not `/administrator`. |
 | `authenticators` | `string[]` | Named authenticators from `config/authenticators.php`. |
 | `entry_point` | `string` | Where unauthenticated users are redirected. |
 | `stateless` | `bool` | `true` for API-style firewalls with no session. |
@@ -57,6 +57,9 @@ Firewall options:
 | `switch_user` | `array` | User impersonation. Off unless `enabled` is `true` — see [Impersonation](#impersonation-switch-user). |
 | `csrf_delegated_paths` | `string[]` | Paths (firewall pattern syntax) whose controller validates its own CSRF token — the kernel check is skipped there. See below. |
 | `csrf_form_tokens` | `array<string,string>` | Symfony-form token shapes the kernel accepts: form name → token id, e.g. `['contact' => 'contact_form']` accepts `contact[_token]`. See below. |
+| `csrf` | `bool` | `false` turns the kernel CSRF check off for this firewall. Defaults to `true`. See below. |
+| `csrf_token_id` | `string` | Id of the session token fetch/XHR clients send in the `X-CSRF-Token` header. Defaults to `csrf`. |
+| `csrf_validator` | `callable` | `function ($request, $tokenManager): ?bool` for token shapes the options above cannot express: `true` accepts, `false` rejects, `null` falls through to the default check. Must be callable — config validation refuses anything else. |
 
 > **Firewall restrictions (Symfony-style).** A firewall handles a request only
 > when *all* of its declared restrictions match — `pattern` **and** `methods`
@@ -106,7 +109,7 @@ Firewall options:
 
 Pattern syntax uses plain string matching, not regex. This prevents ReDoS attacks. Two forms:
 
-- `/admin` — matches any path that starts with `/admin`
+- `/admin` — prefix match on whole path segments: `/admin` and `/admin/...`, but not `/administrator`
 - `api:0` — matches paths where the first segment equals `api`
 
 ## Multiple firewalls
@@ -145,8 +148,9 @@ time:
 php bin/console security:validate
 ```
 
-It validates both firewalls and access-control rules and exits non-zero on the
-first problem. To inspect the resolved configuration — firewalls, their
+It checks the firewalls and then the access-control rules. Each section stops
+at its first problem, so a run reports at most one firewall error and one
+rule error, and exits non-zero if either was found. To inspect the resolved configuration — firewalls, their
 restrictions, access-control rules, and the role hierarchy — use:
 
 ```bash
@@ -297,7 +301,7 @@ Token details:
 - 32 random bytes (64 hex characters)
 - Validated with `hash_equals()` — timing-safe
 - Maximum 50 tokens per session (FIFO eviction)
-- Rotated automatically on successful login
+- Cleared on successful login — every token minted before authentication stops validating; the next `getToken()` mints a fresh one
 
 ### What the kernel checks for you
 
@@ -308,7 +312,13 @@ either the firewall token (`csrf_token_id`, default `csrf`) in the
 enforced for:
 
 - restored sessions (the usual logged-in browser),
-- first requests authenticated by a remember-me cookie,
+- requests authenticated by an **ambient credential** — a remember-me cookie,
+  or HTTP Basic, whose cached realm the browser re-sends on its own. The
+  kernel keys this on the authenticator implementing
+  `AmbientCredentialInterface` (`RememberMeAuthenticator` and
+  `BasicAuthenticator` do), not on the token class. This branch runs
+  regardless of `stateless`, so a stateless HTTP Basic firewall that accepts
+  writes needs `csrf => false` or a `csrf_validator`,
 - **anonymous requests to public paths** — an anonymous session cookie (a guest
   cart, wizard progress) is just as ambient as an authenticated one, so a
   cross-site POST against it is forgeable in exactly the same way,
@@ -328,9 +338,13 @@ usual checks when absent):
 
 Not checked by the kernel:
 
-- **stateless firewalls** — no session, nothing ambient to forge,
-- bearer/API-key/JWT requests — the browser does not attach those credentials
-  automatically,
+- **stateless firewalls** on the restored-session and public-path routes —
+  no session, nothing ambient to forge (the ambient-credential case above is
+  the one exception),
+- bearer/API-key/JWT/OAuth requests — the page attaches those credentials
+  deliberately; no browser sends them unprompted, and their authenticators do
+  not implement `AmbientCredentialInterface`. HTTP Basic is *not* in this
+  group,
 - `POST /login` (the `entry_point`) and `POST {two_factor_path}` — the
   authenticator and your 2FA controller validate their own token ids
   (`authenticate`, and e.g. `2fa_verify`) there,
@@ -474,7 +488,7 @@ AppKit's `TokenUnserializer` only deserialises a whitelist of classes from sessi
 Register your `User` entity before calling `boot()`:
 
 ```php
-// In AppFactory::create()
+// In your application factory or bootstrap, before boot()
 TokenUnserializer::register(User::class);
 ```
 
@@ -482,7 +496,11 @@ After `boot()` is called, the whitelist is frozen. No further classes can be add
 
 ## Account lifecycle controls
 
-`UserChecker` runs pre-auth and post-auth checks on every login attempt. It covers three opt-in account states. Each is activated by implementing the corresponding interface on your `User` entity.
+`UserChecker` runs on every login attempt — but only once the authenticator has returned a user, which for form login means *after* the password has been verified (`AppSecurity::tryAuthenticators()`). The firewall then calls `checkPreAuth()` (deleted, disabled, locked or expired account) and `checkPostAuth()` (expired credentials) back to back; the names follow Symfony's convention and say nothing about ordering relative to the credential check. The same two calls run when a session token is restored on each request — a user that fails them is logged out — and on the target of a switch-user.
+
+What the user sees is always the same: on an interactive login the firewall re-wraps every `AccountStatusException` as `BadCredentialsException` before flashing it, so the login page shows *"Invalid credentials."* whatever the real reason (see [Authentication failure behaviour](#authentication-failure-behaviour)). The specific exception is kept as `getPrevious()`, and `UserChecker` writes a warning with the reason to the logger it was given. On a stateless firewall, or one without an `entry_point`, the exception propagates to the exception handler instead.
+
+It covers three opt-in account states. Each is activated by implementing the corresponding interface on your `User` entity.
 
 ### Locking accounts
 
@@ -517,7 +535,7 @@ class User implements LockableUserInterface
 }
 ```
 
-When `isLocked()` returns `true`, `UserChecker` throws `LockedAccountException` before credentials are checked. The `getLockedReason()` string is surfaced in the exception message shown to the user.
+When `isLocked()` returns `true`, `UserChecker` throws `LockedAccountException` — after the password has been verified, not before, so a wrong password on a locked account still fails as a wrong password. The user is never shown the lock: the flash is *"Invalid credentials."*, like every account-status failure. `getLockedReason()` (or a generic sentence when it is `null`) becomes the `LockedAccountException` message, which reaches your logs via `getPrevious()` on the wrapped exception and as `locked_reason` in the checker's own warning entry. An account locked while logged in is logged out on its next request.
 
 ### Expiring accounts
 
@@ -544,11 +562,11 @@ class User implements ExpirableUserInterface
 }
 ```
 
-Set `accountExpiresAt` when creating the account. Once that date passes, login is blocked with `AccountExpiredException`.
+Set `accountExpiresAt` when creating the account. Once that date passes, login is blocked with `AccountExpiredException` — shown to the user as *"Invalid credentials."* — and an open session is logged out on its next request.
 
 ### Expiring credentials
 
-`CredentialsExpirableUserInterface` forces a password change after a set period. `UserChecker` checks this after credentials are verified — the user authenticated successfully, but the session is not established until they reset their password.
+`CredentialsExpirableUserInterface` blocks login after a set period until the password is changed. `UserChecker` checks it in `checkPostAuth()`, immediately after the pre-auth checks — the user authenticated successfully, but no session token is created. The login page still shows the generic *"Invalid credentials."*, so a "please reset your password" prompt has to come from your own flow (a reset link sent when the date passes, say), not from the login error.
 
 ```php
 use Modufolio\Appkit\Security\User\CredentialsExpirableUserInterface;

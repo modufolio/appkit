@@ -153,33 +153,69 @@ php bin/console debug:router login
 
 ## Adding routes manually
 
-For redirects, aliases, or routes that don't need a dedicated controller class, add them directly in `config/routes.php`:
+For routes that don't need a dedicated controller class, add them directly in `config/routes.php`. A route added this way needs a `_controller` default — `add()` on its own declares a path with nothing to run, and matching it produces a 404:
 
 ```php
+use App\Controller\HomeController;
 use Symfony\Component\Routing\Loader\Configurator\RoutingConfigurator;
 
 return function (RoutingConfigurator $routes): void {
     // Auto-discover controller attributes
     $routes->import('../src/Controller/', 'attribute');
 
-    // Manual redirect alias
+    // A second path served by an existing controller method
     $routes->add('home.alias', '/start')
+        ->controller([HomeController::class, 'index'])
         ->methods(['GET']);
 };
 ```
 
+For redirects use the `redirect` loader below, not a manual route.
+
+## Redirects
+
+Redirects have their own loader. Declare them in a file that returns a closure over `RedirectConfigurator`, and import it with the `redirect` type:
+
+```php
+// config/redirects.php
+use Modufolio\Appkit\Routing\RedirectConfigurator;
+
+return function (RedirectConfigurator $redirects): void {
+    $redirects
+        // Literal target — for external URLs and paths outside the app.
+        ->redirect('/home', '/', 301)
+        // Named route — the URL is generated when the redirect is served,
+        // so renames propagate and an unknown name throws RouteNotFoundException.
+        ->redirectToRoute('/old-blog', 'blog.index', [], 302);
+};
+```
+
+```php
+// config/routes.php
+$routes->import('redirects.php', 'redirect');
+```
+
+The file is looked up through the `FileLocator` the loader was built with (your config directory). Both methods take the status code last and default to `301`; only `301`, `302`, `303`, `307` and `308` are accepted, anything else is an `InvalidArgumentException` at configure time. Each entry becomes a route named `redirect_<hash>` (hash of source and target, so names are stable across loads) whose `_controller` is `RedirectController::redirect`, which answers with the `Location` header and a small HTML body. A source without a leading slash is normalised to one. Loops between literal-path redirects (`/a -> /b -> /a`) are refused at load time with the full chain in the message; chains that do not cycle load fine.
+
+Keep literal targets static. The moment request data reaches `redirect()`, the route is an open redirect.
+
+`RedirectRouteLoader` is shipped, not pre-registered: it has to be in the `LoaderResolver` your application builds (see below).
+
 ## Route loading
 
-`config/routes.php` uses a `DelegatingLoader` that supports both PHP route files and attribute-scanned directories. `AppFactory` wires this up automatically. You do not need to register new controllers — dropping a class into `src/Controller/` with a `#[Route]` attribute is enough.
+Your application builds a `DelegatingLoader` over a `LoaderResolver` and hands it to the `App`; the resolver picks the loader whose `supports()` accepts the type string. Symfony's `PhpFileLoader` reads `config/routes.php` and its `AttributeDirectoryLoader` scans directories with AppKit's `AttributeClassLoader`, so you never register controllers — dropping a class into `src/Controller/` with a `#[Route]` attribute is enough.
 
-AppKit ships additional route loaders for specific use cases:
+> **Application code.** `AppFactory` is not part of the framework. The skeleton (`modufolio/appkit-skeleton`) ships the application bootstrap (its `src/Kernel.php`; the framework's own test app uses a `tests/App/AppFactory.php` of the same shape); it is yours to change. Only the loaders that bootstrap puts in the resolver are available — the test app registers `PhpFileLoader`, `AttributeDirectoryLoader`, `ArrayRouteLoader` and `JsonApiRouteLoader`; add `RedirectRouteLoader` and `FlatFileRouteLoader` there the same way when you use them.
+
+AppKit ships these route loaders:
 
 | Loader | Type string | Use case |
 |--------|-------------|----------|
-| `AttributeClassLoader` | *(default)* | `#[Route]` attributes on controller classes |
+| `AttributeClassLoader` | `attribute` (through Symfony's `AttributeDirectoryLoader`) | `#[Route]` attributes on controller classes |
 | `ArrayRouteLoader` | `array` | Explicit PHP array route definitions |
 | `FlatFileRouteLoader` | `flat_file` | Filesystem-based routing — folder structure maps to URLs |
 | `JsonApiRouteLoader` | `json_api` | Auto-generated JSON:API CRUD routes — see [modufolio/json-api](https://github.com/modufolio/json-api) |
+| `RedirectRouteLoader` | `redirect` | Redirects declared through `RedirectConfigurator` — see [Redirects](#redirects) |
 
 ### JSON:API route authorization
 

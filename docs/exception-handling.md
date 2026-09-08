@@ -31,21 +31,25 @@ CLI SAPIs (including RoadRunner workers) never have `display_errors` touched —
 
 ## How `handle()` works
 
-1. **Match.** Walk the handler registry in insertion order; the first class with `$e instanceof $class` wins. A check for class names ending in `TwoFactorException` runs after the explicit registry — that hook lets the handler stay decoupled from the optional 2FA module (see [Two-factor exceptions](#two-factor-exceptions)). If nothing matches, `defaultData()` produces a generic 500.
+1. **Match.** Of every registered class or interface the exception is an `instanceof`, the most specific wins: the exception's own class, then its parent, and so on up the chain, with an interface counted at the level of the class that introduces it. Two matches at the same distance keep registration order. If nothing matches, `defaultData()` produces a generic 500.
 2. **Compute.** The matched callable returns an array — minimally `status`, `title`, `detail`; optionally `errors` for JSON:API multi-error payloads.
-3. **Negotiate and format.** Resolve the `Accept` header against the registered MIME types, then dispatch the array to the matching formatter.
+3. **Negotiate and format.** Resolve the `Accept` header against the registered MIME types, then dispatch the array to the matching formatter. An Inertia request skips negotiation and always gets JSON:API — see [Content negotiation](#content-negotiation).
+
+One exception never reaches these steps: `InsecureChannelException`, thrown when a firewall requires HTTPS and the request arrived over HTTP, is answered with a `301` redirect to the `https` URL before any matching, formatting or logging — it is a redirect, not an error payload.
 
 If a registered handler itself throws, `ExceptionHandler` catches the secondary exception, logs both, and falls back to `defaultData($handlerException)` — see [Handler-of-handler fallback](#handler-of-handler-fallback).
 
 ## Built-in exception handlers
 
-Registered by `registerDefaultExceptions()`. The list follows registration order — the first match wins, so register subclasses before their parents when they need different behaviour.
+Registered by `registerDefaultExceptions()`. The three broad entries — `\InvalidArgumentException`, `\LogicException`, `\RuntimeException` — are catch-alls: an application exception extending one of them reaches its own handler when one is registered, and falls back to the catch-all otherwise.
 
 | Exception | Status | Title | Notes |
 |-----------|--------|-------|-------|
 | `\InvalidArgumentException` | 400 | Bad Request | Echoes `$e->getMessage()`. |
 | `\JsonException` | 422 | Invalid JSON payload | Thrown by the body decoder. |
 | `PayloadTooLargeException` | 413 | Payload Too Large | Raised by upload guards. |
+| `UntrustedHostException` | 400 | Bad Request | Detail is **always** the literal `The request host is not allowed.` — the rejected host is attacker input and goes to the log only. Loggable. |
+| `UnresolvableServiceException` | 500 | Service configuration error | A service factory whose constructor call is missing an argument. Detail hidden in prod. Loggable. |
 | `\LogicException` | 500 | Logic error | Detail hidden in prod. Loggable. |
 | `ResourceNotFoundException` | 404 | Resource not found | Raised by the router. |
 | `MethodNotAllowedException` | 405 | Method not allowed | The Symfony message already lists the allowed methods. |
@@ -62,19 +66,46 @@ Authenticators that need a richer response — for example a `WWW-Authenticate: 
 
 ### Production vs development detail
 
-`\LogicException`, `\RuntimeException`, and the unmatched-exception fallback call `shouldShowDetails()`, which returns true only when the environment reports `isDev()` or `isTest()`. In `prod` the detail collapses to `An unexpected error occurred. Please try again later.` The raw message still reaches the logger.
+`UnresolvableServiceException`, `\LogicException`, `\RuntimeException`, and the unmatched-exception fallback call `shouldShowDetails()`, which returns true only when the environment reports `isDev()` or `isTest()`. In `prod` the detail collapses to `An unexpected error occurred. Please try again later.` The raw message still reaches the logger.
 
 ## Two-factor exceptions
 
-Any exception whose class name ends in `TwoFactorException` — including the framework's own `Modufolio\Appkit\Security\TwoFactor\TwoFactorException`, raised when a TOTP lockout is in effect — maps to:
+An exception implementing `Modufolio\Appkit\Security\TwoFactor\TwoFactorExceptionInterface` — including the framework's own `Modufolio\Appkit\Security\TwoFactor\TwoFactorException`, raised when a TOTP lockout is in effect — maps to:
 
 ```json
 {"status": 422, "title": "Two-Factor Authentication Error", "detail": "<message>"}
 ```
 
-This match runs *after* the explicit registry, so a more specific handler registered for the concrete class still takes precedence. The name-based check means the core handler never has to import the optional 2FA module.
+The message reaches the client **verbatim, in production too**. That is the point: "try again in 40 seconds" is the one thing the person at the keyboard needs, and the generic 500 that other runtime errors collapse into would strip it.
+
+Implementing the interface is how an exception opts into that trust — it is a promise that the message carries no internal state, no identifiers, nothing an anonymous caller should not read. Exceptions that cannot make that promise simply do not implement it, and fall through to the `RuntimeException` / `LogicException` handlers, which hide their detail outside dev.
+
+> Earlier versions matched on the class *name* instead, mapping anything ending in `TwoFactorException` to this response. That extended the trust to classes that never asked for it — an app exception named `BillingTwoFactorException` had its raw message published — while the framework's own `TwoFactorException` never reached the branch at all, because it extends `RuntimeException` and the catch-all matched first. Both are fixed; see the changelog.
+
+The interface is the closer match, so it beats the `RuntimeException` catch-all `TwoFactorException` would otherwise reach. To change the mapping, register your own handler under the **interface** id, which replaces the entry in place:
+
+```php
+$handler->registerException(
+    TwoFactorExceptionInterface::class,
+    fn (\Throwable $e): array => ['status' => 429, 'title' => 'Slow down', 'detail' => $e->getMessage()],
+);
+```
 
 ## Registering custom handlers
+
+Register them from `configureExceptionHandler()` on your `App`. The kernel calls it once, lazily, the first time `exceptionHandler()` is used, and keeps whatever it returns — the handler itself after a few registrations, or a decorator around it:
+
+```php
+use Modufolio\Appkit\Exception\ExceptionHandlerInterface;
+
+protected function configureExceptionHandler(ExceptionHandlerInterface $handler): ExceptionHandlerInterface
+{
+    $handler->registerException(MaintenanceModeException::class, /* … */);
+    $handler->registerFormatter('text/html', /* … */);
+
+    return $handler;
+}
+```
 
 ```php
 $handler->registerException(
@@ -100,7 +131,9 @@ public function registerException(
 
 The callable receives the original throwable and the current PSR-7 request, which is useful when the response varies by route or correlation header. The return array is `['status' => int, 'title' => string, 'detail' => string]`, optionally with `errors` for JSON:API multi-error payloads or any extra keys the formatters consume.
 
-Later registrations for the same class overwrite earlier ones. The match loop iterates in insertion order, so registering a leaf exception **before** its parent guarantees the leaf handler wins.
+Later registrations for the same class overwrite earlier ones. Registration order otherwise does not matter: the handler closest to the exception's own class wins, so an application exception extending `\RuntimeException` reaches its own handler even though the `\RuntimeException` catch-all was registered first.
+
+> Earlier versions matched in insertion order, first match wins. Because the defaults are registered in the constructor, the three broad catch-alls shadowed every application exception extending them — the `PaymentDeclinedException` example below silently produced the `\RuntimeException` 500. See the changelog.
 
 ### Logging policy
 
@@ -132,11 +165,12 @@ $handler->registerFormatter('text/html', function (array $data): ResponseInterfa
 });
 ```
 
-Three formatters are registered by default:
+Four formatters are registered by default:
 
 - `application/vnd.api+json` — JSON:API envelope `{"jsonapi": {"version": "1.0"}, "errors": [...]}`. Used as the **fallback** when negotiation produces nothing, and when the negotiated MIME type has no formatter.
 - `application/json` — flat JSON of the data array.
 - `text/plain` — `"<title>: <detail>"`.
+- `text/html` — a self-contained error page: status, title and detail in one card, no assets, no links. It is what a browser's default `Accept` header negotiates to, so a hard page load that errors — an address-bar visit, an old bookmark — reads as a page rather than a JSON blob. Registering your own `text/html` formatter replaces it; see [HTML error pages](#html-error-pages).
 
 A formatter is a `callable(array): ResponseInterface`. It owns the response entirely — headers, body encoding, status. The handler does no post-processing; the returned response is passed straight from `App::handle()` to `PrepareResponse`.
 
@@ -144,11 +178,13 @@ A formatter is a `callable(array): ResponseInterface`. It owns the response enti
 
 The handler keeps a `Negotiator` (`willdurand/negotiation`). On each request it reads the `Accept` header and picks the best match from the registered MIME types:
 
+- **`X-Inertia` header present** → `application/vnd.api+json`, whatever `Accept` says. The Inertia client sends `Accept: text/html, application/xhtml+xml` on its XHRs too, so that a framework can route them through ordinary negotiation; taken literally it would hand every Inertia error the HTML page meant for a hard load. An Inertia visit is a JSON exchange, and its errors keep the JSON:API body a client-side handler can read.
 - **No `Accept` header** → `application/vnd.api+json`.
-- **`Accept` header present** → the negotiator picks the highest-quality formatter. If none of the registered types match, fall back to `application/vnd.api+json`.
+- **`Accept: */*`** (curl, most HTTP clients) → `application/vnd.api+json`: every registered type matches equally, and the first registered wins.
+- **`Accept` header present** → the negotiator picks the highest-quality formatter. A browser's default header lists `text/html` first and gets the HTML page. If none of the registered types match, fall back to `application/vnd.api+json`.
 - **Negotiated type with no formatter** → same fallback (defensive — should not happen, since the priorities come from the formatter map).
 
-The default is JSON:API because the framework targets API-first applications. Register an HTML formatter and clients sending `Accept: text/html` receive HTML instead, with no change to the handlers — the same data array drives both.
+The default is JSON:API because the framework targets API-first applications. The same data array drives every formatter, so registering or replacing one never touches the handlers.
 
 ## Handler-of-handler fallback
 
@@ -156,12 +192,10 @@ A bug in a custom handler — a typo, a missing dependency, a circular call into
 
 ```php
 try {
-    foreach ($this->handlers as $class => $handler) {
-        if ($e instanceof $class) {
-            $data = $handler($e, $request);
-            $matchedClass = $class;
-            break;
-        }
+    $matchedClass = $this->match($e);
+
+    if (null !== $matchedClass) {
+        $data = $this->handlers[$matchedClass]($e, $request);
     }
     // …
 } catch (\Throwable $handlerException) {
@@ -179,12 +213,13 @@ The original exception, the handler exception, and the offending class are all l
 ## Custom exception classes in `src/Exception/`
 
 - `NotFoundException` — implements PSR-11's `NotFoundExceptionInterface`. Thrown by the container when a service or factory cannot be resolved. **Not** a router 404 (that is Symfony's `ResourceNotFoundException`). No default handler is registered for it; uncaught, it falls through to the 500 fallback. Register one to surface container misses differently in dev.
+- `UnresolvableServiceException` — extends `\LogicException`, implements PSR-11's `ContainerExceptionInterface`. Thrown by the container when a service factory raises `\ArgumentCountError`: the constructor it calls has a required argument the factory did not pass — a wiring bug in `services.php` or a console runner, never client input. Carries the service id as `$serviceId` and the original error as `getPrevious()`. Mapped to 500 with the wiring named in dev and hidden in prod.
 - `PayloadTooLargeException` — extends `\RuntimeException`. Thrown by upload and body-size guards. Registered to produce 413.
 - `RuntimeCommandException` — extends `\RuntimeException` and implements Symfony Console's `ExceptionInterface`. The CLI-side equivalent for command failures that should be reported through the console error formatter rather than HTTP.
 
 ## HTML error pages
 
-For server-rendered apps, register a formatter that renders an error template via `Template`. The data array is associative state, so it passes straight into the template:
+The built-in `text/html` formatter is deliberately plain: one document with no links, because the handler cannot know where the application's home is. For server-rendered apps, register a formatter that renders an error template via `Template`. The data array is associative state, so it passes straight into the template:
 
 ```php
 use Modufolio\Appkit\Template\Template;
@@ -238,7 +273,7 @@ final class PaymentDeclinedException extends \RuntimeException
 }
 ```
 
-Wire the handler and the HTML formatter where the kernel is assembled — typically inside a `bootExceptionHandler()` hook on the `App`:
+Wire the handler and the HTML formatter in `configureExceptionHandler()` on the `App`:
 
 ```php
 use App\Billing\Exception\PaymentDeclinedException;

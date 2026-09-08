@@ -44,13 +44,16 @@ return [
 // config/services.php
 $services
     ->set(RootViewInterface::class, fn () => new CallableRootView(
-        fn (Page $page) => $twig->render('app.html.twig', ['inertia' => Inertia::snippet($page)]),
+        fn (Page $page, ServerRequestInterface $request) => $twig->render('app.html.twig', ['inertia' => Inertia::snippet($page)]),
     ))
     ->set(SharedPropsInterface::class, fn (App $app) => $app->props());   // optional
 ```
 
 `RootViewInterface` is the document a first visit receives, with
-`Inertia::snippet($page)` where the client boots. `SharedPropsInterface`
+`Inertia::snippet($page)` where the client boots. `CallableRootView` takes a
+`\Closure(Page, ServerRequestInterface): string|ResponseInterface` — declare
+both parameters even when you only use the page, or PHPStan will flag the
+closure — and wraps a returned string in an HTML response. `SharedPropsInterface`
 supplies the props every page carries — auth, navigation, CSRF — as values
 or closures; a closure is computed only when its prop travels. Flash data
 waits in the session's flash bag between requests; declare a
@@ -81,9 +84,28 @@ waits in the session's flash bag between requests; declare a
 - **Flash.** `->flash('saved', true)` on a page, or
   `$this->inertia->flash('saved', true)` before a redirect: the next page
   carries it as `usePage().flash`.
+- **Prefetching.** A `<Link prefetch>` or `router.prefetch()` request carries
+  `Purpose: prefetch`; the renderer answers it like any other but leaves the
+  flash store for the visit that follows.
 - **Error bags.** A shared `errors` prop is wrapped under the bag named in
   `X-Inertia-Error-Bag`.
 - **`Vary: X-Inertia`** on every response, since one URL answers HTML or JSON.
+- **Errors.** A request carrying `X-Inertia` gets a JSON:API error body
+  whatever its `Accept` header says — the client sends `text/html` on its
+  XHRs too — so a client-side handler can read `errors[0].title` and
+  `detail`. A hard page load that errors gets the HTML page instead. See
+  [Exception handling](exception-handling.md#content-negotiation).
+
+## Seeing the page object
+
+Install the **Inertia.js devtools** extension for Chrome: it adds an
+*Inertia.js* panel to DevTools that shows the page object the client received
+for the current visit — `component`, the resolved `props`, `url`, `version`
+and `sharedProps` — so what the kernel sent is readable without reaching for
+the Network tab or dumping on the server. Handy for checking that a partial
+reload narrowed the props you expected, that a deferred prop arrived on its
+follow-up request, or that the shared `auth`, `flash` and CSRF props are what
+the page thinks they are.
 
 ## Testing
 

@@ -4,7 +4,7 @@
 
 AppKit does not auto-wire dependencies. Every dependency is declared explicitly — as an `App` method or a config entry. This keeps the wiring visible, greppable, and easy to reason about.
 
-Two config files control how services are resolved:
+Three config files control how services are resolved:
 
 | File | Purpose |
 |------|---------|
@@ -95,12 +95,14 @@ The kernel wires these itself — every interface backed by a kernel accessor or
 | `FlashBagAwareSessionInterface` | `session()` |
 | `FlashBagInterface` | `session()->getFlashBag()` |
 | `ParameterResolverInterface` | `parameterResolver()` |
+| `ProfilerInterface` | `profiler()` |
 | `ResponseFactoryInterface` | `new Psr17Factory()` |
 | `ResponseInterface` | `new Response()` |
 | `RouterInterface` | `router()` |
 | `SerializerInterface` | `serializer()` |
 | `ServerRequestInterface` | `request()` |
 | `SessionInterface` | `session()` |
+| `Stopwatch` | `stopwatch()` |
 | `TokenStorageInterface` | `tokenStorage()` |
 | `UrlGeneratorInterface` | `urlGenerator()` |
 | `UserCheckerInterface` | `new UserChecker()` |
@@ -127,7 +129,9 @@ return function (ServiceConfigurator $services): void {
 };
 ```
 
-`AppFactory` applies it before boot, alongside the security configurator:
+> **Application code.** `AppFactory` is not part of the framework. The skeleton (`modufolio/appkit-skeleton`) does not ship one — it boots through its own `src/Kernel.php` and `public/index.php` — and the framework's test application keeps a reference version in `tests/App/AppFactory.php`; it is yours to write.
+
+The application factory applies it before boot, alongside the security configurator:
 
 ```php
 $serviceConfigurator = new ServiceConfigurator();
@@ -172,7 +176,9 @@ Aliasing a `shared()` target returns the same cached instance; aliasing a `set()
 
 ## Wiring repositories
 
-Every Doctrine repository must be registered in `config/repositories.php`. The key is the repository class; the value is the entity class it manages.
+`config/repositories.php` is optional. When the kernel's `$repositories` property is left `null`, `repositories()` derives the map from Doctrine's metadata on first use — every mapped entity's repository class, keyed by repository class — so `get(PostRepository::class)` works with no file at all (`AppContainer::getRepositoriesAndEntities()`).
+
+An application that assigns the property itself (the test app's constructor takes a `repositories:` array and does so) replaces the derived map with what it was given. That includes an *empty* array: `[]` is not `null`, so it silently disables the derivation and every repository lookup fails. If you keep the file, list every repository in it; if you would rather derive, leave the property alone and drop the file. The key is the repository class; the value is the entity class it manages.
 
 ```php
 // config/repositories.php
@@ -184,11 +190,11 @@ return [
 ];
 ```
 
-AppKit passes the entity class to Doctrine's `EntityManager::getRepository()` and returns the result.
+Either way, AppKit passes the entity class to Doctrine's `EntityManager::getRepository()` and returns the result.
 
 ## The `fileMap` mechanism
 
-`AppFactory` passes the Doctrine config path to the kernel via `fileMap`:
+The application factory passes the Doctrine config path to the kernel via `fileMap`:
 
 ```php
 fileMap: [
@@ -203,7 +209,7 @@ An `interfaces` entry is the legacy path: when present, `boot()` `require`s that
 The parameter bag stores scalar configuration values that can be referenced by name.
 
 ```php
-// Setting a parameter (in AppFactory or boot logic)
+// Setting a parameter (in your application factory or boot logic)
 $this->setParameter('upload.maxSize', 5 * 1024 * 1024);
 
 // Reading a parameter anywhere you have kernel access
@@ -260,7 +266,7 @@ One service, one construction site: the method. The `services.php` entry is just
 
 ### Overrides do not intercept method calls
 
-A `services.php` definition wins inside `get()` — but `$this->mailer()` called directly on `App` (or via the `@mailer` syntax below) never touches the container. Overriding `Mailer::class` in `services.php` changes what controllers receive through `Mailer::class`; App-internal callers and `@mailer` still get the original. To replace a method-backed service everywhere, override the method — subclass `App`, as `RoadRunnerApp` does. This asymmetry is by design: direct calls stay direct.
+A `services.php` definition wins inside `get()` — but `$this->mailer()` called directly on `App` (or via the `@mailer` syntax below) never touches the container. Overriding `Mailer::class` in `services.php` changes what controllers receive through `Mailer::class`; App-internal callers and `@mailer` still get the original. To replace a method-backed service everywhere, override the method — in `App` itself, or in a subclass of it. This asymmetry is by design: direct calls stay direct.
 
 ### The lazy loading pattern
 
@@ -355,7 +361,7 @@ public function reset(): void
 }
 ```
 
-Subclasses of your `App` (a `RoadRunnerApp`, say) *can* call `parent::reset()`,
+A subclass of your `App` (a worker-runtime variant, say) *can* call `parent::reset()`,
 because at that point the parent is concrete. Calling it directly from a class that
 extends `Kernel` is a fatal error.
 

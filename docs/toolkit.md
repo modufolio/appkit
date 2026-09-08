@@ -1,6 +1,6 @@
 # Toolkit
 
-AppKit includes four static utility classes for everyday operations on arrays, files, strings, and directories. They live in `Modufolio\Appkit\Toolkit`.
+AppKit includes four static utility classes for everyday operations on arrays, files, strings, and directories — `A`, `F`, `Str` and `Dir` in `Modufolio\Appkit\Toolkit`. This guide also covers three related helpers in neighbouring namespaces: `Data` and the instance-based `Storage` in `Modufolio\Appkit\Data`, and `Query` in `Modufolio\Appkit\Query`.
 
 ## Array utilities — `A`
 
@@ -37,11 +37,11 @@ A::nest($array);                           // inverse of dot(): expand dotted ke
 ### Merging
 
 ```php
-A::merge($a, $b);                          // recursive merge with MERGE_OVERWRITE
-A::merge($a, $b, A::MERGE_APPEND);        // append instead of overwrite
-A::merge($a, $b, A::MERGE_REPLACE);       // replace top-level keys
+A::merge($a, $b);                          // recursive merge; numeric keys are appended (MERGE_APPEND is the default)
+A::merge($a, $b, A::MERGE_OVERWRITE);     // numeric keys overwrite instead, keys preserved
+A::merge($a, $b, A::MERGE_REPLACE);       // a list on the left is replaced wholesale by the right
 A::extend($a, $b, $c);                    // shallow merge, last value wins
-A::update($array, ['status' => 'active']); // update matching keys only
+A::update($array, ['status' => 'active']); // set the given keys, adding any that are missing; a Closure value receives the current value
 ```
 
 ### Checking
@@ -112,7 +112,7 @@ F::remove('/path/to/file.txt');               // bool
 
 ```php
 F::safeName('My File (1).txt');    // 'my-file-1.txt'
-F::safeBasename('My Photo.JPG');  // 'My Photo.JPG' — preserves extension case
+F::safeBasename('My Photo.JPG');  // 'my-photo' — name only, slugged, extension dropped
 F::safeFilename('../../.env');    // '.env' — strips the directory, keeps the rest
 ```
 
@@ -202,7 +202,7 @@ Str::template('Hello, {name}!', ['name' => 'Alice']); // 'Hello, Alice!'
 
 ```php
 Str::ascii('Ünïcödé');    // 'Unicode'
-Str::encode('Hello');      // HTML entity encoding
+Str::encode('Hello');      // every character as a numeric entity, randomly decimal or hex — for obfuscating email addresses in markup, not for escaping
 Str::unhtml('&lt;p&gt;'); // '<p>'
 ```
 
@@ -229,7 +229,7 @@ Dir::move('/old/path', '/new/path');    // bool
 Dir::read('/path/to/dir');              // string[] — filenames (no dot files)
 Dir::files('/path/to/dir');             // string[] — file names only
 Dir::dirs('/path/to/dir');              // string[] — subdirectory names only
-Dir::index('/path/to/dir', true);       // recursive file listing
+Dir::index('/path/to/dir', true);       // recursive listing of files and directories, as paths relative to the root
 ```
 
 Pass `absolute: true` to get full paths instead of basenames:
@@ -250,7 +250,7 @@ Dir::isWritable('/path/to/dir');    // bool
 ### Metadata
 
 ```php
-Dir::size('/path/to/dir');          // int — total bytes, recursive
+Dir::size('/path/to/dir');          // int|false — total bytes, recursive; false when the path is not a directory
 Dir::niceSize('/path/to/dir');      // string — '14.3 MB'
 Dir::modified('/path/to/dir');      // int — Unix timestamp of most recent change
 Dir::wasModifiedAfter('/path', $time); // bool
@@ -306,4 +306,4 @@ Query::factory('user.name')->resolve($data);      // 'Alice'
 Query::factory('user.roles.0')->resolve($data);   // 'admin'
 ```
 
-`intercept()` applies a transformation on the resolved value before returning it.
+`intercept()` is a hook for subclasses: the base implementation returns the value unchanged. Extend `Query` and override it to transform each resolved segment before it is returned.
