@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`#[Template]` and `TemplateResolver`.** A controller parameter marked
+  `#[Template('home')]` (optionally `layout: 'admin'`) resolves to a
+  `Template` with the view and layout paths and the current request already
+  set, so controllers stop repeating that constructor. Register
+  `Modufolio\Appkit\Resolver\TemplateResolver` in the `App`'s parameter
+  pipeline with the paths to use. Moved in from the skeleton, where it lived
+  as `App\Attributes\Template` and `App\Resolver\TemplateResolver`. See
+  [Rendering a template](docs/controllers.md#rendering-a-template).
+
 - **A browser that hits an error gets a page.** `ExceptionHandler` registers a
   `text/html` formatter by default: a self-contained document with the status,
   title and detail, no assets and no links. A hard page load that errors — an
@@ -56,6 +65,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   now do so from a decorator returned by `configureExceptionHandler()`.
 
 ### Fixed
+
+- **`Data\Storage` no longer requires its file to exist.** Constructing the
+  store on a path that is not there yet threw from `PHP::read()`, so every
+  caller had to create an empty file first. A missing file is now an empty
+  store, and the first `save()` writes it, parent directories included.
 
 - **Blur, sharpen and grayscale variants are no longer served as the plain
   original.** `ImageProcessor::process()` derives a variant's filename and its

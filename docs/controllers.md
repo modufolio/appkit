@@ -20,7 +20,7 @@ class AboutController extends AbstractController
     #[Route(path: '/about', name: 'about', methods: ['GET'])]
     public function index(): ResponseInterface
     {
-        return new Response(body: '<h1>About</h1>');
+        return Response::html('<h1>About</h1>');
     }
 }
 ```
@@ -63,7 +63,7 @@ use Modufolio\Psr7\Http\Response;
 #[Route(path: '/', name: 'home', methods: ['GET'])]
 public function index(#[Template('home')] TemplateEngine $template): ResponseInterface
 {
-    return new Response(body: $template->render([
+    return Response::html($template->render([
         'title' => 'Home',
         'user'  => $this->getUser(),
     ]));
@@ -85,7 +85,7 @@ public function index(ServerRequestInterface $request): ResponseInterface
         request:       $request,
     );
 
-    return new Response(body: $template->render(['title' => 'Home']));
+    return Response::html($template->render(['title' => 'Home']));
 }
 ```
 

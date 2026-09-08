@@ -14,7 +14,7 @@ namespace Modufolio\Appkit\Attributes;
  *
  *   public function index(#[Template('home')] TemplateEngine $template): ResponseInterface
  *   {
- *       return new Response(body: $template->render(['title' => 'Welcome']));
+ *       return Response::html($template->render(['title' => 'Welcome']));
  *   }
  *
  * @author    Maarten Thiebou
