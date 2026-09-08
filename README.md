@@ -91,7 +91,9 @@ Each of these is a stated choice with a documented alternative, not a gap:
   password timing-parity; credential-length DoS caps; and boot-time
   firewall-config validation.
 - **Strict typing.** PHP 8.2+, `declare(strict_types=1)` throughout. The
-  bundled PSR-7 implementation is a strict-typed fork of `nyholm/psr7`.
+  PSR-7 implementation is `modufolio/http`, a separate package the framework
+  depends on: a strict-typed fork of `nyholm/psr7` under the
+  `Modufolio\Psr7\Http` namespace.
 
 ## Quick start
 
