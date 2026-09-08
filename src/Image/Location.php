@@ -89,6 +89,14 @@ class Location implements \Stringable
             return (float) $parts[0];
         }
 
+        // Guard against a zero denominator: a camera writes "0/0" for a
+        // rational it has no value for, and anyone can put one in an
+        // uploaded file's EXIF. Since PHP 8 the division is a fatal
+        // DivisionByZeroError.
+        if (0.0 === (float) $parts[1]) {
+            return 0.0;
+        }
+
         return (float) $parts[0] / (float) $parts[1];
     }
 

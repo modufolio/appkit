@@ -31,6 +31,22 @@ class LocationTest extends TestCase
         $this->assertSame(-0.016666666666666666, $camera->lng());
     }
 
+    public function testAZeroDenominatorIsNotADivision(): void
+    {
+        // A camera writes "0/0" for a rational it has no value for, and an
+        // uploaded file can carry one: the division was a fatal
+        // DivisionByZeroError before the guard.
+        $location = new Location([
+            'GPSLatitudeRef' => 'N',
+            'GPSLatitude' => ['41/1', '53/1', '0/0'],
+            'GPSLongitudeRef' => 'E',
+            'GPSLongitude' => ['12/1', '29/1', '0/0'],
+        ]);
+
+        $this->assertSame(41.883333333333333, $location->lat());
+        $this->assertSame(12.483333333333333, $location->lng());
+    }
+
     public function testToArray(): void
     {
         $camera = new Location($this->_exif());
