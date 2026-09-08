@@ -274,22 +274,27 @@ Supported formats: `json`, `yaml`, `php`, `xml`, `txt`.
 
 ## Key-value storage — `Storage`
 
-`Modufolio\Appkit\Data\Storage` provides a simple file-backed key-value store.
+`Modufolio\Appkit\Data\Storage` is a simple key-value store backed by a PHP file: it reads the array a `<?php return [...];` file returns and writes it back through `PHP::write()`, which also invalidates the opcode cache for the file. A path that does not exist yet is an empty store; the first `save()` creates the file and any missing parent directories.
 
 ```php
 use Modufolio\Appkit\Data\Storage;
 
-$store = new Storage('/path/to/store.json');
+$store = new Storage('/path/to/store.php');
 
 $store->insert('theme', 'dark');
 $store->insert(['lang' => 'en', 'timezone' => 'UTC']);
-$store->save(); // write to disk
+$store->save(); // rewrites store.php
 
-$store->get('theme');           // 'dark'
+$store->get('theme');              // 'dark'
 $store->get('missing', 'default'); // 'default'
-$store->remove('theme');
+$store->get();                     // the whole array
+$store->remove('theme');           // returns the remaining array, not the store
 $store->save();
 ```
+
+`get()` with a string key first tries `array_column()`, so on a list of rows `get('id')` returns the column rather than a single value.
+
+> **Not for untrusted input.** The store is a PHP file that is `require`d on the next read, so whatever goes in is written as source and executed. Scalars and arrays are emitted through `var_export()`, which escapes strings, but an object is written as a `__set_state()` call that runs on load, and any way to influence the path or the file's contents is code execution. Use it for configuration and application state you control — settings, generated maps, caches — and keep user-submitted or otherwise unvalidated data in the database or in a JSON file written with `Data::write()`.
 
 ## Query language — `Query`
 

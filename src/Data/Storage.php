@@ -7,7 +7,13 @@ namespace Modufolio\Appkit\Data;
 use Modufolio\Appkit\Toolkit\A;
 
 /**
- * Dispatch.
+ * Key-value store backed by a PHP file (`<?php return [...];`).
+ *
+ * The file is executed on read, so this is for configuration and application
+ * state the code controls — never for untrusted or unvalidated input. An
+ * object is written as a `__set_state()` call that runs on load, and anything
+ * that can influence the path or the contents is code execution. Put
+ * user-submitted data in the database or in a JSON file via Data::write().
  *
  * @author    Maarten Thiebou
  * @copyright Modufolio
@@ -18,9 +24,13 @@ class Storage
     /** @var array<string, mixed> */
     public array $data = [];
 
+    /**
+     * A file that does not exist yet is an empty store; save() creates it,
+     * parent directories included.
+     */
     public function __construct(public string $filePath)
     {
-        $this->data = PHP::read($this->filePath);
+        $this->data = is_file($this->filePath) ? PHP::read($this->filePath) : [];
     }
 
     /**

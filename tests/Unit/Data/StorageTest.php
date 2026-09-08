@@ -46,6 +46,21 @@ class StorageTest extends TestCase
         $this->assertSame(['name' => 'Homer'], $storage->data);
     }
 
+    public function testAMissingFileIsAnEmptyStoreUntilSaved(): void
+    {
+        $file = $this->tmp.'/fresh-store.php';
+
+        $storage = new Storage($file);
+
+        $this->assertSame([], $storage->get());
+        $this->assertFileDoesNotExist($file);
+
+        $storage->insert('theme', 'dark')->save();
+
+        $this->assertFileExists($file);
+        $this->assertSame(['theme' => 'dark'], (new Storage($file))->get());
+    }
+
     public function testInsertSingleKey(): void
     {
         $storage = $this->storage();
