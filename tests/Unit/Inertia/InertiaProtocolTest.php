@@ -198,6 +198,23 @@ final class InertiaProtocolTest extends TestCase
         self::assertArrayNotHasKey('flash', $none->toArray(), 'Absent when empty; the client defaults it.');
     }
 
+    public function testAPrefetchLeavesTheFlashStoreForTheRealVisit(): void
+    {
+        $store = new ArrayFlashStore();
+        $store->put(['saved' => true]);
+        $renderer = $this->renderer($store);
+
+        $prefetched = InertiaPage::fromResponse($renderer->respond(
+            Inertia::render('Feed')->flash('hint', 'on the page itself'),
+            $this->request([Header::PURPOSE => 'prefetch']),
+        ));
+        self::assertSame(['hint' => 'on the page itself'], $prefetched->flash(), 'Only what the controller put on this page.');
+        self::assertSame(['saved' => true], $store->peek(), 'The store is not drained by a request that may never be shown.');
+
+        $visit = InertiaPage::fromResponse($renderer->respond(Inertia::render('Feed'), $this->request()));
+        self::assertSame(['saved' => true], $visit->flash(), 'The visit that follows gets it.');
+    }
+
     public function testPreserveFragmentAndTheVersionHeaderOnAStaleReload(): void
     {
         $page = InertiaPage::fromResponse($this->renderer()->respond(Inertia::render('Feed')->preserveFragment(), $this->request()));

@@ -46,6 +46,13 @@ final class Header
     /** Response header of a 409 that replaces a redirect whose target has a fragment. */
     public const REDIRECT = 'X-Inertia-Redirect';
 
+    /**
+     * Not an Inertia header but sent by its client: `Purpose: prefetch` on a
+     * request made ahead of a visit that may never come, so nothing that
+     * counts as delivered — flash data — should be consumed for it.
+     */
+    public const PURPOSE = 'Purpose';
+
     private function __construct()
     {
     }

@@ -69,7 +69,7 @@ final class InertiaRenderer
         $version = $this->version();
 
         if (
-            strtoupper($request->getMethod()) === 'GET'
+            'GET' === strtoupper($request->getMethod())
             && $request->hasHeader(Header::VERSION)
             && $request->getHeaderLine(Header::VERSION) !== $version
         ) {
@@ -77,14 +77,23 @@ final class InertiaRenderer
         }
 
         return Response::json($this->toPage($page, $request)->toJson(), 200, null, [
-            'Vary'          => Header::INERTIA,
+            'Vary' => Header::INERTIA,
             Header::INERTIA => 'true',
         ]);
     }
 
-    /** The page object this request receives. Pulls what the flash store holds. */
+    /**
+     * The page object this request receives. Pulls what the flash store
+     * holds — except for a prefetch, which the client may never show: the
+     * store is left for the visit that does, and the page carries no flash
+     * beyond what the controller put on it.
+     */
     public function toPage(Inertia $page, ServerRequestInterface $request): Page
     {
+        $flash = self::isPrefetch($request)
+            ? $page->flashed()
+            : [...$this->flashStore->pull(), ...$page->flashed()];
+
         return new Page(
             $page->component(),
             $page->props(),
@@ -94,7 +103,7 @@ final class InertiaRenderer
             $page->encryptsHistory(),
             $page->clearsHistory(),
             $this->shared?->create() ?? [],
-            [...$this->flashStore->pull(), ...$page->flashed()],
+            $flash,
             $page->preservesFragment(),
         );
     }
@@ -151,12 +160,18 @@ final class InertiaRenderer
         };
     }
 
+    /** A request the client makes ahead of a visit it may never make. */
+    public static function isPrefetch(ServerRequestInterface $request): bool
+    {
+        return 'prefetch' === strtolower($request->getHeaderLine(Header::PURPOSE));
+    }
+
     /** Path and query, the way the client keys history: never the host. */
     private static function urlOf(ServerRequestInterface $request): string
     {
         $uri = $request->getUri();
-        $path = $uri->getPath() === '' ? '/' : $uri->getPath();
+        $path = '' === $uri->getPath() ? '/' : $uri->getPath();
 
-        return $uri->getQuery() === '' ? $path : $path.'?'.$uri->getQuery();
+        return '' === $uri->getQuery() ? $path : $path.'?'.$uri->getQuery();
     }
 }
