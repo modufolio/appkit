@@ -193,6 +193,10 @@ The template receives three variables:
 
 `$detail` is not hidden outside `dev` across the board. Only the handlers that call `shouldShowDetails()` — `UnresolvableServiceException`, `\LogicException`, `\RuntimeException`, and the fallback for unregistered exceptions — replace the message with `An unexpected error occurred. Please try again later.` in `prod`. The 400, 413 and 422 handlers (`\InvalidArgumentException`, `PayloadTooLargeException`, `\JsonException`, the two-factor exceptions) pass `$e->getMessage()` through in every environment, as do the 404 and 405 handlers with Symfony's routing messages. Escape `$detail` like any other untrusted value.
 
+## Getting a template in a controller
+
+Controllers rarely call the constructor: `#[Template('home')]` on a parameter hands them a ready instance with the paths and request set — see [Controllers](controllers.md#rendering-a-template).
+
 ## The `Template` constructor
 
 ```php

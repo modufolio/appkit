@@ -53,14 +53,29 @@ $user = $this->getUser(); // returns UserInterface|null
 
 ## Rendering a template
 
-Construct a `Template`, pass it data, and wrap the result in a `Response`.
+Ask for the template as a parameter. `#[Template]` names it, and the `TemplateResolver` in your parameter pipeline supplies the view and layout paths and the current request, so the controller only renders:
+
+```php
+use Modufolio\Appkit\Attributes\Template;
+use Modufolio\Appkit\Template\Template as TemplateEngine;
+use Modufolio\Psr7\Http\Response;
+
+#[Route(path: '/', name: 'home', methods: ['GET'])]
+public function index(#[Template('home')] TemplateEngine $template): ResponseInterface
+{
+    return new Response(body: $template->render([
+        'title' => 'Home',
+        'user'  => $this->getUser(),
+    ]));
+}
+```
+
+`#[Template('home', layout: 'admin')]` also selects the layout. The resolver is registered once, in the `App`'s parameter pipeline, with the paths it should use — see [`#[Template]`](#template) below. Without it, construct the template yourself:
 
 ```php
 use Modufolio\Appkit\Template\Template;
-use Modufolio\Psr7\Http\Response;
 use Psr\Http\Message\ServerRequestInterface;
 
-#[Route(path: '/', name: 'home', methods: ['GET'])]
 public function index(ServerRequestInterface $request): ResponseInterface
 {
     $template = new Template(
@@ -70,10 +85,7 @@ public function index(ServerRequestInterface $request): ResponseInterface
         request:       $request,
     );
 
-    return new Response(body: $template->render([
-        'title' => 'Home',
-        'user'  => $this->getUser(),
-    ]));
+    return new Response(body: $template->render(['title' => 'Home']));
 }
 ```
 
@@ -222,6 +234,26 @@ public function index(
 A missing parameter falls back to the argument default, or `null` if the argument is nullable; otherwise a `400` is thrown. An invalid value throws a `400` unless `FILTER_NULL_ON_FAILURE` is set in `flags`. Use `filter`, `flags`, and `options` for finer control (e.g. `#[MapQueryParameter(options: ['min_range' => 1])]`).
 
 Use this for individual scalars; reach for `#[MapQueryString]` or `#[MapFilter]` when you want the whole query string mapped to an object.
+
+### `#[Template]`
+
+Resolves the parameter into a `Modufolio\Appkit\Template\Template` named by the attribute, with the paths and request already set; `layout:` selects the layout. See [Rendering a template](#rendering-a-template) for the controller side.
+
+```php
+use Modufolio\Appkit\Resolver\TemplateResolver;
+
+// In App::parameterResolver(), beside the other request-bound resolvers
+new AttributeParameterResolver([
+    // ...
+    new TemplateResolver(
+        [$this->baseDir . '/resources/views'],
+        [$this->baseDir . '/resources/views/layouts'],
+        $this->request(),
+    ),
+]),
+```
+
+The resolver holds the request, so it belongs in the pipeline the `App` rebuilds on `reset()`, exactly like `MapQueryParameterResolver` and `MapRequestPayloadResolver`.
 
 ### `#[MapFilter]`
 
