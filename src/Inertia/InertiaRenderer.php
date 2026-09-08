@@ -90,6 +90,12 @@ final class InertiaRenderer
      */
     public function toPage(Inertia $page, ServerRequestInterface $request): Page
     {
+        // Shared props first, and only then the pull: a host's shared props
+        // may read the same flash bag the store drains (an auth page showing
+        // one message inline), and reading a drained bag yields nothing.
+        // Hoisting the pull above this call is what broke it once.
+        $shared = $this->shared?->create() ?? [];
+
         $flash = self::isPrefetch($request)
             ? $page->flashed()
             : [...$this->flashStore->pull(), ...$page->flashed()];
@@ -102,7 +108,7 @@ final class InertiaRenderer
             $request,
             $page->encryptsHistory(),
             $page->clearsHistory(),
-            $this->shared?->create() ?? [],
+            $shared,
             $flash,
             $page->preservesFragment(),
         );
