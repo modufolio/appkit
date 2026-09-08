@@ -23,10 +23,4 @@ abstract class Prop
     {
         return $this->value instanceof \Closure ? ($this->value)() : $this->value;
     }
-
-    /** The name `__invoke` had before the resolver called props directly. */
-    public function resolve(): mixed
-    {
-        return $this();
-    }
 }

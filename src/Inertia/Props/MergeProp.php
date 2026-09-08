@@ -26,10 +26,4 @@ final class MergeProp extends Prop implements Mergeable, Onceable
     {
         return new self($value, $deep);
     }
-
-    /** The name shouldDeepMerge() had in this package's first release. */
-    public function deep(): bool
-    {
-        return $this->shouldDeepMerge();
-    }
 }

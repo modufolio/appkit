@@ -72,12 +72,6 @@ final class Inertia
         return OptionalProp::of($value);
     }
 
-    /** The name `optional()` had before Inertia 2. */
-    public static function lazy(\Closure $value): OptionalProp
-    {
-        return OptionalProp::of($value);
-    }
-
     /**
      * Left out of the first response; the client fetches it right after
      * rendering. `$rescue` turns a failure into null and a `rescuedProps`

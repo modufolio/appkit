@@ -30,6 +30,9 @@ final class Page
      * @param array<string, mixed> $props  the page's own props: values, closures, Prop instances
      * @param array<string, mixed> $shared merged underneath; their top-level keys are listed as `sharedProps`
      * @param array<string, mixed> $flash  what the server flashed for this response
+     *
+     * @internal the renderer builds pages; a host receives one in
+     *           {@see RootViewInterface::render()} and only reads it
      */
     public function __construct(
         private readonly string $component,

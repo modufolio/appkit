@@ -32,15 +32,4 @@ final class DeferredProp extends Prop implements Deferrable, IgnoreFirstLoad, Me
     {
         return $this->rescue;
     }
-
-    /** The name group() had in this package's first release. */
-    public function merges(): bool
-    {
-        return $this->shouldMerge();
-    }
-
-    public function mergesDeep(): bool
-    {
-        return $this->shouldDeepMerge();
-    }
 }

@@ -33,6 +33,9 @@ use Psr\Http\Message\ServerRequestInterface;
  *     `rescuedProps` instead of failing the page;
  *   - `errors` is wrapped under the bag `X-Inertia-Error-Bag` names.
  *
+ * @internal the rules follow the client; read a page back with
+ *           {@see Testing\InertiaPage} rather than calling this yourself
+ *
  * @author    Maarten Thiebou
  * @copyright Modufolio
  * @license   https://opensource.org/licenses/MIT
