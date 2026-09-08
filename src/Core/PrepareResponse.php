@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Modufolio\Appkit\Core;
 
 use Modufolio\Appkit\Debug\ProfilerInterface;
+use Modufolio\Appkit\Inertia\Header;
+use Modufolio\Appkit\Inertia\InertiaRenderer;
 use Modufolio\Psr7\Http\Stream;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -74,6 +76,23 @@ class PrepareResponse implements PrepareResponseInterface
                 $response = $response->withStatus(303);
             }
 
+            // A redirect whose target carries a fragment cannot be followed
+            // by XHR without losing the fragment, so the protocol replaces it
+            // with a 409 the client visits itself. Not for a prefetch, which
+            // may never be shown. Same rule as the reference middleware.
+            if (
+                self::isRedirect($response)
+                && str_contains($response->getHeaderLine('Location'), '#')
+                && !InertiaRenderer::isPrefetch($request)
+            ) {
+                $response = $response
+                    ->withStatus(409)
+                    ->withHeader(Header::REDIRECT, $response->getHeaderLine('Location'))
+                    ->withoutHeader('Location')
+                    ->withBody(Stream::create(''))
+                    ->withHeader('Content-Length', '0');
+            }
+
             // One URL answers HTML or JSON depending on X-Inertia (and on
             // Accept), so a cache in between must key on both. Merged, not
             // set: an adapter upstream may already have named X-Inertia.
@@ -83,6 +102,13 @@ class PrepareResponse implements PrepareResponseInterface
         }
 
         return $this->profiler?->collect($request, $response) ?? $response;
+    }
+
+    /** A response that names another URL for the client to go to. */
+    private static function isRedirect(ResponseInterface $response): bool
+    {
+        return in_array($response->getStatusCode(), [301, 302, 303, 307, 308], true)
+            && $response->hasHeader('Location');
     }
 
     /**

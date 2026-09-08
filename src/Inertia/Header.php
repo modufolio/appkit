@@ -43,7 +43,11 @@ final class Header
     /** Infinite scroll: `prepend` or `append`, where the next page goes. */
     public const INFINITE_SCROLL_MERGE_INTENT = 'X-Inertia-Infinite-Scroll-Merge-Intent';
 
-    /** Response header of a 409 that replaces a redirect whose target has a fragment. */
+    /**
+     * Response header of the 409 that replaces a redirect whose target has a
+     * fragment: the client visits the URL itself so the fragment survives,
+     * which an XHR-followed redirect would drop.
+     */
     public const REDIRECT = 'X-Inertia-Redirect';
 
     /**
