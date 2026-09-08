@@ -12,7 +12,7 @@ use Modufolio\Appkit\Security\User\UserInterface;
  */
 class InMemoryOAuthAccessToken implements OAuthAccessTokenInterface
 {
-    private UserInterface $user;
+    private ?UserInterface $user = null;
     private string $token = '';
     private string $clientId = '';
     private string $grantType = '';
@@ -35,7 +35,7 @@ class InMemoryOAuthAccessToken implements OAuthAccessTokenInterface
 
     public function getUser(): UserInterface
     {
-        return $this->user;
+        return $this->user ?? throw new \LogicException('No user on this access token: call setUser() first.');
     }
 
     public function setUser(UserInterface $user): void

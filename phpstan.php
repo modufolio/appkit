@@ -55,6 +55,14 @@ return [
         'bootstrapFiles' => [
             'phpstan-bootstrap.php',
         ],
+        // Not the level: level 9 is 577 findings on this codebase, nearly all
+        // of them annotating genuinely-mixed data, which buys a baseline
+        // rather than a bug. These two are the checks that find bugs at
+        // level 8 — an unassigned typed property is a fatal Error at runtime,
+        // and a return type wider than what a method can return is a
+        // contract that lies.
+        'checkUninitializedProperties' => true,
+        'checkTooWideReturnTypesInProtectedAndPublicMethods' => true,
         'ignoreErrors' => [
             // Doctrine ORM writes $id via reflection — not visible to static analysis
             ['message' => '#Property .+::\$id is never written, only read\.#', 'reportUnmatched' => false],
@@ -71,6 +79,26 @@ return [
             // narrowing after assertions and `method.impossibleType`, both of
             // which stay on.
             ['identifier' => 'method.alreadyNarrowedType', 'path' => 'tests/*', 'reportUnmatched' => false],
+            // checkUninitializedProperties, for the three shapes where a typed
+            // property is legitimately assigned outside the constructor. Scoped
+            // to the classes that do it, so the check still catches the case it
+            // is here for: a property nothing ever assigns.
+            //
+            // 1. Doctrine writes entity ids and lifecycle timestamps by
+            //    reflection, after construction.
+            ['identifier' => 'property.uninitialized', 'path' => 'tests/App/Entity/*', 'reportUnmatched' => false],
+            // 2. Kernel and controller services are assigned by an initializer
+            //    the framework calls before anything can read them:
+            //    AbstractController::setSubscribedServices() (final) and the
+            //    kernel's own boot path.
+            ['identifier' => 'property.uninitialized', 'path' => 'src/Core/AbstractController.php*', 'reportUnmatched' => false],
+            ['identifier' => 'property.uninitialized', 'path' => 'src/Core/Kernel.php*', 'reportUnmatched' => false],
+            // 3. Console and query builders assigned by the framework's own
+            //    initialize()/configure() hooks before execute() runs.
+            ['identifier' => 'property.uninitialized', 'path' => 'src/Command/MakerCommand.php*', 'reportUnmatched' => false],
+            ['identifier' => 'property.uninitialized', 'path' => 'src/Console/Helper/Descriptor.php*', 'reportUnmatched' => false],
+            ['identifier' => 'property.uninitialized', 'path' => 'src/Doctrine/DoctrineOrmPagination.php*', 'reportUnmatched' => false],
+            ['identifier' => 'property.uninitialized', 'path' => 'src/Doctrine/QueryBuilder.php*', 'reportUnmatched' => false],
         ],
     ],
 ];

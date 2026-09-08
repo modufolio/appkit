@@ -22,7 +22,7 @@ class Organization implements JsonApiResource
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    private int $id;
+    private ?int $id = null;
 
     #[Assert\NotNull]
     #[Assert\Type(Account::class)]
