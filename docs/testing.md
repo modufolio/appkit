@@ -68,7 +68,7 @@ abstract class AppTestCase extends BaseAppTestCase
 }
 ```
 
-> **Application code.** `AppFactory` is not part of the framework. The skeleton (`modufolio/appkit-skeleton`) ships the application bootstrap (its `src/Kernel.php`; the framework's own test app uses a `tests/App/AppFactory.php` of the same shape); it is yours to change.
+> **Application code.** `AppFactory` is not part of the framework. The skeleton (`modufolio/appkit-skeleton`) ships a starting version in `src/AppFactory.php` — `create(string $baseDir): AppInterface`, which builds the route loader, loads the config files and boots `App` — and the framework's test application keeps its own in `tests/App/AppFactory.php`; it is yours to change. The skeleton's `create()` takes only the base directory; the environment comes from `APP_ENV`.
 
 Optional hooks, all no-ops by default:
 

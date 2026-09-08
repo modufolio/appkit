@@ -36,7 +36,7 @@ These six abstract methods are your integration points. The framework's test app
 
 ## The request lifecycle
 
-> **Application code.** `AppFactory` is not part of the framework. The skeleton (`modufolio/appkit-skeleton`) does not ship one — it boots through its own `src/Kernel.php` and `public/index.php` — and the framework's test application keeps a reference version in `tests/App/AppFactory.php`; it is yours to write.
+> **Application code.** `AppFactory` is not part of the framework. The skeleton (`modufolio/appkit-skeleton`) ships a starting version in `src/AppFactory.php` — `create(string $baseDir): AppInterface`, which builds the route loader, loads the config files and boots `App` — and the framework's test application keeps its own in `tests/App/AppFactory.php`; it is yours to change.
 
 1. `public/index.php` calls your application factory — `AppFactory::create($baseDir)` in the test app — which instantiates `App`, loads config files, and calls `boot()`.
 2. `boot()` applies error-output hardening for the environment (see [Exception handling](exception-handling.md#error-output-hardening)), wires the kernel core services (or loads a legacy `config/interfaces.php` when mapped), sets up the router cache directory, builds [the Symfony container behind the kernel](dependency-injection.md#the-symfony-container-behind-the-kernel) if `configureContainer()` asked for one (before any module's `boot()`), and freezes the token unserializer whitelist.
@@ -158,7 +158,7 @@ Parameters are available inside controller config as `%app.name%` strings.
 
 ## Booting the application
 
-> **Application code.** `AppFactory` is not part of the framework. The skeleton (`modufolio/appkit-skeleton`) does not ship one — it boots through its own `src/Kernel.php` and `public/index.php` — and the framework's test application keeps a reference version in `tests/App/AppFactory.php`; it is yours to write.
+> **Application code.** `AppFactory` is not part of the framework. The skeleton (`modufolio/appkit-skeleton`) ships a starting version in `src/AppFactory.php` — `create(string $baseDir): AppInterface`, which builds the route loader, loads the config files and boots `App` — and the framework's test application keeps its own in `tests/App/AppFactory.php`; it is yours to change.
 
 `AppFactory::create(string $baseDir)` — the test app's factory — is the standard entry point. The factory pattern is inspired by [Slim PHP](https://www.slimframework.com/). It:
 

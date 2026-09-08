@@ -31,6 +31,7 @@ $classLoader = require dirname(__DIR__) . '/vendor/autoload.php';
 
 $console = new ConsoleRunner(
     classLoader: $classLoader,
+    userClass:   App\Entity\User::class,
     projectDir:  dirname(__DIR__),
 );
 
@@ -106,7 +107,7 @@ The framework's console surface is the commands themselves and `ConsoleStyle`; h
 
 ## The `app:add-user` command
 
-> **Application code.** `app:add-user` is not part of the framework. The skeleton (`modufolio/appkit-skeleton`) ships a starting version in `bundles/UserBundle/Command/AddUserCommand.php`; it is yours to change.
+> **Application code.** `app:add-user` is not part of the framework. The skeleton (`modufolio/appkit-skeleton`) ships a starting version in `src/Command/AddUserCommand.php`; it is yours to change.
 
 Creates a new user. Works interactively (prompts for missing values) or non-interactively.
 

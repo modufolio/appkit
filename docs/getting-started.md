@@ -37,7 +37,7 @@ cp .env.example .env
 |----------|-------------|
 | `APP_ENV` | `dev`, `test`, or `prod`. Controls caching, error verbosity, and debug mode. |
 | `COOKIE_SECURE` | Set to `true` when running behind HTTPS to add the `Secure` flag to session cookies. Use `false` in development. |
-| `REMEMBER_ME_SECRET` | Signing secret for remember-me cookies — a 64-character hex string (`php -r "echo bin2hex(random_bytes(32));"`). The skeleton's `AuthenticatorFactory` throws when the `remember_me` authenticator is used without it; remove `remember_me` from `config/security.php` if you do not want it. |
+| `REMEMBER_ME_SECRET` | Signing secret for remember-me cookies — a 64-character hex string (`php -r "echo bin2hex(random_bytes(32));"`). The skeleton's `config/services.php` reads it with `env()->getRequired()`, which throws when it is missing; remove the `remember_me` authenticator from `config/security.php` if you do not want it. |
 | `APP_URL` | Optional. The skeleton's own variable, available to your code as `env('APP_URL')`; nothing in the framework or in the skeleton's shipped code reads it. The framework derives base URLs from the request (`$this->url()` in templates). |
 
 Use the `env()` helper to read environment variables anywhere in your config files:
@@ -51,7 +51,7 @@ env()->getRequired('JWT_SECRET')   // throws when the secret is missing
 
 See [Configuration](configuration.md) for the full set of typed accessors.
 
-`env()` checks `$_ENV`, then `$_SERVER`, then whatever `.env` file was loaded into the reader — in that order, so a real environment variable always wins. Loading the file is one line in `bootstrap.php`: `(new Env())->fromFile(BASE_DIR . '/.env')->freeze();`. The framework's own `bootstrap.php` and the RoadRunner reference do this; the skeleton's `bootstrap.php` currently does not, so until you add that line the skeleton reads only real environment variables and `cp .env.example .env` has no effect. The file is read once at boot and the reader is then frozen. In production, set variables in your web server config or container environment and skip the `.env` file entirely; a missing file is not an error.
+`env()` checks `$_ENV`, then `$_SERVER`, then whatever `.env` file was loaded into the reader — in that order, so a real environment variable always wins. Loading the file is one line in `bootstrap.php`: `(new Env())->fromFile(BASE_DIR . '/.env')->freeze();`. The skeleton's `bootstrap.php` does exactly that, as do the framework's own and the RoadRunner reference's. The file is read once at boot and the reader is then frozen. In production, set variables in your web server config or container environment and skip the `.env` file entirely; a missing file is not an error.
 
 **Limitations.** The built-in `env()` helper reads a single `.env` file using `parse_ini_file()`. It does not support multiple layered files (`.env.local`, `.env.test`), variable interpolation, or multiline values. If you need any of those, replace it with [Symfony Dotenv](https://symfony.com/doc/current/components/dotenv.html) — see [Configuration](configuration.md) for the upgrade path.
 
@@ -88,7 +88,7 @@ Two directories must exist and be writable before the app can run:
 | Directory | What goes in it |
 |-----------|-----------------|
 | `storage/logs/` | Application logs (`app.log`, `error.log`), written by the skeleton's `FileLogger` |
-| `var/` | Generated files: the compiled service container (`var/cache/<env>/`), Doctrine cache and proxies, sessions (`var/sessions/`), brute-force state (`var/brute-force/`) |
+| `var/` | Generated files: Doctrine cache and proxies (`var/cache/`, `var/proxies/`), sessions (`var/sessions/`), brute-force state (`var/brute-force/`), and a private copy of all of it per test worker (`var/test/`) |
 
 Both are already present in the skeleton with a `.gitkeep`. Their contents are gitignored — never commit files from these directories.
 

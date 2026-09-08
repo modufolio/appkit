@@ -181,7 +181,7 @@ $handler->registerFormatter('text/html', static function (array $data) use ($bas
 
 In an application built on the framework `Kernel`, the place to do this is the `configureExceptionHandler()` hook, called once before the handler's first use. See [HTML error pages](exception-handling.md#html-error-pages) for the full pattern, including what to do when the template file is missing.
 
-> **Application code.** `resources/views/errors/default.php` is not part of the framework. The skeleton (`modufolio/appkit-skeleton`) ships a starting version, rendered by exactly the formatter above from `src/DependencyInjection/ExceptionHandlerFactory.php` (wired as `ExceptionHandlerInterface` in `config/services.php`); both are yours to change.
+> **Application code.** `resources/views/errors/default.php` is not part of the framework. The skeleton (`modufolio/appkit-skeleton`) ships a starting version, rendered by exactly the formatter above, registered in its `src/App.php` override of `exceptionHandler()`; both are yours to change.
 
 The template receives three variables:
 

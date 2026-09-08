@@ -267,6 +267,7 @@ $classLoader = require dirname(__DIR__) . '/vendor/autoload.php';
 
 $console = new ConsoleRunner(
     classLoader: $classLoader,
+    userClass:   App\Entity\User::class,
     projectDir:  dirname(__DIR__),
 );
 
@@ -309,7 +310,7 @@ A process that never runs the bootstrap — a one-off CLI script, a worker — s
 
 The HTTP entry point. Creates the application, handles the request, and emits the response.
 
-> **Application code.** `AppFactory` is not part of the framework. The skeleton (`modufolio/appkit-skeleton`) does not ship one — it boots through its own `src/Kernel.php` and `public/index.php` — and the framework's test application keeps a reference version in `tests/App/AppFactory.php`; it is yours to write.
+> **Application code.** `AppFactory` is not part of the framework. The skeleton (`modufolio/appkit-skeleton`) ships a starting version in `src/AppFactory.php` — `create(string $baseDir): AppInterface`, which builds the route loader, loads the config files and boots `App` — and the framework's test application keeps its own in `tests/App/AppFactory.php`; it is yours to change.
 
 ```php
 require dirname(__DIR__) . '/bootstrap.php';

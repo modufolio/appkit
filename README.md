@@ -58,9 +58,13 @@ Each of these is a stated choice with a documented alternative, not a gap:
 - **No mailer, no i18n.** Bring the PSR-compatible library your app needs and
   register it as an `App` method; the framework does not wrap what it cannot
   improve.
-- **No container-coupled console.** `bin/console` boots without the app
-  container, so a wiring bug can never take down the tool that fixes it —
-  see [Console](docs/console.md#how-the-console-is-bootstrapped).
+- **No container-coupled console.** The framework ships console commands,
+  not a `bin/console`; the runner is application code. The RoadRunner
+  reference (`modufolio/appkit-roadrunner`) boots its console without the app
+  container, so a wiring bug can never take down the tool that fixes it; the
+  skeleton's `ConsoleRunner` constructs each command by hand for the same
+  reason. See
+  [Console](docs/console.md#how-the-console-is-bootstrapped).
 - **Security headers live at the edge** (nginx/Caddy/CDN), where they also
   cover static assets — see
   [What the framework does not handle](docs/security.md#what-the-framework-does-not-handle).
@@ -74,9 +78,9 @@ Each of these is a stated choice with a documented alternative, not a gap:
 - **Transparent control flow.** No event dispatcher by design. Reading
   `handleAuthentication()` top-to-bottom shows exactly what runs.
 - **RoadRunner-aware.** Every stateful service implements
-  [`ResetInterface`](src/Core/ResetInterface.php); the kernel rebuilds
-  `ApplicationState` per request. The worker loop stays in your application
-  rather than behind a runtime — see
+  [`ResetInterface`](src/Core/ResetInterface.php); the kernel rebuilds its
+  `ApplicationStateInterface` state (`NativeApplicationState`) per request.
+  The worker loop stays in your application rather than behind a runtime — see
   [modufolio/appkit-roadrunner](https://github.com/modufolio/appkit-roadrunner).
 - **Security hardening already wired.** Symfony-style firewalls with
   method/host/IP restrictions; path- and attribute-based access control with a
@@ -99,6 +103,8 @@ composer start
 
 The skeleton lives in its own repository:
 [modufolio/appkit-skeleton](https://github.com/modufolio/appkit-skeleton).
+`composer start` is the skeleton's Composer script — PHP's built-in server on
+port 8000 with `router.php` — not a framework command.
 
 ## A minimal controller
 
@@ -124,6 +130,12 @@ final class HelloController extends AbstractController
 }
 ```
 
+`AbstractController` is a concrete base class despite its name — it is not
+declared `abstract`. The kernel fills its protected properties
+(`entityManager`, `tokenStorage`, `urlGenerator`, `userProvider`, `validator`,
+`flashBag`) right after construction. Extending it is optional: any class the
+router resolves works, and only subclasses get that treatment.
+
 ## Documentation
 
 Full guides under [docs/](docs/index.md):
@@ -134,6 +146,7 @@ Full guides under [docs/](docs/index.md):
 - [Controllers](docs/controllers.md) — controllers and parameter attributes
 - [Inertia](docs/inertia.md) — returning Inertia pages, the renderer, the module
 - [Dependency injection](docs/dependency-injection.md) — wiring services with config files
+- [Modules](docs/modules.md) — self-contained feature packages: manifest, conventions, lifecycle
 - [Templates](docs/templates.md) — layouts, snippets, sections, asset helpers
 - [Security](docs/security.md) — firewalls, access control, CSRF, roles, trust levels
 - [Authenticators](docs/authenticators.md) — form login, JWT, OAuth 2.1, 2FA, remember-me, brute-force
@@ -155,8 +168,10 @@ the design philosophy the rest of the documentation assumes.
 
 - PHP 8.2 or later
 - Composer
-- Extensions: `curl`, `dom`, `exif`, `fileinfo`, `gd`, `intl`, `libxml`,
-  `pdo`, `simplexml`, `sqlite3`, `zip`
+- Extensions: `curl`, `dom`, `fileinfo`, `intl`, `libxml`, `pdo`,
+  `simplexml`, `sqlite3`, `zip`
+- Optional, for image processing: `exif`, `gd` and the `claviska/simpleimage`
+  package — listed under `suggest` in `composer.json`, not required
 
 See [`composer.json`](composer.json) for the canonical dependency list.
 

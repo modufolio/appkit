@@ -10,7 +10,7 @@ Before going live, confirm each of these.
 - [ ] `composer install --no-dev --classmap-authoritative` completed — see [Autoloader](#autoloader)
 - [ ] `npm run build` completed and compiled assets uploaded to `public/assets/`
 - [ ] `php bin/console migrations:migrate` completed
-- [ ] `php bin/console security:validate` passes — config validation is skipped at runtime in `prod`, so this is the last gate that catches a bad firewall or access-control rule (see [Security](security.md#validating-configuration)). The framework ships the command as `SecurityValidateCommand`; the skeleton's console does not register it, so add it to your runner first
+- [ ] `php bin/console security:validate` passes — config validation is skipped at runtime in `prod`, so this is the last gate that catches a bad firewall or access-control rule (see [Security](security.md#validating-configuration)). The framework ships the command as `SecurityValidateCommand`; the skeleton's `ConsoleRunner::addDefaultCommands()` registers it
 - [ ] `storage/logs/` is writable by the web server user
 - [ ] `var/` is writable by both the web server user and the CLI user
 - [ ] Any secrets (JWT keys, OAuth secrets, DB passwords) are in the server environment, not in `.env` files
@@ -131,29 +131,26 @@ The skeleton's `FileLogger` writes to two files:
 
 Context fields named `password`, `plainPassword`, `token`, `authorization`, and `cookie` are redacted before writing (`scrubContext()`).
 
-The skeleton wires it in `config/services.php`:
+The skeleton passes it to the `App` constructor in `AppFactory::create()`:
 
 ```php
-$services->set(LoggerInterface::class, FileLogger::class)
-    ->args(['%app.base_dir%/storage/logs']);
+$app = new App(
+    baseDir: $baseDir,
+    // ...
+    logger: new FileLogger($baseDir.'/storage/logs'),
+);
 ```
 
-To replace it with Monolog or another PSR-3 implementation, change that one definition — nothing else in the skeleton refers to `FileLogger`:
+To replace it with Monolog or another PSR-3 implementation, change that one argument — nothing else in the skeleton refers to `FileLogger`:
 
 ```php
 use Monolog\Handler\StreamHandler;
 use Monolog\Logger;
-use Psr\Log\LoggerInterface;
 
-$services->set(StreamHandler::class)
-    ->args(['%app.base_dir%/storage/logs/app.log']);
-
-$services->set(LoggerInterface::class, Logger::class)
-    ->args(['app'])
-    ->call('pushHandler', [service(StreamHandler::class)]);
+logger: (new Logger('app'))->pushHandler(new StreamHandler($baseDir.'/storage/logs/app.log')),
 ```
 
-An application built directly on the framework `Kernel`, like the RoadRunner reference (`modufolio/appkit-roadrunner`), passes the logger to its `App` constructor instead; there the `logger:` argument in `AppFactory::create()` is the place to swap.
+The RoadRunner reference (`modufolio/appkit-roadrunner`) wires its logger the same way.
 
 ## Autoloader
 
@@ -271,7 +268,7 @@ while (true) {
 }
 ```
 
-> **Application code.** `AppFactory` and `RoadRunnerApp` are not part of the framework. They come from `modufolio/appkit-roadrunner` — `src/AppFactory.php`, whose signature is `create(string $baseDir, string $appClass = App::class)`, and `src/RoadRunnerApp.php` — and are yours to change. The skeleton (`modufolio/appkit-skeleton`) has neither: its `public/index.php` constructs `new Kernel(baseDir: …, environment: …)`, a class of its own that does not extend the framework `Kernel`.
+> **Application code.** `AppFactory` and `RoadRunnerApp` are not part of the framework. They come from `modufolio/appkit-roadrunner` — `src/AppFactory.php`, whose signature is `create(string $baseDir, string $appClass = App::class)`, and `src/RoadRunnerApp.php` — and are yours to change. The skeleton (`modufolio/appkit-skeleton`) has its own single-argument `AppFactory::create(string $baseDir)` and an `App` that extends the framework `Kernel`; subclass that `App` the same way for a worker.
 
 Three details that are easy to miss:
 

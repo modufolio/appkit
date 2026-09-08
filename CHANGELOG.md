@@ -7,6 +7,158 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **A browser that hits an error gets a page.** `ExceptionHandler` registers a
+  `text/html` formatter by default: a self-contained document with the status,
+  title and detail, no assets and no links. A hard page load that errors — an
+  address-bar visit, an old bookmark — used to negotiate to JSON:API and render
+  as a blob of text, because nothing answered the `text/html` a browser asks
+  for first. `Accept: */*` and a missing `Accept` header still get JSON:API,
+  so curl and API clients see no change. Register your own `text/html`
+  formatter to replace the page. See
+  [Content negotiation](docs/exception-handling.md#content-negotiation).
+
+- **`Kernel::configureExceptionHandler()`.** A hook the kernel calls once,
+  lazily, when the exception handler is first built; it receives the handler
+  and returns the one to use. Register the application's exception mappings
+  and formatters there, or return a decorator — without overriding
+  `exceptionHandler()` and copying the constructor call. The kernel's
+  `$exceptionHandler` property is now typed to the interface for that reason.
+
+- **`Modufolio\Appkit\Exception\UnresolvableServiceException`.** Thrown by the
+  container when a service factory raises `\ArgumentCountError` — the
+  constructor it calls has a required argument the factory did not pass.
+  Extends `\LogicException`, implements PSR-11's `ContainerExceptionInterface`,
+  carries the service id as `$serviceId` and the original error as
+  `getPrevious()`. The exception handler maps it to a 500 titled *Service
+  configuration error*, names the wiring in dev, hides it in prod, and logs it.
+
+### Changed
+
+- **A missing constructor argument is a 500, not a 400.** The container used
+  to wrap a factory's `\ArgumentCountError` in a bare
+  `\InvalidArgumentException`, which the exception handler answers with
+  *400 Bad Request* and the message echoed verbatim — a wiring bug in
+  `services.php` reported as the client's fault, in production too. It now
+  throws `UnresolvableServiceException` (above). Code catching
+  `\InvalidArgumentException` around `get()` for this case should catch the
+  new class; nothing else changes, since the old exception was never a
+  documented contract.
+
+- **Inertia errors always negotiate to JSON:API.** The Inertia client sends
+  `Accept: text/html, application/xhtml+xml` on its XHRs as well, so with a
+  `text/html` formatter registered every Inertia error would have received the
+  HTML page. `ExceptionHandler::negotiateFormat()` now returns JSON:API for any
+  request carrying `X-Inertia`, whatever `Accept` says — the same body those
+  requests got before the formatter existed. An application that registered
+  its own `text/html` formatter and *wanted* Inertia XHRs to receive it must
+  now do so from a decorator returned by `configureExceptionHandler()`.
+
+### Fixed
+
+- **Blur, sharpen and grayscale variants are no longer served as the plain
+  original.** `ImageProcessor::process()` derives a variant's filename and its
+  stored job from each transformation's `config()`, and the job is what a media
+  route hands to the `Darkroom` when the file is generated. `BlurTransformation`
+  reported `intensity`, `SharpenTransformation` `amount` and
+  `GrayscaleTransformation` nothing at all — none of them a `Darkroom` option —
+  so `PhotoLab::blur(5)` named the variant `photo.png`, recorded a job every
+  driver ignored, and the regenerated file was the untouched original. The
+  three now emit the `Darkroom`'s own keys (`blur`, `sharpen`, `grayscale`),
+  which is also what their `apply()` already used, so `modifications()` and the
+  job read `['blur' => 5]` and the filename carries `blur5`. `CustomFilename`
+  gains a `sharpen{n}` token (`sharpen()` accessor; a bare `true` is `50`, as in
+  the `Darkroom`) so a sharpened variant no longer shares the original's name
+  and overwrites its job. Variants previously named for these transformations
+  will be regenerated under their new names. See
+  [Building a pipeline](docs/image-processing.md#building-a-pipeline).
+
+- **A stateless HTTP Basic firewall answered every write with 403.** The
+  ambient-credential CSRF rule — a cached Basic realm or a remember-me cookie
+  is re-sent by the browser on its own, so a state-changing request carrying
+  one must present a CSRF token — ran regardless of the firewall's
+  `stateless` option, unlike the restored-session and public-path checks
+  next to it. A stateless firewall never restores a session, so no token was
+  ever minted for the client to present: `POST`/`PUT`/`DELETE` with valid
+  credentials and no token got `invalid_csrf_token` unless the firewall set
+  `csrf => false`, which the documentation prescribed. The check is now
+  skipped where `stateless` is set, on that branch too; `stateless => true`
+  implies no kernel CSRF check. A session-backed firewall with Basic or
+  remember-me keeps enforcing it, and `csrf => false` still works where it
+  was added. See [What the kernel checks for
+  you](docs/security.md#what-the-kernel-checks-for-you).
+
+- **A handler for an application exception now runs.** Dispatch matched
+  handlers in registration order, first match wins. The defaults register
+  `\InvalidArgumentException`, `\LogicException` and `\RuntimeException` as
+  catch-alls in the constructor, and an application's handlers come after —
+  so any application exception extending one of the three was answered by
+  the catch-all, and its own handler never ran. The documented
+  `PaymentDeclinedException` walkthrough reproduced it verbatim: a 500
+  *Runtime error* instead of the 402 it registered. The most specific match
+  now wins — the exception's own class, then its parent, and so on, with an
+  interface counted where the chain introduces it; equal distances keep
+  registration order, so re-registering a key still replaces it in place.
+  Behaviour changes only where a narrower handler was registered after a
+  broader one, which is exactly the case that used to be ignored. The
+  "register subclasses before their parents" advice is withdrawn. See
+  [How `handle()` works](docs/exception-handling.md#how-handle-works).
+
+- **Two-factor exceptions no longer publish the messages of unrelated
+  exceptions — or swallow their own.** The exception handler decided what a 2FA
+  failure was by testing whether the class *name* ended in `TwoFactorException`,
+  and echoed that exception's message to the client unconditionally, bypassing
+  the production detail-hiding every other handler applies. Any application
+  class sharing the suffix had its raw message published. The same heuristic
+  never fired for the framework's own `TwoFactorException`, which extends
+  `RuntimeException` and so matched the catch-all first: a TOTP lockout reached
+  the user as a generic 500 with its countdown stripped, rather than the 422 the
+  documentation promised. Dispatch is now on the new opt-in
+  `Modufolio\Appkit\Security\TwoFactor\TwoFactorExceptionInterface`, registered
+  ahead of the `RuntimeException` catch-all. `TwoFactorException` implements it;
+  nothing else is trusted by accident. Override the mapping by registering a
+  handler under the interface id. See
+  [Two-factor exceptions](docs/exception-handling.md#two-factor-exceptions).
+
+- **A prefetch does not consume the flash.** The Inertia client marks the
+  requests it makes ahead of a visit with `Purpose: prefetch`; the renderer
+  now leaves the flash store untouched for those (`InertiaRenderer::isPrefetch()`,
+  `Header::PURPOSE`), so a toast meant for the page the user lands on is not
+  swallowed by a page they may never see. What the controller flashed on the
+  prefetched page itself still travels with it.
+- **Remember-me no longer mistakes parallel requests for cookie theft.**
+  Persistent-mode rotation happened on every use with no tolerance for requests
+  already in flight, so a page loading several requests at once — the normal
+  case, since the authenticator runs only when there is no session yet — had one
+  win the rotation while the rest presented a value that was no longer current.
+  That is the signature of a replayed cookie, and the response is to revoke
+  every token for the user: an ordinary page load could log someone out of all
+  their devices. Two changes close it: the value a rotation replaced stays
+  acceptable for 60 seconds
+  (`RememberMeAuthenticator::PARALLEL_REQUEST_GRACE_SECONDS`), and rotation is
+  now a compare-and-swap so two concurrent rotations cannot interleave and
+  orphan the winner's cookie. A request presenting the superseded value
+  authenticates without rotating or re-issuing. The trade-off: a cookie replayed
+  within 60 seconds of a legitimate use is accepted once rather than detected —
+  nothing tells it apart from the straggler. See
+  [Parallel requests](docs/authenticators.md#parallel-requests).
+
+### Changed
+
+- **BC break — `RememberMeTokenProviderInterface::updateExistingToken()`.** The
+  signature is now
+  `updateExistingToken(PersistentToken $token, string $expectedCurrentValue): bool`,
+  replacing `(string $series, string $tokenValue, int $lastUsed): void`. It must
+  rotate only when the stored value still equals `$expectedCurrentValue`, and
+  report whether it did. Implementations must perform the comparison and the
+  write atomically. `PersistentToken` carries two new optional constructor
+  arguments, `previousTokenValue` and `previousValueExpiresAt`; a store that
+  does not persist them degrades to the old always-rotate behaviour and keeps
+  the race. The shipped `FileTokenProvider` and `InMemoryTokenProvider` are
+  updated; records written by an earlier version read back as a token that has
+  never rotated.
+
 ## [0.17.0] - 2026-09-07
 
 ### Added

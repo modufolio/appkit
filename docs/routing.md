@@ -205,7 +205,7 @@ Keep literal targets static. The moment request data reaches `redirect()`, the r
 
 Your application builds a `DelegatingLoader` over a `LoaderResolver` and hands it to the `App`; the resolver picks the loader whose `supports()` accepts the type string. Symfony's `PhpFileLoader` reads `config/routes.php` and its `AttributeDirectoryLoader` scans directories with AppKit's `AttributeClassLoader`, so you never register controllers — dropping a class into `src/Controller/` with a `#[Route]` attribute is enough.
 
-> **Application code.** `AppFactory` is not part of the framework. The skeleton (`modufolio/appkit-skeleton`) ships the application bootstrap (its `src/Kernel.php`; the framework's own test app uses a `tests/App/AppFactory.php` of the same shape); it is yours to change. Only the loaders that bootstrap puts in the resolver are available — the test app registers `PhpFileLoader`, `AttributeDirectoryLoader`, `ArrayRouteLoader` and `JsonApiRouteLoader`; add `RedirectRouteLoader` and `FlatFileRouteLoader` there the same way when you use them.
+> **Application code.** `AppFactory` is not part of the framework. The skeleton (`modufolio/appkit-skeleton`) ships a starting version in `src/AppFactory.php` — `create(string $baseDir): AppInterface`, which builds the route loader, loads the config files and boots `App` — and the framework's test application keeps its own in `tests/App/AppFactory.php`; it is yours to change. Only the loaders that factory puts in the resolver are available — the skeleton registers `PhpFileLoader` and `AttributeDirectoryLoader`, the framework's test app adds `ArrayRouteLoader` and `JsonApiRouteLoader`; add `RedirectRouteLoader` and `FlatFileRouteLoader` there the same way when you use them.
 
 AppKit ships these route loaders:
 
