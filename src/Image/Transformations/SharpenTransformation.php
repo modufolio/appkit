@@ -56,6 +56,6 @@ class SharpenTransformation implements Transformation
      */
     public function config(): array
     {
-        return ['amount' => $this->amount];
+        return ['sharpen' => $this->amount];
     }
 }

@@ -22,11 +22,12 @@ class CustomFilenameTest extends TestCase
             'crop' => 'center',
             'blur' => 10,
             'grayscale' => true,
+            'sharpen' => 50,
             'quality' => 80,
         ]);
 
-        $this->assertSame('some-file-300x200-crop-blur10-bw-q80.jpg', $filename->toString());
-        $this->assertSame('some-file-300x200-crop-blur10-bw-q80.jpg', (string) $filename);
+        $this->assertSame('some-file-300x200-crop-blur10-bw-sharpen50-q80.jpg', $filename->toString());
+        $this->assertSame('some-file-300x200-crop-blur10-bw-sharpen50-q80.jpg', (string) $filename);
     }
 
     public function testToStringWithoutAttributes(): void
@@ -114,6 +115,16 @@ class CustomFilenameTest extends TestCase
         $this->assertFalse((new CustomFilename('a.jpg', static::TEMPLATE))->quality());
         $this->assertFalse((new CustomFilename('a.jpg', static::TEMPLATE, ['quality' => true]))->quality());
         $this->assertSame(80, (new CustomFilename('a.jpg', static::TEMPLATE, ['quality' => '80']))->quality());
+    }
+
+    public function testSharpen(): void
+    {
+        $this->assertFalse((new CustomFilename('a.jpg', static::TEMPLATE))->sharpen());
+        $this->assertFalse((new CustomFilename('a.jpg', static::TEMPLATE, ['sharpen' => false]))->sharpen());
+        $this->assertSame(75, (new CustomFilename('a.jpg', static::TEMPLATE, ['sharpen' => '75']))->sharpen());
+        // the Darkroom reads a bare flag as 50, so the token says the same
+        $this->assertSame(50, (new CustomFilename('a.jpg', static::TEMPLATE, ['sharpen' => true]))->sharpen());
+        $this->assertSame('-sharpen50', (new CustomFilename('a.jpg', static::TEMPLATE, ['sharpen' => true]))->attributesToString('-'));
     }
 
     public function testPathTraversalInTemplate(): void

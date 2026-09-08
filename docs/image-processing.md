@@ -357,9 +357,9 @@ Shorthands, each returning `ImageVariant` for a resizable image:
 $lab->resize(?int $width, ?int $height, ?int $quality);
 $lab->crop(int $width, ?int $height, string $mode = 'center');   // 'photo-100x100-crop.png'
 $lab->quality(int $level);                                       // 'photo-q70.png'
-$lab->blur(int|bool $intensity = true);                          // true → 10
-$lab->sharpen(int $amount = 50);
-$lab->grayscale();   // also bw() and greyscale()
+$lab->blur(int|bool $intensity = true);                          // 'photo-blur10.png'; true → 10
+$lab->sharpen(int $amount = 50);                                 // 'photo-sharpen50.png'
+$lab->grayscale();   // also bw() and greyscale()                // 'photo-bw.png'
 ```
 
 For a file that is not a resizable image — a PDF, a text file — every shorthand returns the `FileInterface` itself instead of a variant, so callers can always ask for `->url()`.
@@ -394,9 +394,11 @@ $variant = $lab->build()
 | `ResizeTransformation` | `(?int $width, ?int $height, ?int $quality)` | `width`, `height`, `quality` — only those set |
 | `CropTransformation` | `(int $width, ?int $height = null, string $mode = 'center')` — a null height becomes `$width` | `width`, `height`, `crop` |
 | `QualityTransformation` | `(int $quality = 90)` | `quality` |
-| `BlurTransformation` | `(int $intensity = 10)` | `intensity` |
-| `SharpenTransformation` | `(int $amount = 50)` | `amount` |
-| `GrayscaleTransformation` | `()` | none |
+| `BlurTransformation` | `(int $intensity = 10)` | `blur` |
+| `SharpenTransformation` | `(int $amount = 50)` | `sharpen` |
+| `GrayscaleTransformation` | `()` | `grayscale` (always `true`) |
+
+`config()` keys are the [`Darkroom` options](#darkroom) by name: the merged array is what the filename tokens are derived from and what the stored job replays, and a key the `Darkroom` does not know is silently ignored. A custom transformation should therefore emit those keys too.
 
 `process()` merges every `config()` into one options array, derives the filename from it, saves a job if the file is missing and returns the `ImageVariant`. It throws `ImageException` if the original has vanished or is unreadable since the `PhotoLab` was built. With no transformations added it describes the original served from the media path. `getTransformationNames()`, `getConfigurations()` and `clear()` let you inspect or reset the stack; the tests cover all three.
 
@@ -410,15 +412,16 @@ $variant = $lab->build()
 | `crop` | `crop`, or `crop-{position}` when not centred | `crop`, `crop-top-left` |
 | `blur` | `blur{n}` | `blur10` |
 | `grayscale` / `greyscale` / `bw` | `bw` | `bw` |
+| `sharpen` | `sharpen{n}` — `true` means `50`, as in the `Darkroom` | `sharpen50` |
 | `quality` | `q{n}` | `q80` |
 
 ```php
 use Modufolio\Appkit\Image\CustomFilename;
 
 (string) new CustomFilename('Some File.jpg', '{{ name }}{{ attributes }}.{{ extension }}', [
-    'width' => 300, 'height' => 200, 'crop' => 'center', 'blur' => 10, 'grayscale' => true, 'quality' => 80,
+    'width' => 300, 'height' => 200, 'crop' => 'center', 'blur' => 10, 'grayscale' => true, 'sharpen' => 50, 'quality' => 80,
 ]);
-// 'some-file-300x200-crop-blur10-bw-q80.jpg'
+// 'some-file-300x200-crop-blur10-bw-sharpen50-q80.jpg'
 ```
 
 The name is slugged, the extension lowercased with `jpeg` folded to `jpg`, and a `format` option replaces the extension. Any `..` (plain or URL-encoded) in the filename or template throws `ImageException::pathTraversalAttempt()`.

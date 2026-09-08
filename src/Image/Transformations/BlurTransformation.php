@@ -56,6 +56,6 @@ class BlurTransformation implements Transformation
      */
     public function config(): array
     {
-        return ['intensity' => $this->intensity];
+        return ['blur' => $this->intensity];
     }
 }

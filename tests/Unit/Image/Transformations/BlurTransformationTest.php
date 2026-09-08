@@ -40,14 +40,15 @@ class BlurTransformationTest extends TestCase
         $transformation = new BlurTransformation(15);
 
         $this->assertSame('blur', $transformation->name());
-        $this->assertSame(['intensity' => 15], $transformation->config());
+        // keyed as the Darkroom expects it, so the stored job replays the blur
+        $this->assertSame(['blur' => 15], $transformation->config());
     }
 
     public function testIntensityIsClampedToMinimumOfOne(): void
     {
-        $this->assertSame(['intensity' => 1], (new BlurTransformation(0))->config());
-        $this->assertSame(['intensity' => 1], (new BlurTransformation(-5))->config());
-        $this->assertSame(['intensity' => 10], (new BlurTransformation())->config());
+        $this->assertSame(['blur' => 1], (new BlurTransformation(0))->config());
+        $this->assertSame(['blur' => 1], (new BlurTransformation(-5))->config());
+        $this->assertSame(['blur' => 10], (new BlurTransformation())->config());
     }
 
     public function testApplyToResizableImage(): void

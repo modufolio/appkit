@@ -40,7 +40,8 @@ class GrayscaleTransformationTest extends TestCase
         $transformation = new GrayscaleTransformation();
 
         $this->assertSame('grayscale', $transformation->name());
-        $this->assertSame([], $transformation->config());
+        // keyed as the Darkroom expects it, so the stored job replays the desaturation
+        $this->assertSame(['grayscale' => true], $transformation->config());
     }
 
     public function testApplyToResizableImage(): void

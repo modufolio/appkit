@@ -49,6 +49,6 @@ class GrayscaleTransformation implements Transformation
      */
     public function config(): array
     {
-        return [];
+        return ['grayscale' => true];
     }
 }

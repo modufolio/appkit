@@ -40,13 +40,14 @@ class SharpenTransformationTest extends TestCase
         $transformation = new SharpenTransformation(75);
 
         $this->assertSame('sharpen', $transformation->name());
-        $this->assertSame(['amount' => 75], $transformation->config());
+        // keyed as the Darkroom expects it, so the stored job replays the sharpen
+        $this->assertSame(['sharpen' => 75], $transformation->config());
     }
 
     public function testAmountIsClampedToMinimumOfZero(): void
     {
-        $this->assertSame(['amount' => 0], (new SharpenTransformation(-10))->config());
-        $this->assertSame(['amount' => 50], (new SharpenTransformation())->config());
+        $this->assertSame(['sharpen' => 0], (new SharpenTransformation(-10))->config());
+        $this->assertSame(['sharpen' => 50], (new SharpenTransformation())->config());
     }
 
     public function testApplyToResizableImage(): void
@@ -55,8 +56,9 @@ class SharpenTransformationTest extends TestCase
 
         $result = (new SharpenTransformation(50))->apply($file, $this->storage);
 
-        // sharpen is not part of the filename attributes
-        $this->assertSame('photo.png', basename($result['root']));
+        // the token keeps the sharpened variant apart from the original
+        $this->assertSame('photo-sharpen50.png', basename($result['root']));
+        $this->assertSame('photo-sharpen50.png', basename($result['url']));
         $this->assertStringStartsWith('/media/images/default/', $result['url']);
     }
 

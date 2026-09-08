@@ -56,9 +56,10 @@ class CustomFilename implements \Stringable
      *   crop        crop | crop-{pos}  bare when centred         crop, crop-top-left
      *   blur        blur{amount}                                 blur10
      *   bw          bw                 flag, no value            bw
+     *   sharpen     sharpen{amount}                              sharpen50
      *   q           q{quality}                                   q80
      *
-     * Joined with "-" and prefixed, e.g. "-300x200-crop-blur10-bw-q80".
+     * Joined with "-" and prefixed, e.g. "-300x200-crop-blur10-bw-sharpen50-q80".
      *
      * @return array<string, mixed>
      */
@@ -69,6 +70,7 @@ class CustomFilename implements \Stringable
             'crop' => $this->crop(),
             'blur' => $this->blur(),
             'bw' => $this->grayscale(),
+            'sharpen' => $this->sharpen(),
             'q' => $this->quality(),
         ];
 
@@ -198,6 +200,24 @@ class CustomFilename implements \Stringable
         $value = $this->attribute('quality');
 
         return is_bool($value) ? false : (int) $value;
+    }
+
+    /**
+     * Sharpen amount, or false when no sharpening was requested.
+     *
+     * Mirrors the Darkroom's own shorthand: a bare `sharpen => true` means 50.
+     * Without a token a sharpened variant would share the original's filename
+     * and overwrite its job.
+     */
+    public function sharpen(): int|false
+    {
+        $value = $this->attribute('sharpen');
+
+        if (false === $value) {
+            return false;
+        }
+
+        return true === $value ? 50 : (int) $value;
     }
 
     /**

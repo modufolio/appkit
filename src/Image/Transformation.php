@@ -32,6 +32,12 @@ interface Transformation
     /**
      * Get the configuration for this transformation.
      *
+     * Keyed by Darkroom option name (`width`, `crop`, `blur`, `sharpen`,
+     * `grayscale`, `quality`, …): ImageProcessor merges these into the variant's
+     * filename attributes and into the stored job, and the job is later handed
+     * to a Darkroom verbatim. A key the Darkroom does not recognise is silently
+     * ignored, so the regenerated file would be the untransformed original.
+     *
      * @return array<string, mixed>
      */
     public function config(): array;
