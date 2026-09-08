@@ -17,6 +17,7 @@ use Modufolio\Appkit\Exception\ExceptionHandlerInterface;
 use Modufolio\Appkit\Http\TrustedHosts;
 use Modufolio\Appkit\Inertia\InertiaModule;
 use Modufolio\Appkit\Inertia\InertiaRenderer;
+use Modufolio\Appkit\Inertia\InertiaRendererInterface;
 use Modufolio\Appkit\Module\ModuleInterface;
 use Modufolio\Appkit\Resolver\ParameterResolverInterface;
 use Modufolio\Appkit\Routing\RouterInterface;
@@ -496,17 +497,24 @@ abstract class Kernel implements AppInterface
 
     /**
      * What finishes the Inertia pages controllers return: the host wires it
-     * by listing {@see InertiaModule} in
-     * config/modules.php (or declaring InertiaRenderer in config/services.php).
+     * by listing {@see InertiaModule} in config/modules.php, or by declaring
+     * {@see InertiaRendererInterface} in config/services.php — its own
+     * renderer, or a decorator around the module's.
+     *
+     * Both ids answer: the module registers the shipped renderer under its
+     * own class and aliases the interface to it, so an application that
+     * declares either one is the one that wins.
      */
     #[Service]
-    public function inertia(): InertiaRenderer
+    public function inertia(): InertiaRendererInterface
     {
-        if (!$this->has(InertiaRenderer::class)) {
-            throw new \LogicException(sprintf('A controller returned an Inertia page, but Inertia is not wired: list %s in config/modules.php, or declare %s in config/services.php.', InertiaModule::class, InertiaRenderer::class));
+        $id = $this->has(InertiaRendererInterface::class) ? InertiaRendererInterface::class : InertiaRenderer::class;
+
+        if (!$this->has($id)) {
+            throw new \LogicException(sprintf('A controller returned an Inertia page, but Inertia is not wired: list %s in config/modules.php, or declare %s in config/services.php.', InertiaModule::class, InertiaRendererInterface::class));
         }
 
-        return $this->get(InertiaRenderer::class, InertiaRenderer::class);
+        return $this->get($id, InertiaRendererInterface::class);
     }
 
     // ============================================================================

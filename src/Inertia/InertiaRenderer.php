@@ -11,7 +11,8 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
 /**
- * Turns an {@see Inertia} page into a response. The one object a host
+ * Turns an {@see Inertia} page into a response — the implementation of
+ * {@see InertiaRendererInterface} this package ships. The one object a host
  * wires: it knows the root view (the HTML document a first visit receives),
  * the asset version, the shared props and where flash data waits between
  * requests. The kernel asks it through {@see \Modufolio\Appkit\Core\Kernel::inertia()}
@@ -30,7 +31,7 @@ use Psr\Http\Message\ServerRequestInterface;
  * @copyright Modufolio
  * @license   https://opensource.org/licenses/MIT
  */
-final class InertiaRenderer
+final class InertiaRenderer implements InertiaRendererInterface
 {
     /** @var array<string, string> Hashed once per process, per file */
     private static array $fileVersions = [];
@@ -130,7 +131,7 @@ final class InertiaRenderer
      *
      * @param string|array<string, mixed> $key
      */
-    public function flash(string|array $key, mixed $value = null): self
+    public function flash(string|array $key, mixed $value = null): static
     {
         $this->flashStore->put(is_array($key) ? $key : [$key => $value]);
 

@@ -43,7 +43,7 @@ response with the request it is handling. See [Inertia](inertia.md).
 | `$urlGenerator` | `UrlGeneratorInterface` | Route URL generator |
 | `$userProvider` | `UserProviderInterface` | Load users by identifier |
 | `$validator` | `ValidatorInterface` | Symfony validator |
-| `$inertia` | `InertiaRenderer` | Set when the host wired Inertia; `flash()` before a redirect |
+| `$inertia` | `InertiaRendererInterface` | `flash()` before a redirect; fails with what to wire when the host has no Inertia |
 
 One method is available for getting the current user:
 

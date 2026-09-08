@@ -13,6 +13,7 @@ use Modufolio\Appkit\Inertia\Header;
 use Modufolio\Appkit\Inertia\Inertia;
 use Modufolio\Appkit\Inertia\InertiaModule;
 use Modufolio\Appkit\Inertia\InertiaRenderer;
+use Modufolio\Appkit\Inertia\InertiaRendererInterface;
 use Modufolio\Appkit\Inertia\Page;
 use Modufolio\Appkit\Inertia\RootViewInterface;
 use Modufolio\Appkit\Inertia\SharedPropsInterface;
@@ -105,6 +106,23 @@ final class InertiaModuleTest extends TestCase
         $this->expectException(\LogicException::class);
 
         (new InertiaModule())->services(new ServiceConfigurator(), ['versoin' => 'x']);
+    }
+
+    public function testTheRendererIsRequestScopedAndAnsweredByBothIds(): void
+    {
+        $configurator = new ServiceConfigurator();
+        (new InertiaModule())->services($configurator, []);
+
+        // Shared, so a flash put on `$app->inertia()` is read by the page
+        // `$this->inertia` renders in the same request.
+        self::assertArrayHasKey(InertiaRenderer::class, $configurator->shared);
+        self::assertArrayHasKey(InertiaRendererInterface::class, $configurator->definitions);
+
+        $renderer = $this->renderer([], [RootViewInterface::class => $this->rootView()]);
+        $app = $this->createStub(AppInterface::class);
+        $app->method('get')->willReturn($renderer);
+
+        self::assertSame($renderer, $configurator->definitions[InertiaRendererInterface::class]($app));
     }
 
     public function testTheModuleIsNamedInertia(): void

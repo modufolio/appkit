@@ -26,8 +26,9 @@ use Modufolio\Appkit\Module\AbstractModule;
  * it has one, {@see SharedPropsInterface} in config/services.php; the module
  * builds the renderer from them, with flash data kept in the session's flash
  * bag unless the host declares a {@see FlashStoreInterface} of its own. A
- * host that declares `InertiaRenderer` itself keeps its own: application
- * definitions sit above module definitions.
+ * host that declares {@see InertiaRendererInterface} — or `InertiaRenderer`
+ * itself — keeps its own: application definitions sit above module
+ * definitions, which is also how a decorator gets in front of this one.
  *
  * Configuration keys:
  *   - `version`: the asset version string, when the host knows it
@@ -49,7 +50,13 @@ final class InertiaModule extends AbstractModule
     {
         $version = self::version($config);
 
-        $services->set(InertiaRenderer::class, static function (AppInterface $app) use ($version): InertiaRenderer {
+        // Shared: one renderer per request, so `$app->inertia()` and
+        // `$this->inertia` are the same object — a flash put on one is read
+        // by the other even where the store is not session-backed. It holds
+        // the request's flash bag, so it must not outlive the request: the
+        // instance table an application's reset() clears is what makes that
+        // true (docs/deployment.md, "The reset contract").
+        $services->shared(InertiaRenderer::class, static function (AppInterface $app) use ($version): InertiaRenderer {
             if (!$app->has(RootViewInterface::class)) {
                 throw new \LogicException(sprintf(
                     'Inertia needs the HTML document a first visit receives: declare %s in config/services.php.',
@@ -72,6 +79,11 @@ final class InertiaModule extends AbstractModule
                 self::flashStore($app),
             );
         });
+
+        // The seam the kernel asks through. An application that declares
+        // either id in config/services.php wins over both, since application
+        // definitions sit above module definitions.
+        $services->alias(InertiaRendererInterface::class, InertiaRenderer::class);
     }
 
     /**

@@ -78,8 +78,17 @@ final class ServiceConfigurator
     }
 
     /**
-     * Register a request-scoped singleton: the factory runs once, the result is
-     * cached in the kernel's instance table and cleared by `reset()`.
+     * Register a singleton: the factory runs once and the result is cached in
+     * the kernel's instance table.
+     *
+     * How long it lives is the application's call, not the framework's — the
+     * kernel's `reset()` is abstract, and the instance table is in the column
+     * an application clears itself (see docs/deployment.md, "The reset
+     * contract"). Every reference implementation clears it, which makes this
+     * request-scoped in practice; an application that deliberately keeps a
+     * service for the life of a worker leaves it in the table, the way the
+     * entity manager is kept behind `EntityManagerFactory` on profiling
+     * evidence.
      */
     public function shared(string $id, \Closure $factory): self
     {

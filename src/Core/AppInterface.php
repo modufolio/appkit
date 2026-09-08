@@ -6,7 +6,7 @@ namespace Modufolio\Appkit\Core;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Modufolio\Appkit\DependencyInjection\ParameterAccessorInterface;
-use Modufolio\Appkit\Inertia\InertiaRenderer;
+use Modufolio\Appkit\Inertia\InertiaRendererInterface;
 use Modufolio\Appkit\Resolver\ParameterResolverInterface;
 use Modufolio\Appkit\Security\Csrf\CsrfTokenManagerInterface;
 use Modufolio\Appkit\Security\RoleHierarchy;
@@ -112,7 +112,7 @@ interface AppInterface extends ContainerInterface, RequestHandlerInterface, Rese
 
     public function csrfTokenManager(): CsrfTokenManagerInterface;
 
-    public function inertia(): InertiaRenderer;
+    public function inertia(): InertiaRendererInterface;
 
     // ============================================================================
     // ROUTING

@@ -26,7 +26,7 @@ public function edit(User $user): Inertia
 response asks of the client (`->flash()`, `->encryptHistory()`,
 `->clearHistory()`, `->preserveFragment()`). It knows nothing of the
 request. When the controller returns it, the kernel hands it to the
-`InertiaRenderer` — `$app->inertia()` — which builds the page object
+`InertiaRendererInterface` — `$app->inertia()` — which builds the page object
 against the request's partial-reload headers, merges the shared props
 underneath, pulls the flash store, and answers as JSON to the client's XHR
 or as the host's HTML document on a first visit.
@@ -58,7 +58,11 @@ supplies the props every page carries — auth, navigation, CSRF — as values
 or closures; a closure is computed only when its prop travels. Flash data
 waits in the session's flash bag between requests; declare a
 `FlashStoreInterface` to keep it somewhere else. A host that declares
-`InertiaRenderer` itself keeps its own.
+`InertiaRendererInterface` (or `InertiaRenderer`) itself keeps its own —
+which is also how a decorator gets in front of the module's renderer, since
+application definitions sit above module definitions. The renderer is
+request-scoped: `$app->inertia()` and `$this->inertia` are the same object
+for one request, and the kernel's `reset()` clears it between them.
 
 ## What the protocol gets you
 
