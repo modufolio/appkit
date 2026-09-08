@@ -88,9 +88,20 @@ final class InertiaPage
         return $value;
     }
 
-    public function has(string $prop): bool
+    /** Whether a prop travelled, by dot path: `user.name`. A null prop counts. */
+    public function has(string $path): bool
     {
-        return array_key_exists($prop, $this->props());
+        $value = $this->props();
+
+        foreach (explode('.', $path) as $segment) {
+            if (!is_array($value) || !array_key_exists($segment, $value)) {
+                return false;
+            }
+
+            $value = $value[$segment];
+        }
+
+        return true;
     }
 
     public function url(): string
