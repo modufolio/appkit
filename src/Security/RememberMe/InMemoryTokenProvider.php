@@ -31,19 +31,22 @@ final class InMemoryTokenProvider implements RememberMeTokenProviderInterface
         $this->tokens[$token->series] = $token;
     }
 
-    public function updateExistingToken(string $series, #[\SensitiveParameter] string $tokenValue, int $lastUsed): void
+    public function updateExistingToken(PersistentToken $token, #[\SensitiveParameter] string $expectedCurrentValue): bool
     {
-        $existing = $this->tokens[$series] ?? null;
+        $existing = $this->tokens[$token->series] ?? null;
         if (null === $existing) {
-            return;
+            return false;
         }
 
-        $this->tokens[$series] = new PersistentToken(
-            userIdentifier: $existing->userIdentifier,
-            series: $series,
-            tokenValue: $tokenValue,
-            lastUsed: $lastUsed,
-        );
+        // Single-process store: the compare and the write cannot interleave,
+        // so the comparison alone satisfies the interface's atomicity contract.
+        if (!hash_equals($existing->tokenValue, $expectedCurrentValue)) {
+            return false;
+        }
+
+        $this->tokens[$token->series] = $token;
+
+        return true;
     }
 
     public function deleteTokenBySeries(string $series): void

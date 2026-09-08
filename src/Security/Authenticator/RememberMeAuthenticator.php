@@ -25,6 +25,23 @@ use Psr\Http\Message\ServerRequestInterface;
  */
 class RememberMeAuthenticator extends AbstractAuthenticator implements AmbientCredentialInterface
 {
+    /**
+     * How long the value a rotation replaced stays acceptable, in seconds.
+     *
+     * Rotation is per use, so a page that issues several requests at once —
+     * the common case, since this authenticator runs precisely when there is
+     * no session yet — has them all arrive carrying the same value. One wins
+     * the rotation; the others were read from the store before it landed, or
+     * after, and either way present a value that is no longer current. Without
+     * a grace window that is indistinguishable from a replayed cookie, and the
+     * theft response logs the user out of every device — a self-inflicted
+     * lockout on an ordinary page load.
+     *
+     * The window is short by design: it is sized for requests already in
+     * flight, not for a thief sitting on a captured cookie.
+     */
+    private const PARALLEL_REQUEST_GRACE_SECONDS = 60;
+
     /** @var array<string, mixed> */
     private array $options;
 
@@ -142,11 +159,15 @@ class RememberMeAuthenticator extends AbstractAuthenticator implements AmbientCr
     /**
      * Persistent-mode authentication (series + rotating value).
      *
-     * A known series presented with a stale value is unambiguous cookie theft:
-     * the legitimate client rotated the value on its last use, so a mismatch
-     * means someone replayed an old copy. We revoke every token for the user
-     * (logging out all devices) and raise CookieTheftException. On success the
-     * value is rotated and a fresh cookie is queued for the response.
+     * A known series presented with a value that is neither the current one
+     * nor the one it just replaced is unambiguous cookie theft: the legitimate
+     * client rotated on its last use, so anything older is a replayed copy. We
+     * revoke every token for the user (logging out all devices) and raise
+     * CookieTheftException. On success the value is rotated and a fresh cookie
+     * is queued for the response.
+     *
+     * The one-rotation-behind tolerance is what keeps concurrent requests from
+     * reading as theft — see PARALLEL_REQUEST_GRACE_SECONDS.
      *
      * @throws AuthenticationException
      */
@@ -158,20 +179,25 @@ class RememberMeAuthenticator extends AbstractAuthenticator implements AmbientCr
         }
 
         [$series, $value] = $parts;
+        $now = time();
 
         $token = $tokenProvider->loadTokenBySeries($series);
         if (null === $token) {
             throw new AuthenticationException('Remember me token not found.');
         }
 
-        if (!hash_equals($token->tokenValue, $this->hashValue($value))) {
-            // Theft: known series, wrong value. Revoke everything for this user.
+        $presentedHash = $this->hashValue($value);
+        $isCurrentValue = hash_equals($token->tokenValue, $presentedHash);
+
+        if (!$isCurrentValue && !$token->acceptsPreviousValue($presentedHash, $now)) {
+            // Theft: known series, and a value that is neither the current one
+            // nor the one it just replaced. Revoke everything for this user.
             $tokenProvider->deleteTokensByUserIdentifier($token->userIdentifier);
 
             throw new CookieTheftException('Remember me cookie theft detected.');
         }
 
-        if ($token->lastUsed + (int) $this->options['cookie_lifetime'] < time()) {
+        if ($token->lastUsed + (int) $this->options['cookie_lifetime'] < $now) {
             $tokenProvider->deleteTokenBySeries($series);
 
             throw new AuthenticationException('Remember me cookie has expired.');
@@ -185,12 +211,47 @@ class RememberMeAuthenticator extends AbstractAuthenticator implements AmbientCr
             throw new AuthenticationException('User not found for remember me cookie.', 0, $e);
         }
 
-        // Rotate the value on every use so a replayed copy is detectable.
-        $newValue = $this->randomValue();
-        $tokenProvider->updateExistingToken($series, $this->hashValue($newValue), time());
-        $this->pendingCookieHeader = $this->buildSetCookieHeader($this->encodeCookie($series, $newValue));
+        // Only the request holding the current value rotates. One presenting
+        // the previous value is a straggler from a rotation that already
+        // happened: the winner's response carries the new cookie, so this one
+        // authenticates and leaves the cookie untouched.
+        if ($isCurrentValue) {
+            $this->rotate($tokenProvider, $token, $now);
+        }
 
         return $user;
+    }
+
+    /**
+     * Rotate the value on a series, keeping the replaced value acceptable for
+     * the grace window, and queue the fresh cookie.
+     *
+     * The store decides whether this rotation lands: a concurrent request may
+     * have rotated the same series between our read and this write, and the
+     * compare-and-swap reports that as false. The loser must not queue a
+     * cookie — the value it minted was never stored, so sending it would
+     * replace the winner's live cookie with one the store has never seen and
+     * turn the next request into a theft report.
+     */
+    private function rotate(RememberMeTokenProviderInterface $tokenProvider, PersistentToken $token, int $now): void
+    {
+        $newValue = $this->randomValue();
+
+        $rotated = $tokenProvider->updateExistingToken(
+            new PersistentToken(
+                userIdentifier: $token->userIdentifier,
+                series: $token->series,
+                tokenValue: $this->hashValue($newValue),
+                lastUsed: $now,
+                previousTokenValue: $token->tokenValue,
+                previousValueExpiresAt: $now + self::PARALLEL_REQUEST_GRACE_SECONDS,
+            ),
+            $token->tokenValue,
+        );
+
+        if ($rotated) {
+            $this->pendingCookieHeader = $this->buildSetCookieHeader($this->encodeCookie($token->series, $newValue));
+        }
     }
 
     public function createToken(UserInterface $user, string $firewallName): TokenInterface

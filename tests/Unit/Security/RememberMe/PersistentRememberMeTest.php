@@ -84,29 +84,130 @@ class PersistentRememberMeTest extends TestCase
         $this->assertSame('test@example.com', $user->getUserIdentifier());
     }
 
-    public function testReplayingAnOldCookieIsDetectedAsTheft(): void
+    /**
+     * Seed a series directly, so the previous-value grace window can be placed
+     * on either side of "now" without a clock abstraction.
+     */
+    private function seed(string $series, string $current, ?string $previous, int $previousExpiresAt): void
+    {
+        $this->tokens->createNewToken(new PersistentToken(
+            userIdentifier: 'test@example.com',
+            series: $series,
+            tokenValue: hash('sha256', $current),
+            lastUsed: time(),
+            previousTokenValue: null === $previous ? null : hash('sha256', $previous),
+            previousValueExpiresAt: $previousExpiresAt,
+        ));
+    }
+
+    public function testReplayingACookieOlderThanTheGraceWindowIsDetectedAsTheft(): void
     {
         $auth = $this->authenticator();
-        $cookie1 = $auth->generateRememberMeCookie($this->userProvider->loadUserByIdentifier('test@example.com'));
 
-        // Legit use rotates the stored value away from cookie1.
-        $auth->authenticate($this->requestWithCookie($cookie1));
-        $auth->consumePendingCookieHeader();
+        // A value the series rotated away from, whose grace window has closed.
+        $this->seed('series1', 'current-value', 'stale-value', time() - 1);
 
-        // The series both cookies share (rotation changes only the value).
-        [$series] = explode(':', (string) base64_decode($cookie1, true), 2);
-        $this->assertNotNull($this->tokens->loadTokenBySeries($series), 'series still stored before theft');
-
-        // Replaying the now-stale cookie1 (as a thief would) is unambiguous theft.
         try {
-            $auth->authenticate($this->requestWithCookie($cookie1));
+            $auth->authenticate($this->requestWithCookie(base64_encode('series1:stale-value')));
             $this->fail('Expected CookieTheftException');
         } catch (CookieTheftException) {
             $this->addToAssertionCount(1);
         }
 
         // Theft revokes every token for the user: the legit device is logged out too.
-        $this->assertNull($this->tokens->loadTokenBySeries($series), 'all user tokens revoked on theft');
+        $this->assertNull($this->tokens->loadTokenBySeries('series1'), 'all user tokens revoked on theft');
+    }
+
+    public function testAValueTheSeriesNeverHeldIsDetectedAsTheft(): void
+    {
+        $auth = $this->authenticator();
+        $this->seed('series1', 'current-value', 'stale-value', time() + 60);
+
+        $this->expectException(CookieTheftException::class);
+        $auth->authenticate($this->requestWithCookie(base64_encode('series1:never-issued')));
+    }
+
+    /**
+     * The race this grace window exists to close: several requests fired at
+     * once all carry the value that was current when the page loaded. One wins
+     * the rotation; the rest must authenticate rather than log the user out of
+     * every device.
+     */
+    public function testSupersededValueInsideTheGraceWindowIsNotTheft(): void
+    {
+        $auth = $this->authenticator();
+        $this->seed('series1', 'rotated-value', 'in-flight-value', time() + 60);
+
+        $user = $auth->authenticate($this->requestWithCookie(base64_encode('series1:in-flight-value')));
+
+        $this->assertSame('test@example.com', $user->getUserIdentifier());
+        $this->assertNotNull($this->tokens->loadTokenBySeries('series1'), 'tokens must survive a parallel request');
+    }
+
+    public function testTheStragglerDoesNotRotateOrReissueTheCookie(): void
+    {
+        $auth = $this->authenticator();
+        $this->seed('series1', 'rotated-value', 'in-flight-value', time() + 60);
+
+        $auth->authenticate($this->requestWithCookie(base64_encode('series1:in-flight-value')));
+
+        // The winning request's response already carries the new cookie; this
+        // one must not overwrite it with a value the store never saw.
+        $this->assertNull($auth->consumePendingCookieHeader(), 'straggler must not queue a cookie');
+        $this->assertSame(
+            hash('sha256', 'rotated-value'),
+            $this->tokens->loadTokenBySeries('series1')?->tokenValue,
+            'straggler must not rotate the stored value',
+        );
+    }
+
+    public function testRotationKeepsThePreviousValueAcceptable(): void
+    {
+        $auth = $this->authenticator();
+        $cookie1 = $auth->generateRememberMeCookie($this->userProvider->loadUserByIdentifier('test@example.com'));
+        [$series, $value1] = explode(':', (string) base64_decode($cookie1, true), 2);
+
+        $auth->authenticate($this->requestWithCookie($cookie1));
+        $auth->consumePendingCookieHeader();
+
+        $stored = $this->tokens->loadTokenBySeries($series);
+        $this->assertNotNull($stored);
+        $this->assertTrue(
+            $stored->acceptsPreviousValue(hash('sha256', $value1), time()),
+            'the value just rotated away from stays acceptable for the grace window',
+        );
+        $this->assertFalse(
+            $stored->acceptsPreviousValue(hash('sha256', $value1), time() + 3600),
+            'and stops being acceptable once the window closes',
+        );
+    }
+
+    public function testOnlyOneOfTwoConcurrentRotationsLands(): void
+    {
+        $this->seed('series1', 'current-value', null, 0);
+        $read = $this->tokens->loadTokenBySeries('series1');
+        $this->assertNotNull($read);
+
+        $rotation = fn (string $to) => new PersistentToken(
+            userIdentifier: $read->userIdentifier,
+            series: 'series1',
+            tokenValue: hash('sha256', $to),
+            lastUsed: time(),
+            previousTokenValue: $read->tokenValue,
+            previousValueExpiresAt: time() + 60,
+        );
+
+        // Both requests read the same record and mint a replacement.
+        $this->assertTrue($this->tokens->updateExistingToken($rotation('winner'), $read->tokenValue));
+        $this->assertFalse(
+            $this->tokens->updateExistingToken($rotation('loser'), $read->tokenValue),
+            'the second rotation must be refused, not overwrite the first',
+        );
+
+        $this->assertSame(
+            hash('sha256', 'winner'),
+            $this->tokens->loadTokenBySeries('series1')?->tokenValue,
+        );
     }
 
     public function testUnknownSeriesIsRejected(): void
@@ -157,8 +258,31 @@ class PersistentRememberMeTest extends TestCase
         $this->assertSame('a@example.com', $loaded->userIdentifier);
         $this->assertSame('hash1', $loaded->tokenValue);
 
-        $provider->updateExistingToken('s1', 'hash2', 2000);
+        $rotate = static fn (string $to, string $from) => new PersistentToken(
+            userIdentifier: 'a@example.com',
+            series: 's1',
+            tokenValue: $to,
+            lastUsed: 2000,
+            previousTokenValue: $from,
+            previousValueExpiresAt: 2060,
+        );
+
+        $this->assertTrue($provider->updateExistingToken($rotate('hash2', 'hash1'), 'hash1'));
+        $rotated = $provider->loadTokenBySeries('s1');
+        $this->assertNotNull($rotated);
+        $this->assertSame('hash2', $rotated->tokenValue);
+        $this->assertSame('hash1', $rotated->previousTokenValue);
+
+        // Compare-and-swap: a rotation from a value that is no longer stored is
+        // a request that lost the race, and must not overwrite the winner.
+        $this->assertFalse($provider->updateExistingToken($rotate('hash3', 'hash1'), 'hash1'));
         $this->assertSame('hash2', $provider->loadTokenBySeries('s1')?->tokenValue);
+
+        // An unknown series has nothing to swap.
+        $this->assertFalse($provider->updateExistingToken(
+            new PersistentToken(userIdentifier: 'a@example.com', series: 'ghost', tokenValue: 'hash9', lastUsed: 2000),
+            'hash1',
+        ));
 
         $provider->createNewToken(new PersistentToken(userIdentifier: 'a@example.com', series: 's2', tokenValue: 'hashX', lastUsed: 1000));
         $provider->deleteTokensByUserIdentifier('a@example.com');
