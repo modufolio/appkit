@@ -6,7 +6,9 @@ namespace Modufolio\Appkit\Tests\Unit\Exception;
 
 use Modufolio\Appkit\Core\Environment;
 use Modufolio\Appkit\Exception\ExceptionHandler;
+use Modufolio\Appkit\Exception\UnresolvableServiceException;
 use Modufolio\Appkit\Exception\UntrustedHostException;
+use Modufolio\Appkit\Security\TwoFactor\TwoFactorException;
 use Modufolio\Psr7\Http\ServerRequest;
 use Modufolio\Psr7\Http\Uri;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -179,17 +181,134 @@ class ExceptionHandlerTest extends TestCase
         $this->assertStringContainsString('application/vnd.api+json', $response->getHeaderLine('Content-Type'));
     }
 
-    public function testNegotiateFormatWithInvalidAcceptHeader(): void
+    public function testNegotiateFormatWithUnmatchedAcceptHeader(): void
     {
-        // Invalid Accept header, should default to JSON:API
+        // Nothing registered answers XML, so negotiation falls back to JSON:API.
         $request = (new ServerRequest(method: 'GET', uri: '/'))
-            ->withHeader('Accept', 'text/html; q=0.5, application/xhtml+xml; q=0.9');
+            ->withHeader('Accept', 'application/xml; q=0.9, image/png');
 
         $response = $this->handler->handle(new \Exception('Test'), $request);
 
-        // Falls back to JSON:API
         $this->assertSame(500, $response->getStatusCode());
         $this->assertStringContainsString('application/vnd.api+json', $response->getHeaderLine('Content-Type'));
+    }
+
+    public function testAWildcardAcceptStillGetsJsonApi(): void
+    {
+        // curl and most HTTP clients send */*; the first registered type wins,
+        // which has to stay JSON:API now that text/html is registered too.
+        $request = (new ServerRequest(method: 'GET', uri: '/'))
+            ->withHeader('Accept', '*/*');
+
+        $response = $this->handler->handle(new \Exception('Test'), $request);
+
+        $this->assertStringContainsString('application/vnd.api+json', $response->getHeaderLine('Content-Type'));
+    }
+
+    public function testABrowserAcceptHeaderGetsAnHtmlPage(): void
+    {
+        $request = (new ServerRequest(method: 'GET', uri: '/'))
+            ->withHeader('Accept', 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8');
+
+        $response = $this->handler->handle(new \RuntimeException('Disk is full'), $request);
+        $body = (string) $response->getBody();
+
+        $this->assertSame(500, $response->getStatusCode());
+        $this->assertSame('text/html; charset=utf-8', $response->getHeaderLine('Content-Type'));
+        $this->assertStringStartsWith('<!doctype html>', $body);
+        $this->assertStringContainsString('<title>500 — Runtime error</title>', $body);
+        $this->assertStringContainsString('<h1>Runtime error</h1>', $body);
+        $this->assertStringContainsString('<p>Disk is full</p>', $body);
+    }
+
+    public function testTheHtmlPageEscapesTitleAndDetail(): void
+    {
+        $request = (new ServerRequest(method: 'GET', uri: '/'))
+            ->withHeader('Accept', 'text/html');
+
+        $this->handler->registerException(\ErrorException::class, static fn () => [
+            'status' => 418,
+            'title' => 'Tea <b>time</b>',
+            'detail' => '<script>alert("x")</script> & "quotes"',
+        ]);
+
+        $body = (string) $this->handler->handle(new \ErrorException('x'), $request)->getBody();
+
+        $this->assertStringNotContainsString('<script>', $body);
+        $this->assertStringNotContainsString('<b>', $body);
+        $this->assertStringContainsString('Tea &lt;b&gt;time&lt;/b&gt;', $body);
+        $this->assertStringContainsString('&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt; &amp; &quot;quotes&quot;', $body);
+    }
+
+    public function testAnOwnHtmlFormatterReplacesTheBuiltInPage(): void
+    {
+        $this->handler->registerFormatter('text/html', static fn (array $data) => new \Modufolio\Psr7\Http\Response(
+            $data['status'],
+            ['Content-Type' => 'text/html'],
+            '<h1>custom</h1>',
+        ));
+
+        $request = (new ServerRequest(method: 'GET', uri: '/'))->withHeader('Accept', 'text/html');
+        $body = (string) $this->handler->handle(new \RuntimeException('x'), $request)->getBody();
+
+        $this->assertSame('<h1>custom</h1>', $body);
+    }
+
+    public function testAnInertiaRequestNegotiatesToJsonApiDespiteAskingForHtml(): void
+    {
+        // The Inertia client sends this Accept header on its XHRs as well.
+        $request = (new ServerRequest(method: 'GET', uri: '/'))
+            ->withHeader('Accept', 'text/html, application/xhtml+xml')
+            ->withHeader('X-Inertia', 'true');
+
+        $response = $this->handler->handle(new \RuntimeException('Disk is full'), $request);
+
+        $this->assertSame(500, $response->getStatusCode());
+        $this->assertSame('application/vnd.api+json', $response->getHeaderLine('Content-Type'));
+        $this->assertSame('Disk is full', json_decode((string) $response->getBody(), true)['errors'][0]['detail']);
+    }
+
+    public function testAnUnresolvableServiceIsA500ThatNamesTheWiringInDev(): void
+    {
+        $request = new ServerRequest(method: 'GET', uri: new Uri('/'));
+        $e = new UnresolvableServiceException('App\\Service\\Mailer', $this->argumentCountError());
+
+        $response = $this->handler->handle($e, $request);
+        $error = json_decode((string) $response->getBody(), true)['errors'][0];
+
+        $this->assertSame(500, $response->getStatusCode());
+        $this->assertSame('Service configuration error', $error['title']);
+        $this->assertStringContainsString('Service "App\\Service\\Mailer" cannot be built', $error['detail']);
+        $this->assertStringContainsString('expects exactly 1 argument', $error['detail']);
+    }
+
+    public function testAnUnresolvableServiceHidesTheWiringInProdAndIsLogged(): void
+    {
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects($this->once())->method('log')->with('error', $this->stringContains('cannot be built'));
+
+        $handler = new ExceptionHandler(Environment::PROD, $logger);
+        $request = new ServerRequest(method: 'GET', uri: new Uri('/'));
+
+        $response = $handler->handle(new UnresolvableServiceException('App\\Service\\Mailer', $this->argumentCountError()), $request);
+        $error = json_decode((string) $response->getBody(), true)['errors'][0];
+
+        $this->assertSame(500, $response->getStatusCode());
+        $this->assertSame('An unexpected error occurred. Please try again later.', $error['detail']);
+        $this->assertStringNotContainsString('Mailer', (string) $response->getBody());
+    }
+
+    private function argumentCountError(): \ArgumentCountError
+    {
+        try {
+            // Through reflection so the missing argument is a runtime fact,
+            // not something static analysis rejects at the call site.
+            (new \ReflectionClass(\DateInterval::class))->newInstance();
+        } catch (\ArgumentCountError $e) {
+            return $e;
+        }
+
+        throw new \LogicException('DateInterval without arguments should not construct.');
     }
 
     public function testErrorDetailsInDevelopment(): void
@@ -294,6 +413,69 @@ class ExceptionHandlerTest extends TestCase
 
         $this->assertSame(400, $response1->getStatusCode());
         $this->assertSame(500, $response2->getStatusCode());
+    }
+
+    public function testAnApplicationHandlerRegisteredAfterTheDefaultsWinsForItsSubclass(): void
+    {
+        // The PaymentDeclinedException walkthrough from docs/exception-handling.md,
+        // verbatim: extends \RuntimeException, registered after the defaults.
+        $handler = new ExceptionHandler(Environment::PROD);
+        $handler->registerException(PaymentDeclinedException::class, static fn (PaymentDeclinedException $e) => [
+            'status' => 402,
+            'title' => 'Payment Required',
+            'detail' => $e->getMessage(),
+        ]);
+
+        $request = new ServerRequest(method: 'GET', uri: new Uri('/'));
+        $response = $handler->handle(new PaymentDeclinedException('Payment was declined.'), $request);
+        $error = json_decode((string) $response->getBody(), true)['errors'][0];
+
+        $this->assertSame(402, $response->getStatusCode());
+        $this->assertSame('Payment Required', $error['title']);
+        $this->assertSame('Payment was declined.', $error['detail']);
+    }
+
+    public function testTheMostSpecificHandlerWinsWhicheverWasRegisteredFirst(): void
+    {
+        $request = new ServerRequest(method: 'GET', uri: new Uri('/'));
+
+        $parentFirst = new ExceptionHandler(Environment::DEV);
+        $parentFirst->registerException(\RuntimeException::class, static fn () => ['status' => 500, 'title' => 'parent']);
+        $parentFirst->registerException(PaymentDeclinedException::class, static fn () => ['status' => 402, 'title' => 'child']);
+
+        $childFirst = new ExceptionHandler(Environment::DEV);
+        $childFirst->registerException(PaymentDeclinedException::class, static fn () => ['status' => 402, 'title' => 'child']);
+        $childFirst->registerException(\RuntimeException::class, static fn () => ['status' => 500, 'title' => 'parent']);
+
+        foreach ([$parentFirst, $childFirst] as $handler) {
+            $this->assertSame(402, $handler->handle(new PaymentDeclinedException('x'), $request)->getStatusCode());
+            $this->assertSame(500, $handler->handle(new \RuntimeException('x'), $request)->getStatusCode());
+        }
+    }
+
+    public function testAnInterfaceTheClassImplementsBeatsTheParentItExtends(): void
+    {
+        // TwoFactorException extends \RuntimeException and implements the
+        // interface itself: the interface is the closer match, whichever was
+        // registered first.
+        $handler = new ExceptionHandler(Environment::DEV);
+        $handler->registerException(\RuntimeException::class, static fn () => ['status' => 500, 'title' => 'runtime']);
+        $handler->registerException(\Modufolio\Appkit\Security\TwoFactor\TwoFactorExceptionInterface::class, static fn () => ['status' => 422, 'title' => 'two-factor']);
+
+        $request = new ServerRequest(method: 'GET', uri: new Uri('/'));
+        $this->assertSame(422, $handler->handle(TwoFactorException::invalidCode(), $request)->getStatusCode());
+    }
+
+    public function testAGrandparentHandlerStillCatchesWhatNothingCloserDoes(): void
+    {
+        // Nothing registered for PaymentDeclinedException: its parent's
+        // catch-all applies, as before.
+        $request = new ServerRequest(method: 'GET', uri: new Uri('/'));
+        $response = $this->handler->handle(new PaymentDeclinedException('Payment was declined.'), $request);
+        $error = json_decode((string) $response->getBody(), true)['errors'][0];
+
+        $this->assertSame(500, $response->getStatusCode());
+        $this->assertSame('Runtime error', $error['title']);
     }
 
     public function testExceptionWithoutRegisteredHandler(): void
@@ -428,4 +610,65 @@ class ExceptionHandlerTest extends TestCase
         $request = new ServerRequest(method: 'GET', uri: new Uri('/'));
         $handler->handle(new \InvalidArgumentException('Bad input'), $request);
     }
+
+    public function testTwoFactorExceptionKeepsItsMessageForTheUser(): void
+    {
+        // The countdown IS the message the user needs, so it survives into
+        // production rather than being flattened to a generic 500.
+        $handler = new ExceptionHandler(Environment::PROD);
+        $request = new ServerRequest(method: 'GET', uri: new Uri('/'));
+
+        $response = $handler->handle(
+            new TwoFactorException('Too many failed attempts. Please try again in 40 seconds.'),
+            $request,
+        );
+
+        $this->assertSame(422, $response->getStatusCode());
+        $error = json_decode((string) $response->getBody(), true)['errors'][0];
+        $this->assertSame('Two-Factor Authentication Error', $error['title']);
+        $this->assertSame('Too many failed attempts. Please try again in 40 seconds.', $error['detail']);
+    }
+
+    public function testExceptionMerelyNamedLikeATwoFactorOneLeaksNothing(): void
+    {
+        // Trust is opt-in through TwoFactorExceptionInterface. A class that
+        // only shares the name suffix falls through to the RuntimeException
+        // handler, which hides its detail outside dev.
+        $handler = new ExceptionHandler(Environment::PROD);
+        $request = new ServerRequest(method: 'GET', uri: new Uri('/'));
+
+        $response = $handler->handle(
+            new LookAlikeTwoFactorException('connection failed: pgsql://app:hunter2@db.internal'),
+            $request,
+        );
+
+        $error = json_decode((string) $response->getBody(), true)['errors'][0];
+        $this->assertSame(500, $response->getStatusCode());
+        $this->assertStringNotContainsString('hunter2', (string) $response->getBody());
+        $this->assertSame('An unexpected error occurred. Please try again later.', $error['detail']);
+    }
+
+    public function testTwoFactorExceptionIsLogged(): void
+    {
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects($this->once())->method('log');
+
+        $handler = new ExceptionHandler(Environment::PROD, $logger);
+        $request = new ServerRequest(method: 'GET', uri: new Uri('/'));
+        $handler->handle(TwoFactorException::invalidCode(), $request);
+    }
+}
+
+/**
+ * Shares the old suffix-matching heuristic's magic name and nothing else.
+ */
+final class LookAlikeTwoFactorException extends \RuntimeException
+{
+}
+
+/**
+ * The application exception from the docs' end-to-end example.
+ */
+final class PaymentDeclinedException extends \RuntimeException
+{
 }

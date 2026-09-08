@@ -8,6 +8,7 @@ use Doctrine\DBAL\Exception as DbalException;
 use Modufolio\Appkit\Core\Kernel;
 use Modufolio\Appkit\Core\NativeApplicationState;
 use Modufolio\Appkit\Core\ResetInterface;
+use Modufolio\Appkit\Exception\ExceptionHandlerInterface;
 use Modufolio\Appkit\Resolver\AssociativeArrayResolver;
 use Modufolio\Appkit\Resolver\AttributeParameterResolver;
 use Modufolio\Appkit\Resolver\DefaultValueResolver;
@@ -27,6 +28,7 @@ use Modufolio\Appkit\Security\TwoFactor\UserTotpSecretRepositoryInterface;
 use Modufolio\Appkit\Security\User\UserProviderInterface;
 use Modufolio\Appkit\Tests\App\Entity\UserTotpSecret;
 use Modufolio\Appkit\Tests\App\Repository\UserTotpSecretRepository;
+use Modufolio\Psr7\Http\Response;
 use Modufolio\Psr7\Http\ServerRequest;
 use Modufolio\Psr7\Http\Stream;
 use Modufolio\Psr7\Http\Uri;
@@ -117,6 +119,22 @@ class App extends Kernel
      *
      * @throws DbalException
      */
+    /**
+     * Exercises the kernel's configureExceptionHandler() hook: a formatter
+     * for a MIME type nothing else registers, so the hook's effect is
+     * observable without changing how any other test's errors render.
+     */
+    protected function configureExceptionHandler(ExceptionHandlerInterface $handler): ExceptionHandlerInterface
+    {
+        $handler->registerFormatter('application/x-test-error', static fn (array $data) => new Response(
+            $data['status'] ?? 500,
+            ['Content-Type' => 'application/x-test-error'],
+            'hooked: '.($data['title'] ?? 'Error'),
+        ));
+
+        return $handler;
+    }
+
     public function userProvider(): UserProviderInterface
     {
         $provider = $this->getRepository($this->userProviderClass);

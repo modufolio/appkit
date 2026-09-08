@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace Modufolio\Appkit\Exception;
 
 use Modufolio\Appkit\Core\Environment;
+use Modufolio\Appkit\Inertia\Header;
 use Modufolio\Appkit\Security\Exception\AccessDeniedException;
 use Modufolio\Appkit\Security\Exception\AuthenticationException;
 use Modufolio\Appkit\Security\Exception\InsecureChannelException;
+use Modufolio\Appkit\Security\TwoFactor\TwoFactorExceptionInterface;
 use Modufolio\Psr7\Http\Response;
 use Negotiation\BaseAccept;
 use Negotiation\Negotiator;
@@ -30,6 +32,8 @@ final class ExceptionHandler implements ExceptionHandlerInterface
      * Each entry only ever receives the exception class it is keyed by, which is
      * narrower than \Throwable — a per-key relationship the type system cannot
      * express, so the stored signature stays unconstrained.
+     *
+     * Dispatch is most-specific-wins, not first-match: see match().
      *
      * @var array<class-string<\Throwable>, callable>
      */
@@ -87,20 +91,10 @@ final class ExceptionHandler implements ExceptionHandlerInterface
         $matchedClass = null;
 
         try {
-            // Try to handle with registered exception handlers
-            foreach ($this->handlers as $class => $handler) {
-                if (!$e instanceof $class) {
-                    continue;
-                }
+            $matchedClass = $this->match($e);
 
-                $data = $handler($e, $request);
-                $matchedClass = $class;
-                break;
-            }
-
-            // Handle 2FA exceptions using the interface
-            if (null === $data) {
-                $data = $this->handleTwoFactorException($e);
+            if (null !== $matchedClass) {
+                $data = $this->handlers[$matchedClass]($e, $request);
             }
 
             if (null === $data) {
@@ -128,22 +122,71 @@ final class ExceptionHandler implements ExceptionHandlerInterface
      *
      * @return array<string, mixed>|null
      */
-    private function handleTwoFactorException(\Throwable $e): ?array
+    /**
+     * The registered class or interface closest to the exception's own class
+     * in its inheritance chain; null when nothing registered matches.
+     *
+     * The defaults register \InvalidArgumentException, \LogicException and
+     * \RuntimeException as catch-alls, and an application's handlers are
+     * registered after them. Matched in insertion order, those three would
+     * shadow every application exception that extends one of them — the
+     * documented PaymentDeclinedException extends \RuntimeException, and its
+     * handler never ran. So the winner is the most specific match instead:
+     * the class itself, then its parent, and so on up the chain, with an
+     * interface counted at the level of the class that introduces it. Two
+     * matches at the same distance keep insertion order, so re-registering a
+     * key replaces its handler exactly as before.
+     *
+     * @return class-string<\Throwable>|null
+     */
+    private function match(\Throwable $e): ?string
     {
-        // Use reflection to check if this is a 2FA exception
-        // This avoids tight coupling to the concrete exception class
-        $exceptionClassName = $e::class;
+        $best = null;
+        $bestDistance = \PHP_INT_MAX;
 
-        // Check if the exception class name ends with TwoFactorException
-        if (str_ends_with($exceptionClassName, 'TwoFactorException')) {
-            return [
-                'status' => 422,
-                'title' => 'Two-Factor Authentication Error',
-                'detail' => $e->getMessage(),
-            ];
+        foreach ($this->handlers as $class => $handler) {
+            if (!$e instanceof $class) {
+                continue;
+            }
+
+            $distance = self::distance($e, $class);
+
+            if ($distance < $bestDistance) {
+                $best = $class;
+                $bestDistance = $distance;
+            }
         }
 
-        return null;
+        return $best;
+    }
+
+    /**
+     * How many parents up the exception's chain $class is found: 0 for the
+     * exception's own class, or the level whose class first implements $class
+     * when it is an interface. Only called for a class the exception is an
+     * instance of, so the walk always terminates on a match.
+     *
+     * @param class-string<\Throwable> $class
+     */
+    private static function distance(\Throwable $e, string $class): int
+    {
+        $level = 0;
+
+        for ($current = $e::class; false !== $current; $current = get_parent_class($current), ++$level) {
+            if ($current === $class) {
+                return $level;
+            }
+
+            if (\interface_exists($class) && \is_subclass_of($current, $class)) {
+                $parent = get_parent_class($current);
+
+                if (false === $parent || !\is_subclass_of($parent, $class)) {
+                    return $level;
+                }
+            }
+        }
+
+        return $level;
     }
 
     /**
@@ -194,6 +237,16 @@ final class ExceptionHandler implements ExceptionHandlerInterface
 
     private function negotiateFormat(ServerRequestInterface $request): string
     {
+        // The Inertia client sends `Accept: text/html, application/xhtml+xml`
+        // on its XHRs as well, so a framework can route them through ordinary
+        // content negotiation. Taken literally that would hand every Inertia
+        // error the HTML page meant for a hard load. An Inertia visit is a
+        // JSON exchange — PrepareResponse already treats it as one — so its
+        // errors keep the JSON:API body the client-side handler can read.
+        if ($request->hasHeader(Header::INERTIA)) {
+            return 'application/vnd.api+json';
+        }
+
         $accept = $request->getHeaderLine('Accept');
         $priorities = array_keys($this->formatters);
 
@@ -288,6 +341,60 @@ final class ExceptionHandler implements ExceptionHandlerInterface
                 $title.($detail ? ': '.$detail : '')
             );
         });
+
+        // HTML — a browser's default Accept header lists text/html first, so
+        // without this a hard page load that errors (an address-bar visit, an
+        // old bookmark) would render the JSON:API document as a blob of text.
+        // Registered last: `Accept: */*` (curl, most HTTP clients) negotiates
+        // to the first registered type and still gets JSON:API.
+        $this->registerFormatter('text/html', static function (array $data) {
+            $status = (int) ($data['status'] ?? 500);
+
+            return new Response(
+                $status,
+                ['Content-Type' => 'text/html; charset=utf-8'],
+                self::renderHtml(
+                    $status,
+                    (string) ($data['title'] ?? 'Error'),
+                    (string) ($data['detail'] ?? ''),
+                )
+            );
+        });
+    }
+
+    /**
+     * The built-in error page: one self-contained document, no assets, no
+     * links — the handler cannot know where the application's home is.
+     * Register your own `text/html` formatter to replace it.
+     */
+    private static function renderHtml(int $status, string $title, string $detail): string
+    {
+        $e = static fn (string $value): string => htmlspecialchars($value, \ENT_QUOTES | \ENT_SUBSTITUTE, 'UTF-8');
+
+        return <<<HTML
+            <!doctype html>
+            <html lang="en">
+            <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <title>{$status} — {$e($title)}</title>
+            <style>
+            body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #f9fafb; color: #111827; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+            main { max-width: 28rem; margin: 1.5rem; padding: 2rem; background: #fff; border-radius: .75rem; box-shadow: 0 1px 3px rgba(0,0,0,.1), 0 1px 2px rgba(0,0,0,.06); text-align: center; }
+            .status { font-size: .75rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: #dc2626; }
+            h1 { margin: .5rem 0 .75rem; font-size: 1.25rem; }
+            p { margin: 0; color: #4b5563; font-size: .875rem; line-height: 1.5; }
+            </style>
+            </head>
+            <body>
+            <main>
+            <div class="status">Error {$status}</div>
+            <h1>{$e($title)}</h1>
+            <p>{$e($detail)}</p>
+            </main>
+            </body>
+            </html>
+            HTML;
     }
 
     private function registerDefaultExceptions(): void
@@ -318,8 +425,8 @@ final class ExceptionHandler implements ExceptionHandlerInterface
             ];
         });
 
-        // Host header not on the trusted-hosts allowlist. Registered ahead of
-        // the \RuntimeException catch-all so it maps to 400, not 500. The
+        // Host header not on the trusted-hosts allowlist. Its own entry so it
+        // maps to 400, not the \RuntimeException catch-all's 500. The
         // rejected host is deliberately not echoed — it is attacker input and
         // is available in the log entry instead.
         $this->registerException(UntrustedHostException::class, static function (UntrustedHostException $e) {
@@ -327,6 +434,23 @@ final class ExceptionHandler implements ExceptionHandlerInterface
                 'status' => 400,
                 'title' => 'Bad Request',
                 'detail' => 'The request host is not allowed.',
+            ];
+        }, true);
+
+        // A service factory that could not build its service — a missing
+        // constructor argument in services.php or a console runner. Its own
+        // entry only so the title names the wiring rather than a generic
+        // logic error; the rest is the same as \LogicException, which it
+        // extends: 500, detail hidden in prod, logged.
+        $this->registerException(UnresolvableServiceException::class, function (UnresolvableServiceException $e) {
+            $detail = $this->shouldShowDetails()
+                ? $e->getMessage()
+                : 'An unexpected error occurred. Please try again later.';
+
+            return [
+                'status' => 500,
+                'title' => 'Service configuration error',
+                'detail' => $detail,
             ];
         }, true);
 
@@ -413,6 +537,28 @@ final class ExceptionHandler implements ExceptionHandlerInterface
                 'detail' => 'You do not have permission to access this resource.',
             ];
         });
+
+        // Two-factor failures the person can act on: a wrong code, an expired
+        // window, a lockout with a countdown.
+        //
+        // TwoFactorException extends \RuntimeException, whose catch-all is
+        // registered below; the interface is the closer match, so the
+        // lockout keeps its countdown — which is exactly the message the
+        // user needs — instead of collapsing into a generic 500.
+        //
+        // The message is echoed in production, which only the interface makes
+        // safe: implementing it is the exception's promise that the message
+        // carries nothing an anonymous caller should not read. Matching on the
+        // class name instead extended that trust to any class that happens to
+        // end in "TwoFactorException", including ones carrying internal detail
+        // they never intended to publish.
+        $this->registerException(TwoFactorExceptionInterface::class, static function (\Throwable $e) {
+            return [
+                'status' => 422,
+                'title' => 'Two-Factor Authentication Error',
+                'detail' => $e->getMessage(),
+            ];
+        }, true);
 
         // Runtime errors
         // Hide details in production as these are internal runtime errors

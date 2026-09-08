@@ -11,6 +11,7 @@ use Modufolio\Appkit\DependencyInjection\ParameterBag;
 use Modufolio\Appkit\DependencyInjection\ServiceConfigurator;
 use Modufolio\Appkit\Doctrine\Middleware\Debug\DebugStack;
 use Modufolio\Appkit\Exception\NotFoundException;
+use Modufolio\Appkit\Exception\UnresolvableServiceException;
 use Modufolio\Appkit\Resolver\ParameterResolverInterface;
 use Modufolio\Appkit\Routing\RouterInterface;
 use Modufolio\Appkit\Security\Csrf\CsrfTokenManagerInterface;
@@ -170,7 +171,7 @@ trait AppContainer
             return $instance;
         } catch (\Error $e) {
             if ($e instanceof \ArgumentCountError) {
-                throw new \InvalidArgumentException(\sprintf('Class "%s" has required constructor arguments that dont exist in container.', $id), 0, $e);
+                throw new UnresolvableServiceException($id, $e);
             }
             throw $e;
         } finally {

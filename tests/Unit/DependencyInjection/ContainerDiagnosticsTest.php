@@ -6,8 +6,10 @@ namespace Modufolio\Appkit\Tests\Unit\DependencyInjection;
 
 use Modufolio\Appkit\DependencyInjection\ServiceConfigurator;
 use Modufolio\Appkit\Exception\NotFoundException;
+use Modufolio\Appkit\Exception\UnresolvableServiceException;
 use Modufolio\Appkit\Tests\App\Module\Demo\DemoService;
 use Modufolio\Appkit\Tests\Case\AppTestCase;
+use Psr\Container\ContainerExceptionInterface;
 
 /**
  * The container's failure-path craft: circular chains, did-you-mean
@@ -31,6 +33,27 @@ class ContainerDiagnosticsTest extends AppTestCase
         $this->expectExceptionMessage('Circular dependency detected: ArrayObject -> SplStack -> ArrayObject');
 
         $this->app()->get(\ArrayObject::class);
+    }
+
+    public function testAFactoryMissingAConstructorArgumentIsAnUnresolvableService(): void
+    {
+        $configurator = new ServiceConfigurator();
+        // \DateInterval requires one argument; a factory that forgets it is the
+        // shape of a services.php wiring bug.
+        $configurator->set(\DateInterval::class, fn () => (new \ReflectionClass(\DateInterval::class))->newInstance());
+        $this->app()->configureServices($configurator);
+
+        try {
+            $this->app()->get(\DateInterval::class);
+            $this->fail('Expected an UnresolvableServiceException.');
+        } catch (UnresolvableServiceException $e) {
+            $this->assertSame(\DateInterval::class, $e->serviceId);
+            $this->assertInstanceOf(\ArgumentCountError::class, $e->getPrevious());
+            $this->assertInstanceOf(\LogicException::class, $e);
+            $this->assertInstanceOf(ContainerExceptionInterface::class, $e);
+            $this->assertStringContainsString('Service "DateInterval" cannot be built', $e->getMessage());
+            $this->assertStringContainsString('expects exactly 1 argument', $e->getMessage());
+        }
     }
 
     public function testUnknownIdsSuggestNearMissesWithModuleProvenance(): void

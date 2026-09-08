@@ -104,7 +104,7 @@ abstract class Kernel implements AppInterface
     protected ?EmitterInterface $emitter = null;
     protected ?Environment $environment = null;
     protected ?EntityManagerFactory $entityManagerFactory = null;
-    protected ?ExceptionHandler $exceptionHandler = null;
+    protected ?ExceptionHandlerInterface $exceptionHandler = null;
     protected ?ParameterResolverInterface $parameterResolver = null;
     protected ?PrepareResponseInterface $prepareResponse = null;
     protected ?RouterInterface $router = null;
@@ -392,10 +392,23 @@ abstract class Kernel implements AppInterface
     #[Service]
     public function exceptionHandler(): ExceptionHandlerInterface
     {
-        return $this->exceptionHandler ??= new ExceptionHandler(
+        return $this->exceptionHandler ??= $this->configureExceptionHandler(new ExceptionHandler(
             $this->environment(),
             $this->logger ?? null
-        );
+        ));
+    }
+
+    /**
+     * Adjust the exception handler before its first use — register the
+     * application's own exception mappings and formatters, or return a
+     * decorator around it. Called once, lazily, from exceptionHandler(); the
+     * returned instance is the one every request uses.
+     *
+     * The default keeps the kernel's handler as built.
+     */
+    protected function configureExceptionHandler(ExceptionHandlerInterface $handler): ExceptionHandlerInterface
+    {
+        return $handler;
     }
 
     #[Service]

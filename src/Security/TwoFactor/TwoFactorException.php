@@ -15,7 +15,7 @@ use Modufolio\Appkit\Security\Exception\RuntimeException;
  * @copyright Modufolio
  * @license   https://opensource.org/licenses/MIT
  */
-class TwoFactorException extends RuntimeException
+class TwoFactorException extends RuntimeException implements TwoFactorExceptionInterface
 {
     /**
      * Too many failed 2FA attempts.
