@@ -7,7 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.18.0] - 2026-09-08
+
 ### Added
+
+- **A redirect whose target has a fragment is answered with the protocol's
+  409.** `@inertiajs/*` follows a redirect with XHR, which drops the `#part`
+  of the URL; the protocol replaces such a redirect with `409` and
+  `X-Inertia-Redirect`, and the client visits the URL itself
+  (`isInertiaRedirect()`). `PrepareResponse` now does that, beside the
+  302→303 conversion it already made, and skips it for a prefetch — the same
+  rule and the same order as the reference middleware. `Header::REDIRECT`
+  names the header.
+
+- **`Inertia\InertiaRendererInterface`.** The seam the kernel asks through:
+  `Kernel::inertia()` and `AbstractController::$inertia` are typed to it, the
+  module registers the shipped `InertiaRenderer` and aliases the interface to
+  it, and both ids answer — so declaring either in config/services.php puts
+  your own renderer, or a decorator around the module's, in front of every
+  page. The renderer is a decorator seam the way `ExceptionHandlerInterface`
+  already was.
 
 - **`#[Template]` and `TemplateResolver`.** A controller parameter marked
   `#[Template('home')]` (optionally `layout: 'admin'`) resolves to a
@@ -63,6 +82,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   requests got before the formatter existed. An application that registered
   its own `text/html` formatter and *wanted* Inertia XHRs to receive it must
   now do so from a decorator returned by `configureExceptionHandler()`.
+
+- **BC break — `RememberMeTokenProviderInterface::updateExistingToken()`.** The
+  signature is now
+  `updateExistingToken(PersistentToken $token, string $expectedCurrentValue): bool`,
+  replacing `(string $series, string $tokenValue, int $lastUsed): void`. It must
+  rotate only when the stored value still equals `$expectedCurrentValue`, and
+  report whether it did. Implementations must perform the comparison and the
+  write atomically. `PersistentToken` carries two new optional constructor
+  arguments, `previousTokenValue` and `previousValueExpiresAt`; a store that
+  does not persist them degrades to the old always-rotate behaviour and keeps
+  the race. The shipped `FileTokenProvider` and `InMemoryTokenProvider` are
+  updated; records written by an earlier version read back as a token that has
+  never rotated.
+
+- **The Inertia renderer is request-scoped.** `InertiaModule` registered it
+  with `set()`, so every `inertia()` call built a new one. `$app->inertia()`
+  and `$this->inertia` are now the same object for one request (`shared()`),
+  cleared by the kernel's `reset()` between them — a flash put on one is read
+  by the page the other renders, which a host without a session-backed store
+  silently lost.
+- **BC break — five aliases are gone from the Inertia props API**:
+  `Inertia::lazy()` (use `optional()`), `Prop::resolve()` (a prop is
+  invokable), `DeferredProp::merges()` / `::mergesDeep()` and `MergeProp::deep()`
+  (use `shouldMerge()` / `shouldDeepMerge()`). Each was documented as the name
+  it had "in this package's first release" — but 0.17.0 *was* the first
+  release, and nothing called them.
+- **`Testing\InertiaPage::has()` takes a dot path**, like `prop()`:
+  `has('user.name')` used to be false for a prop `prop('user.name')` returns.
+- **`Page`'s constructor and `PropsResolver` are marked `@internal`.** The
+  renderer builds pages; a host receives one in `RootViewInterface::render()`
+  and only reads it. Their signatures are free to change.
+
+- **PHPStan keeps level 8 and gains `checkUninitializedProperties` and
+  `checkTooWideReturnTypesInProtectedAndPublicMethods`.** 
 
 ### Fixed
 
@@ -140,7 +193,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   now leaves the flash store untouched for those (`InertiaRenderer::isPrefetch()`,
   `Header::PURPOSE`), so a toast meant for the page the user lands on is not
   swallowed by a page they may never see. What the controller flashed on the
-  prefetched page itself still travels with it.
+  prefetched page itself still travels with it. Shared props are created
+  before the store is pulled, so a host whose `SharedPropsInterface` reads the
+  same flash bag — an auth page showing one message inline beside the page's
+  own `flash` key — still sees it; a test pins the order.
 - **Remember-me no longer mistakes parallel requests for cookie theft.**
   Persistent-mode rotation happened on every use with no tolerance for requests
   already in flight, so a page loading several requests at once — the normal
@@ -158,20 +214,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   nothing tells it apart from the straggler. See
   [Parallel requests](docs/authenticators.md#parallel-requests).
 
-### Changed
+- **EXIF GPS with a zero denominator crashed instead of reading as absent.**
+  A camera writes `0/0` for a rational it has no value for, and an uploaded
+  file can carry one; `Image\Location` divided by it, which is a fatal
+  `DivisionByZeroError` since PHP 8 — an `Error`, so a `catch (\Exception)`
+  upstream never held it. Reachable through `Exif::location()` and
+  `Image::toArray(includeLocation: true)`. A zero denominator now reads as
+  `0.0`, the guard upstream Kirby applies.
 
-- **BC break — `RememberMeTokenProviderInterface::updateExistingToken()`.** The
-  signature is now
-  `updateExistingToken(PersistentToken $token, string $expectedCurrentValue): bool`,
-  replacing `(string $series, string $tokenValue, int $lastUsed): void`. It must
-  rotate only when the stored value still equals `$expectedCurrentValue`, and
-  report whether it did. Implementations must perform the comparison and the
-  write atomically. `PersistentToken` carries two new optional constructor
-  arguments, `previousTokenValue` and `previousValueExpiresAt`; a store that
-  does not persist them degrades to the old always-rotate behaviour and keeps
-  the race. The shipped `FileTokenProvider` and `InMemoryTokenProvider` are
-  updated; records written by an earlier version read back as a token that has
-  never rotated.
+- **A missing `doctrine` entry in the kernel's `fileMap`** produced
+  "Undefined array key" and a fatal `require ''` rather than a message
+  naming the configuration file the host left out. The read is guarded the
+  way the neighbouring `interfaces` entry is, and the way Symfony's compiled
+  container reads its own `fileMap`.
+
+- **`$this->inertia` on a host that never wired Inertia** raised
+  `Error: typed property must not be accessed before initialization` — the
+  property was assigned only when the module was loaded. It is now always
+  assigned, with a renderer whose every method throws the kernel's own message
+  naming what to add to config/modules.php.
 
 ## [0.17.0] - 2026-09-07
 
