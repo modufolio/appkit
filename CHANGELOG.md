@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`Psr\Clock\ClockInterface` is a kernel core service.** The container
+  answers it with Symfony's `Clock`, so anything that needs the time asks for
+  the interface instead of constructing a clock — and a test that freezes time
+  with `ClockSensitiveTrait` freezes the service with it, since Symfony's
+  `Clock` delegates to the globally installed one. Packages that used to
+  register the id themselves (the panel did) can drop that definition; an
+  application still overrides it by declaring `ClockInterface` in
+  `config/services.php`.
+
 ## [0.18.0] - 2026-09-08
 
 ### Added

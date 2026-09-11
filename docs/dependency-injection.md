@@ -88,6 +88,7 @@ The kernel wires these itself — every interface backed by a kernel accessor or
 
 | Interface | Resolved from |
 |-----------|---------------|
+| `ClockInterface` | `new Clock()` |
 | `CsrfTokenManagerInterface` | `csrfTokenManager()` |
 | `DebugStack` | the kernel's debug stack |
 | `EntityManagerInterface` | `entityManager()` |

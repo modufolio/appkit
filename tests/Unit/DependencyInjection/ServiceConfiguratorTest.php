@@ -12,11 +12,15 @@ use Modufolio\Appkit\Security\TwoFactor\TotpService;
 use Modufolio\Appkit\Security\User\UserChecker;
 use Modufolio\Appkit\Security\User\UserCheckerInterface;
 use Modufolio\Appkit\Tests\Case\AppTestCase;
+use Psr\Clock\ClockInterface;
 use Psr\Http\Message\ResponseInterface;
+use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 class ServiceConfiguratorTest extends AppTestCase
 {
+    use ClockSensitiveTrait;
+
     public function testKernelCoreServicesResolveWithoutAnInterfacesFile(): void
     {
         // The fixture app boots without a fileMap['interfaces'] entry, so every
@@ -25,6 +29,19 @@ class ServiceConfiguratorTest extends AppTestCase
         $this->assertInstanceOf(EntityManagerInterface::class, $this->app()->get(EntityManagerInterface::class));
         $this->assertInstanceOf(UrlGeneratorInterface::class, $this->app()->get(UrlGeneratorInterface::class));
         $this->assertInstanceOf(ResponseInterface::class, $this->app()->get(ResponseInterface::class));
+        $this->assertInstanceOf(ClockInterface::class, $this->app()->get(ClockInterface::class));
+    }
+
+    public function testTheCoreClockFollowsAMockedClock(): void
+    {
+        // Symfony's Clock delegates to the globally installed one, so a test
+        // that freezes time with ClockSensitiveTrait also freezes the service.
+        $mock = self::mockTime('2026-01-02 03:04:05');
+
+        $this->assertSame(
+            $mock->now()->format(\DateTimeInterface::ATOM),
+            $this->app()->get(ClockInterface::class)->now()->format(\DateTimeInterface::ATOM),
+        );
     }
 
     public function testServicesFileDefinitionsResolve(): void

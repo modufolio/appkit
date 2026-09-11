@@ -23,12 +23,14 @@ use Modufolio\Appkit\Security\User\UserPasswordHasherInterface;
 use Modufolio\Appkit\Security\User\UserProviderInterface;
 use Modufolio\Psr7\Http\Factory\Psr17Factory;
 use Modufolio\Psr7\Http\Response;
+use Psr\Clock\ClockInterface;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\ContainerInterface;
 use Psr\Container\NotFoundExceptionInterface;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Symfony\Component\Clock\Clock;
 use Symfony\Component\HttpFoundation\Session\Flash\FlashBagInterface;
 use Symfony\Component\HttpFoundation\Session\FlashBagAwareSessionInterface;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;
@@ -89,6 +91,7 @@ trait AppContainer
     protected function coreServices(): array
     {
         return [
+            ClockInterface::class => fn () => new Clock(),
             CsrfTokenManagerInterface::class => fn () => $this->csrfTokenManager(),
             DebugStack::class => fn () => $this->debugStack,
             EntityManagerInterface::class => fn () => $this->entityManager(),
