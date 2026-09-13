@@ -79,7 +79,7 @@ abstract class Kernel implements AppInterface
     public const VERSION = 'dev';
 
     // Core
-    public string $baseDir;
+    public protected(set) string $baseDir;
     protected ?string $varDir = null;
     public protected(set) LoaderInterface $routeLoader;
     protected LoggerInterface $logger;
@@ -142,13 +142,13 @@ abstract class Kernel implements AppInterface
 
     /** @var list<array<string, mixed>>|null */
     public ?array $accessControlRules = null;
-    public ?RoleHierarchy $roleHierarchy = null;
+    public protected(set) ?RoleHierarchy $roleHierarchy = null;
     protected bool $denyUnmatchedAccess = false;
     protected ?AccessDecisionEngine $accessDecisionEngine = null;
 
     // Request-scoped state (created per request in handle())
     protected ?ApplicationStateInterface $state = null;
-    public DebugStack $debugStack;
+    public protected(set) DebugStack $debugStack;
     /** Timeline of the request: the kernel records its own phases, a profiler reads them */
     protected ?Stopwatch $stopwatch = null;
     /** The profiling seam; NullProfiler until config/services.php or a module declares one */
