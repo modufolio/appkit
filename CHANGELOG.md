@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.19.0] - 2026-09-13
+
 ### Added
 
 - **`Psr\Clock\ClockInterface` is a kernel core service.** The container
@@ -17,6 +19,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   register the id themselves (the panel did) can drop that definition; an
   application still overrides it by declaring `ClockInterface` in
   `config/services.php`.
+
+### Removed
+
+- ⚠️ **`Toolkit\File::readCsv()` and `Toolkit\File::writeCsv()` are gone.**
+  Both were thin wrappers over `SplFileObject::fgetcsv()`/`fputcsv()`, which
+  PHP 8.6 deprecates outright — keeping them meant rebuilding `File` on raw
+  stream handles to preserve methods nothing in the framework called. **If you
+  used them, call `fgetcsv()`/`fputcsv()` on a handle directly.**
+  (`src/Toolkit/File.php`)
+
+### Fixed
+
+- **`Toolkit\File::findLinesContaining()` no longer errors on PHP 8.6.**
+  `SplFileObject` yields `false` past the final line, which `str_contains()`
+  rejects as of 8.6; non-string lines are now skipped.
 
 ## [0.18.0] - 2026-09-08
 
