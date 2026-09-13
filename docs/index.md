@@ -39,9 +39,13 @@ AppKit makes deliberate choices to stay small and fast. There is no application-
 
 ## Requirements
 
-- PHP 8.2 or higher
+- PHP 8.4 or higher
 - Composer
 - Node.js 18+ (only for compiling frontend assets)
+
+Symfony components follow the current LTS line (`^7.4`) and move only when the
+next LTS ships; interim 8.x releases are not targeted. See the
+[README](../README.md#requirements) for the reasoning.
 
 ## Documentation
 

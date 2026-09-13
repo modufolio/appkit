@@ -33,10 +33,7 @@ final class OrmConfigurator
         $this->dbalConfig = new DbalConfiguration();
         $this->ormConfig = new OrmConfiguration();
 
-        // Enable native lazy objects for PHP 8.4+
-        if (PHP_VERSION_ID >= 80_400) {
-            $this->ormConfig->enableNativeLazyObjects(true);
-        }
+        $this->ormConfig->enableNativeLazyObjects(true);
     }
 
     /**

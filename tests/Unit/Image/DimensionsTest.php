@@ -150,11 +150,9 @@ class DimensionsTest extends TestCase
         $this->assertSame(600, $dimensions->width());
         $this->assertSame(400, $dimensions->height());
 
-        if (version_compare(PHP_VERSION, '8.2.0') >= 0) {
-            $dimensions = Dimensions::forImage(__DIR__.'/fixtures/image/onigiri-adobe-rgb-gps.avif');
-            $this->assertSame(600, $dimensions->width());
-            $this->assertSame(400, $dimensions->height());
-        }
+        $dimensions = Dimensions::forImage(__DIR__.'/fixtures/image/onigiri-adobe-rgb-gps.avif');
+        $this->assertSame(600, $dimensions->width());
+        $this->assertSame(400, $dimensions->height());
     }
 
     public function testForSvg(): void
