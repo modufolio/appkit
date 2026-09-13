@@ -168,12 +168,20 @@ the design philosophy the rest of the documentation assumes.
 
 ## Requirements
 
-- PHP 8.2 or later
+- PHP 8.4 or later
 - Composer
 - Extensions: `curl`, `dom`, `fileinfo`, `intl`, `libxml`, `pdo`,
   `simplexml`, `sqlite3`, `zip`
 - Optional, for image processing: `exif`, `gd` and the `claviska/simpleimage`
   package — listed under `suggest` in `composer.json`, not required
+
+The Symfony components are pinned to the current **LTS** line (`^7.4`, supported
+until late 2028), not to the newest release. The PHP floor is raised when the
+language adds something the kernel wants — property hooks and asymmetric
+visibility drove 8.4 — but the Symfony constraint only moves when the *next*
+LTS ships. Interim releases such as 8.0 and 8.1 have a support window of eight
+months and are never targeted; hosts that pin one gain nothing from the kernel
+and lose the longer support.
 
 See [`composer.json`](composer.json) for the canonical dependency list.
 
