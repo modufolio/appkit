@@ -18,8 +18,9 @@ RUN apk add --no-cache \
     icu-data-full \
     libxml2-dev \
     sqlite-dev \
+    oniguruma-dev \
     && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
-    && docker-php-ext-install exif gd intl pdo_sqlite zip \
+    && docker-php-ext-install exif gd intl mbstring pdo_sqlite zip \
     && apk del linux-headers \
     && rm -rf /var/cache/apk/* /tmp/*
 
