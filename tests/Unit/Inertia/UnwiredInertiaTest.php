@@ -30,8 +30,34 @@ final class UnwiredInertiaTest extends TestCase
 
     public function testAnUnwiredHostStillLeavesTheControllerPropertyAssigned(): void
     {
-        $controller = $this->controller();
-        self::assertInstanceOf(UnwiredRenderer::class, $controller->renderer());
+        self::assertInstanceOf(UnwiredRenderer::class, $this->controller()->renderer());
+    }
+
+    /**
+     * Building the renderer resolves the host's shared props and flash store,
+     * which reach for the session — so it must not happen while the kernel is
+     * merely wiring the controller.
+     */
+    public function testTheRendererIsNotBuiltWhileTheControllerIsWired(): void
+    {
+        $app = $this->createMock(AppInterface::class);
+        $app->expects(self::never())->method('inertia');
+
+        (new UnwiredHostController())->setSubscribedServices($app);
+    }
+
+    public function testUsingTheRendererBuildsItOnce(): void
+    {
+        $app = $this->createMock(AppInterface::class);
+        $app->expects(self::once())
+            ->method('inertia')
+            ->willThrowException(new \LogicException('A controller returned an Inertia page, but Inertia is not wired.'));
+
+        $controller = new UnwiredHostController();
+        $controller->setSubscribedServices($app);
+
+        // Two reads, one build: the unwired renderer is memoised like any other.
+        self::assertSame($controller->renderer(), $controller->renderer());
     }
 
     public function testUsingItNamesWhatToWire(): void
