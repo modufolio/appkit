@@ -70,6 +70,16 @@ class ControllersDebugCommandTest extends AppTestCase
                     throw new \LogicException('Not needed for this test');
                 }
 
+                /**
+                 * @param \Closure(\Symfony\Component\Routing\RouteCollection): array<mixed> $project
+                 *
+                 * @return array<mixed>
+                 */
+                public function cachedRouteData(string $key, \Closure $project): array
+                {
+                    return $project($this->getRouteCollection());
+                }
+
                 public function getRouteCollection(): \Symfony\Component\Routing\RouteCollection
                 {
                     $routes = new \Symfony\Component\Routing\RouteCollection();

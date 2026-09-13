@@ -40,6 +40,14 @@ class Router implements RouterInterface, ResetInterface
     private ?TrustedHosts $trustedHosts = null;
 
     /**
+     * Projections of the route collection, by key, for the life of the
+     * request. Cleared in reset() with everything else route-shaped.
+     *
+     * @var array<string, mixed>
+     */
+    private array $routeData = [];
+
+    /**
      * Static cache for compiled routes. Cleared in reset() to prevent memory leaks
      * in long-running workers.
      *
@@ -189,6 +197,43 @@ class Router implements RouterInterface, ResetInterface
     }
 
     /**
+     * @param \Closure(RouteCollection): array<mixed> $project
+     *
+     * @return array<mixed>
+     *
+     * @throws \Exception
+     */
+    public function cachedRouteData(string $key, \Closure $project): array
+    {
+        if (\array_key_exists($key, $this->routeData)) {
+            return $this->routeData[$key];
+        }
+
+        if (!preg_match('/^[a-z0-9_-]++$/', $key)) {
+            throw new \InvalidArgumentException(sprintf('Route data key "%s" is not a usable filename: expected [a-z0-9_-].', $key));
+        }
+
+        if (null === $this->options['cache_dir']) {
+            return $this->routeData[$key] = $project($this->getRouteCollection());
+        }
+
+        $cache = $this->getConfigCacheFactory()->cache(
+            $this->options['cache_dir'].'/route_data_'.$key.'.php',
+            function (ConfigCacheInterface $cache) use ($project) {
+                $routes = $this->getRouteCollection();
+
+                $cache->write(
+                    '<?php return '.var_export($project($routes), true).";\n",
+                    $routes->getResources()
+                );
+                unset(self::$routeCache[$cache->getPath()]);
+            }
+        );
+
+        return $this->routeData[$key] = self::getCompiledRoutes($cache->getPath());
+    }
+
+    /**
      * Get the route collection.
      *
      * @throws \Exception
@@ -317,6 +362,7 @@ class Router implements RouterInterface, ResetInterface
         $this->matcher = null;
         $this->generator = null;
         $this->collection = null;
+        $this->routeData = [];
 
         // Clear static route cache to prevent memory leaks in long-running workers
         // This is critical for RoadRunner/FrankenPHP where the same process handles

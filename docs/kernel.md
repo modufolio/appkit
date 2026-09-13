@@ -66,7 +66,7 @@ $env->isTest();  // bool
 $env->isProd();  // bool
 ```
 
-The current environment is read from `APP_ENV`. It affects router caching (`var/cache/prod/router` in prod), debug mode, error-output handling (see [Exception handling](exception-handling.md#error-output-hardening)), and exception detail visibility. Persistent caches live under `Kernel::cacheDir()` — `var/cache/<env>` — so environments never share a cache.
+The current environment is read from `APP_ENV`. It affects router cache validation (compiled routes are cached in `var/cache/<env>/router` in every environment; every environment except `prod` checks them for staleness — see [Deployment](deployment.md#the-router-cache)), debug mode, error-output handling (see [Exception handling](exception-handling.md#error-output-hardening)), and exception detail visibility. Persistent caches live under `Kernel::cacheDir()` — `var/cache/<env>` — so environments never share a cache.
 
 Access the environment from anywhere you have the kernel:
 

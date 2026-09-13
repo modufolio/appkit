@@ -81,7 +81,7 @@ abstract class Kernel implements AppInterface
     // Core
     public string $baseDir;
     protected ?string $varDir = null;
-    public LoaderInterface $routeLoader;
+    public protected(set) LoaderInterface $routeLoader;
     protected LoggerInterface $logger;
     /** @var array<string, \Closure> */
     protected array $authenticators = [];
@@ -181,9 +181,12 @@ abstract class Kernel implements AppInterface
             ? require $this->fileMap['interfaces']
             : $this->coreServices();
 
+        // Every environment caches; `debug` decides whether that cache is
+        // checked for staleness. Only prod skips the check, so a route change
+        // in dev or test is picked up without clearing anything.
         $this->setRouterOptions([
-            'cache_dir' => $this->environment()->isProd() ? $this->cacheDir().'/router' : null,
-            'debug' => $this->environment()->isDev(),
+            'cache_dir' => $this->cacheDir().'/router',
+            'debug' => !$this->environment()->isProd(),
             'resource_type' => null,
             'strict_requirements' => true,
         ]);

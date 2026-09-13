@@ -5,6 +5,7 @@ namespace Modufolio\Appkit\Routing;
 use Psr\Http\Message\ServerRequestInterface;
 use Symfony\Component\Routing\Exception\ResourceNotFoundException;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Component\Routing\RouteCollection;
 
 /**
  * Router interface for matching requests to routes and generating URLs.
@@ -61,4 +62,19 @@ interface RouterInterface
      * Get the route collection.
      */
     public function getRouteCollection(): \Symfony\Component\Routing\RouteCollection;
+
+    /**
+     * A request-independent projection of the routes, cached beside the
+     * compiled matcher and generator and invalidated by the same resources.
+     *
+     * Cheaper than walking getRouteCollection(), which reloads every route
+     * from source. $project runs only on a cache miss, so it must not read the
+     * request, and must return an array var_export() can round-trip.
+     *
+     * @param string                           $key     Cache key; a bare filename, [a-z0-9_-]
+     * @param \Closure(RouteCollection): array<mixed> $project
+     *
+     * @return array<mixed>
+     */
+    public function cachedRouteData(string $key, \Closure $project): array;
 }

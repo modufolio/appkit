@@ -190,11 +190,40 @@ php bin/console orm:clear-cache:query
 php bin/console orm:clear-cache:result
 ```
 
-Clear the router cache:
+### The router cache
+
+The compiled matcher and URL generator are cached in `var/cache/<env>/router` in
+**every** environment. Only the freshness check differs, and it follows the
+kernel's `debug` flag, which is on in every environment except production
+(`!Environment::isProd()`):
+
+| | `dev`, `test` (`debug=true`) | `prod` (`debug=false`) |
+|---|---|---|
+| Cache written | yes | yes |
+| Resource metadata written | yes | yes |
+| Resource metadata **read** | every request | never |
+| Rebuilds when | a tracked resource changed | the cache file is missing |
+
+In development the cache validates itself against the resources the route
+loaders recorded — one `ReflectionClassResource` per controller (a *signature*
+comparison, so `touch` alone changes nothing), plus a `GlobResource` per scanned
+directory and a `FileResource` for `config/routes.php`. Editing a `#[Route]`
+attribute, or adding or deleting a controller, takes effect on the next request
+with no cache clear. That check costs a few milliseconds per request; it is the
+only reason dev is slower than prod here.
+
+In production `ConfigCache::isFresh()` returns `true` as soon as the file exists
+and never looks at the metadata. The cache is still *built* on demand when the
+file is absent, so a cleared cache warms itself on the first request — but a
+changed route in an existing cache is never noticed. Clear it on deploy:
 
 ```bash
 rm -rf var/cache/prod/router/
 ```
+
+A stale router cache fails silently: no error, no warning, just the previous
+routes. Wire the clear into the deployment script rather than relying on
+remembering it.
 
 If the application uses [the Symfony container behind the kernel](dependency-injection.md#the-symfony-container-behind-the-kernel), the compiled container lives next to it. A changed module set (`config/modules.php`) rebuilds it on its own — a hash of the resolved manifest sits beside the class — but a changed `config/container.php` or a module's `container.php` does not, so clear it on deploy:
 

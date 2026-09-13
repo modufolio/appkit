@@ -101,7 +101,7 @@ public function posts(): ResponseInterface
 
 Because attributes are AND'd, a method-level `#[IsGranted]` *tightens* a class-level one — it cannot widen access. A user must satisfy the class requirement **and** the method requirement.
 
-The attributes are read by `AttributeClassLoader` at route load time — once on boot, not on every request. Each `#[IsGranted]` (class- and method-level) becomes one role group stored as `_is_granted_roles` (a list of groups) in the route's defaults. A group is a plain list of roles, or a `['roles' => …, 'methods' => …]` map when it is method-scoped. In production, Symfony serializes the entire route collection to `var/cache/prod/router`, so the groups are compiled into that cache — clear it on deploy after changing access rules. At request time, enforcement is a single `$route->getDefault('_is_granted_roles')` lookup with no reflection involved.
+The attributes are read by `AttributeClassLoader` at route load time — once on boot, not on every request. Each `#[IsGranted]` (class- and method-level) becomes one role group stored as `_is_granted_roles` (a list of groups) in the route's defaults. A group is a plain list of roles, or a `['roles' => …, 'methods' => …]` map when it is method-scoped. The compiled routes are cached in `var/cache/<env>/router` in every environment, and the groups ride along in that dump. In production nothing checks the cache for staleness, so clear it on deploy after changing access rules; in development it rebuilds itself when a controller's signature changes. See [Deployment](deployment.md#the-router-cache). At request time, enforcement is a single `$route->getDefault('_is_granted_roles')` lookup with no reflection involved.
 
 The Kernel enforces the check during controller resolution, before any controller code executes.
 
@@ -244,6 +244,42 @@ Each entry becomes one Symfony `Route`:
 The array key is the route name, used by `generate()` and `#[IsGranted]` alike; an entry without a string key is named after its pattern. Other keys — defaults, options, host, schemes — are not read; a route that needs them belongs in `#[Route]` or in `config/routes.php` through `$routes->add()`. The file is located through the loader's `FileLocator`, so the path is relative to your config directory, and it is `include`d, so it may compute its entries.
 
 `ArrayRouteLoader` is shipped, not pre-registered: the skeleton's `AppFactory` registers only the attribute and PHP-file loaders, so add `new ArrayRouteLoader($locator)` to its `LoaderResolver` first (see below).
+
+## Deriving data from the routes
+
+Anything that needs a *view* of the routes rather than a match — a menu, a list
+of route names, a permission map — should ask `cachedRouteData()` instead of
+walking `getRouteCollection()`.
+
+```php
+$menu = $router->cachedRouteData(
+    'panel_menu',
+    static fn (RouteCollection $routes): array => MyMenu::fromRoutes($routes),
+);
+```
+
+The projection is dumped next to the compiled matcher and generator, in
+`var/cache/<env>/router/route_data_<key>.php`, and tracks the same resources —
+so it rebuilds exactly when they do and is cleared by the same
+`rm -rf var/cache/<env>/router/`.
+
+Why it matters: `getRouteCollection()` is a **build-time** artifact. Calling it
+reloads every route from source, which on an attribute-driven application means
+tokenising and reflecting every controller — tens of milliseconds. The compiled
+matcher and generator exist precisely so that a request never has to. A caller
+that reaches for the collection at request time steps around that whole
+mechanism, and pays for it on every request, including ones that never use the
+result.
+
+`$project` is called only on a cache miss, so it must not depend on the current
+request, and it must return an array `var_export()` can round-trip. `$key` is
+used as a filename: `[a-z0-9_-]` only. With no `cache_dir` configured the
+projection is built per request and memoised, matching how the matcher and
+generator behave in that mode.
+
+Watch for this in constructor arguments in particular — PHP evaluates them
+eagerly, so `new Thing($router->getRouteCollection())` pays the full cost even
+when the object is never used.
 
 ## Route loading
 
