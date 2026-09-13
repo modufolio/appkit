@@ -97,42 +97,6 @@ class FileTest extends TestCase
         $this->assertSame(["a\n", "b\n", 'c'], $file->getLines());
     }
 
-    public function testReadCsv(): void
-    {
-        $file = new File($this->file("a,b\n\nc,d\n"));
-
-        $this->assertSame([['a', 'b'], ['c', 'd']], $file->readCsv());
-    }
-
-    public function testReadCsvWithCustomDelimiter(): void
-    {
-        $file = new File($this->file("a;b\nc;d\n"));
-
-        $this->assertSame([['a', 'b'], ['c', 'd']], $file->readCsv(';'));
-    }
-
-    public function testWriteCsv(): void
-    {
-        $root = $this->tmp.'/write.csv';
-
-        $file = new File($root, 'w');
-
-        $this->assertTrue($file->writeCsv([['a', 'b'], ['c', 'd']]));
-
-        $file->close();
-
-        $reader = new File($root);
-
-        $this->assertSame([['a', 'b'], ['c', 'd']], $reader->readCsv());
-    }
-
-    public function testWriteCsvEmpty(): void
-    {
-        $file = new File($this->tmp.'/write.csv', 'w');
-
-        $this->assertFalse($file->writeCsv([]));
-    }
-
     public function testGetPath(): void
     {
         $root = $this->file('test');

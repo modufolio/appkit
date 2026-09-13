@@ -62,30 +62,6 @@ class File
         return $lines;
     }
 
-    public function readCsv($delimiter = ',', $enclosure = '"', $escape = '\\'): array
-    {
-        $this->fileObject->setFlags(\SplFileObject::READ_CSV);
-        $rows = [];
-        while (!$this->fileObject->eof()) {
-            $row = $this->fileObject->fgetcsv($delimiter, $enclosure, $escape);
-            if (is_array($row) && null !== $row[0]) { // avoiding empty lines
-                $rows[] = $row;
-            }
-        }
-
-        return $rows;
-    }
-
-    public function writeCsv(array $data, $delimiter = ',', $enclosure = '"', $escape = '\\'): bool
-    {
-        $state = false;
-        foreach ($data as $row) {
-            $state = is_int($this->fileObject->fputcsv($row, $delimiter, $enclosure, $escape));
-        }
-
-        return $state;
-    }
-
     public function getPath(): bool|string
     {
         return $this->fileObject->getRealPath();
@@ -100,7 +76,9 @@ class File
     {
         $lines = [];
         foreach ($this->fileObject as $line) {
-            if (!str_contains($line, $string)) {
+            // SplFileObject yields false past the final line, which
+            // str_contains() rejects as of PHP 8.6.
+            if (!is_string($line) || !str_contains($line, $string)) {
                 continue;
             }
 
