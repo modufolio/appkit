@@ -121,7 +121,7 @@ final class TrustedHostsKernelTest extends AppTestCase
     {
         $this->app()->setRouterOptions(['trusted_hosts' => ['localhost']]);
 
-        // An application that builds NativeApplicationState itself (bypassing
+        // An application that builds ApplicationState itself (bypassing
         // createState()) is still stopped at the first kernel entry point.
         $request = new ServerRequest('GET', new Uri('http://attacker.test/public'));
 

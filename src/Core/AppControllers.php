@@ -122,14 +122,7 @@ trait AppControllers
         }
 
         if (!$result instanceof ResponseInterface) {
-            throw new \LogicException(sprintf(
-                '%s::%s() must return a response, an %s page or a %s, %s returned.',
-                $class,
-                $method,
-                Inertia::class,
-                ResponsableInterface::class,
-                get_debug_type($result),
-            ));
+            throw new \LogicException(sprintf('%s::%s() must return a response, an %s page or a %s, %s returned.', $class, $method, Inertia::class, ResponsableInterface::class, get_debug_type($result)));
         }
 
         return $result;

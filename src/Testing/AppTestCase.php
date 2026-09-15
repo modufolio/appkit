@@ -343,7 +343,7 @@ abstract class AppTestCase extends BaseTestCase
         if ($this->app()->getState() && $this->app()->getState()->hasSession()) {
             $sessionId = $this->app()->session()->getId();
             if ($sessionId) {
-                $headers['Cookie'] = 'PHPSESSID='.$sessionId;
+                $headers['Cookie'] = $this->app()->sessionConfiguration()->name.'='.$sessionId;
             }
         }
 

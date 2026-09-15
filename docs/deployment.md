@@ -10,7 +10,7 @@ Before going live, confirm each of these.
 - [ ] `composer install --no-dev --classmap-authoritative` completed — see [Autoloader](#autoloader)
 - [ ] `npm run build` completed and compiled assets uploaded to `public/assets/`
 - [ ] `php bin/console migrations:migrate` completed
-- [ ] `php bin/console security:validate` passes — config validation is skipped at runtime in `prod`, so this is the last gate that catches a bad firewall or access-control rule (see [Security](security.md#validating-configuration)). The framework ships the command as `SecurityValidateCommand`; the skeleton's `ConsoleRunner::addDefaultCommands()` registers it
+- [ ] `php bin/console security:validate` passes — config validation is skipped at runtime in `prod`, so this is the last gate that catches a bad firewall or access-control rule (see [Security](security/firewalls.md#validating-configuration)). The framework ships the command as `SecurityValidateCommand`; the skeleton's `ConsoleRunner::addDefaultCommands()` registers it
 - [ ] `storage/logs/` is writable by the web server user
 - [ ] `var/` is writable by both the web server user and the CLI user
 - [ ] Any secrets (JWT keys, OAuth secrets, DB passwords) are in the server environment, not in `.env` files
@@ -421,6 +421,16 @@ construction site, no third wiring system. Two rules follow:
   `tokenStorage()`, `request()` — have no meaning in jobs mode; no request ever
   creates their state. A handler that needs to know "who" acts on an id in the
   payload, not on a session.
+
+## Session storage
+
+The default session store is PHP's file handler under `var/sessions`. That is
+one node's disk: behind a load balancer, or with RoadRunner workers on more
+than one machine, declare a shared `\SessionHandlerInterface` in
+`config/services.php` — Redis, PDO, Memcached — and sticky sessions become
+unnecessary. The cookie's name, flags and lifetime are a `SessionConfiguration`
+declared beside it. Both are described in
+[Sessions](security/sessions.md#session-storage-and-cookie).
 
 ## Security headers
 

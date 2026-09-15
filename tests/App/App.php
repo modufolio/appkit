@@ -6,7 +6,7 @@ namespace Modufolio\Appkit\Tests\App;
 
 use Doctrine\DBAL\Exception as DbalException;
 use Modufolio\Appkit\Core\Kernel;
-use Modufolio\Appkit\Core\NativeApplicationState;
+use Modufolio\Appkit\Core\ApplicationState;
 use Modufolio\Appkit\Core\ResetInterface;
 use Modufolio\Appkit\Exception\ExceptionHandlerInterface;
 use Modufolio\Appkit\Resolver\AssociativeArrayResolver;
@@ -205,7 +205,7 @@ class App extends Kernel
                 ]
             );
 
-            $this->state = new NativeApplicationState($request, $this->baseDir, $this->firewallConfig, $this->varDir());
+            $this->state = new ApplicationState($request, $this->baseDir, $this->firewallConfig, $this->varDir());
         }
 
         return $this;

@@ -40,7 +40,7 @@ These six abstract methods are your integration points. The framework's test app
 
 1. `public/index.php` calls your application factory — `AppFactory::create($baseDir)` in the test app — which instantiates `App`, loads config files, and calls `boot()`.
 2. `boot()` applies error-output hardening for the environment (see [Exception handling](exception-handling.md#error-output-hardening)), wires the kernel core services (or loads a legacy `config/interfaces.php` when mapped), sets up the router cache directory, builds [the Symfony container behind the kernel](dependency-injection.md#the-symfony-container-behind-the-kernel) if `configureContainer()` asked for one (before any module's `boot()`), and freezes the token unserializer whitelist.
-3. `handle(ServerRequestInterface $request)` is called. It creates a fresh `NativeApplicationState` for the request via `createState()` — which first rejects a `Host` header that is not on the [trusted-hosts](security.md#trusted-hosts) allowlist — then calls `handleAuthentication()`.
+3. `handle(ServerRequestInterface $request)` is called. It creates a fresh `ApplicationState` for the request via `createState()` — which first rejects a `Host` header that is not on the [trusted-hosts](security/trusted-hosts.md) allowlist — then calls `handleAuthentication()`.
 4. `handleAuthentication()` determines the active firewall, attempts session token restoration, runs authenticators if needed, and either calls `controllerResolver()` or returns an authentication response.
 5. `controllerResolver()` enforces global access control, matches the route, enforces attribute-level access control (`#[IsGranted]`), instantiates the controller, resolves method parameters, and calls the controller method.
 6. The controller returns a `ResponseInterface`. `prepareResponse()` finalises headers and cookies.
@@ -76,13 +76,13 @@ $this->environment()->isProd(); // inside App or a class with access to the kern
 
 ## Application state
 
-`NativeApplicationState` is created once per request and holds request-scoped data: the current `ServerRequestInterface`, the session, the token storage, firewall cache, and controller instances. The concept is inspired by [Axum's `State` extractor](https://docs.rs/axum/latest/axum/extract/struct.State.html) from Rust.
+`ApplicationState` is created once per request and holds request-scoped data: the current `ServerRequestInterface`, the session, the token storage, firewall cache, and controller instances. The concept is inspired by [Axum's `State` extractor](https://docs.rs/axum/latest/axum/extract/struct.State.html) from Rust.
 
 After the response is sent, `reset()` clears this state. This makes AppKit compatible with RoadRunner, where the same process handles many requests.
 
 Note that `AbstractApplicationState::reset()` covers only session, session storage, token storage, request instances and the firewall cache. `Kernel::reset()` is abstract — your `App` is responsible for the rest, including the router (which holds a **static** compiled-route cache) and the entity manager. See [Deployment](deployment.md#the-reset-contract).
 
-Session cookies are set with `HttpOnly` and `SameSite=Lax` by default. Set `COOKIE_SECURE=true` in your environment to add the `Secure` flag.
+Session cookies are set with `HttpOnly` and `SameSite=Lax` by default. Set `COOKIE_SECURE=true` in your environment to add the `Secure` flag, or declare a `SessionConfiguration` in `config/services.php` for the name, flags and lifetime. Where session data is stored is a `\SessionHandlerInterface` declared the same way — PHP's file handler under `var/sessions` unless you say otherwise. See [Sessions](security/sessions.md#session-storage-and-cookie).
 
 ## The service container
 
@@ -142,7 +142,7 @@ $this->generateUrl('post.show', ['slug' => 'hello']);          // /posts/hello
 
 `generateUrl()` wraps Symfony's `UrlGenerator`. The third argument accepts `UrlGeneratorInterface::ABSOLUTE_URL` to force a full URL.
 
-The scheme and host in all of these come from the request. Configure [trusted hosts](security.md#trusted-hosts) so a spoofed `Host` header cannot become the base of every absolute URL the response generates.
+The scheme and host in all of these come from the request. Configure [trusted hosts](security/trusted-hosts.md) so a spoofed `Host` header cannot become the base of every absolute URL the response generates.
 
 ## Parameter bag
 

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Modufolio\Appkit\Tests\Unit\Core;
 
+use Modufolio\Appkit\Core\ApplicationState;
 use Modufolio\Appkit\Core\ApplicationStateInterface;
-use Modufolio\Appkit\Core\NativeApplicationState;
 use Modufolio\Psr7\Http\ServerRequest;
 use PHPUnit\Framework\TestCase;
 
@@ -32,7 +32,7 @@ class FirewallRestrictionMatchingTest extends TestCase
     {
         $request = new ServerRequest('GET', '/test');
 
-        return new NativeApplicationState($request, sys_get_temp_dir(), $firewallConfig);
+        return new ApplicationState($request, sys_get_temp_dir(), $firewallConfig);
     }
 
     // ================================================================

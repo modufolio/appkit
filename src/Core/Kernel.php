@@ -39,6 +39,7 @@ use Psr\Http\Message\ServerRequestInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Config\Loader\LoaderInterface;
 use Symfony\Component\HttpFoundation\Session\FlashBagAwareSessionInterface;
+use Symfony\Component\HttpFoundation\Session\Storage\Handler\NativeFileSessionHandler;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Stopwatch\Stopwatch;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
@@ -145,6 +146,10 @@ abstract class Kernel implements AppInterface
     public protected(set) ?RoleHierarchy $roleHierarchy = null;
     protected bool $denyUnmatchedAccess = false;
     protected ?AccessDecisionEngine $accessDecisionEngine = null;
+
+    // Sessions: process-level choices the per-request state is built with
+    protected ?SessionConfiguration $sessionConfiguration = null;
+    protected ?\SessionHandlerInterface $sessionHandler = null;
 
     // Request-scoped state (created per request in handle())
     protected ?ApplicationStateInterface $state = null;
@@ -475,6 +480,36 @@ abstract class Kernel implements AppInterface
         return $this;
     }
 
+    /**
+     * How the session cookie is issued: name, flags, lifetime. The default
+     * takes the Secure flag from `COOKIE_SECURE` once per process; declare
+     * {@see SessionConfiguration} in config/services.php to change anything.
+     */
+    #[Service]
+    public function sessionConfiguration(): SessionConfiguration
+    {
+        // Only an explicit declaration counts. has() would also answer for
+        // the fallback container's bridge of this very accessor, and recurse.
+        return $this->sessionConfiguration ??= isset($this->services[SessionConfiguration::class])
+            ? $this->get(SessionConfiguration::class, SessionConfiguration::class)
+            : SessionConfiguration::fromEnvironment();
+    }
+
+    /**
+     * Where session data is stored. PHP's file handler under var/sessions
+     * unless the application declares {@see \SessionHandlerInterface} in
+     * config/services.php — Symfony's RedisSessionHandler, PdoSessionHandler
+     * or any other. One instance serves every request of the worker, so a
+     * handler may hold its connection open.
+     */
+    #[Service]
+    public function sessionHandler(): \SessionHandlerInterface
+    {
+        return $this->sessionHandler ??= isset($this->services[\SessionHandlerInterface::class])
+            ? $this->get(\SessionHandlerInterface::class, \SessionHandlerInterface::class)
+            : new NativeFileSessionHandler($this->varDir().'/sessions');
+    }
+
     #[Service]
     public function session(): FlashBagAwareSessionInterface
     {
@@ -558,7 +593,7 @@ abstract class Kernel implements AppInterface
                 ]
             );
 
-            $this->state = new NativeApplicationState($request, $this->baseDir, $this->firewallConfig, $this->varDir());
+            $this->state = $this->newState($request);
         }
 
         return $this;
@@ -594,7 +629,19 @@ abstract class Kernel implements AppInterface
         // it empty, whether the runtime called reset() in between.
         $this->stopwatch?->reset();
 
-        return new NativeApplicationState($request, $this->baseDir, $this->firewallConfig, $this->varDir());
+        return $this->newState($request);
+    }
+
+    private function newState(ServerRequestInterface $request): ApplicationState
+    {
+        return new ApplicationState(
+            $request,
+            $this->baseDir,
+            $this->firewallConfig,
+            $this->varDir(),
+            $this->sessionConfiguration(),
+            $this->sessionHandler(),
+        );
     }
 
     public function getState(): ?ApplicationStateInterface

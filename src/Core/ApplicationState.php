@@ -10,18 +10,20 @@ use Symfony\Component\HttpFoundation\Session\Storage\Handler\NativeFileSessionHa
 use Symfony\Component\HttpFoundation\Session\Storage\NativeSessionStorage;
 
 /**
- * Native PHP server ApplicationState implementation.
+ * The per-request state, on PHP's native session functions.
  *
- * Manages request-scoped state for PHP's built-in server with:
- * - Automatic session cookie handling (PHP manages Set-Cookie headers)
- * - Native session storage using PHP's built-in session functions
- * - PSR-7 request compatibility for session ID extraction
+ * Holds what lives exactly as long as one request: the request itself, the
+ * session, the token storage, the firewall selection cache and the
+ * controller instances. Where session data is stored is the injected
+ * handler's business (files under var/ by default, Redis or a database when
+ * the application says so); how the cookie is issued is the injected
+ * {@see SessionConfiguration}'s. PHP sends the Set-Cookie header itself.
  *
  * @author    Maarten Thiebou
  * @copyright Modufolio
  * @license   https://opensource.org/licenses/MIT
  */
-final class NativeApplicationState extends AbstractApplicationState
+final class ApplicationState extends AbstractApplicationState
 {
     public function getSession(): FlashBagAwareSessionInterface
     {
@@ -29,24 +31,13 @@ final class NativeApplicationState extends AbstractApplicationState
             return $this->session;
         }
 
-        // Create session handler
-        $handler = new NativeFileSessionHandler(
-            $this->varDir.'/sessions'
-        );
-
         $cookies = $this->request->getCookieParams();
         $requestSessionId = $cookies[$this->sessionCookieName] ?? null;
 
-        // Create native storage with automatic cookie handling.
-        $cookieSecure = Env::instance()->getBool('COOKIE_SECURE', false);
-
-        $this->sessionStorage = new NativeSessionStorage([
-            'save_path' => $this->varDir.'/sessions',
-            'cookie_httponly' => true,
-            'cookie_samesite' => 'Lax',
-            'cookie_secure' => $cookieSecure,
-            'use_strict_mode' => 1,
-        ], $handler);
+        $this->sessionStorage = new NativeSessionStorage(
+            $this->sessionConfiguration->toStorageOptions(),
+            $this->sessionHandler ?? new NativeFileSessionHandler($this->varDir.'/sessions'),
+        );
 
         $this->session = new Session($this->sessionStorage);
 
@@ -68,9 +59,8 @@ final class NativeApplicationState extends AbstractApplicationState
     /**
      * Check if a new session was created.
      *
-     * For native PHP server, this always returns false because PHP
-     * handles cookies automatically and we don't need to manually
-     * send Set-Cookie headers.
+     * Always false: PHP's session layer sends the Set-Cookie header itself,
+     * so the kernel never has to.
      */
     public function isNewSession(): bool
     {
@@ -80,7 +70,7 @@ final class NativeApplicationState extends AbstractApplicationState
     /**
      * Get the current session ID.
      *
-     * For native PHP server, we use PHP's built-in session_id() function.
+     * PHP's own session_id(), once the session has started.
      */
     public function getSessionId(): ?string
     {

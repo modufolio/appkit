@@ -41,33 +41,45 @@ abstract class AbstractApplicationState implements ApplicationStateInterface
     /** @var array<string, array<string, mixed>> */
     protected array $firewallConfig = [];
 
-    /**
-     * Session cookie name - must match your session.name php.ini setting.
-     */
-    protected string $sessionCookieName = 'PHPSESSID';
+    /** The session cookie name, from the session configuration. */
+    protected string $sessionCookieName;
+
+    protected SessionConfiguration $sessionConfiguration;
+
+    /** Null selects PHP's file handler under $varDir/sessions. */
+    protected ?\SessionHandlerInterface $sessionHandler;
 
     // Request-scoped instance cache (controllers and request-specific services)
     /** @var array<string, object> */
     protected array $requestInstances = [];
 
     /**
-     * @param ServerRequestInterface              $request        The current HTTP request
-     * @param string                              $baseDir        Application base directory
-     * @param array<string, array<string, mixed>> $firewallConfig Optional firewall configuration
-     * @param string|null                         $varDir         Writable runtime directory (sessions, caches).
-     *                                                            Defaults to $baseDir/var.
+     * @param ServerRequestInterface              $request              The current HTTP request
+     * @param string                              $baseDir              Application base directory
+     * @param array<string, array<string, mixed>> $firewallConfig       Optional firewall configuration
+     * @param string|null                         $varDir               Writable runtime directory (sessions, caches).
+     *                                                                  Defaults to $baseDir/var.
+     * @param SessionConfiguration|null           $sessionConfiguration how the session cookie is issued;
+     *                                                                  defaults to the environment's
+     * @param \SessionHandlerInterface|null       $sessionHandler       where session data lives; null for PHP's
+     *                                                                  file handler under $varDir/sessions
      */
     public function __construct(
         ServerRequestInterface $request,
         string $baseDir,
         array $firewallConfig = [],
         ?string $varDir = null,
+        ?SessionConfiguration $sessionConfiguration = null,
+        ?\SessionHandlerInterface $sessionHandler = null,
     ) {
         $this->request = $request;
         $this->baseDir = $baseDir;
         $this->varDir = $varDir ?? $baseDir.'/var';
         $this->baseUrl = $this->calculateBaseUrl($request);
         $this->firewallConfig = $firewallConfig;
+        $this->sessionConfiguration = $sessionConfiguration ?? SessionConfiguration::fromEnvironment();
+        $this->sessionCookieName = $this->sessionConfiguration->name;
+        $this->sessionHandler = $sessionHandler;
     }
 
     public function getBaseDir(): string
@@ -359,7 +371,10 @@ abstract class AbstractApplicationState implements ApplicationStateInterface
 
     public function getCurrentFirewallName(): ?string
     {
-        return $this->getFirewallName($this->request->getUri()->getPath());
+        // The same resolution the kernel used to pick the firewall for this
+        // request: decoded path plus method, host and IP restrictions. The
+        // raw path with pattern-only matching could name a different one.
+        return $this->getFirewallNameForRequest($this->request);
     }
 
     // -----------------------------------------------------------------
