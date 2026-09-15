@@ -23,7 +23,7 @@ class TypeHintResolver implements ParameterResolverInterface
      * @return array<string, mixed>
      */
     public function getParameters(
-        \Reflector $reflection,
+        \ReflectionFunctionAbstract $reflection,
         array $providedParameters,
         array $resolvedParameters,
     ): array {

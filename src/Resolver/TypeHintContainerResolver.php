@@ -38,14 +38,7 @@ readonly class TypeHintContainerResolver implements ParameterResolverInterface
         array $providedParameters,
         array $resolvedParameters,
     ): array {
-        $parameters = $reflection->getParameters();
-
-        // Skip parameters already resolved
-        if (!empty($resolvedParameters)) {
-            $parameters = array_diff_key($parameters, $resolvedParameters);
-        }
-
-        foreach ($parameters as $parameter) {
+        foreach ($reflection->getParameters() as $parameter) {
             $parameterType = $parameter->getType();
             if (array_key_exists($parameter->getName(), $resolvedParameters)) {
                 // Skip parameters already resolved

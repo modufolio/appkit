@@ -194,7 +194,7 @@ use Modufolio\Appkit\Attributes\MapRequestPayload;
 public function create(#[MapRequestPayload] CreatePostDto $dto): ResponseInterface
 ```
 
-By default, validation failures throw a `422` exception. Set `throwOnError: false` to receive a `ValidationResult` instead:
+By default, validation failures throw a `422` exception. Set `throwOnError: false` to receive a `ValidationResult` instead. The `ValidationResult` parameter may sit anywhere in the signature; with several mapped payloads, the first `ValidationResult` reports on the first payload, the second on the second, and so on:
 
 ```php
 public function create(

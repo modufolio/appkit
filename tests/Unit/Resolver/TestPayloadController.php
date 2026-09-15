@@ -31,6 +31,17 @@ class TestPayloadController
     ): void {
     }
 
+    public function storeWithValidationResultFirst(
+        ValidationResult $result,
+        #[MapRequestPayload(throwOnError: false)] TestCreateUserDto $dto,
+    ): void {
+    }
+
+    public function listNamedQuery(
+        #[MapQueryString(name: 'query', throwOnError: false)] TestCreateUserDto $query,
+    ): void {
+    }
+
     public function storeDefault(
         ServerRequestInterface $request,
         #[MapRequestPayload] TestCreateUserDto $dto,

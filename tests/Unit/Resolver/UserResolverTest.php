@@ -6,6 +6,7 @@ namespace Modufolio\Appkit\Tests\Unit\Resolver;
 
 use Modufolio\Appkit\Attributes\CurrentUser;
 use Modufolio\Appkit\Resolver\UserResolver;
+use Modufolio\Appkit\Security\Exception\AuthenticationException;
 use Modufolio\Appkit\Security\Token\Storage\TokenStorage;
 use Modufolio\Appkit\Security\Token\UsernamePasswordToken;
 use Modufolio\Appkit\Security\User\UserInterface;
@@ -28,9 +29,6 @@ class UserResolverTest extends TestCase
     {
         // Arrange
         $testClass = new class {
-            /**
-             * @param mixed $user
-             */
             public function method(#[CurrentUser] $user): void
             {
             }
@@ -49,9 +47,6 @@ class UserResolverTest extends TestCase
     {
         // Arrange
         $testClass = new class {
-            /**
-             * @param mixed $user
-             */
             public function method($user): void
             {
             }
@@ -73,9 +68,6 @@ class UserResolverTest extends TestCase
         $token = new UsernamePasswordToken($user, 'main', ['ROLE_USER']);
         $this->tokenStorage->setToken($token);
         $testClass = new class {
-            /**
-             * @param mixed $user
-             */
             public function method(#[CurrentUser] $user): void
             {
             }
@@ -97,9 +89,6 @@ class UserResolverTest extends TestCase
         // Arrange
         $this->tokenStorage->setToken(null); // No token
         $testClass = new class {
-            /**
-             * @param mixed $user
-             */
             public function method(#[CurrentUser] $user): void
             {
             }
@@ -122,9 +111,6 @@ class UserResolverTest extends TestCase
         $token = new UsernamePasswordToken($user, 'main', ['ROLE_USER']);
         $this->tokenStorage->setToken($token);
         $testClass = new class {
-            /**
-             * @param mixed $user
-             */
             public function method(#[CurrentUser] $user): void
             {
             }
@@ -181,5 +167,30 @@ class TestUser implements UserInterface
     public function isEnabled(): bool
     {
         return true;
+    }
+
+    public function testAnonymousRequestWithARequiredUserIsAnAuthenticationFailure(): void
+    {
+        $testClass = new class {
+            public function method(#[CurrentUser] UserInterface $user): void
+            {
+            }
+        };
+        $parameter = (new \ReflectionMethod($testClass, 'method'))->getParameters()[0];
+
+        $this->expectException(AuthenticationException::class);
+        $this->resolver->resolve($parameter, []);
+    }
+
+    public function testAnonymousRequestWithANullableUserResolvesToNull(): void
+    {
+        $testClass = new class {
+            public function method(#[CurrentUser] ?UserInterface $user): void
+            {
+            }
+        };
+        $parameter = (new \ReflectionMethod($testClass, 'method'))->getParameters()[0];
+
+        $this->assertNull($this->resolver->resolve($parameter, []));
     }
 }

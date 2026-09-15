@@ -31,26 +31,21 @@ class AttributeParameterResolver implements ParameterResolverInterface
         array $providedParameters,
         array $resolvedParameters,
     ): array {
-        $parameters = $reflection->getParameters();
+        /** @var list<ValidationResult> $validationResults in payload order */
+        $validationResults = [];
+        /** @var list<\ReflectionParameter> $validationResultParameters in signature order */
+        $validationResultParameters = [];
 
-        // Skip parameters already resolved
-        if (!empty($resolvedParameters)) {
-            $parameters = array_diff_key($parameters, $resolvedParameters);
-        }
-
-        $hasPendingValidationResult = false;
-        $pendingValidationResult = null;
-
-        foreach ($parameters as $parameter) {
+        foreach ($reflection->getParameters() as $parameter) {
             if (array_key_exists($parameter->getName(), $resolvedParameters)) {
                 continue;
             }
 
-            // Inject a pending ValidationResult from a previous ResolvedPayload
-            if ($hasPendingValidationResult && $this->acceptsValidationResult($parameter)) {
-                $resolvedParameters[$parameter->getName()] = $pendingValidationResult;
-                $hasPendingValidationResult = false;
-                $pendingValidationResult = null;
+            // A ValidationResult parameter is filled from a mapped payload
+            // below, wherever it sits in the signature — before or after
+            // the payload it belongs to.
+            if ($this->acceptsValidationResult($parameter)) {
+                $validationResultParameters[] = $parameter;
                 continue;
             }
 
@@ -63,13 +58,20 @@ class AttributeParameterResolver implements ParameterResolverInterface
 
                 if ($result instanceof ResolvedPayload) {
                     $resolvedParameters[$parameter->getName()] = $result->payload;
-                    $pendingValidationResult = $result->validationResult;
-                    $hasPendingValidationResult = true;
+                    $validationResults[] = $result->validationResult;
                 } else {
                     $resolvedParameters[$parameter->getName()] = $result;
                 }
 
                 break;
+            }
+        }
+
+        // Pair results with parameters in order: the first ValidationResult
+        // parameter receives the first mapped payload's result, and so on.
+        foreach ($validationResultParameters as $index => $parameter) {
+            if (isset($validationResults[$index])) {
+                $resolvedParameters[$parameter->getName()] = $validationResults[$index];
             }
         }
 

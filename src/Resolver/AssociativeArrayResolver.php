@@ -60,10 +60,8 @@ class AssociativeArrayResolver implements ParameterResolverInterface
             return $this->resolveEnum($type, $value);
         }
 
-        if (class_exists($type) && is_a($value, $type, true)) {
-            return new $type($value);
-        }
-
+        // A value that already is the declared type is handed through; a
+        // caller that provides an object by name has done the construction.
         return $value;
     }
 
@@ -72,13 +70,24 @@ class AssociativeArrayResolver implements ParameterResolverInterface
         return $enumClass::tryFrom($value) ?? null;
     }
 
+    /**
+     * Coerce a route value to the parameter's scalar type when it reads as
+     * one. A value that does not — `1.5` or `abc` for an int — is handed
+     * through unchanged, so the call fails on the type rather than serving
+     * `/posts/1.5` as post 1. Route requirements are the place to reject
+     * such values with a 404 before they get here.
+     */
     private function convertToType(string $type, mixed $value): mixed
     {
+        if (!is_scalar($value)) {
+            return $value;
+        }
+
         return match ($type) {
-            'int' => is_numeric($value) ? (int) $value : $value,
-            'float' => is_numeric($value) ? (float) $value : $value,
-            'bool' => filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? $value,
-            'string' => is_scalar($value) ? (string) $value : $value,
+            'int' => filter_var($value, \FILTER_VALIDATE_INT, \FILTER_NULL_ON_FAILURE) ?? $value,
+            'float' => filter_var($value, \FILTER_VALIDATE_FLOAT, \FILTER_NULL_ON_FAILURE) ?? $value,
+            'bool' => filter_var($value, \FILTER_VALIDATE_BOOL, \FILTER_NULL_ON_FAILURE) ?? $value,
+            'string' => (string) $value,
             default => $value,
         };
     }

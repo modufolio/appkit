@@ -132,7 +132,7 @@ class MapEntityResolverTest extends TestCase
     {
         $controller = new class {
             public function action(
-                #[MapEntity(criteria: ['status' => 'published'])] MapEntityResolverTestEntity $entity
+                #[MapEntity(criteria: ['status' => 'published'])] MapEntityResolverTestEntity $entity,
             ): void {
             }
         };
@@ -159,7 +159,7 @@ class MapEntityResolverTest extends TestCase
     {
         $controller = new class {
             public function action(
-                #[MapEntity(mapping: ['uuid' => 'uuid', 'slug' => 'slug'], exclude: ['slug'])] MapEntityResolverTestEntity $entity
+                #[MapEntity(mapping: ['uuid' => 'uuid', 'slug' => 'slug'], exclude: ['slug'])] MapEntityResolverTestEntity $entity,
             ): void {
             }
         };
@@ -173,7 +173,7 @@ class MapEntityResolverTest extends TestCase
     {
         $controller = new class {
             public function action(
-                #[MapEntity(mapping: ['uuid' => 'uuid', 'slug' => 'slug'], stripNull: true)] MapEntityResolverTestEntity $entity
+                #[MapEntity(mapping: ['uuid' => 'uuid', 'slug' => 'slug'], stripNull: true)] MapEntityResolverTestEntity $entity,
             ): void {
             }
         };
@@ -187,7 +187,7 @@ class MapEntityResolverTest extends TestCase
     {
         $controller = new class {
             public function action(
-                #[MapEntity(mapping: ['uuid' => 'uuid', 'absent' => 'other'])] MapEntityResolverTestEntity $entity
+                #[MapEntity(mapping: ['uuid' => 'uuid', 'absent' => 'other'])] MapEntityResolverTestEntity $entity,
             ): void {
             }
         };

@@ -85,6 +85,34 @@ class MapRequestPayloadResolverTest extends TestCase
         $this->assertNotEmpty($result['result']->errors());
     }
 
+    /**
+     * The ValidationResult parameter may precede the payload it reports on.
+     */
+    public function testValidationResultIsFilledWhenDeclaredBeforeThePayload(): void
+    {
+        $request = $this->createRequest(['name' => '', 'email' => 'invalid']);
+        $pipeline = $this->createPipeline($request);
+        $reflection = new \ReflectionMethod(TestPayloadController::class, 'storeWithValidationResultFirst');
+
+        $result = $pipeline->getParameters($reflection, [ServerRequestInterface::class => $request], []);
+
+        $this->assertInstanceOf(TestCreateUserDto::class, $result['dto']);
+        $this->assertInstanceOf(ValidationResult::class, $result['result']);
+        $this->assertTrue($result['result']->hasErrors());
+    }
+
+    public function testAScalarWhereTheQueryStringObjectIsExpectedIsAnEmptyPayload(): void
+    {
+        $request = (new ServerRequest('GET', new Uri('/?query=oops')))->withQueryParams(['query' => 'oops']);
+        $resolver = new MapRequestPayloadResolver($this->serializer, $request, $this->validator);
+        $parameter = (new \ReflectionMethod(TestPayloadController::class, 'listNamedQuery'))->getParameters()[0];
+
+        $resolved = $resolver->resolve($parameter, []);
+
+        $this->assertInstanceOf(\Modufolio\Appkit\Resolver\ResolvedPayload::class, $resolved);
+        $this->assertInstanceOf(TestCreateUserDto::class, $resolved->payload);
+    }
+
     public function testThrowOnErrorFalseWithValidDataInjectsEmptyValidationResult(): void
     {
         $request = $this->createRequest(['name' => 'John', 'email' => 'john@example.com']);

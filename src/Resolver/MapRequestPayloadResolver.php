@@ -68,7 +68,9 @@ readonly class MapRequestPayloadResolver implements AttributeResolverInterface
      */
     private function resolveRequestPayload(\ReflectionParameter $parameter, MapRequestPayload $attribute): object
     {
-        $array = $this->request->getParsedBody() ?? [];
+        // PSR-7 allows an object body; the denormalizer wants an array.
+        $body = $this->request->getParsedBody();
+        $array = is_array($body) ? $body : [];
         $className = $this->getClassName($parameter);
 
         $violations = new ConstraintViolationList();
@@ -103,7 +105,10 @@ readonly class MapRequestPayloadResolver implements AttributeResolverInterface
         $className = $this->getClassName($parameter);
 
         if ($attribute->name) {
-            $queryParams = $queryParams[$attribute->name] ?? [];
+            // `?filter=foo` where an array is expected is an empty payload,
+            // not a denormalizer exception.
+            $nested = $queryParams[$attribute->name] ?? [];
+            $queryParams = is_array($nested) ? $nested : [];
         }
 
         $payload = $this->serializer->denormalize($queryParams, $className, 'array');
@@ -130,14 +135,14 @@ readonly class MapRequestPayloadResolver implements AttributeResolverInterface
         $queryParams = $this->request->getQueryParams();
         $className = $this->getClassName($parameter);
 
-        $filter = new $className();
+        // A real check, not assert(): assertions are compiled out in
+        // production, where this would otherwise surface as an undefined
+        // method call on whatever class the parameter named.
+        if (!is_subclass_of($className, MapFilterInterface::class)) {
+            throw new \LogicException(sprintf('#[MapFilter] parameter "$%s" must be typed with a class implementing %s, got "%s".', $parameter->getName(), MapFilterInterface::class, $className));
+        }
 
-        assert(
-            $filter instanceof MapFilterInterface,
-            'Filter class must implement MapFilterInterface'
-        );
-
-        return $filter->fromArray($queryParams);
+        return $className::fromArray($queryParams);
     }
 
     private function getClassName(\ReflectionParameter $parameter): string
