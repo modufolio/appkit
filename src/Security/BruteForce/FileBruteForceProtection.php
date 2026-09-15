@@ -16,6 +16,9 @@ namespace Modufolio\Appkit\Security\BruteForce;
  */
 class FileBruteForceProtection implements BruteForceProtectionInterface
 {
+    /** One in this many recordFailure() calls sweeps expired files. */
+    private const PRUNE_DIVISOR = 100;
+
     private string $storageDir;
     private int $maxAttempts;
     private int $accountMaxAttempts;
@@ -55,6 +58,14 @@ class FileBruteForceProtection implements BruteForceProtectionInterface
 
     public function recordFailure(string $identifier, ?string $ipAddress = null): void
     {
+        // Every failure may create up to two files, and an attacker cycling
+        // through random identifiers creates new ones without bound. Nothing
+        // else ever removes them, so amortise the sweep over the writes that
+        // cause the growth.
+        if (1 === random_int(1, self::PRUNE_DIVISOR)) {
+            $this->prune();
+        }
+
         foreach ($this->counters($identifier, $ipAddress) as [$key, $threshold]) {
             $this->modify($key, function (array $data, int $now) use ($threshold): array {
                 $data['failures'][] = $now;
@@ -139,6 +150,31 @@ class FileBruteForceProtection implements BruteForceProtectionInterface
     }
 
     /**
+     * Remove counter files that can no longer hold a live failure or lock.
+     *
+     * A file's mtime is its last write. Once that is older than both the
+     * failure window and the lockout duration, every failure it records has
+     * aged out and any lock it held has expired, so the file is dead weight.
+     * Called probabilistically from recordFailure(); safe to call from a cron
+     * as well. Returns the number of files removed.
+     */
+    public function prune(): int
+    {
+        $cutoff = time() - max($this->windowDuration, $this->lockoutDuration);
+        $removed = 0;
+
+        foreach (glob($this->storageDir.'/*.json') ?: [] as $file) {
+            $mtime = @filemtime($file);
+
+            if (false !== $mtime && $mtime < $cutoff && @unlink($file)) {
+                ++$removed;
+            }
+        }
+
+        return $removed;
+    }
+
+    /**
      * The set of independent counters a failure/check fans out to.
      *
      * Each entry is [hashedKey, threshold]:
@@ -185,14 +221,18 @@ class FileBruteForceProtection implements BruteForceProtectionInterface
             return ['failures' => [], 'locked_until' => null];
         }
 
+        // A file that exists but cannot be read is not "no failures": under
+        // descriptor exhaustion or a permission change, answering empty here
+        // would let a locked account through. modify() already fails closed
+        // on the same conditions; the read path must agree.
         $handle = fopen($filepath, 'r');
         if (false === $handle) {
-            return ['failures' => [], 'locked_until' => null];
+            throw new \RuntimeException(sprintf('Failed to open brute force state for reading: %s', $filepath));
         }
 
         try {
             if (!flock($handle, LOCK_SH)) {
-                return ['failures' => [], 'locked_until' => null];
+                throw new \RuntimeException(sprintf('Failed to acquire shared lock on file: %s', $filepath));
             }
             $content = stream_get_contents($handle);
             flock($handle, LOCK_UN);

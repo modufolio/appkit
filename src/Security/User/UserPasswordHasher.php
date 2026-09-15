@@ -55,11 +55,16 @@ class UserPasswordHasher implements UserPasswordHasherInterface
     {
         $hashedPassword = $user->getPassword();
 
-        if (null === $hashedPassword) {
+        if ($this->isPasswordTooLong($plainPassword)) {
             return false;
         }
 
-        if ($this->isPasswordTooLong($plainPassword)) {
+        // An account without a password (invited, OAuth-only) must cost the
+        // same as a wrong password, or its existence is readable from the
+        // response time — the leak verifyDummy() exists to close.
+        if (null === $hashedPassword) {
+            $this->verifyDummy($plainPassword);
+
             return false;
         }
 

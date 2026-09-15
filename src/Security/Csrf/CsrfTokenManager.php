@@ -26,7 +26,9 @@ class CsrfTokenManager implements CsrfTokenManagerInterface
     /**
      * Cap stored token ids per session. Without this, a malicious or buggy
      * caller can grow the session indefinitely by minting tokens with new ids.
-     * 50 is comfortably above any realistic per-page form count.
+     * Eviction is least-recently-used by mint or render, so the ids every
+     * page touches (the firewall token, login, logout) survive a page that
+     * mints dozens of per-row ids.
      */
     private const MAX_TOKENS_PER_SESSION = 50;
 
@@ -52,13 +54,22 @@ class CsrfTokenManager implements CsrfTokenManagerInterface
         $tokens = $this->getSessionTokens();
 
         if (isset($tokens[$tokenId])) {
-            return new CsrfToken($tokenId, $tokens[$tokenId]);
+            // Move it to the most-recent end so the cap below evicts ids that
+            // have not been rendered lately, not the firewall-wide token a
+            // page of per-row ids happens to have been minted after.
+            $value = $tokens[$tokenId];
+            unset($tokens[$tokenId]);
+            $tokens[$tokenId] = $value;
+            $this->setSessionTokens($tokens);
+
+            return new CsrfToken($tokenId, $value);
         }
 
         // Generate new token
         $value = $this->generateTokenValue();
 
-        // Evict oldest entries (FIFO) if we'd exceed the cap.
+        // Evict the least recently minted or rendered ids if we'd exceed
+        // the cap; getToken() on an existing id refreshes its position.
         while (count($tokens) >= self::MAX_TOKENS_PER_SESSION) {
             array_shift($tokens);
         }

@@ -71,7 +71,10 @@ class UserChecker implements UserCheckerInterface
                 'reason' => 'account_locked',
             ]);
 
-            throw new LockedAccountException($user->getLockedReason() ?? 'Your account has been locked. Please contact an administrator.');
+            // The reason is administrator-authored and already in the log
+            // context above; it must not travel in the exception, where any
+            // handler rendering getMessage() would show it to the visitor.
+            throw new LockedAccountException('Your account has been locked. Please contact an administrator.');
         }
 
         if ($user instanceof ExpirableUserInterface && $user->isAccountExpired()) {

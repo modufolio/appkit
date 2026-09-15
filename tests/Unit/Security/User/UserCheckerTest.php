@@ -34,12 +34,19 @@ class UserCheckerTest extends TestCase
         (new UserChecker())->checkPreAuth($this->plainUser(enabled: false));
     }
 
-    public function testCheckPreAuthThrowsForLockedUser(): void
+    /**
+     * The lock reason is administrator-authored and belongs in the log, not
+     * in the exception any handler might render to the visitor.
+     */
+    public function testCheckPreAuthThrowsForLockedUserWithoutExposingTheReason(): void
     {
-        $this->expectException(LockedAccountException::class);
-        $this->expectExceptionMessage('Account compromised');
-
-        (new UserChecker())->checkPreAuth($this->lockableUser(locked: true, reason: 'Account compromised'));
+        try {
+            (new UserChecker())->checkPreAuth($this->lockableUser(locked: true, reason: 'Account compromised'));
+            $this->fail('Expected a LockedAccountException.');
+        } catch (LockedAccountException $e) {
+            $this->assertStringNotContainsString('compromised', $e->getMessage());
+            $this->assertMatchesRegularExpression('/locked.*administrator/', $e->getMessage());
+        }
     }
 
     public function testCheckPreAuthLockedUserUsesDefaultMessageWhenReasonNull(): void

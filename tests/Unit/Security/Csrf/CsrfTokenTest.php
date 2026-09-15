@@ -42,6 +42,14 @@ class CsrfTokenTest extends TestCase
         $this->assertSame('token_value', $token->__toString());
     }
 
+    public function testZeroIsAValidIdAndValue(): void
+    {
+        $token = new CsrfToken('0', '0');
+
+        $this->assertSame('0', $token->getId());
+        $this->assertSame('0', $token->getValue());
+    }
+
     public function testConstructorThrowsExceptionForEmptyId(): void
     {
         $this->expectException(\InvalidArgumentException::class);

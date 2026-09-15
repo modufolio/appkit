@@ -209,6 +209,49 @@ class RedisBruteForceProtection implements BruteForceProtectionInterface
     }
 
     /**
+     * parse_url() for a Redis DSN. The documented socket form
+     * `redis:///var/run/redis.sock` has an empty authority, which parse_url()
+     * rejects outright, so it is recognised first and returned as a bare path.
+     *
+     * @return array{scheme?: string, host?: string, port?: int, user?: string, pass?: string, path?: string, query?: string, fragment?: string}
+     *
+     * @throws \RuntimeException on a DSN parse_url() cannot read
+     */
+    public static function parseDsn(string $dsn): array
+    {
+        if (str_starts_with($dsn, 'redis:///')) {
+            return ['scheme' => 'redis', 'path' => substr($dsn, \strlen('redis://'))];
+        }
+
+        $parsed = parse_url($dsn);
+        if (false === $parsed) {
+            throw new \RuntimeException('Invalid Redis DSN format');
+        }
+
+        return $parsed;
+    }
+
+    /**
+     * The (user, password) pair a parsed DSN carries, URL-decoded, with a
+     * lone user component read as the password.
+     *
+     * @param array{user?: string, pass?: string} $parsed the output of parse_url()
+     *
+     * @return array{?string, ?string}
+     */
+    public static function credentialsFromDsn(array $parsed): array
+    {
+        $user = isset($parsed['user']) ? rawurldecode($parsed['user']) : null;
+        $password = isset($parsed['pass']) ? rawurldecode($parsed['pass']) : null;
+
+        if (null === $password && null !== $user) {
+            return [null, $user];
+        }
+
+        return [$user, $password];
+    }
+
+    /**
      * Factory method to create from DSN string.
      *
      * Example: redis://localhost:6379/0
@@ -238,11 +281,7 @@ class RedisBruteForceProtection implements BruteForceProtectionInterface
 
         $redis = new \Redis();
 
-        // Parse DSN
-        $parsed = parse_url($dsn);
-        if (false === $parsed) {
-            throw new \RuntimeException('Invalid Redis DSN format');
-        }
+        $parsed = self::parseDsn($dsn);
 
         $scheme = $parsed['scheme'] ?? 'redis';
         if ('redis' !== $scheme) {
@@ -266,12 +305,12 @@ class RedisBruteForceProtection implements BruteForceProtectionInterface
             }
         }
 
-        // Authenticate if password provided
-        if (isset($parsed['pass']) || isset($parsed['user'])) {
-            $password = $parsed['pass'] ?? null;
-            if (null !== $password && !$redis->auth($password)) {
-                throw new \RuntimeException('Redis authentication failed');
-            }
+        // Authenticate if credentials are present. `redis://password@host`
+        // parses as a user with no pass, so a lone user component is the
+        // password; `redis://user:pass@host` is a Redis 6 ACL login.
+        [$user, $password] = self::credentialsFromDsn($parsed);
+        if (null !== $password && !$redis->auth(null !== $user ? [$user, $password] : $password)) {
+            throw new \RuntimeException('Redis authentication failed');
         }
 
         // Select database if specified in path

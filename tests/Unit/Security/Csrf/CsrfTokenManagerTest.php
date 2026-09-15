@@ -35,6 +35,31 @@ class CsrfTokenManagerTest extends TestCase
         return $session;
     }
 
+    /**
+     * The cap evicts the ids nobody has rendered lately. A page that mints
+     * dozens of per-row ids must not push out the firewall-wide token every
+     * other form and XHR relies on, as long as that token keeps being rendered.
+     */
+    public function testRenderedIdsSurviveEviction(): void
+    {
+        $manager = new CsrfTokenManager($this->createMockSession(), 'csrf');
+        $firewallToken = $manager->getToken('csrf')->getValue();
+
+        for ($i = 0; $i < 60; ++$i) {
+            $manager->getToken('delete_'.$i);
+
+            // The layout renders the firewall token on every page.
+            if (0 === $i % 10) {
+                $this->assertSame($firewallToken, $manager->getToken('csrf')->getValue());
+            }
+        }
+
+        $this->assertTrue($manager->hasToken('csrf'));
+        $this->assertSame($firewallToken, $manager->getToken('csrf')->getValue());
+        $this->assertFalse($manager->hasToken('delete_0'), 'the oldest per-row id is what gets evicted');
+        $this->assertTrue($manager->hasToken('delete_59'));
+    }
+
     public function testGetTokenGeneratesNewToken(): void
     {
         $session = $this->createMockSession();

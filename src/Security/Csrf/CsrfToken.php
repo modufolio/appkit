@@ -28,11 +28,11 @@ class CsrfToken
      */
     public function __construct(string $id, string $value)
     {
-        if (empty($id)) {
+        if ('' === $id) {
             throw new \InvalidArgumentException('CSRF token ID cannot be empty');
         }
 
-        if (empty($value)) {
+        if ('' === $value) {
             throw new \InvalidArgumentException('CSRF token value cannot be empty');
         }
 

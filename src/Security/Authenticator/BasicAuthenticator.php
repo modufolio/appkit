@@ -32,6 +32,9 @@ class BasicAuthenticator extends AbstractAuthenticator implements AmbientCredent
      */
     private const DUMMY_HASH = '$2y$12$abcdefghijklmnopqrstuuGfQ7w0rqXjK0LhV0XjY6wWyJ4Z7lYqe';
 
+    /** Same cap as UserPasswordHasher, for the path without an injected hasher. */
+    private const MAX_PASSWORD_LENGTH = 4096;
+
     public function __construct(
         private UserProviderInterface $userProvider,
         private ?UserPasswordHasherInterface $passwordHasher = null,
@@ -74,9 +77,7 @@ class BasicAuthenticator extends AbstractAuthenticator implements AmbientCredent
             throw new AuthenticationException('Invalid credentials');
         }
 
-        $valid = null !== $this->passwordHasher
-            ? $this->passwordHasher->isPasswordValid($user, $password)
-            : password_verify($password, (string) $user->getPassword());
+        $valid = $this->isPasswordValid($user, $password);
 
         if (!$valid) {
             $this->bruteForce?->recordFailure($identifier, $ipAddress);
@@ -117,7 +118,29 @@ class BasicAuthenticator extends AbstractAuthenticator implements AmbientCredent
 
             return;
         }
+        if (strlen($password) > self::MAX_PASSWORD_LENGTH) {
+            return;
+        }
         password_verify($password, self::DUMMY_HASH);
+    }
+
+    /**
+     * Whether the submitted password is valid for the user. Without an
+     * injected hasher the check is a plain password_verify(), capped at the
+     * same length UserPasswordHasher enforces so an oversized submission
+     * cannot drive an argon2/bcrypt round.
+     */
+    private function isPasswordValid(PasswordAuthenticatedUserInterface $user, #[\SensitiveParameter] string $password): bool
+    {
+        if (null !== $this->passwordHasher) {
+            return $this->passwordHasher->isPasswordValid($user, $password);
+        }
+
+        if (strlen($password) > self::MAX_PASSWORD_LENGTH) {
+            return false;
+        }
+
+        return password_verify($password, (string) $user->getPassword());
     }
 
     public function createToken(UserInterface $user, string $firewallName): TokenInterface

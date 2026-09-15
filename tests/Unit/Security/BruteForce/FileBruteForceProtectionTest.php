@@ -39,6 +39,64 @@ final class FileBruteForceProtectionTest extends TestCase
         );
     }
 
+    /**
+     * Files whose last write predates both the window and the lockout can
+     * hold nothing live; prune() removes exactly those.
+     */
+    public function testPruneRemovesOnlyFilesThatCanHoldNothingLive(): void
+    {
+        $bf = $this->protection();
+        $bf->recordFailure('stale@example.com', '10.0.0.1');
+        $bf->recordFailure('fresh@example.com', '10.0.0.2');
+
+        $files = glob($this->storageDir.'/*.json') ?: [];
+        $this->assertCount(4, $files, 'two counters per failure');
+
+        // Age the stale account's two files past max(window, lockout) = 300s.
+        // The hashed names are opaque, so age every file, then let a new
+        // failure re-touch the fresh account's pair.
+        foreach ($files as $file) {
+            touch($file, time() - 301);
+        }
+        $bf->recordFailure('fresh@example.com', '10.0.0.2');
+
+        $removed = $bf->prune();
+
+        $this->assertSame(2, $removed);
+        $this->assertCount(2, glob($this->storageDir.'/*.json') ?: []);
+        $this->assertSame(2, $bf->getFailureCount('fresh@example.com', '10.0.0.2'));
+        $this->assertSame(0, $bf->getFailureCount('stale@example.com', '10.0.0.1'));
+    }
+
+    /**
+     * A counter file that exists but cannot be opened is not "no failures":
+     * the read fails closed like the write path, so a locked account cannot
+     * slip through on a permissions or descriptor problem.
+     */
+    public function testUnreadableStateFailsClosed(): void
+    {
+        if (0 === (function_exists('posix_geteuid') ? posix_geteuid() : 1)) {
+            $this->markTestSkipped('root ignores file permissions.');
+        }
+
+        $bf = $this->protection(maxAttempts: 1);
+        $bf->recordFailure('locked@example.com', '10.0.0.1');
+        $this->assertTrue($bf->isLocked('locked@example.com', '10.0.0.1'));
+
+        foreach (glob($this->storageDir.'/*.json') ?: [] as $file) {
+            chmod($file, 0o000);
+        }
+
+        try {
+            $this->expectException(\RuntimeException::class);
+            @$bf->isLocked('locked@example.com', '10.0.0.1');
+        } finally {
+            foreach (glob($this->storageDir.'/*.json') ?: [] as $file) {
+                chmod($file, 0o644);
+            }
+        }
+    }
+
     public function testLocksAfterMaxAttemptsFromSameIp(): void
     {
         $bf = $this->protection(maxAttempts: 3);
