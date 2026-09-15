@@ -67,11 +67,7 @@ class TotpService implements TwoFactorServiceInterface
         private int $secretBytes = self::DEFAULT_SECRET_BYTES,
     ) {
         if ($secretBytes < self::MIN_SECRET_BYTES) {
-            throw new \InvalidArgumentException(sprintf(
-                'A TOTP secret must be at least %d bytes (RFC 4226 §4); %d given.',
-                self::MIN_SECRET_BYTES,
-                $secretBytes,
-            ));
+            throw new \InvalidArgumentException(sprintf('A TOTP secret must be at least %d bytes (RFC 4226 §4); %d given.', self::MIN_SECRET_BYTES, $secretBytes));
         }
     }
 
@@ -258,6 +254,13 @@ class TotpService implements TwoFactorServiceInterface
      */
     public function enableTwoFactor(#[\SensitiveParameter] TwoFactorSecret $totpSecret, string $code): bool
     {
+        // Enabling twice would silently regenerate and overwrite the backup
+        // codes the user already saved. generateSecret() refuses the same
+        // state; this must too.
+        if ($totpSecret->isEnabled()) {
+            throw TwoFactorException::alreadyEnabled();
+        }
+
         if (!$this->verifyCode($totpSecret, $code)) {
             return false;
         }

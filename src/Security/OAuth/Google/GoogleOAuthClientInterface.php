@@ -17,9 +17,14 @@ interface GoogleOAuthClientInterface
      * The URL to send the browser to, beginning the consent flow.
      *
      * @param string $state opaque anti-forgery value echoed back on the
-     *                      callback; the caller stores it and compares.
+     *                      callback; the caller stores it and compares
      */
-    public function authorizationUrl(string $state): string;
+    /**
+     * @param string|null $codeVerifier the PKCE verifier this session keeps for the
+     *                                  callback; when given, its S256 challenge is
+     *                                  sent so the issued code is bound to it
+     */
+    public function authorizationUrl(string $state, #[\SensitiveParameter] ?string $codeVerifier = null): string;
 
     /**
      * Exchange an authorization code for a verified identity.
@@ -29,5 +34,8 @@ interface GoogleOAuthClientInterface
      *
      * @throws GoogleOAuthException on any exchange or verification failure
      */
-    public function authenticate(string $code): GoogleIdentity;
+    /**
+     * @param string|null $codeVerifier the verifier the authorization URL was built with
+     */
+    public function authenticate(string $code, #[\SensitiveParameter] ?string $codeVerifier = null): GoogleIdentity;
 }

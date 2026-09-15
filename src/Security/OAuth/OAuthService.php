@@ -147,8 +147,13 @@ class OAuthService implements OAuthServiceInterface
             return null;
         }
 
-        // Verify token is not revoked
+        // A rotated refresh token presented again is the signature of theft:
+        // whoever holds the other copy already exchanged it. Revoking only
+        // the stale row would leave the thief's fresh tokens live, so the
+        // whole user's grant set goes (OAuth 2.1 §4.3.1, RFC 6819 §5.2.2.3).
         if ($oldToken->isRevoked()) {
+            $this->revokeAllUserTokens($oldToken->getUser());
+
             return null;
         }
 

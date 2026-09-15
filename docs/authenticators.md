@@ -365,9 +365,33 @@ the framework; implement `RememberMeTokenProviderInterface` to back tokens with
 your own store (e.g. a database table). Deleting a user's tokens
 (`deleteTokensByUserIdentifier()`) revokes remember-me on all their devices.
 
+### The login page
+
+The firewall serves `GET {entry_point}` anonymously, but a remember-me cookie
+on that request is honoured first — the same order Symfony's firewall uses,
+whose remember-me listener runs on `/login` like on any other path. A
+returning visitor whose session expired therefore reaches the login
+controller already signed in. Sending them on is the controller's decision,
+exactly as in a Symfony app (`if ($this->getUser()) return
+$this->redirectToRoute(...)`):
+
+```php
+public function login(#[CurrentUser] ?User $user): ResponseInterface|Inertia
+{
+    if ($user !== null) {
+        return Response::redirect($this->urlGenerator->generate('dashboard'));
+    }
+    // … render the form
+}
+```
+
+A cookie that no longer validates falls through to the form and is expired
+on the response. The 2FA page is not affected: a cookie never lets a visitor
+past the second factor.
+
 ### When the cookie stops validating
 
-A remember-me cookie that fails validation is not treated as a failed login: the firewall silently expires it on the response and serves the request anonymously — no error message, no flash. Without this, a browser holding a dead cookie (password changed, secret rotated) would see *"Invalid credentials."* on every request until the cookie expired. See [Authentication failure behaviour](security.md#authentication-failure-behaviour).
+A remember-me cookie that fails validation is not treated as a failed login: the firewall silently expires it on the response and serves the request anonymously — no error message, no flash. Without this, a browser holding a dead cookie (password changed, secret rotated) would see *"Invalid credentials."* on every request until the cookie expired. See [Authentication failure behaviour](security/accounts.md#authentication-failure-behaviour).
 
 ## OAuth 2.1
 
@@ -478,11 +502,20 @@ The authenticator only handles the return trip. The redirect that *starts* the f
 public function start(): ResponseInterface
 {
     $state = bin2hex(random_bytes(16));
+    $codeVerifier = GoogleOAuthClient::generateCodeVerifier();
     $this->session->set('_google_oauth_state', $state);
+    $this->session->set('_google_oauth_code_verifier', $codeVerifier);
 
-    return Response::redirect($this->google->authorizationUrl($state));
+    return Response::redirect($this->google->authorizationUrl($state, $codeVerifier));
 }
 ```
+
+The verifier is PKCE (RFC 7636), which OAuth 2.1 requires for every
+authorization-code client: the code Google issues is bound to it, so a code
+captured in flight cannot be exchanged by anyone who did not start the flow.
+The authenticator reads the verifier back from the session (removing it, like
+the state) and sends it with the exchange. Omit it and the flow still works,
+without that protection.
 
 Make the **start** path public — `$security->publicPath('/panel/auth/google/start')` — so a logged-out visitor can begin; no authenticator claims that path, so without this the firewall bounces them to the login page. Leave the **callback** path protected: the authenticator runs on it precisely *because* it is inside the firewall (authenticators run ahead of the public/entry-point decision — see [security.md](security.md)), and a failed exchange falls through to the login page. Keep the two paths as siblings so `publicPath` on `/start` does not also expose the callback.
 
@@ -492,6 +525,7 @@ Make the **start** path public — `$security->publicPath('/panel/auth/google/st
 - **State is single-use.** It is removed from the session on read, so a replayed callback URL is inert, and a callback arriving without a stored state is rejected.
 - **`allowed_hosted_domain`** is a second gate: only accounts in that Workspace domain pass, on top of the existing-user match. Leave it `null` to accept any domain.
 - The session token minted is the same `UsernamePasswordToken` a form login produces, so a Google session behaves identically afterward — switch-user, logout, and role checks all apply.
+- **Two-factor applies.** Pass the `TwoFactorServiceInterface` as the authenticator's fifth argument and a user with TOTP enabled is sent to `two_factor_path` after Google vouches for the address, exactly as after a password. Without it, Google sign-in would be the one door that skips the second factor.
 
 ## Two-factor authentication (TOTP)
 

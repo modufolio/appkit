@@ -29,6 +29,29 @@ class TotpServiceTest extends AppTestCase
         $this->loadFixtures();
     }
 
+    /**
+     * Enabling an already-enabled secret would silently regenerate the
+     * backup codes the user saved. Refuse it, as generateSecret() does.
+     */
+    public function testEnableTwoFactorRefusesAnAlreadyEnabledSecret(): void
+    {
+        self::mockTime('2024-01-01 00:00:00');
+
+        $service = $this->app()->totpService();
+        $secret = $service->generateSecret($this->fixtureUser());
+        $this->assertTrue($service->enableTwoFactor($secret, $this->codeFor($secret)));
+        $backupCodes = $secret->getBackupCodes();
+
+        self::mockTime('2024-01-01 00:01:00');
+
+        try {
+            $service->enableTwoFactor($secret, $this->codeFor($secret));
+            $this->fail('Expected a TwoFactorException.');
+        } catch (TwoFactorException) {
+            $this->assertSame($backupCodes, $secret->getBackupCodes(), 'backup codes untouched');
+        }
+    }
+
     public function testVerifyCodeRejectsAReplayedStep(): void
     {
         self::mockTime('2024-01-01 00:00:00');

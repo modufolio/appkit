@@ -6,11 +6,13 @@ namespace Modufolio\Appkit\Security\Authenticator;
 
 use Modufolio\Appkit\Security\Exception\AuthenticationException;
 use Modufolio\Appkit\Security\Exception\BadCredentialsException;
+use Modufolio\Appkit\Security\Exception\TwoFactorRequiredException;
 use Modufolio\Appkit\Security\Exception\UserNotFoundException;
 use Modufolio\Appkit\Security\OAuth\Google\GoogleOAuthClientInterface;
 use Modufolio\Appkit\Security\OAuth\Google\GoogleOAuthException;
 use Modufolio\Appkit\Security\Token\TokenInterface;
 use Modufolio\Appkit\Security\Token\UsernamePasswordToken;
+use Modufolio\Appkit\Security\TwoFactor\TwoFactorServiceInterface;
 use Modufolio\Appkit\Security\User\UserInterface;
 use Modufolio\Appkit\Security\User\UserProviderInterface;
 use Modufolio\Psr7\Http\Response;
@@ -42,7 +44,9 @@ final class GoogleAuthenticator extends AbstractAuthenticator
      * @param array{
      *     callback_path?: string,
      *     login_path?: string,
+     *     two_factor_path?: string,
      *     state_session_key?: string,
+     *     code_verifier_session_key?: string,
      *     allowed_hosted_domain?: string|null
      * } $options
      */
@@ -51,11 +55,15 @@ final class GoogleAuthenticator extends AbstractAuthenticator
         private readonly UserProviderInterface $userProvider,
         private readonly SessionInterface $session,
         array $options = [],
+        private readonly ?TwoFactorServiceInterface $totpService = null,
     ) {
         $this->options = array_merge([
             'callback_path' => '/panel/auth/google/callback',
             'login_path' => '/panel/login',
+            'two_factor_path' => '/2fa',
             'state_session_key' => '_google_oauth_state',
+            // The PKCE verifier the start action stored next to the state.
+            'code_verifier_session_key' => '_google_oauth_code_verifier',
             // When set, only accounts in this Workspace domain (`hd`) may sign
             // in — a second gate on top of the existing-user match.
             'allowed_hosted_domain' => null,
@@ -78,13 +86,14 @@ final class GoogleAuthenticator extends AbstractAuthenticator
         $state = $query['state'] ?? null;
 
         $this->assertValidState(is_string($state) ? $state : '');
+        $codeVerifier = $this->consumeCodeVerifier();
 
-        if (!is_string($code) || $code === '') {
+        if (!is_string($code) || '' === $code) {
             throw new BadCredentialsException('Missing authorization code.');
         }
 
         try {
-            $identity = $this->client->authenticate($code);
+            $identity = $this->client->authenticate($code, $codeVerifier);
         } catch (GoogleOAuthException $e) {
             // Every cause collapses to one message: a login attempt failed.
             throw new BadCredentialsException('Google sign-in failed.', 0, $e);
@@ -96,17 +105,30 @@ final class GoogleAuthenticator extends AbstractAuthenticator
         }
 
         $allowedDomain = $this->options['allowed_hosted_domain'];
-        if (is_string($allowedDomain) && $allowedDomain !== '' && $identity->hostedDomain !== $allowedDomain) {
+        if (is_string($allowedDomain) && '' !== $allowedDomain && $identity->hostedDomain !== $allowedDomain) {
             throw new BadCredentialsException('Google account is outside the permitted domain.');
         }
 
         try {
             // Existing users only: an unknown email is indistinguishable from
             // a wrong password — a failed login, not a hint that it is unknown.
-            return $this->userProvider->loadUserByIdentifier($identity->email);
+            $user = $this->userProvider->loadUserByIdentifier($identity->email);
         } catch (UserNotFoundException $e) {
             throw new BadCredentialsException('No panel account matches this Google email.', 0, $e);
         }
+
+        // Google vouches for the address, not for the second factor the user
+        // enabled here. Without this, Google sign-in would be the one door
+        // that skips it.
+        if (null !== $this->totpService) {
+            $totpSecret = $this->totpService->getTwoFactorSecret($user);
+
+            if (null !== $totpSecret && $totpSecret->isEnabled()) {
+                throw new TwoFactorRequiredException($user);
+            }
+        }
+
+        return $user;
     }
 
     public function createToken(UserInterface $user, string $firewallName): TokenInterface
@@ -119,7 +141,25 @@ final class GoogleAuthenticator extends AbstractAuthenticator
 
     public function unauthorizedResponse(ServerRequestInterface $request, AuthenticationException $exception): ResponseInterface
     {
+        if ($exception instanceof TwoFactorRequiredException) {
+            return Response::redirect($this->options['two_factor_path'], 303);
+        }
+
         return Response::redirect($this->options['login_path'], 303);
+    }
+
+    /**
+     * The PKCE verifier the start action stored, removed on read like the
+     * state. Null when the start action did not use PKCE, in which case the
+     * exchange runs without it.
+     */
+    private function consumeCodeVerifier(): ?string
+    {
+        $key = $this->options['code_verifier_session_key'];
+        $verifier = $this->session->get($key);
+        $this->session->remove($key);
+
+        return is_string($verifier) && '' !== $verifier ? $verifier : null;
     }
 
     /**
@@ -135,7 +175,7 @@ final class GoogleAuthenticator extends AbstractAuthenticator
         $expected = $this->session->get($this->options['state_session_key']);
         $this->session->remove($this->options['state_session_key']);
 
-        if (!is_string($expected) || $expected === '' || $state === '' || !hash_equals($expected, $state)) {
+        if (!is_string($expected) || '' === $expected || '' === $state || !hash_equals($expected, $state)) {
             throw new BadCredentialsException('Invalid OAuth state.');
         }
     }
