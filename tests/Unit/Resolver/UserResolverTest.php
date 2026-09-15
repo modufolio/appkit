@@ -29,7 +29,7 @@ class UserResolverTest extends TestCase
     {
         // Arrange
         $testClass = new class {
-            public function method(#[CurrentUser] $user): void
+            public function method(#[CurrentUser] mixed $user): void
             {
             }
         };
@@ -47,7 +47,7 @@ class UserResolverTest extends TestCase
     {
         // Arrange
         $testClass = new class {
-            public function method($user): void
+            public function method(mixed $user): void
             {
             }
         };
@@ -68,7 +68,7 @@ class UserResolverTest extends TestCase
         $token = new UsernamePasswordToken($user, 'main', ['ROLE_USER']);
         $this->tokenStorage->setToken($token);
         $testClass = new class {
-            public function method(#[CurrentUser] $user): void
+            public function method(#[CurrentUser] mixed $user): void
             {
             }
         };
@@ -89,7 +89,7 @@ class UserResolverTest extends TestCase
         // Arrange
         $this->tokenStorage->setToken(null); // No token
         $testClass = new class {
-            public function method(#[CurrentUser] $user): void
+            public function method(#[CurrentUser] mixed $user): void
             {
             }
         };
@@ -111,7 +111,7 @@ class UserResolverTest extends TestCase
         $token = new UsernamePasswordToken($user, 'main', ['ROLE_USER']);
         $this->tokenStorage->setToken($token);
         $testClass = new class {
-            public function method(#[CurrentUser] $user): void
+            public function method(#[CurrentUser] mixed $user): void
             {
             }
         };
@@ -124,6 +124,31 @@ class UserResolverTest extends TestCase
 
         // Assert
         $this->assertSame($user, $result); // Should return user from token, not providedParameters
+    }
+
+    public function testAnonymousRequestWithARequiredUserIsAnAuthenticationFailure(): void
+    {
+        $testClass = new class {
+            public function method(#[CurrentUser] UserInterface $user): void
+            {
+            }
+        };
+        $parameter = (new \ReflectionMethod($testClass, 'method'))->getParameters()[0];
+
+        $this->expectException(AuthenticationException::class);
+        $this->resolver->resolve($parameter, []);
+    }
+
+    public function testAnonymousRequestWithANullableUserResolvesToNull(): void
+    {
+        $testClass = new class {
+            public function method(#[CurrentUser] ?UserInterface $user): void
+            {
+            }
+        };
+        $parameter = (new \ReflectionMethod($testClass, 'method'))->getParameters()[0];
+
+        $this->assertNull($this->resolver->resolve($parameter, []));
     }
 }
 
@@ -167,30 +192,5 @@ class TestUser implements UserInterface
     public function isEnabled(): bool
     {
         return true;
-    }
-
-    public function testAnonymousRequestWithARequiredUserIsAnAuthenticationFailure(): void
-    {
-        $testClass = new class {
-            public function method(#[CurrentUser] UserInterface $user): void
-            {
-            }
-        };
-        $parameter = (new \ReflectionMethod($testClass, 'method'))->getParameters()[0];
-
-        $this->expectException(AuthenticationException::class);
-        $this->resolver->resolve($parameter, []);
-    }
-
-    public function testAnonymousRequestWithANullableUserResolvesToNull(): void
-    {
-        $testClass = new class {
-            public function method(#[CurrentUser] ?UserInterface $user): void
-            {
-            }
-        };
-        $parameter = (new \ReflectionMethod($testClass, 'method'))->getParameters()[0];
-
-        $this->assertNull($this->resolver->resolve($parameter, []));
     }
 }

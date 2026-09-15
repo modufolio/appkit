@@ -80,7 +80,7 @@ final class SessionHandlerSeamTest extends AppTestCase
                 return true;
             }
 
-            public function read(string $id): string|false
+            public function read(string $id): string
             {
                 return $this->store[$id] ?? '';
             }
@@ -99,7 +99,7 @@ final class SessionHandlerSeamTest extends AppTestCase
                 return true;
             }
 
-            public function gc(int $max_lifetime): int|false
+            public function gc(int $max_lifetime): int
             {
                 return 0;
             }

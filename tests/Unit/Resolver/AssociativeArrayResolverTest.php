@@ -12,6 +12,8 @@ use PHPUnit\Framework\TestCase;
 final class AssociativeArrayResolverTest extends TestCase
 {
     /**
+     * @param array<string, mixed> $provided
+     *
      * @return array<string, mixed>
      */
     private function resolve(object $target, array $provided): array
