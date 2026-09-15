@@ -42,7 +42,7 @@ trait AppRouting
      *     "example.com" / "*.example.com" shorthands. When non-empty, a request
      *     whose Host header is not listed is rejected with 400 before request
      *     state is built, so the host can never reach absolute URL generation.
-     *     See {@see TrustedHosts} and docs/security.md#trusted-hosts.
+     *     See {@see TrustedHosts} and docs/security/trusted-hosts.md.
      *
      * Keys are merged into the current options; unknown keys throw. A router
      * built from the previous options is discarded so the change takes effect.

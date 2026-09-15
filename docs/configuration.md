@@ -213,7 +213,7 @@ Firewall option reference:
 | `switch_user.parameter` | `string` | POST field carrying the target identifier (default `_switch_user`) |
 | `switch_user.target` | `string` | Redirect destination after switching (default: the current URI with the parameter stripped) |
 
-Keys the schema does not know (an app-specific `context`, say) are kept, not rejected. The CSRF and restriction options are explained in [Security](security.md#defining-a-firewall).
+Keys the schema does not know (an app-specific `context`, say) are kept, not rejected. The CSRF and restriction options are explained in [Security](security/firewalls.md#defining-a-firewall).
 
 ## `config/doctrine.php`
 

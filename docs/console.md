@@ -75,7 +75,7 @@ The framework's console surface is the commands themselves and `ConsoleStyle`; h
 | Command | Description |
 |---------|-------------|
 | `debug:firewall [name]` | Show firewalls, their restrictions, access-control rules and the role hierarchy; pass a name to detail one firewall |
-| `security:validate` | Validate firewall and access-control configuration; reports the first problem in each of the two sections and exits non-zero if either had one (run it in CI/at deploy — see [Security](security.md#validating-configuration)) |
+| `security:validate` | Validate firewall and access-control configuration; reports the first problem in each of the two sections and exits non-zero if either had one (run it in CI/at deploy — see [Security](security/firewalls.md#validating-configuration)) |
 
 ### ORM / schema commands
 
