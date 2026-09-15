@@ -27,9 +27,11 @@ final class IpConstraint implements RuleConstraintInterface
             return;
         }
 
-        $clientIp = $request->getServerParams()['REMOTE_ADDR'] ?? '127.0.0.1';
+        // No client address is not loopback: a runtime that leaves
+        // REMOTE_ADDR unset must fail the rule, as firewall selection does.
+        $clientIp = $request->getServerParams()['REMOTE_ADDR'] ?? null;
 
-        if (!IpUtils::checkIp($clientIp, $rule->ips)) {
+        if (!is_string($clientIp) || !IpUtils::checkIp($clientIp, $rule->ips)) {
             throw new AccessDeniedException('Access denied due to IP restriction for path: '.RequestMatcher::securityPath($request->getUri()));
         }
     }

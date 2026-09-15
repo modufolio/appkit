@@ -46,6 +46,92 @@ class AccessDecisionEngineTest extends TestCase
     // enforce()
     // -----------------------------------------------------------------
 
+    /**
+     * The docs pair denyUnmatchedRequests() with publicPath() for the login
+     * page and assets. A path declared public is explicitly allowed, so it
+     * must not count as unmatched.
+     */
+    public function testDenyByDefaultHonoursPublicRules(): void
+    {
+        $engine = new AccessDecisionEngine([
+            ['path' => '/login', 'roles' => ['PUBLIC_ACCESS']],
+            ['path' => '/admin', 'roles' => ['ROLE_ADMIN']],
+        ], denyByDefault: true);
+
+        $engine->enforce($this->request('/login'), null);
+        $this->addToAssertionCount(1);
+
+        $this->expectException(AuthenticationException::class);
+        $engine->enforce($this->request('/anything-else'), null);
+    }
+
+    public function testDenyByDefaultRespectsThePublicRulesMethodScope(): void
+    {
+        $engine = new AccessDecisionEngine([
+            ['path' => '/page', 'roles' => ['PUBLIC_ACCESS'], 'methods' => ['GET']],
+        ], denyByDefault: true);
+
+        $engine->enforce($this->request('/page', 'GET'), null);
+        $this->addToAssertionCount(1);
+
+        $this->expectException(AuthenticationException::class);
+        $engine->enforce($this->request('/page', 'POST'), null);
+    }
+
+    /**
+     * A later non-public rule still decides, exactly as without deny-by-default.
+     */
+    public function testDenyByDefaultStillLetsALaterRuleDecide(): void
+    {
+        $engine = new AccessDecisionEngine([
+            ['path' => '/admin/health', 'roles' => ['PUBLIC_ACCESS']],
+            ['path' => '/admin', 'roles' => ['ROLE_ADMIN']],
+        ], denyByDefault: true);
+
+        $this->expectException(AuthenticationException::class);
+        $engine->enforce($this->request('/admin/health'), null);
+    }
+
+    /**
+     * A rule scoped to one firewall does not restrict requests another
+     * firewall handles.
+     */
+    public function testFirewallScopedRuleAppliesOnlyToThatFirewall(): void
+    {
+        $engine = new AccessDecisionEngine([
+            ['path' => '/', 'roles' => ['ROLE_ADMIN'], 'firewall' => 'admin'],
+        ]);
+
+        $engine->enforce($this->request('/dashboard'), $this->token(['ROLE_USER']), 'site');
+        $this->addToAssertionCount(1);
+
+        $this->expectException(AccessDeniedException::class);
+        $engine->enforce($this->request('/dashboard'), $this->token(['ROLE_USER']), 'admin');
+    }
+
+    public function testFirewallScopedRuleStillAppliesWhenTheFirewallIsUnknown(): void
+    {
+        $engine = new AccessDecisionEngine([
+            ['path' => '/', 'roles' => ['ROLE_ADMIN'], 'firewall' => 'admin'],
+        ]);
+
+        $this->expectException(AccessDeniedException::class);
+        $engine->enforce($this->request('/dashboard'), $this->token(['ROLE_USER']));
+    }
+
+    /**
+     * No REMOTE_ADDR is not loopback: an ips rule fails closed without one.
+     */
+    public function testIpRuleDeniesARequestWithoutARemoteAddress(): void
+    {
+        $engine = new AccessDecisionEngine([
+            ['path' => '/metrics', 'roles' => [], 'ips' => ['127.0.0.1']],
+        ]);
+
+        $this->expectException(AccessDeniedException::class);
+        $engine->enforce($this->request('/metrics', 'GET', []), null);
+    }
+
     public function testUnmatchedPathAbstains(): void
     {
         $engine = new AccessDecisionEngine([['path' => '/admin', 'roles' => ['ROLE_ADMIN']]]);

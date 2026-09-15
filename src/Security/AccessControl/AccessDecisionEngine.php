@@ -124,15 +124,31 @@ final class AccessDecisionEngine
      * @throws AuthenticationException when the matched rule requires a login
      * @throws AccessDeniedException   when the authenticated user is not allowed
      */
-    public function enforce(ServerRequestInterface $request, ?TokenInterface $token): void
+    public function enforce(ServerRequestInterface $request, ?TokenInterface $token, ?string $firewallName = null): void
     {
         $path = RequestMatcher::securityPath($request->getUri());
+        $publicMatched = false;
 
         foreach ($this->rules as $rule) {
+            // A rule scoped to one firewall applies only there. With the
+            // firewall unknown (a caller outside the request flow) scoped
+            // rules still apply, so a missing name never widens access.
+            if (null !== $rule->firewall && null !== $firewallName && $rule->firewall !== $firewallName) {
+                continue;
+            }
+
+            if (!$rule->matchesPath($path)) {
+                continue;
+            }
+
             // A PUBLIC_ACCESS rule only waives the authentication redirect
             // (see isPublic()); it neither grants nor restricts anything
-            // here, so later rules still get their say.
-            if ($rule->isPublic() || !$rule->matchesPath($path)) {
+            // here, so later rules still get their say. It does count as a
+            // match for deny-by-default below: a path declared public is
+            // explicitly allowed, not unmatched.
+            if ($rule->isPublic()) {
+                $publicMatched = $publicMatched || $rule->matchesMethod($request->getMethod());
+
                 continue;
             }
 
@@ -147,7 +163,7 @@ final class AccessDecisionEngine
         // governs authentication. When deny-by-default is enabled the request
         // is refused instead: unauthenticated visitors are sent to log in,
         // authenticated ones get a hard 403.
-        if ($this->denyByDefault) {
+        if ($this->denyByDefault && !$publicMatched) {
             $this->roleEvaluator->assert(
                 [AuthenticationTrustResolverInterface::IS_AUTHENTICATED],
                 $token,
