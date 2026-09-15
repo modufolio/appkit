@@ -1,20 +1,20 @@
 # File uploads
 
-`UploadedFileErrorHandler` gives you a fluent chain for validating and storing uploaded files.
+`Upload` gives you a fluent chain for validating and storing uploaded files.
 
 ## Basic usage
 
-Get the uploaded file from the request, pass it to `UploadedFileErrorHandler::from()`, add your validation rules, then save it.
+Get the uploaded file from the request, pass it to `Upload::from()`, add your validation rules, then save it.
 
 ```php
-use Modufolio\Appkit\Http\UploadedFileErrorHandler;
+use Modufolio\Appkit\Http\Upload;
 use Modufolio\Appkit\Toolkit\Str;
 use Psr\Http\Message\ServerRequestInterface;
 
 #[Route(path: '/upload', name: 'upload', methods: ['POST'])]
 public function upload(ServerRequestInterface $request): ResponseInterface
 {
-    $upload = UploadedFileErrorHandler::from(
+    $upload = Upload::from(
         $request->getUploadedFiles()['avatar']
     );
 
@@ -86,10 +86,13 @@ filename must be unique per upload — a UUID, a database id, a timestamp plus
 random suffix — not a fixed name derived from the user, which collides the second
 time that user uploads.
 
-By default it also refuses server-executable and config extensions (`php`,
-`phtml`, `phar`, `sh`, `htaccess`, `ini`, `exe`, `svg`, …) even when no validator
-was chained, so a forgotten `isImage()` cannot drop a `.php` file into a served
-directory. `allowUnsafeExtension: true` switches that check off for the one call;
+By default it also refuses server-executable, config and inline-scriptable
+extensions (`php`, `phtml`, `phar`, `sh`, `htaccess`, `ini`, `exe`, `svg`,
+`html`, …) even when no validator was chained, so a forgotten `isImage()`
+cannot drop a `.php` file into a served directory. Every dotted segment of the
+name is checked, so `shell.php.jpg` is refused too: Apache's `mod_mime` maps
+each extension independently and would serve that file as PHP.
+`allowUnsafeExtension: true` switches that check off for the one call;
 use it only for a directory you fully control that is not served as code.
 
 SVG is the usual reason to reach for it. An SVG can carry scripts, so sanitise
@@ -142,7 +145,7 @@ Process each file individually:
 $files = $request->getUploadedFiles();
 
 foreach ($files['gallery'] as $uploaded) {
-    $handler = UploadedFileErrorHandler::from($uploaded)
+    $handler = Upload::from($uploaded)
         ->isImage()
         ->maxSize(10 * 1024 * 1024);
 
@@ -166,7 +169,7 @@ public function updateAvatar(
     ServerRequestInterface $request,
     #[CurrentUser] User $user,
 ): ResponseInterface {
-    $upload = UploadedFileErrorHandler::from($request->getUploadedFiles()['avatar'])
+    $upload = Upload::from($request->getUploadedFiles()['avatar'])
         ->isImage()
         ->maxSize(2 * 1024 * 1024);
 
@@ -189,7 +192,7 @@ public function updateAvatar(
 
 ## PHP upload limits
 
-`UploadedFileErrorHandler` validates the uploaded file after PHP has received it. PHP's own limits apply first:
+`Upload` validates the uploaded file after PHP has received it. PHP's own limits apply first:
 
 - `upload_max_filesize` — maximum size of a single uploaded file
 - `post_max_size` — maximum size of the entire POST body

@@ -512,7 +512,7 @@ ImageException::pathTraversalAttempt($value);
 Store the original under a name that cannot collide — `saveTo()` refuses to overwrite — then make the thumbnail from a copy, because `process()` writes in place.
 
 ```php
-use Modufolio\Appkit\Http\UploadedFileErrorHandler;
+use Modufolio\Appkit\Http\Upload;
 use Modufolio\Appkit\Image\Darkroom\GdLib;
 use Modufolio\Appkit\Toolkit\F;
 use Modufolio\Appkit\Toolkit\Str;
@@ -520,7 +520,7 @@ use Modufolio\Appkit\Toolkit\Str;
 #[Route(path: '/profile/avatar', name: 'profile.avatar.update', methods: ['POST'])]
 public function updateAvatar(ServerRequestInterface $request, #[CurrentUser] User $user): ResponseInterface
 {
-    $upload = UploadedFileErrorHandler::from($request->getUploadedFiles()['avatar'])
+    $upload = Upload::from($request->getUploadedFiles()['avatar'])
         ->isImage()
         ->maxSize(5 * 1024 * 1024);
 
