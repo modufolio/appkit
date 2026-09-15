@@ -185,6 +185,38 @@ class SwitchUserTest extends AppTestCase
     }
 
     /**
+     * The form the documentation prescribes: the dedicated `switch_user`
+     * token in the `_csrf_token` field and no X-CSRF-Token header, exactly
+     * what a browser submits. The firewall-wide CSRF check must step aside
+     * for it, or the request is refused before the switch-user check runs.
+     */
+    public function testDocumentedFormWithDedicatedTokenAndNoHeaderSwitches(): void
+    {
+        $this->actingAs('super@example.com', 'secret');
+
+        $token = $this->app()->csrfTokenManager()->getToken('switch_user')->getValue();
+
+        $this->switchTo('target@example.com', ['_csrf_token' => $token])->assertStatus(302);
+
+        $this->assertSame('target@example.com', $this->currentIdentifier());
+    }
+
+    /**
+     * Stepping aside must not open a hole: a token minted for another action
+     * is still refused.
+     */
+    public function testWrongDedicatedTokenIsRejected(): void
+    {
+        $this->actingAs('super@example.com', 'secret');
+
+        $token = $this->app()->csrfTokenManager()->getToken('logout')->getValue();
+
+        $this->switchTo('target@example.com', ['_csrf_token' => $token]);
+
+        $this->assertSame('super@example.com', $this->currentIdentifier());
+    }
+
+    /**
      * A caller past the role check must not learn which identifiers exist:
      * an unknown user is refused exactly like a forbidden one.
      */
