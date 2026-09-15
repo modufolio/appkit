@@ -105,9 +105,7 @@ class RememberMeAuthenticator extends AbstractAuthenticator implements AmbientCr
 
     public function supports(ServerRequestInterface $request): bool
     {
-        $cookies = $request->getCookieParams();
-
-        return isset($cookies[$this->options['cookie_name']]);
+        return is_string($request->getCookieParams()[$this->options['cookie_name']] ?? null);
     }
 
     /**
@@ -115,28 +113,33 @@ class RememberMeAuthenticator extends AbstractAuthenticator implements AmbientCr
      */
     public function authenticate(ServerRequestInterface $request): UserInterface
     {
-        $cookies = $request->getCookieParams();
-        $cookieValue = $cookies[$this->options['cookie_name']] ?? '';
+        // Never carry a rotation queued by an earlier request on a reused
+        // instance: a header minted for user A must not ride out on B's
+        // response.
+        $this->pendingCookieHeader = null;
 
-        if (empty($cookieValue)) {
-            throw new AuthenticationException('Remember me cookie is empty.');
-        }
-
-        $cookieData = base64_decode($cookieValue, true);
-        if (false === $cookieData) {
-            throw new AuthenticationException('Invalid remember me cookie format.');
-        }
+        $cookieData = $this->decodeCookie($request);
 
         if (null !== $this->tokenProvider) {
             return $this->authenticatePersistent($cookieData, $this->tokenProvider);
         }
 
-        $parts = explode(':', $cookieData, 3);
-        if (3 !== count($parts)) {
+        // identifier:expires:hash, split from the right: the hash and the
+        // expiry never contain a colon, the identifier may.
+        $lastColon = strrpos($cookieData, ':');
+        $middleColon = false === $lastColon ? false : strrpos(substr($cookieData, 0, $lastColon), ':');
+
+        if (false === $lastColon || false === $middleColon || 0 === $middleColon) {
             throw new AuthenticationException('Invalid remember me cookie structure.');
         }
 
-        [$identifier, $expires, $hash] = $parts;
+        $identifier = substr($cookieData, 0, $middleColon);
+        $expires = substr($cookieData, $middleColon + 1, $lastColon - $middleColon - 1);
+        $hash = substr($cookieData, $lastColon + 1);
+
+        if ('' === $hash || !ctype_digit($expires)) {
+            throw new AuthenticationException('Invalid remember me cookie structure.');
+        }
 
         if ((int) $expires < time()) {
             throw new AuthenticationException('Remember me cookie has expired.');
@@ -154,6 +157,57 @@ class RememberMeAuthenticator extends AbstractAuthenticator implements AmbientCr
         }
 
         return $user;
+    }
+
+    /**
+     * The request's remember-me cookie, base64-decoded.
+     *
+     * A cookie the SAPI parsed into an array (`REMEMBERME[a]=x`) is not a
+     * credential and must fail like any other malformed one, not as a
+     * TypeError the firewall does not catch.
+     *
+     * @throws AuthenticationException
+     */
+    private function decodeCookie(ServerRequestInterface $request): string
+    {
+        $cookieValue = $request->getCookieParams()[$this->options['cookie_name']] ?? null;
+
+        if (!is_string($cookieValue) || '' === $cookieValue) {
+            throw new AuthenticationException('Remember me cookie is empty.');
+        }
+
+        $cookieData = base64_decode($cookieValue, true);
+        if (false === $cookieData) {
+            throw new AuthenticationException('Invalid remember me cookie format.');
+        }
+
+        return $cookieData;
+    }
+
+    /**
+     * Revoke the server-side series behind the request's remember-me cookie,
+     * so a copy of that cookie stops working everywhere, not just in the
+     * browser that receives the clear-cookie header. A no-op in signature
+     * mode (nothing is stored) and for a missing or malformed cookie: this
+     * runs on logout, where a bad cookie is not an error worth failing on.
+     */
+    public function revoke(ServerRequestInterface $request): void
+    {
+        if (null === $this->tokenProvider) {
+            return;
+        }
+
+        try {
+            $cookieData = $this->decodeCookie($request);
+        } catch (AuthenticationException) {
+            return;
+        }
+
+        $series = explode(':', $cookieData, 2)[0];
+
+        if ('' !== $series) {
+            $this->tokenProvider->deleteTokenBySeries($series);
+        }
     }
 
     /**

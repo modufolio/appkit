@@ -46,6 +46,53 @@ class PersistentRememberMeTest extends TestCase
         return (new ServerRequest('GET', '/'))->withCookieParams(['REMEMBERME' => $value]);
     }
 
+    /**
+     * Logout revokes the series server-side, so a copy of the cookie taken
+     * from the device that logged out is dead everywhere, not just there.
+     */
+    public function testRevokeDeletesTheSeriesBehindTheCookie(): void
+    {
+        $auth = $this->authenticator();
+        $cookie = $auth->generateRememberMeCookie($this->userProvider->loadUserByIdentifier('test@example.com'));
+
+        $auth->revoke($this->requestWithCookie($cookie));
+
+        $this->expectException(AuthenticationException::class);
+        $this->expectExceptionMessage('not found');
+        $auth->authenticate($this->requestWithCookie($cookie));
+    }
+
+    public function testRevokeIgnoresAMissingOrMalformedCookie(): void
+    {
+        $auth = $this->authenticator();
+
+        $auth->revoke(new ServerRequest('GET', '/'));
+        $auth->revoke($this->requestWithCookie('not base64!'));
+
+        $this->addToAssertionCount(1);
+    }
+
+    /**
+     * A rotation queued by one request must never ride out on the response
+     * of a later request served by the same instance.
+     */
+    public function testAFailedAuthenticationDropsAPendingRotationFromAnEarlierCall(): void
+    {
+        $auth = $this->authenticator();
+        $cookie = $auth->generateRememberMeCookie($this->userProvider->loadUserByIdentifier('test@example.com'));
+
+        $auth->authenticate($this->requestWithCookie($cookie));
+        // Not consumed: the firewall would have, but a bug or a shared
+        // instance might not.
+
+        try {
+            $auth->authenticate($this->requestWithCookie(base64_encode('unknown:value')));
+        } catch (AuthenticationException) {
+        }
+
+        $this->assertNull($auth->consumePendingCookieHeader());
+    }
+
     public function testIsPersistentWhenProviderGiven(): void
     {
         $this->assertTrue($this->authenticator()->isPersistent());

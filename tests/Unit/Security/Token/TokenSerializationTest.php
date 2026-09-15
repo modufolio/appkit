@@ -6,6 +6,7 @@ namespace Modufolio\Appkit\Tests\Unit\Security\Token;
 
 use Modufolio\Appkit\Security\Token\ApiKeyToken;
 use Modufolio\Appkit\Security\Token\JwtToken;
+use Modufolio\Appkit\Security\Token\OAuthToken;
 use Modufolio\Appkit\Security\Token\RememberMeToken;
 use Modufolio\Appkit\Security\Token\SwitchUserToken;
 use Modufolio\Appkit\Security\Token\TwoFactorToken;
@@ -85,6 +86,38 @@ class TokenSerializationTest extends TestCase
         $this->assertInstanceOf(ApiKeyToken::class, $restored);
         $this->assertSame('main', $restored->getFirewallName());
         $this->assertSame(['ROLE_API_USER'], $restored->getRoleNames());
+    }
+
+    /**
+     * The key is the credential; it must not sit in clear in the session store.
+     */
+    public function testApiKeyTokenDoesNotPersistTheKey(): void
+    {
+        $token = new ApiKeyToken($this->user(), 'main', 'key-123', ['ROLE_API_USER']);
+
+        $serialized = serialize($token);
+        $restored = unserialize($serialized);
+
+        $this->assertStringNotContainsString('key-123', $serialized);
+        $this->assertInstanceOf(ApiKeyToken::class, $restored);
+        $this->assertNull($restored->getApiKey());
+    }
+
+    /**
+     * OAuthToken is in the unserialize allowlist, so a session-backed OAuth
+     * firewall restores it: its scopes and firewall name must survive.
+     */
+    public function testOAuthTokenRoundTrip(): void
+    {
+        $token = new OAuthToken($this->user(), 'api', ['read', 'write'], ['ROLE_USER']);
+
+        $restored = unserialize(serialize($token));
+
+        $this->assertInstanceOf(OAuthToken::class, $restored);
+        $this->assertSame('api', $restored->getFirewallName());
+        $this->assertSame(['read', 'write'], $restored->getScopes());
+        $this->assertTrue($restored->hasScope('write'));
+        $this->assertSame('john@example.com', $restored->getUserIdentifier());
     }
 
     public function testJwtTokenRoundTrip(): void

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Modufolio\Appkit\Security\Token;
 
 use Modufolio\Appkit\Security\User\UserInterface;
@@ -39,7 +41,12 @@ class ApiKeyToken extends AbstractToken
 
     public function __serialize(): array
     {
-        return [null, $this->firewallName, $this->apiKey, parent::__serialize()];
+        // The API key is the credential itself. A session-backed firewall
+        // would otherwise put it at rest, in clear, in every session record
+        // — the same reason RememberMeToken omits its secret. Nothing reads
+        // it back off a restored token: the client re-presents the key on
+        // every request and the authenticator re-checks it.
+        return [null, $this->firewallName, null, parent::__serialize()];
     }
 
     /**

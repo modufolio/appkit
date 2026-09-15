@@ -43,6 +43,39 @@ class RememberMeAuthenticatorTest extends AppTestCase
         return base64_encode(sprintf('%s:%d:%s', $identifier, $expires, $hash));
     }
 
+    /**
+     * `Cookie: REMEMBERME[a]=x` reaches PHP as an array. That is not a
+     * credential: supports() must decline it, and authenticate() must answer
+     * with the usual failure rather than a TypeError the firewall never
+     * catches.
+     */
+    public function testArrayValuedCookieIsNotSupportedAndFailsCleanly(): void
+    {
+        $authenticator = new RememberMeAuthenticator($this->userProvider, ['secret' => 'test-secret']);
+        $request = (new ServerRequest('GET', '/'))->withCookieParams(['REMEMBERME' => ['a' => 'x']]);
+
+        $this->assertFalse($authenticator->supports($request));
+
+        $this->expectException(AuthenticationException::class);
+        $authenticator->authenticate($request);
+    }
+
+    /**
+     * The cookie is identifier:expires:hash. An identifier holding a colon
+     * must round-trip; splitting from the left shifted every field.
+     */
+    public function testIdentifierContainingAColonRoundTrips(): void
+    {
+        $provider = new InMemoryUserProvider();
+        $provider->addUser(new InMemoryUser('acme:alice', 'hash', ['ROLE_USER']));
+        $authenticator = new RememberMeAuthenticator($provider, ['secret' => 'test-secret']);
+
+        $cookie = $authenticator->generateRememberMeCookie($provider->loadUserByIdentifier('acme:alice'));
+        $request = (new ServerRequest('GET', '/'))->withCookieParams(['REMEMBERME' => $cookie]);
+
+        $this->assertSame('acme:alice', $authenticator->authenticate($request)->getUserIdentifier());
+    }
+
     public function testConstructorThrowsExceptionWhenSecretIsMissing(): void
     {
         $this->expectException(\InvalidArgumentException::class);

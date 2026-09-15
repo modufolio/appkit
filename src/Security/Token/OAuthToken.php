@@ -56,4 +56,35 @@ class OAuthToken extends AbstractToken
     {
         return in_array($scope, $this->scopes, true);
     }
+
+    public function __serialize(): array
+    {
+        return [null, $this->firewallName, $this->scopes, parent::__serialize()];
+    }
+
+    /**
+     * @param array<int|string, mixed> $data
+     */
+    public function __unserialize(array $data): void
+    {
+        // Block gadget-chain "trampolines": a forged payload placing an object
+        // in the string slot would otherwise fire its __toString on assignment.
+        if (($data[1] ?? null) instanceof \Stringable) {
+            throw new \BadMethodCallException('Cannot unserialize '.self::class);
+        }
+
+        [, $this->firewallName, $scopes, $parentData] = $data;
+
+        // Scopes are a list of strings; anything else is forged or corrupt.
+        // The parent payload is always an array (see __serialize()); reject
+        // rather than calling unserialize() again, which would not inherit
+        // the allowed_classes list TokenUnserializer passes.
+        if (!\is_array($scopes) || !\is_array($parentData)) {
+            throw new \BadMethodCallException('Cannot unserialize '.self::class);
+        }
+
+        $this->scopes = array_values(array_filter($scopes, 'is_string'));
+
+        parent::__unserialize($parentData);
+    }
 }
