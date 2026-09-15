@@ -20,6 +20,7 @@ use Modufolio\Appkit\Security\Exception\UserNotFoundException;
 use Modufolio\Appkit\Security\FirewallConfiguration;
 use Modufolio\Appkit\Security\RoleHierarchy;
 use Modufolio\Appkit\Security\SecurityConfigurator;
+use Modufolio\Appkit\Security\SessionIdleStatus;
 use Modufolio\Appkit\Security\Token\RememberMeToken;
 use Modufolio\Appkit\Security\Token\SwitchUserToken;
 use Modufolio\Appkit\Security\Token\TokenInterface;
@@ -33,6 +34,7 @@ use Modufolio\Appkit\Toolkit\A;
 use Modufolio\Psr7\Http\Response;
 use Negotiation\BaseAccept;
 use Negotiation\Negotiator;
+use Psr\Clock\ClockInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Symfony\Component\Config\Definition\Processor;
@@ -126,12 +128,28 @@ trait AppSecurity
             } catch (AuthenticationException) {
                 return $this->logout($firewallName);
             }
+
+            // Idle timeout, before anything else this request could do: an
+            // expired session must not reach the controller, and must not have
+            // its CSRF token accepted either.
+            if (null !== ($expired = $this->enforceIdleTimeout($request, $config, $firewallName))) {
+                return $expired;
+            }
+
             $this->tokenStorage()->setToken($token);
 
             // CSRF protection for cookie/session-authenticated state changes.
             // Reached only on the restored-session path, so stateless firewalls
             // (REST APIs, GraphQL with bearer/API-key auth) are never checked.
-            if ($csrfFailure = $this->enforceCsrf($request, $config)) {
+            //
+            // A switch-user request is exempt here because handleSwitchUser()
+            // below enforces its own token, under the dedicated `switch_user`
+            // id, exactly as logout does. Checking it here as well would
+            // demand the firewall's session token in the same `_csrf_token`
+            // field, and reject the documented form before the switch-user
+            // check ever ran.
+            if (!$this->isSwitchUserRequest($request, $config)
+                && null !== ($csrfFailure = $this->enforceCsrf($request, $config))) {
                 return $csrfFailure;
             }
 
@@ -146,18 +164,15 @@ trait AppSecurity
             return $this->controllerResolver($request);
         }
 
-        if ($this->isEntryPointPage($request, $config)) {
-            // Cancelling a pending 2FA login is a state change on a
-            // framework-hardcoded route, so the kernel owns its CSRF check —
-            // unlike POST {two_factor_path} (the code submission), whose
-            // token the 2FA controller validates itself under its own token
-            // id, exactly like the login entry point.
-            if ($this->isTwoFactorCancelRequest($request, $config)
-                && null !== ($csrfFailure = $this->enforceCsrf($request, $config))) {
-                return $csrfFailure;
-            }
-
-            return $this->controllerResolver($request);
+        // The login page is served anonymously — unless the browser brought a
+        // remember-me cookie. Symfony's firewall runs its remember-me listener
+        // on /login as on any other path, so a returning visitor whose session
+        // expired reaches the login controller already signed in and can be
+        // sent on. Same here: such a request goes through the authenticators
+        // below instead of short-circuiting; a cookie that no longer validates
+        // falls through to the form, expired on the response.
+        if ($this->isEntryPointPage($request, $config) && !$this->isLoginPageWithRememberMeCookie($request, $config)) {
+            return $this->serveEntryPoint($request, $config);
         }
 
         // Set-Cookie headers expiring ambient credentials (remember-me cookies)
@@ -236,6 +251,9 @@ trait AppSecurity
                 // remain valid after authentication.
                 $this->csrfTokenManager()->clear();
 
+                // Start the idle clock. Before save(), which closes the session.
+                $this->stampIdleDeadline($config, $firewallName);
+
                 $session->save();
             }
 
@@ -264,9 +282,15 @@ trait AppSecurity
             return $response;
         }
 
-        // Nobody authenticated. A path declared public is served anonymously
-        // instead of being bounced to the entry point — the authenticators ran
-        // first, so a remember-me cookie still signs the visitor in.
+        // Nobody authenticated. The login page reached with a remember-me
+        // cookie that did not validate is still the login page.
+        if ($this->isEntryPointPage($request, $config)) {
+            return $this->withStaleCookiesExpired($this->serveEntryPoint($request, $config), $staleCookies);
+        }
+
+        // A path declared public is served anonymously instead of being
+        // bounced to the entry point — the authenticators ran first, so a
+        // remember-me cookie still signs the visitor in.
         // See SecurityConfigurator::publicPath() for how paths opt in.
         if ($this->accessDecisionEngine()->isPublic($request, $firewallName)) {
             // An anonymous session can still carry state worth forging a
@@ -365,7 +389,15 @@ trait AppSecurity
             return !$refreshed->isEqualTo($original);
         }
 
-        if ($original->getRoles() !== $refreshed->getRoles()) {
+        // Order-insensitive: a provider that returns the same roles in a
+        // different order has not changed anything security-relevant, and
+        // must not sign the user out on every request.
+        $originalRoles = $original->getRoles();
+        $refreshedRoles = $refreshed->getRoles();
+        sort($originalRoles);
+        sort($refreshedRoles);
+
+        if (array_values(array_unique($originalRoles)) !== array_values(array_unique($refreshedRoles))) {
             return true;
         }
 
@@ -722,6 +754,194 @@ trait AppSecurity
     }
 
     /**
+     * Terminate a session that has been idle for longer than `idle_timeout`.
+     *
+     * The deadline is kept in the session under a key of our own rather than
+     * read from Symfony's MetadataBag, because the bag's UPDATED stamp is
+     * bumped by *every* request that touches the session. That distinction is
+     * the whole feature: a browser polling "how long have I got left?" would
+     * otherwise renew the session forever and the timeout would never fire.
+     * Paths listed in `idle_ignore_paths` are served without stamping.
+     *
+     * Returns null when the session is still live (having moved the deadline
+     * on, unless this path is ignored), or the logout response when it is not.
+     *
+     * @param array<string, mixed> $config
+     */
+    private function enforceIdleTimeout(
+        ServerRequestInterface $request,
+        array $config,
+        string $firewallName,
+    ): ?ResponseInterface {
+        $timeout = (int) ($config['idle_timeout'] ?? 0);
+
+        if ($timeout <= 0 || ($config['stateless'] ?? false)) {
+            return null;
+        }
+
+        $deadline = $this->session()->get(SessionIdleStatus::DEADLINE_KEY.$firewallName);
+
+        // No deadline yet — a session that predates the setting, or one whose
+        // login happened before it was configured. Stamp it and carry on
+        // rather than signing a live user out on the deploy that enables this.
+        if (!is_int($deadline)) {
+            $this->stampIdleDeadline($config, $firewallName);
+
+            return null;
+        }
+
+        if ($this->now() < $deadline) {
+            $this->stampIdleDeadline($config, $firewallName);
+
+            return null;
+        }
+
+        // Expired. logout() invalidates the session and clears any remember-me
+        // cookie — without that the cookie would sign the user straight back
+        // in on the next request and the timeout would mean nothing.
+        $response = $this->logout($firewallName, $config['entry_point'] ?? null);
+
+        // After the invalidate inside logout(), so the message survives into
+        // the fresh session the login page will read it from.
+        $this->session()->getFlashBag()->add('info', SessionIdleStatus::TIMEOUT_MESSAGE);
+
+        return $response;
+    }
+
+    /**
+     * Move the idle deadline to now + `idle_timeout`, unless this request is
+     * on a path declared not to count as activity.
+     *
+     * @param array<string, mixed> $config
+     */
+    private function stampIdleDeadline(array $config, string $firewallName): void
+    {
+        $timeout = (int) ($config['idle_timeout'] ?? 0);
+
+        if ($timeout <= 0 || ($config['stateless'] ?? false)) {
+            return;
+        }
+
+        if ($this->isIdleIgnoredPath($config)) {
+            return;
+        }
+
+        $this->session()->set(
+            SessionIdleStatus::DEADLINE_KEY.$firewallName,
+            $this->now() + $timeout,
+        );
+    }
+
+    /**
+     * Current unix timestamp, through the container's clock so a test can
+     * travel forward without sleeping.
+     */
+    private function now(): int
+    {
+        $clock = $this->get(ClockInterface::class);
+        assert($clock instanceof ClockInterface);
+
+        return $clock->now()->getTimestamp();
+    }
+
+    /**
+     * Whether the current request is on a path that must not count as user
+     * activity (firewall pattern syntax, like `csrf_delegated_paths`).
+     *
+     * @param array<string, mixed> $config
+     */
+    private function isIdleIgnoredPath(array $config): bool
+    {
+        $patterns = $config['idle_ignore_paths'] ?? [];
+
+        if ([] === $patterns) {
+            return false;
+        }
+
+        $path = $this->securityPath($this->request());
+
+        foreach ($patterns as $pattern) {
+            if (is_string($pattern) && RequestMatcher::matches($pattern, $path)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Seconds of inactivity left on the current session, or null when the
+     * firewall sets no `idle_timeout` or nothing is signed in. Never negative.
+     *
+     * This is what an application's "session status" endpoint returns — mark
+     * that endpoint's path as an `idle_ignore_path`, or polling it renews the
+     * very deadline it reports.
+     */
+    public function idleSecondsRemaining(?string $firewallName = null): ?int
+    {
+        $firewallName ??= $this->getFirewallNameForRequest($this->request());
+
+        if (null === $firewallName) {
+            return null;
+        }
+
+        $config = $this->getFirewallConfig($firewallName);
+
+        if ((int) ($config['idle_timeout'] ?? 0) <= 0) {
+            return null;
+        }
+
+        $deadline = $this->session()->get(SessionIdleStatus::DEADLINE_KEY.$firewallName);
+
+        if (!is_int($deadline)) {
+            return null;
+        }
+
+        return max(0, $deadline - $this->now());
+    }
+
+    /**
+     * Serve an entry-point page (login, 2FA) to an anonymous visitor.
+     *
+     * @param array<string, mixed> $config
+     */
+    private function serveEntryPoint(ServerRequestInterface $request, array $config): ResponseInterface
+    {
+        // Cancelling a pending 2FA login is a state change on a
+        // framework-hardcoded route, so the kernel owns its CSRF check —
+        // unlike POST {two_factor_path} (the code submission), whose
+        // token the 2FA controller validates itself under its own token
+        // id, exactly like the login entry point.
+        if ($this->isTwoFactorCancelRequest($request, $config)
+            && null !== ($csrfFailure = $this->enforceCsrf($request, $config))) {
+            return $csrfFailure;
+        }
+
+        return $this->controllerResolver($request);
+    }
+
+    /**
+     * GET {entry_point} with a remember-me cookie on the request. Only the
+     * login page: a 2FA page is never let past the second factor by a cookie.
+     *
+     * @param array<string, mixed> $config
+     */
+    private function isLoginPageWithRememberMeCookie(ServerRequestInterface $request, array $config): bool
+    {
+        if (!isset($config['entry_point']) || $this->securityPath($request) !== $config['entry_point']) {
+            return false;
+        }
+
+        foreach ($this->rememberMeAuthenticators($config) as $rememberMe) {
+            if ($rememberMe->supports($request)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Try each configured authenticator until one succeeds.
      *
      * Failures are handled by credential kind:
@@ -740,7 +960,7 @@ trait AppSecurity
      *    never confirms that an account exists. A failed interactive login also
      *    expires any remember-me cookie riding along on the request.
      *
-     * See docs/security.md § "Authentication failure behaviour".
+     * See docs/security/accounts.md § "Authentication failure behaviour".
      *
      * @param array<string, mixed> $config
      * @param list<string>         $reissueCookies Set-Cookie headers re-issuing rotated
@@ -897,7 +1117,16 @@ trait AppSecurity
         // Expire any remember-me cookies issued for this firewall. The session
         // is gone, but a surviving cookie would re-authenticate the user on the
         // next request — so clearing it is what makes logout actually log out.
+        //
+        // In persistent mode the series is revoked server-side as well: the
+        // clear-cookie header only reaches this browser, and a copy of the
+        // cookie taken from it would otherwise stay valid for its lifetime.
+        // That is the per-device revocation persistent mode exists for.
+        $request = $this->state?->getRequest();
         foreach ($this->rememberMeAuthenticators($config) as $rememberMe) {
+            if (null !== $request) {
+                $rememberMe->revoke($request);
+            }
             $response = $response->withAddedHeader('Set-Cookie', $rememberMe->buildClearCookieHeader());
         }
 
@@ -936,24 +1165,14 @@ trait AppSecurity
         array $config,
         string $firewallName,
     ): ?ResponseInterface {
-        $switch = $config['switch_user'] ?? null;
+        $identifier = $this->switchUserIdentifier($request, $config);
 
-        if (!is_array($switch) || true !== ($switch['enabled'] ?? false)) {
+        if (null === $identifier) {
             return null;
         }
 
-        if ('POST' !== $request->getMethod()) {
-            return null;
-        }
-
-        $parameter = $switch['parameter'] ?? '_switch_user';
-        $body = $request->getParsedBody();
-        $identifier = is_array($body) ? ($body[$parameter] ?? null) : null;
-
-        // Identifiers can be falsy-looking strings ("0"), so only null/'' opt out.
-        if (!is_string($identifier) || '' === $identifier) {
-            return null;
-        }
+        /** @var array<string, mixed> $switch */
+        $switch = $config['switch_user'];
 
         $this->assertValidActionCsrfToken($request, $config, 'switch_user', 'switch user');
 
@@ -986,6 +1205,43 @@ trait AppSecurity
         return Response::redirect(
             $this->switchUserTarget($request, $switch, $token, $newToken)
         );
+    }
+
+    /**
+     * Whether this request asks to switch user: the firewall enables it, the
+     * method is POST and the configured parameter carries an identifier.
+     *
+     * @param array<string, mixed> $config
+     */
+    private function isSwitchUserRequest(ServerRequestInterface $request, array $config): bool
+    {
+        return null !== $this->switchUserIdentifier($request, $config);
+    }
+
+    /**
+     * The target identifier of a switch-user request, or null when the request
+     * is not one.
+     *
+     * @param array<string, mixed> $config
+     */
+    private function switchUserIdentifier(ServerRequestInterface $request, array $config): ?string
+    {
+        $switch = $config['switch_user'] ?? null;
+
+        if (!is_array($switch) || true !== ($switch['enabled'] ?? false)) {
+            return null;
+        }
+
+        if ('POST' !== $request->getMethod()) {
+            return null;
+        }
+
+        $parameter = $switch['parameter'] ?? '_switch_user';
+        $body = $request->getParsedBody();
+        $identifier = is_array($body) ? ($body[$parameter] ?? null) : null;
+
+        // Identifiers can be falsy-looking strings ("0"), so only null/'' opt out.
+        return is_string($identifier) && '' !== $identifier ? $identifier : null;
     }
 
     /**
@@ -1241,7 +1497,11 @@ trait AppSecurity
      */
     private function enforceAccessControl(ServerRequestInterface $request): void
     {
-        $this->accessDecisionEngine()->enforce($request, $this->tokenStorage()->getToken());
+        $this->accessDecisionEngine()->enforce(
+            $request,
+            $this->tokenStorage()->getToken(),
+            $this->getFirewallNameForRequest($request),
+        );
     }
 
     /**

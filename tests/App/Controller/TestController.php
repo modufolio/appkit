@@ -6,6 +6,7 @@ namespace Modufolio\Appkit\Tests\App\Controller;
 
 use Modufolio\Appkit\Http\ResponsableInterface;
 use Modufolio\Appkit\Inertia\Inertia;
+use Modufolio\Appkit\Security\SessionIdleStatus;
 use Modufolio\Psr7\Http\Response;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -32,6 +33,16 @@ class TestController
     public function logout(ServerRequestInterface $request): ResponseInterface
     {
         return new Response(200, [], 'Logout');
+    }
+
+    /**
+     * How a "how long have I got left?" endpoint is written. Its path is
+     * declared in the firewall's `idle_ignore_paths`, so asking does not
+     * itself renew the deadline being reported.
+     */
+    public function sessionStatus(SessionIdleStatus $status): ResponseInterface
+    {
+        return Response::json(['remaining' => $status->secondsRemaining]);
     }
 
     public function submit(ServerRequestInterface $request): ResponseInterface

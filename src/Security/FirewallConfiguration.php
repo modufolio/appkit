@@ -53,6 +53,20 @@ final class FirewallConfiguration implements ConfigurationInterface
                             ->arrayNode('csrf_delegated_paths')
                                 ->scalarPrototype()->end()
                             ->end()
+                            // Seconds of inactivity after which an
+                            // authenticated session is terminated. Absent or 0
+                            // disables the check.
+                            ->integerNode('idle_timeout')
+                                ->min(0)
+                            ->end()
+                            // Paths that do NOT count as activity: they are
+                            // served normally but leave the idle deadline
+                            // untouched. This is what a "how long have I got
+                            // left?" endpoint must be declared as, or polling
+                            // it would keep the session alive forever.
+                            ->arrayNode('idle_ignore_paths')
+                                ->scalarPrototype()->end()
+                            ->end()
                             ->arrayNode('csrf_form_tokens')
                                 ->useAttributeAsKey('name')
                                 ->scalarPrototype()->end()

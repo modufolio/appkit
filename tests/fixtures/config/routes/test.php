@@ -21,6 +21,11 @@ return [
         'methods' => ['GET'],
         'controller' => [TestController::class, 'index'],
     ],
+    'session_status' => [
+        'pattern' => '/session-status',
+        'methods' => ['GET'],
+        'controller' => [TestController::class, 'sessionStatus'],
+    ],
     'public' => [
         'pattern' => '/public',
         'methods' => ['GET', 'POST'],

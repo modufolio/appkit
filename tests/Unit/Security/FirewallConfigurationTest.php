@@ -31,6 +31,16 @@ class FirewallConfigurationTest extends TestCase
         )['firewalls'];
     }
 
+    /**
+     * The docs say 0 disables the idle timeout; the schema must accept it.
+     */
+    public function testIdleTimeoutOfZeroIsAccepted(): void
+    {
+        $processed = $this->process(['main' => ['pattern' => '/', 'idle_timeout' => 0]]);
+
+        $this->assertSame(0, $processed['main']['idle_timeout']);
+    }
+
     public function testValidConfigPasses(): void
     {
         $result = $this->process([
