@@ -135,7 +135,7 @@ class MyController extends AbstractController
 In a class that does *not* extend `AbstractController`, inject
 `UrlGeneratorInterface` through `config/controllers.php` as normal.
 
-`generate()` returns an absolute path by default. Pass `UrlGeneratorInterface::ABSOLUTE_URL` as the third argument for a full URL including scheme and host. The host is the request's `Host` header, so absolute URLs that leave the response (password-reset emails, canonical links) need the [trusted-hosts allowlist](security.md#trusted-hosts) configured, or a spoofed header ends up in the link.
+`generate()` returns an absolute path by default. Pass `UrlGeneratorInterface::ABSOLUTE_URL` as the third argument for a full URL including scheme and host. The host is the request's `Host` header, so absolute URLs that leave the response (password-reset emails, canonical links) need the [trusted-hosts allowlist](security/trusted-hosts.md) configured, or a spoofed header ends up in the link.
 
 ## Debugging routes
 
@@ -170,80 +170,7 @@ return function (RoutingConfigurator $routes): void {
 };
 ```
 
-For redirects use the `redirect` loader below, not a manual route.
-
-## Redirects
-
-Redirects have their own loader. Declare them in a file that returns a closure over `RedirectConfigurator`, and import it with the `redirect` type:
-
-```php
-// config/redirects.php
-use Modufolio\Appkit\Routing\RedirectConfigurator;
-
-return function (RedirectConfigurator $redirects): void {
-    $redirects
-        // Literal target — for external URLs and paths outside the app.
-        ->redirect('/home', '/', 301)
-        // Named route — the URL is generated when the redirect is served,
-        // so renames propagate and an unknown name throws RouteNotFoundException.
-        ->redirectToRoute('/old-blog', 'blog.index', [], 302);
-};
-```
-
-```php
-// config/routes.php
-$routes->import('redirects.php', 'redirect');
-```
-
-The file is looked up through the `FileLocator` the loader was built with (your config directory). Both methods take the status code last and default to `301`; only `301`, `302`, `303`, `307` and `308` are accepted, anything else is an `InvalidArgumentException` at configure time. Each entry becomes a route named `redirect_<hash>` (hash of source and target, so names are stable across loads) whose `_controller` is `RedirectController::redirect`, which answers with the `Location` header and a small HTML body. A source without a leading slash is normalised to one. Loops between literal-path redirects (`/a -> /b -> /a`) are refused at load time with the full chain in the message; chains that do not cycle load fine.
-
-Keep literal targets static. The moment request data reaches `redirect()`, the route is an open redirect.
-
-`RedirectRouteLoader` is shipped, not pre-registered: it has to be in the `LoaderResolver` your application builds (see below).
-
-## Array routes
-
-For routes you would rather read in one file than find across controller attributes — a small site, a legacy URL map, routes that point at controllers you do not own — declare them as a PHP array and import it with the `array` type:
-
-```php
-// config/routes/site.php
-use App\Controller\PageController;
-
-return [
-    'home' => [
-        'pattern' => '/',
-        'controller' => [PageController::class, 'home'],
-    ],
-    'page' => [
-        'pattern' => '/{slug}',
-        'controller' => [PageController::class, 'show'],
-        'requirements' => ['slug' => '[a-z0-9-]+'],
-    ],
-    'contact' => [
-        'pattern' => '/contact',
-        'methods' => ['GET', 'POST'],
-        'controller' => [PageController::class, 'contact'],
-    ],
-];
-```
-
-```php
-// config/routes.php
-$routes->import('routes/site.php', 'array');
-```
-
-Each entry becomes one Symfony `Route`:
-
-| Key | Required | Meaning |
-|-----|----------|---------|
-| `pattern` | yes | The path, with `{placeholders}` as in `#[Route]`. |
-| `controller` | yes | Becomes the route's `_controller` default — `[Class::class, 'method']`, resolved like any attribute route. Not a closure: the compiled route collection is cached in production, and a closure cannot be serialized. |
-| `methods` | no | HTTP verbs; defaults to `['GET']`, unlike `#[Route]`, which matches every method when omitted. |
-| `requirements` | no | Placeholder patterns, `['slug' => '[a-z0-9-]+']`. |
-
-The array key is the route name, used by `generate()` and `#[IsGranted]` alike; an entry without a string key is named after its pattern. Other keys — defaults, options, host, schemes — are not read; a route that needs them belongs in `#[Route]` or in `config/routes.php` through `$routes->add()`. The file is located through the loader's `FileLocator`, so the path is relative to your config directory, and it is `include`d, so it may compute its entries.
-
-`ArrayRouteLoader` is shipped, not pre-registered: the skeleton's `AppFactory` registers only the attribute and PHP-file loaders, so add `new ArrayRouteLoader($locator)` to its `LoaderResolver` first (see below).
+For redirects use the [redirect loader](#redirects), not a manual route.
 
 ## Deriving data from the routes
 
@@ -291,13 +218,76 @@ AppKit ships these route loaders:
 
 | Loader | Type string | Use case |
 |--------|-------------|----------|
-| `AttributeClassLoader` | `attribute` (through Symfony's `AttributeDirectoryLoader`) | `#[Route]` attributes on controller classes |
+| `AttributeClassLoader` | `attribute` (through Symfony's `AttributeDirectoryLoader`) | `#[Route]` attributes on controller classes — see [Attribute routes](#attribute-routes) |
 | `ArrayRouteLoader` | `array` | Explicit PHP array route definitions — see [Array routes](#array-routes) |
-| `FlatFileRouteLoader` | `flat_file` | Filesystem-based routing — folder structure maps to URLs |
-| `JsonApiRouteLoader` | `json_api` | Auto-generated JSON:API CRUD routes — see [modufolio/json-api](https://github.com/modufolio/json-api) |
+| `FlatFileRouteLoader` | `flat_file` | Filesystem-based routing — see [Flat-file routes](#flat-file-routes) |
+| `JsonApiRouteLoader` | `json_api` | Auto-generated JSON:API CRUD routes — see [JSON:API routes](#jsonapi-routes) |
 | `RedirectRouteLoader` | `redirect` | Redirects declared through `RedirectConfigurator` — see [Redirects](#redirects) |
 
-### JSON:API route authorization
+One subsection per loader follows, in the order of the table.
+
+### Attribute routes
+
+`#[Route]` attributes on controller classes are the default and are covered at the top of this guide, from [Declaring a route](#declaring-a-route) through [Protecting routes with `#[IsGranted]`](#protecting-routes-with-isgranted). Symfony's `AttributeDirectoryLoader` scans the imported directory and hands each class to AppKit's `AttributeClassLoader`, which sets the `_controller` default and folds the `#[IsGranted]` attributes into the route.
+
+### Array routes
+
+For routes you would rather read in one file than find across controller attributes — a small site, a legacy URL map, routes that point at controllers you do not own — declare them as a PHP array and import it with the `array` type:
+
+```php
+// config/routes/site.php
+use App\Controller\PageController;
+
+return [
+    'home' => [
+        'pattern' => '/',
+        'controller' => [PageController::class, 'home'],
+    ],
+    'page' => [
+        'pattern' => '/{slug}',
+        'controller' => [PageController::class, 'show'],
+        'requirements' => ['slug' => '[a-z0-9-]+'],
+    ],
+    'contact' => [
+        'pattern' => '/contact',
+        'methods' => ['GET', 'POST'],
+        'controller' => [PageController::class, 'contact'],
+    ],
+];
+```
+
+```php
+// config/routes.php
+$routes->import('routes/site.php', 'array');
+```
+
+Each entry becomes one Symfony `Route`:
+
+| Key | Required | Meaning |
+|-----|----------|---------|
+| `pattern` | yes | The path, with `{placeholders}` as in `#[Route]`. |
+| `controller` | yes | Becomes the route's `_controller` default — `[Class::class, 'method']`, resolved like any attribute route. Not a closure: the compiled route collection is cached in production, and a closure cannot be serialized. |
+| `methods` | no | HTTP verbs; defaults to `['GET']`, unlike `#[Route]`, which matches every method when omitted. |
+| `requirements` | no | Placeholder patterns, `['slug' => '[a-z0-9-]+']`. |
+
+The array key is the route name, used by `generate()` and `#[IsGranted]` alike; an entry without a string key is named after its pattern. Other keys — defaults, options, host, schemes — are not read; a route that needs them belongs in `#[Route]` or in `config/routes.php` through `$routes->add()`. The file is located through the loader's `FileLocator`, so the path is relative to your config directory, and it is `include`d, so it may compute its entries.
+
+`ArrayRouteLoader` is shipped, not pre-registered: the skeleton's `AppFactory` registers only the attribute and PHP-file loaders, so add `new ArrayRouteLoader($locator)` to its `LoaderResolver` first (see above).
+
+### Flat-file routes
+
+`FlatFileRouteLoader` maps a content directory to URLs: each folder becomes a
+route, nested folders nest, and the folder named `home` (configurable) serves
+`/`. A numeric ordering prefix on a folder name (`1_about`, `2_blog`) sets the
+sort order and is stripped from the slug.
+
+**Slug collisions.** Because the prefix is stripped, `1_about` and `2_about`
+both become `/about` and the same route name. The later folder wins without
+warning. Keep the part after the prefix unique.
+
+### JSON:API routes
+
+`JsonApiRouteLoader` generates the CRUD and relationship routes for the resources declared in your JSON:API config; the resource model itself is documented in [modufolio/json-api](https://github.com/modufolio/json-api). What the loader adds on top is authorization.
 
 Roles declared on a JSON:API resource are written to its generated routes as
 `_is_granted_roles` — the same default `#[IsGranted]` produces — so the kernel
@@ -322,3 +312,31 @@ Generated write endpoints are never silently ungated: an entity that exposes
 open, declare it *present but empty* — `'read' => []` means public reads, and
 `'roles' => ['read' => [], 'write' => []]` is the explicit opt-in for fully
 public writes.
+### Redirects
+
+Redirects have their own loader. Declare them in a file that returns a closure over `RedirectConfigurator`, and import it with the `redirect` type:
+
+```php
+// config/redirects.php
+use Modufolio\Appkit\Routing\RedirectConfigurator;
+
+return function (RedirectConfigurator $redirects): void {
+    $redirects
+        // Literal target — for external URLs and paths outside the app.
+        ->redirect('/home', '/', 301)
+        // Named route — the URL is generated when the redirect is served,
+        // so renames propagate and an unknown name throws RouteNotFoundException.
+        ->redirectToRoute('/old-blog', 'blog.index', [], 302);
+};
+```
+
+```php
+// config/routes.php
+$routes->import('redirects.php', 'redirect');
+```
+
+The file is looked up through the `FileLocator` the loader was built with (your config directory). Both methods take the status code last and default to `301`; only `301`, `302`, `303`, `307` and `308` are accepted, anything else is an `InvalidArgumentException` at configure time. Each entry becomes a route named `redirect_<hash>` (hash of source and target, so names are stable across loads) whose `_controller` is `RedirectController::redirect`, which answers with the `Location` header and a small HTML body. A source without a leading slash is normalised to one. Loops between literal-path redirects (`/a -> /b -> /a`) are refused at load time with the full chain in the message; chains that do not cycle load fine.
+
+Keep literal targets static. The moment request data reaches `redirect()`, the route is an open redirect.
+
+`RedirectRouteLoader` is shipped, not pre-registered: it has to be in the `LoaderResolver` your application builds (see above).

@@ -51,7 +51,9 @@ class FlatFileRouteLoader extends Loader
     {
         $dir = $this->locator->locate($resource);
         $collection = new RouteCollection();
-        $collection->addResource(new DirectoryResource($dir, '/\.txt$/'));
+        // Tracked with the configured extension, or a loader built for `.md`
+        // content never sees its cache invalidated when a page changes.
+        $collection->addResource(new DirectoryResource($dir, '/\.'.preg_quote($this->fileExtension, '/').'$/'));
         $this->addRoutes($collection, $dir, '');
 
         return $collection;

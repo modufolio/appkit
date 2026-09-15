@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Modufolio\Appkit\Routing;
 
 use Modufolio\Appkit\Core\ResetInterface;
@@ -118,8 +120,6 @@ class Router implements RouterInterface, ResetInterface
         array $parameters = [],
         int $referenceType = UrlGeneratorInterface::ABSOLUTE_PATH,
     ): string {
-        $context = $this->getContext();
-
         return $this->getUrlGenerator()->generate($name, $parameters, $referenceType);
     }
 

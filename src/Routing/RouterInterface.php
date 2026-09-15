@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Modufolio\Appkit\Routing;
 
 use Psr\Http\Message\ServerRequestInterface;
@@ -61,7 +63,7 @@ interface RouterInterface
     /**
      * Get the route collection.
      */
-    public function getRouteCollection(): \Symfony\Component\Routing\RouteCollection;
+    public function getRouteCollection(): RouteCollection;
 
     /**
      * A request-independent projection of the routes, cached beside the
@@ -71,7 +73,7 @@ interface RouterInterface
      * from source. $project runs only on a cache miss, so it must not read the
      * request, and must return an array var_export() can round-trip.
      *
-     * @param string                           $key     Cache key; a bare filename, [a-z0-9_-]
+     * @param string                                  $key     Cache key; a bare filename, [a-z0-9_-]
      * @param \Closure(RouteCollection): array<mixed> $project
      *
      * @return array<mixed>

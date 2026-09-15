@@ -10,6 +10,7 @@ use Modufolio\Appkit\Tests\App\FlatFile\FlatFileController;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Config\FileLocator;
+use Symfony\Component\Config\Resource\DirectoryResource;
 use Symfony\Component\Routing\Route;
 use Symfony\Component\Routing\RouteCollection;
 
@@ -29,6 +30,26 @@ class FlatFileRouteLoaderTest extends TestCase
             fileExtension: 'txt',
             homeFolder: 'home',
         );
+    }
+
+    /**
+     * The directory resource that invalidates the route cache must watch the
+     * configured content extension, not a hardcoded `.txt`.
+     */
+    public function testCacheResourceTracksTheConfiguredExtension(): void
+    {
+        $loader = new FlatFileRouteLoader(
+            locator: new FileLocator(__DIR__.'/../../App/FlatFile'),
+            controllerClass: FlatFileController::class,
+            fileExtension: 'md',
+        );
+
+        $resources = $loader->load('.', 'flat_file')->getResources();
+
+        $this->assertCount(1, $resources);
+        $resource = $resources[0];
+        $this->assertInstanceOf(DirectoryResource::class, $resource);
+        $this->assertSame('/\.md$/', $resource->getPattern());
     }
 
     public function testSupportsFlatFileType(): void
@@ -350,7 +371,7 @@ class FlatFileRouteLoaderTest extends TestCase
     public function testViewlessTemplatesGetNoRoute(): void
     {
         $loader = new FlatFileRouteLoader(
-            new \Symfony\Component\Config\FileLocator([\dirname(__DIR__, 2).'/App/FlatFile']),
+            new FileLocator([\dirname(__DIR__, 2).'/App/FlatFile']),
             FlatFileController::class,
             viewlessTemplates: ['about'],
         );
