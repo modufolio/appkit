@@ -204,6 +204,83 @@ class EnvTest extends TestCase
         $this->assertSame('quoted', $env->getString('APPKIT_FILE_QUOTED'));
     }
 
+    public function testFromStringParsesWithoutTouchingTheFilesystem(): void
+    {
+        $env = (new Env())->fromString("APPKIT_PLAIN=from-string\nAPPKIT_QUOTED=\"quoted\"\n");
+
+        $this->assertSame('from-string', $env->getString('APPKIT_PLAIN'));
+        $this->assertSame('quoted', $env->getString('APPKIT_QUOTED'));
+    }
+
+    /**
+     * `#` is the .env convention everywhere — Docker, the dotenv libraries,
+     * our own .env.example — but INI reserves it. The scanner tolerates a
+     * plain `#` line and then rejects the whole file over a comment holding a
+     * character it cares about, so a line as ordinary as the one below used to
+     * fail every variable in the file with a syntax error blaming a comment.
+     */
+    public function testHashCommentsAreStrippedIncludingAwkwardOnes(): void
+    {
+        $env = (new Env())->fromString(
+            "# Generate with: php -r 'echo bin2hex(random_bytes(32));'\n"
+            ."APPKIT_SECRET=abc123\n"
+            ."   # indented comment with (parens) and \"quotes\"\n"
+            ."APPKIT_OTHER=def\n"
+        );
+
+        $this->assertSame('abc123', $env->getString('APPKIT_SECRET'));
+        $this->assertSame('def', $env->getString('APPKIT_OTHER'));
+    }
+
+    /**
+     * Only whole-line comments: a `#` inside a value belongs to the secret.
+     */
+    public function testAHashInsideAValueIsKept(): void
+    {
+        $env = (new Env())->fromString("APPKIT_PASSWORD=\"p#ssw#rd\"\nAPPKIT_BARE=a#b\n");
+
+        $this->assertSame('p#ssw#rd', $env->getString('APPKIT_PASSWORD'));
+        $this->assertSame('a#b', $env->getString('APPKIT_BARE'));
+    }
+
+    public function testSemicolonCommentsStillWork(): void
+    {
+        $this->assertSame(
+            'yes',
+            (new Env())->fromString("; a classic ini comment\nAPPKIT_KEPT=yes\n")->getString('APPKIT_KEPT'),
+        );
+    }
+
+    public function testExportPrefixIsDroppedFromString(): void
+    {
+        $env = (new Env())->fromString("export APPKIT_EXPORTED=yes\nAPPKIT_PLAIN=no\n");
+
+        $this->assertSame('yes', $env->getString('APPKIT_EXPORTED'));
+        $this->assertSame('no', $env->getString('APPKIT_PLAIN'));
+    }
+
+    /**
+     * A parse failure names where the text came from, so the message points at
+     * the file when there was one and says so plainly when there was not.
+     */
+    public function testAParseFailureNamesItsSource(): void
+    {
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessageMatches('/<string>/');
+
+        (new Env())->fromString("APPKIT_BROKEN=\"line1\nline2\"\n");
+    }
+
+    public function testAParseFailureFromAFileNamesThePath(): void
+    {
+        $path = $this->writeEnvFile("APPKIT_BROKEN=\"line1\nline2\"\n");
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessageMatches('/'.preg_quote(basename($path), '/').'/');
+
+        (new Env())->fromFile($path);
+    }
+
     public function testRealEnvironmentVariablesOutrankTheFile(): void
     {
         $path = $this->writeEnvFile("APPKIT_OVERRIDDEN=from-file\n");

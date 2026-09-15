@@ -71,7 +71,33 @@ class Env
      */
     public function fromFile(string $path): static
     {
-        return $this->fromArray($this->parse($path));
+        if (!is_file($path)) {
+            return $this;
+        }
+
+        $contents = file_get_contents($path);
+
+        if (false === $contents) {
+            return $this;
+        }
+
+        return $this->fromString($contents, $path);
+    }
+
+    /**
+     * Merge .env-formatted text into the reader, lowest precedence.
+     *
+     * The same parser `fromFile()` uses, for content that never was a file:
+     * a secret manager's payload, a variable holding a dotenv blob, a test.
+     *
+     * @param string $source labels the content in a parse error
+     *
+     * @throws \LogicException   once the reader is frozen
+     * @throws \RuntimeException when the content cannot be parsed
+     */
+    public function fromString(string $contents, string $source = '<string>'): static
+    {
+        return $this->fromArray(self::parse($contents, $source));
     }
 
     /**
@@ -216,17 +242,21 @@ class Env
     }
 
     /**
+     * Parse .env-formatted text. No I/O: `$source` only names the origin in
+     * the error message.
+     *
      * @return array<string, string>
      *
-     * @throws \RuntimeException when the file exists but cannot be parsed
+     * @throws \RuntimeException when the content cannot be parsed
      */
-    private function parse(string $path): array
+    private static function parse(string $contents, string $source): array
     {
-        if (!is_file($path)) {
-            return [];
-        }
+        // INI only honours `;`, so a `#` comment fails the whole file as soon
+        // as it contains a character the scanner reserves. Whole-line only —
+        // a `#` inside a value belongs to the value.
+        $contents = preg_replace('/^[ \t]*#.*$/m', '', $contents) ?? $contents;
 
-        // parse_ini_file reports syntax errors as a warning and then returns
+        // parse_ini_string reports syntax errors as a warning and then returns
         // false for the *whole file*, so one bad line would otherwise take every
         // variable with it — silently, leaving getRequired() to blame a secret
         // that is sitting right there in the file. Capture the warning instead;
@@ -239,13 +269,13 @@ class Env
         });
 
         try {
-            $parsed = parse_ini_file($path, false, INI_SCANNER_RAW);
+            $parsed = parse_ini_string($contents, false, INI_SCANNER_RAW);
         } finally {
             restore_error_handler();
         }
 
         if (false === $parsed) {
-            throw new \RuntimeException(sprintf('Failed to parse the environment file "%s"%s. Note that values containing spaces or newlines must be quoted.', $path, null === $warning ? '' : ': '.$warning));
+            throw new \RuntimeException(sprintf('Failed to parse the environment file "%s"%s. Note that values containing spaces or newlines must be quoted.', $source, null === $warning ? '' : ': '.$warning));
         }
 
         $values = [];
