@@ -35,6 +35,75 @@ class ContainerDiagnosticsTest extends AppTestCase
         $this->app()->get(\ArrayObject::class);
     }
 
+    /**
+     * resolve() answers a registered authenticator name; has() must say so
+     * too, or a caller that checks first is told "no" and then get() works.
+     */
+    public function testHasAgreesWithGetForAuthenticatorNames(): void
+    {
+        $this->app()->registerAuthenticator('diagnostics_probe', fn () => new \ArrayObject());
+
+        $this->assertTrue($this->app()->has('diagnostics_probe'));
+        $this->assertInstanceOf(\ArrayObject::class, $this->app()->get('diagnostics_probe'));
+        $this->assertFalse($this->app()->has('diagnostics_probe_missing'));
+    }
+
+    /**
+     * An id a module declared shared() and the application redeclares with
+     * set() takes the application's lifetime: a fresh object per resolve,
+     * not the module's cached one.
+     */
+    public function testRedeclaringASharedIdWithSetDropsTheSharedLifetime(): void
+    {
+        $first = new ServiceConfigurator();
+        $first->shared(\ArrayObject::class, fn () => new \ArrayObject());
+        $this->app()->configureServices($first);
+
+        $cached = $this->app()->get(\ArrayObject::class);
+        $this->assertSame($cached, $this->app()->get(\ArrayObject::class), 'shared() caches within a request');
+
+        $second = new ServiceConfigurator();
+        $second->set(\ArrayObject::class, fn () => new \ArrayObject());
+        $this->app()->configureServices($second);
+
+        $a = $this->app()->get(\ArrayObject::class);
+        $b = $this->app()->get(\ArrayObject::class);
+
+        $this->assertNotSame($cached, $a, 'the redeclared id must not serve the previous cached instance');
+        $this->assertNotSame($a, $b, 'set() builds a fresh object per resolve');
+    }
+
+    /**
+     * A deprecation a module attached to an id no longer fires once the
+     * application owns that id.
+     */
+    public function testRedeclaringADeprecatedIdClearsTheDeprecation(): void
+    {
+        $first = new ServiceConfigurator();
+        $first->set(\SplQueue::class, fn () => new \SplQueue())
+            ->deprecate(\SplQueue::class, 'SplQueue is deprecated.');
+        $this->app()->configureServices($first);
+
+        $second = new ServiceConfigurator();
+        $second->set(\SplQueue::class, fn () => new \SplQueue());
+        $this->app()->configureServices($second);
+
+        $deprecations = [];
+        set_error_handler(static function (int $no, string $message) use (&$deprecations): bool {
+            $deprecations[] = $message;
+
+            return true;
+        }, \E_USER_DEPRECATED);
+
+        try {
+            $this->app()->get(\SplQueue::class);
+        } finally {
+            restore_error_handler();
+        }
+
+        $this->assertSame([], $deprecations);
+    }
+
     public function testAFactoryMissingAConstructorArgumentIsAnUnresolvableService(): void
     {
         $configurator = new ServiceConfigurator();

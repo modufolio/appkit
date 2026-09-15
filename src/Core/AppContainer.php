@@ -15,6 +15,7 @@ use Modufolio\Appkit\Exception\UnresolvableServiceException;
 use Modufolio\Appkit\Resolver\ParameterResolverInterface;
 use Modufolio\Appkit\Routing\RouterInterface;
 use Modufolio\Appkit\Security\Csrf\CsrfTokenManagerInterface;
+use Modufolio\Appkit\Security\SessionIdleStatus;
 use Modufolio\Appkit\Security\Token\TokenStorageInterface;
 use Modufolio\Appkit\Security\User\UserChecker;
 use Modufolio\Appkit\Security\User\UserCheckerInterface;
@@ -73,6 +74,25 @@ trait AppContainer
      */
     public function configureServices(ServiceConfigurator $configurator): static
     {
+        // A redeclared id takes the new definition's lifetime and status, not
+        // a union of both: an application that answers a module's shared()
+        // id with set() gets a fresh object per resolve, and a deprecation a
+        // module attached to an id the application now owns no longer fires.
+        foreach (array_keys($configurator->definitions) as $id) {
+            unset($this->sharedServices[$id], $this->deprecatedServices[$id], $this->instances[$id]);
+        }
+
+        // The session handler and configuration are read once and kept for
+        // the process; a redeclaration is a new choice, so forget the old one.
+        // The next request's state is built with it (the current one keeps
+        // the session it already opened).
+        if (isset($configurator->definitions[\SessionHandlerInterface::class])) {
+            $this->sessionHandler = null;
+        }
+        if (isset($configurator->definitions[SessionConfiguration::class])) {
+            $this->sessionConfiguration = null;
+        }
+
         $this->services = $configurator->definitions + $this->services;
         $this->sharedServices = $configurator->shared + $this->sharedServices;
         $this->deprecatedServices = $configurator->deprecated + $this->deprecatedServices;
@@ -105,6 +125,7 @@ trait AppContainer
             RouterInterface::class => fn () => $this->router(),
             SerializerInterface::class => fn () => $this->serializer(),
             ServerRequestInterface::class => fn () => $this->request(),
+            SessionIdleStatus::class => fn () => new SessionIdleStatus($this->idleSecondsRemaining()),
             SessionInterface::class => fn () => $this->session(),
             Stopwatch::class => fn () => $this->stopwatch(),
             TokenStorageInterface::class => fn () => $this->tokenStorage(),
@@ -155,12 +176,17 @@ trait AppContainer
                 $instance = $this->interfaceMap[$id]();
             } elseif (isset($this->instances[$id])) {
                 $instance = $this->instances[$id];
-            } elseif (array_key_exists($id, $this->repositories())) {
-                $instance = $this->getRepository($id);
             } elseif (isset($this->authenticators[$id])) {
                 $instance = $this->authenticators[$id]($this);
             } elseif (isset($this->factories[$id])) {
                 $instance = $this->factories[$id]($this);
+            } elseif (array_key_exists($id, $this->repositories())) {
+                // Last of the kernel's own sources: listing repositories
+                // builds the entity manager and loads every entity's
+                // metadata, so the in-memory tables above answer first and
+                // an application without Doctrine still resolves its
+                // authenticators and factories.
+                $instance = $this->getRepository($id);
             } elseif ($this->fallbackHas($id)) {
                 $instance = $this->fallbackContainer->get($id);
             } else {
@@ -293,11 +319,14 @@ trait AppContainer
             return false;
         }
 
+        // Same sources as resolve(), in the same order, so has() and get()
+        // never disagree about an id.
         return isset($this->services[$id])
-            || isset($this->instances[$id])
             || array_key_exists($id, $this->interfaceMap)
-            || array_key_exists($id, $this->repositories())
+            || isset($this->instances[$id])
+            || isset($this->authenticators[$id])
             || isset($this->factories[$id])
+            || array_key_exists($id, $this->repositories())
             || $this->fallbackHas($id);
     }
 

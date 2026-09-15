@@ -115,6 +115,12 @@ return function (ServiceConfigurator $services, array $config): void {
 };
 ```
 
+Module definitions sit between the kernel's core services and the
+application's own `config/services.php`, so the application wins for any id
+it redeclares. The redeclared id takes the application's definition whole: a
+module's `shared()` id answered with `set()` is built fresh on every resolve,
+and a deprecation the module attached to it no longer fires.
+
 A module may also ship a `config/controllers.php` in the application's shape — a map of controller class to constructor dependencies. Module entries land underneath the application's map, so the app can rewire any controller a module ships:
 
 ```php
