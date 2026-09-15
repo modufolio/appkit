@@ -417,7 +417,10 @@ final class ExceptionHandler implements ExceptionHandlerInterface
             ];
         });
 
-        $this->registerException(PayloadTooLargeException::class, static function (PayloadTooLargeException $e) {
+        // Registered on the PSR-7 package's class: its body parsers throw it
+        // when a payload exceeds the limit, and the application's own
+        // PayloadTooLargeException extends it, so one entry covers both.
+        $this->registerException(\Modufolio\Psr7\Http\Exception\PayloadTooLargeException::class, static function (\Modufolio\Psr7\Http\Exception\PayloadTooLargeException $e) {
             return [
                 'status' => 413,
                 'title' => 'Payload Too Large',

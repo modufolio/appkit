@@ -6,6 +6,7 @@ namespace Modufolio\Appkit\Tests\Unit\Exception;
 
 use Modufolio\Appkit\Core\Environment;
 use Modufolio\Appkit\Exception\ExceptionHandler;
+use Modufolio\Appkit\Exception\PayloadTooLargeException;
 use Modufolio\Appkit\Exception\UnresolvableServiceException;
 use Modufolio\Appkit\Exception\UntrustedHostException;
 use Modufolio\Appkit\Security\TwoFactor\TwoFactorException;
@@ -53,6 +54,21 @@ class ExceptionHandlerTest extends TestCase
         $body = json_decode((string) $response->getBody(), true);
         $this->assertArrayHasKey('errors', $body);
         $this->assertSame('400', $body['errors'][0]['status']);
+    }
+
+    /**
+     * The PSR-7 package's body parsers throw their own PayloadTooLargeException
+     * when a request body exceeds the limit; it must answer 413, not 500.
+     */
+    public function testPackagePayloadTooLargeIsA413(): void
+    {
+        $request = (new ServerRequest('POST', '/'))->withHeader('Accept', 'application/json');
+
+        $response = $this->handler->handle(new \Modufolio\Psr7\Http\Exception\PayloadTooLargeException('JSON payload exceeds 1MB'), $request);
+        $this->assertSame(413, $response->getStatusCode());
+
+        $response = $this->handler->handle(new PayloadTooLargeException('too big'), $request);
+        $this->assertSame(413, $response->getStatusCode());
     }
 
     public function testRegisterAndHandleJsonException(): void
