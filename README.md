@@ -5,41 +5,53 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-brightgreen.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 [![codecov](https://img.shields.io/codecov/c/github/modufolio/appkit?token=RMUZV84J10&style=flat-square)](https://codecov.io/gh/modufolio/appkit)
 
-A small, hand-wired PHP application kernel built on Symfony components,
-Doctrine ORM, Firebase JWT, and a strict-typed PSR-7 fork. Designed for
-security-conscious SaaS applications that want Symfony-grade components
-without Symfony's full kernel, bundle system, and compile step — until the
-application is big enough to want the last two, at which point it opts in.
+A PHP framework for security-conscious SaaS applications, built from Symfony
+components and Doctrine ORM around a kernel you can read end to end. Routing,
+firewalls, authenticators, forms, Inertia, modules, image processing, and a
+console with generators are all here. What is missing is the machinery:
+no compiled container, no event dispatcher, no bundles, no bootstrap you have
+to regenerate.
 
-**In AppKit, your App class is the container.** Symfony compiles a container
-class you never read; Laravel hides its container behind facades. Here the
-container is a class you write: services are typed methods on your `App`,
-lazily constructed and cached in properties you can see. There is nothing to
-compile, because you already wrote what a compiler would generate — and
-`grep` is the container debugger.
+**In AppKit, your App class is the container.** Most frameworks either
+generate a container class you never read or hide one behind static
+accessors. Here the container is a class you write: services are typed
+methods on your `App`, lazily constructed and cached in properties you can
+see. There is nothing to compile, because you already wrote what a compiler
+would generate, and when you want to know where a service comes from, you
+open the file and read it.
 
-That is the right size for a small application, and it stays the kernel's
-model at every size. When the service graph outgrows hand-wiring — autowired
-trees, tags, compiler passes, modules that ship their own definitions — the
-application puts Symfony's DI container *behind* the kernel with one line.
-The kernel keeps first say on every id it declares; only an unknown id
-reaches Symfony. See
+The same rule holds for everything else the kernel does. Authentication is a
+method you can step through, not a chain of listeners. Configuration is a PHP
+file that is `require`d, not a tree that is merged and cached. When something
+goes wrong, the answer is in a stack trace, not in a compiler pass.
+
+Hand-wiring has a ceiling, and AppKit does not pretend otherwise. When the
+service graph outgrows it, the application puts Symfony's DI container
+*behind* the kernel with one line: autowired trees, tags, compiler passes,
+modules that ship their own definitions. The kernel keeps first say on every
+id it declares; only an unknown id reaches Symfony. Nothing you wrote by hand
+has to be thrown away. See
 [The Symfony container behind the kernel](docs/dependency-injection.md#the-symfony-container-behind-the-kernel).
 
 ## Why it exists
 
-- **Slim is too thin.** No Doctrine, no validation, no security primitives —
-  the consumer wires everything.
-- **Symfony is too heavy.** A compiled DI container, an event dispatcher,
-  bundles, Flex recipes, and a bootstrap that has to be generated. Excellent
-  for large apps; more than most SaaS workloads need.
-- **Laravel is opinionated and non-Symfony.** Facades, ActiveRecord, and a
-  separate ecosystem.
-- **Appkit sits in between.** Symfony components plus Doctrine plus a thin
-  abstract kernel, with a hand-compiled container so the file you read is
-  the resolution path that runs — and the parts of Symfony's tooling that
-  earn their keep, such as a `make:entity` generator ported from
-  [MakerBundle](https://symfony.com/bundles/SymfonyMakerBundle/current/index.html).
+A SaaS application needs the same things on day one: an ORM, validation,
+sessions, CSRF protection, firewalls, remember-me, brute-force limits, a
+password hasher that does not leak timing. Assembling these from individual
+packages means every team makes the same fifty decisions, slightly
+differently, and gets a few of them slightly wrong. Reaching for a full-stack
+framework gets the decisions made, but wrapped in a compiled container, an
+event dispatcher, a plugin system, and a generated bootstrap that exist to
+manage the framework's own size rather than yours.
+
+AppKit is the middle that was missing. The components are Symfony's and
+Doctrine's, mature and maintained by people who do that for a living. The
+security model is the one those components were designed around, wired and
+validated at boot. What is left out is every layer whose only job is to hide
+the wiring, so the file you read is the resolution path that runs. Tooling
+that earns its keep, such as a `make:entity` generator ported from
+[MakerBundle](https://symfony.com/bundles/SymfonyMakerBundle/current/index.html),
+comes along; tooling that exists to manage indirection does not.
 
 ## What AppKit deliberately doesn't include
 
@@ -79,7 +91,7 @@ Each of these is a stated choice with a documented alternative, not a gap:
   `handleAuthentication()` top-to-bottom shows exactly what runs.
 - **RoadRunner-aware.** Every stateful service implements
   [`ResetInterface`](src/Core/ResetInterface.php); the kernel rebuilds its
-  `ApplicationStateInterface` state (`NativeApplicationState`) per request.
+  `ApplicationStateInterface` state (`ApplicationState`) per request.
   The worker loop stays in your application rather than behind a runtime — see
   [modufolio/appkit-roadrunner](https://github.com/modufolio/appkit-roadrunner).
 - **Security hardening already wired.** Symfony-style firewalls with
