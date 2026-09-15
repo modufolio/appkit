@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Modufolio\Appkit\Toolkit;
 
 use Closure;
@@ -738,8 +740,12 @@ class Collection extends Iterator implements \Stringable
     public function set(string|array $key, $value = null): static
     {
         if (true === is_array($key)) {
+            // List-style input carries integer keys; __set() is a magic
+            // method and PHP requires its key to be a string. The array
+            // store turns a numeric string back into an int, so nothing
+            // observable changes.
             foreach ($key as $k => $v) {
-                $this->__set($k, $v);
+                $this->__set((string) $k, $v);
             }
         } else {
             $this->__set($key, $value);
@@ -1018,7 +1024,7 @@ Collection::$filters['=='] = function (
     Collection $collection,
     string $field,
     $test,
-    bool $split = false,
+    bool|string $split = false,
 ): Collection {
     foreach ($collection->data as $key => $item) {
         $value = $collection->getAttribute($item, $field, $split, $test);

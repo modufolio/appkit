@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Modufolio\Appkit\Console\Helper;
 
 use Symfony\Component\Console\Helper\DescriptorHelper as BaseDescriptorHelper;

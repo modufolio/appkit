@@ -1,8 +1,9 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Modufolio\Appkit\Core;
 
-use Doctrine\DBAL\Exception as DbalException;
 use Doctrine\ORM\EntityManagerInterface;
 use Modufolio\Appkit\DependencyInjection\ServiceLocator;
 use Modufolio\Appkit\Inertia\InertiaRendererInterface;

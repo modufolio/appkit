@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Modufolio\Appkit\Doctrine\Filter;
 
 use Doctrine\ORM\Mapping\ClassMetadata;

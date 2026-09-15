@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Modufolio\Appkit\Command;
 
 use Modufolio\Appkit\Console\Helper\DescriptorHelper;

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Modufolio\Appkit\Security\User;
 
 use Modufolio\Appkit\Security\Exception\UserNotFoundException;

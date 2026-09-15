@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Modufolio\Appkit\Security\Token;
 
 use Modufolio\Appkit\Security\User\UserInterface;

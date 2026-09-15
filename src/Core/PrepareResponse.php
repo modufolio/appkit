@@ -125,7 +125,7 @@ class PrepareResponse implements PrepareResponseInterface
             foreach (explode(',', $line) as $value) {
                 $value = trim($value);
 
-                if ($value !== '' && !in_array(strtolower($value), array_map('strtolower', $values), true)) {
+                if ('' !== $value && !in_array(strtolower($value), array_map('strtolower', $values), true)) {
                     $values[] = $value;
                 }
             }
