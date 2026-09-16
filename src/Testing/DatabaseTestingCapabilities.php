@@ -502,11 +502,15 @@ trait DatabaseTestingCapabilities
     protected function createDatabaseSnapshot(): void
     {
         $this->databaseSnapshot = [];
-        $tables = $this->connection()->createSchemaManager()->introspectTableNames();
+        $platform = $this->connection()->getDatabasePlatform();
 
-        foreach ($tables as $table) {
-            $this->databaseSnapshot[$table] = $this->connection()
-                ->executeQuery("SELECT * FROM {$table}")
+        foreach ($this->connection()->createSchemaManager()->introspectTableNames() as $name) {
+            // Two renderings of the same name: the key is the plain value,
+            // since restoreDatabaseSnapshot() hands it to getTruncateTableSQL()
+            // and insert(), which quote it themselves; the SELECT is SQL and
+            // takes the platform's own quoting.
+            $this->databaseSnapshot[$name->getUnqualifiedName()->getValue()] = $this->connection()
+                ->executeQuery('SELECT * FROM '.$name->toSQL($platform))
                 ->fetchAllAssociative();
         }
     }

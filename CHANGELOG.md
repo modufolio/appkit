@@ -19,9 +19,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   re-hashed whenever its mtime changes, one stat per request.
 
 - **`listTableNames()` is deprecated in DBAL 4.** `app:info`, `AppTestCase`'s
-  table drop and `DatabaseTestingCapabilities` now call
-  `introspectTableNames()`, which returns name objects rather than strings —
-  hence the `toString()` where the test case builds its `DROP TABLE`.
+  table drop and `DatabaseTestingCapabilities`' snapshot call
+  `introspectTableNames()` and render its name objects with
+  `toSQL($platform)` where they become SQL: `toString()` is ANSI-quoted,
+  which MySQL reads as a string literal rather than a table. The drop loops
+  ask the schema manager with `dropTable()`, as ORM's own suite does.
 
 ### Added
 

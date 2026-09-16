@@ -91,7 +91,6 @@ class DefinitionsTest extends AppTestCase
         $this->expectException(\LogicException::class);
         $this->expectExceptionMessage('keyed by a service id, found key 0');
 
-        /** @phpstan-ignore argument.type */
         (new ServiceConfigurator())->load([static fn (): \ArrayObject => new \ArrayObject()]);
     }
 }

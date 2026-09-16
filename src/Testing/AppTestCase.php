@@ -5,9 +5,13 @@ declare(strict_types=1);
 namespace Modufolio\Appkit\Testing;
 
 use Doctrine\DBAL\Exception as DbalException;
+use Doctrine\DBAL\Exception\DatabaseObjectNotFoundException;
 use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
+use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Doctrine\DBAL\Platforms\SQLitePlatform;
+use Doctrine\DBAL\Schema\AbstractSchemaManager;
+use Doctrine\DBAL\Schema\Name\OptionallyQualifiedName;
 use Doctrine\ORM\Tools\SchemaTool;
 use Modufolio\Appkit\Core\Kernel;
 use Modufolio\Appkit\Security\User\UserInterface;
@@ -131,13 +135,15 @@ abstract class AppTestCase extends BaseTestCase
             // Get list of all tables
             $schemaManager = $connection->createSchemaManager();
             try {
-                $tables = $schemaManager->introspectTableNames();
+                $tables = self::tableNames($schemaManager, $platform);
 
                 // Drop each table
                 foreach ($tables as $table) {
                     try {
-                        $connection->executeStatement(sprintf('DROP TABLE IF EXISTS %s', $table->toString()));
-                    } catch (DbalException $e) {
+                        $schemaManager->dropTable($table);
+                    } catch (DatabaseObjectNotFoundException) {
+                        // Already gone — the list was taken a statement ago.
+                    } catch (DbalException) {
                         // Continue even if drop fails
                     }
                 }
@@ -164,16 +170,23 @@ abstract class AppTestCase extends BaseTestCase
 
             try {
                 do {
-                    $remaining = $schemaManager->introspectTableNames();
+                    $remaining = self::tableNames($schemaManager, $platform);
                     $dropped = 0;
                     foreach ($remaining as $table) {
                         try {
-                            $connection->executeStatement(
-                                $platform instanceof PostgreSQLPlatform
-                                    ? sprintf('DROP TABLE IF EXISTS %s CASCADE', $table)
-                                    : sprintf('DROP TABLE IF EXISTS %s', $table)
-                            );
+                            // Postgres keeps its own statement: dropTable()
+                            // renders getDropTableSQL(), which cannot say
+                            // CASCADE, and a view over the table would
+                            // otherwise survive every pass.
+                            if ($platform instanceof PostgreSQLPlatform) {
+                                $connection->executeStatement(sprintf('DROP TABLE IF EXISTS %s CASCADE', $table));
+                            } else {
+                                $schemaManager->dropTable($table);
+                            }
                             ++$dropped;
+                        } catch (DatabaseObjectNotFoundException) {
+                            // Already gone: dropped by an earlier CASCADE, or
+                            // by the statement that dropped its referrer.
                         } catch (DbalException) {
                             // Still referenced by a table later in the list —
                             // the next pass gets it once the referrer is gone.
@@ -550,5 +563,28 @@ abstract class AppTestCase extends BaseTestCase
         $this->post('/logout', ['_csrf_token' => $token], [
             'Content-Type' => 'application/x-www-form-urlencoded',
         ]);
+    }
+
+    /**
+     * The tables the connection can see, ready to drop.
+     *
+     * DBAL 4 introspects names as {@see OptionallyQualifiedName} objects, built
+     * with `quoted()`. Every caller here builds SQL with them, so they are
+     * rendered once, for the platform: `toSQL()` quotes the way that engine
+     * quotes — backticks on MySQL — where `toString()` always uses ANSI double
+     * quotes, which MySQL reads as a string literal rather than a table.
+     *
+     * @param AbstractSchemaManager<AbstractPlatform> $schemaManager
+     *
+     * @return list<string>
+     *
+     * @throws DbalException
+     */
+    private static function tableNames(AbstractSchemaManager $schemaManager, AbstractPlatform $platform): array
+    {
+        return array_map(
+            static fn (OptionallyQualifiedName $name): string => $name->toSQL($platform),
+            $schemaManager->introspectTableNames(),
+        );
     }
 }
