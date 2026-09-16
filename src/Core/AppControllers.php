@@ -6,8 +6,10 @@ namespace Modufolio\Appkit\Core;
 
 use Modufolio\Appkit\Attributes\Service;
 use Modufolio\Appkit\DependencyInjection\ReflectionControllerArgumentResolver;
+use Modufolio\Appkit\Event\Security\AccessDeniedEvent;
 use Modufolio\Appkit\Http\ResponsableInterface;
 use Modufolio\Appkit\Inertia\Inertia;
+use Modufolio\Appkit\Security\Exception\AccessDeniedException;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
@@ -45,6 +47,10 @@ trait AppControllers
         $stopwatch->start('security.access_control', 'security');
         try {
             $this->enforceAccessControl($request);
+        } catch (AccessDeniedException $e) {
+            $this->notifyAccessDenied($request, $e);
+
+            throw $e;
         } finally {
             $stopwatch->stop('security.access_control');
         }
@@ -62,7 +68,13 @@ trait AppControllers
             throw new ResourceNotFoundException('No controller found for request');
         }
 
-        $this->enforceAttributeAccessControl($parameters, $request);
+        try {
+            $this->enforceAttributeAccessControl($parameters, $request);
+        } catch (AccessDeniedException $e) {
+            $this->notifyAccessDenied($request, $e);
+
+            throw $e;
+        }
 
         if (!is_array($controller) || 2 !== count($controller)) {
             throw new \InvalidArgumentException('One of the routes does not have a valid controller definition. Expected format: [ClassName, methodName].');
@@ -351,5 +363,21 @@ trait AppControllers
         }
 
         return $controller;
+    }
+
+    /**
+     * Say that access control refused the request, before the exception
+     * goes on to the handler. Notification only: the refusal stands.
+     */
+    private function notifyAccessDenied(ServerRequestInterface $request, AccessDeniedException $e): void
+    {
+        $this->notify(new AccessDeniedEvent(
+            path: $this->securityPath($request),
+            method: $request->getMethod(),
+            userIdentifier: $this->tokenStorage()->getToken()?->getUserIdentifier(),
+            firewallName: $this->getFirewallNameForRequest($request),
+            reason: $e->getMessage(),
+            clientIp: $this->clientIp($request),
+        ));
     }
 }

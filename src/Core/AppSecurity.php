@@ -4,16 +4,24 @@ declare(strict_types=1);
 
 namespace Modufolio\Appkit\Core;
 
+use Modufolio\Appkit\Event\Security\ImpersonationEndedEvent;
+use Modufolio\Appkit\Event\Security\ImpersonationStartedEvent;
+use Modufolio\Appkit\Event\Security\LoginFailedEvent;
+use Modufolio\Appkit\Event\Security\RememberMeCookieTheftDetectedEvent;
+use Modufolio\Appkit\Event\Security\UserLoggedInEvent;
+use Modufolio\Appkit\Event\Security\UserLoggedOutEvent;
 use Modufolio\Appkit\Exception\NotFoundException;
 use Modufolio\Appkit\Security\AccessControl\AccessDecisionEngine;
 use Modufolio\Appkit\Security\AccessControl\RequestMatcher;
 use Modufolio\Appkit\Security\Authenticator\AmbientCredentialInterface;
+use Modufolio\Appkit\Security\Authenticator\AttemptedIdentifierInterface;
 use Modufolio\Appkit\Security\Authenticator\RememberMeAuthenticator;
 use Modufolio\Appkit\Security\Csrf\CsrfTokenManagerInterface;
 use Modufolio\Appkit\Security\Exception\AccessDeniedException;
 use Modufolio\Appkit\Security\Exception\AccountStatusException;
 use Modufolio\Appkit\Security\Exception\AuthenticationException;
 use Modufolio\Appkit\Security\Exception\BadCredentialsException;
+use Modufolio\Appkit\Security\Exception\CookieTheftException;
 use Modufolio\Appkit\Security\Exception\TwoFactorRequiredException;
 use Modufolio\Appkit\Security\Exception\UnsupportedUserException;
 use Modufolio\Appkit\Security\Exception\UserNotFoundException;
@@ -188,7 +196,7 @@ trait AppSecurity
         $ambientCredential = false;
         $this->stopwatch()->start('security.authenticate', 'security');
         try {
-            $result = $this->tryAuthenticators($request, $config, $firewallName, $stateless, $staleCookies, $reissueCookies, $ambientCredential);
+            $result = $this->tryAuthenticators($request, $config, $firewallName, $stateless, $staleCookies, $reissueCookies, $ambientCredential, $authenticatorName);
         } finally {
             $this->stopwatch()->stop('security.authenticate');
         }
@@ -256,6 +264,17 @@ trait AppSecurity
 
                 $session->save();
             }
+
+            // The login is committed — token stored, session saved — and the
+            // controller has not run. Notification only: see Kernel::notify().
+            $this->notify(new UserLoggedInEvent(
+                userIdentifier: $result->getUserIdentifier(),
+                firewallName: $firewallName,
+                authenticator: $authenticatorName ?? '',
+                roles: array_values($result->getRoleNames()),
+                viaRememberMe: $result instanceof RememberMeToken,
+                clientIp: $this->clientIp($request),
+            ));
 
             // Expire stale cookies BEFORE issuing a fresh one: with duplicate
             // Set-Cookie headers for the same name, the browser honors the
@@ -980,6 +999,7 @@ trait AppSecurity
         array &$staleCookies = [],
         array &$reissueCookies = [],
         bool &$ambientCredential = false,
+        ?string &$authenticatorName = null,
     ): TokenInterface|ResponseInterface|null {
         // Iterate in the order the firewall declares its authenticators, not the
         // order of the global registry. array_intersect_key() would key off the
@@ -1004,6 +1024,9 @@ trait AppSecurity
 
                     $token = $authenticator->createToken($user, $firewallName);
 
+                    // For the UserLoggedInEvent notification the caller dispatches.
+                    $authenticatorName = $name;
+
                     // Whether the browser attaches this credential by itself,
                     // which decides if the caller must enforce CSRF.
                     $ambientCredential = $authenticator instanceof AmbientCredentialInterface;
@@ -1022,8 +1045,31 @@ trait AppSecurity
                     if ($authenticator instanceof RememberMeAuthenticator) {
                         $staleCookies[] = $authenticator->buildClearCookieHeader();
 
+                        // A stale cookie is not a failed login; a replayed one
+                        // is theft, and the owner should hear about it. The
+                        // authenticator has already revoked every series.
+                        if ($e instanceof CookieTheftException) {
+                            $this->notify(new RememberMeCookieTheftDetectedEvent(
+                                userIdentifier: $e->getUserIdentifier(),
+                                firewallName: $firewallName,
+                                clientIp: $this->clientIp($request),
+                            ));
+                        }
+
                         continue;
                     }
+
+                    // Every other refusal is an attempt someone made and lost,
+                    // whichever branch below answers it.
+                    $this->notify(new LoginFailedEvent(
+                        userIdentifier: $authenticator instanceof AttemptedIdentifierInterface
+                            ? $authenticator->attemptedIdentifier($request)
+                            : null,
+                        firewallName: $firewallName,
+                        authenticator: $name,
+                        reason: $e::class,
+                        clientIp: $this->clientIp($request),
+                    ));
 
                     if (!$stateless && isset($config['entry_point'])) {
                         // If 2FA is required, create partial auth token and redirect to /2fa
@@ -1102,6 +1148,14 @@ trait AppSecurity
         $config = $this->getFirewallConfig($firewallName);
         $target = A::get($config, 'logout.target', $path ?? '/');
 
+        // Who is leaving, read before anything is cleared. A logout request
+        // is answered before the session token is restored into the token
+        // storage, so fall back to the session's own copy; null when the
+        // kernel is signing out a session that never resolved to a user.
+        $stateless = $config['stateless'] ?? false;
+        $userIdentifier = ($this->tokenStorage()->getToken() ?? $this->tryRestoreSessionToken($firewallName, $stateless))
+            ?->getUserIdentifier();
+
         // Clear authentication data
         $sessionKey = '_security_'.$firewallName;
         $this->session()->remove($sessionKey);
@@ -1128,6 +1182,14 @@ trait AppSecurity
                 $rememberMe->revoke($request);
             }
             $response = $response->withAddedHeader('Set-Cookie', $rememberMe->buildClearCookieHeader());
+        }
+
+        if (null !== $userIdentifier) {
+            $this->notify(new UserLoggedOutEvent(
+                userIdentifier: $userIdentifier,
+                firewallName: $firewallName,
+                clientIp: null !== $request ? $this->clientIp($request) : null,
+            ));
         }
 
         return $response;
@@ -1200,6 +1262,24 @@ trait AppSecurity
             // stays valid while carrying the impersonated identity.
             $session->migrate(true);
             $session->save();
+        }
+
+        // Committed; say so. Re-switching to the same target returns the
+        // same token and is not a new impersonation.
+        if ($newToken instanceof SwitchUserToken && $newToken !== $token) {
+            $this->notify(new ImpersonationStartedEvent(
+                impersonatorIdentifier: $newToken->getOriginalToken()->getUserIdentifier(),
+                targetIdentifier: $newToken->getUserIdentifier(),
+                firewallName: $firewallName,
+                clientIp: $this->clientIp($request),
+            ));
+        } elseif (!$newToken instanceof SwitchUserToken && $token instanceof SwitchUserToken) {
+            $this->notify(new ImpersonationEndedEvent(
+                impersonatorIdentifier: $newToken->getUserIdentifier(),
+                impersonatedIdentifier: $token->getUserIdentifier(),
+                firewallName: $firewallName,
+                clientIp: $this->clientIp($request),
+            ));
         }
 
         return Response::redirect(
@@ -1484,6 +1564,19 @@ trait AppSecurity
         return $result;
     }
 
+
+    /**
+     * The client address as the server reported it, for the notifications.
+     * REMOTE_ADDR only — the same value firewall selection and `ips` rules
+     * trust; a forwarded header is the application's to interpret.
+     */
+    private function clientIp(ServerRequestInterface $request): ?string
+    {
+        $ip = $request->getServerParams()['REMOTE_ADDR'] ?? null;
+
+        return is_string($ip) && '' !== $ip ? $ip : null;
+    }
+
     // ============================================================================
     // AUTHORIZATION
     // ============================================================================
@@ -1493,7 +1586,8 @@ trait AppSecurity
      *
      * @see AccessDecisionEngine::enforce()
      *
-     * @throws AuthenticationException
+     * @throws AuthenticationException when the matched rule requires a login
+     * @throws AccessDeniedException   when the authenticated user is not allowed
      */
     private function enforceAccessControl(ServerRequestInterface $request): void
     {
@@ -1521,7 +1615,8 @@ trait AppSecurity
      *
      * @see AccessDecisionEngine::enforceRoleGroups()
      *
-     * @throws AuthenticationException
+     * @throws AuthenticationException when authentication (or a stronger one) is required
+     * @throws AccessDeniedException   when a role group is not satisfied
      */
     private function enforceAttributeAccessControl(array $parameters, ?ServerRequestInterface $request = null): void
     {
@@ -1547,6 +1642,8 @@ trait AppSecurity
         $this->roleHierarchy = new RoleHierarchy($config['role_hierarchy'] ?? []);
         $this->denyUnmatchedAccess = (bool) ($config['deny_unmatched'] ?? false);
         $this->accessDecisionEngine = null;
+        $this->rateLimiterConfig = $config['rate_limiters'] ?? [];
+        $this->rateLimiterFactories = [];
 
         // Sync firewall config to application state if it exists
         $this->state?->setFirewallConfig($this->firewallConfig);
@@ -1565,6 +1662,8 @@ trait AppSecurity
         $this->roleHierarchy = $configurator->getRoleHierarchy();
         $this->denyUnmatchedAccess = $configurator->deniesUnmatchedRequests();
         $this->accessDecisionEngine = null;
+        $this->rateLimiterConfig = $configurator->getRateLimiters();
+        $this->rateLimiterFactories = [];
         $this->state?->setFirewallConfig($this->firewallConfig);
 
         return $this;

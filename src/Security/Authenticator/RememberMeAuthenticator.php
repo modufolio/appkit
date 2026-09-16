@@ -248,7 +248,7 @@ class RememberMeAuthenticator extends AbstractAuthenticator implements AmbientCr
             // nor the one it just replaced. Revoke everything for this user.
             $tokenProvider->deleteTokensByUserIdentifier($token->userIdentifier);
 
-            throw new CookieTheftException('Remember me cookie theft detected.');
+            throw new CookieTheftException(userIdentifier: $token->userIdentifier);
         }
 
         if ($token->lastUsed + (int) $this->options['cookie_lifetime'] < $now) {

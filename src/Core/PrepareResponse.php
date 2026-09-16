@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace Modufolio\Appkit\Core;
 
 use Modufolio\Appkit\Debug\ProfilerInterface;
+use Modufolio\Appkit\Event\Http\RequestHandledEvent;
 use Modufolio\Appkit\Inertia\Header;
 use Modufolio\Appkit\Inertia\InertiaRenderer;
 use Modufolio\Psr7\Http\Stream;
+use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
@@ -27,12 +29,18 @@ use Psr\Http\Message\ServerRequestInterface;
 class PrepareResponse implements PrepareResponseInterface
 {
     /**
-     * @param ProfilerInterface|null $profiler collects once the response is final —
-     *                                         this is the last step of every handle(),
-     *                                         which is what makes it the profiling seam
+     * @param ProfilerInterface|null        $profiler collects once the response is final —
+     *                                                this is the last step of every handle(),
+     *                                                which is what makes it the profiling seam
+     * @param EventDispatcherInterface|null $events   told, after the profiler, that the
+     *                                                request is handled — the same
+     *                                                position makes it the request-logging
+     *                                                seam
      */
-    public function __construct(private readonly ?ProfilerInterface $profiler = null)
-    {
+    public function __construct(
+        private readonly ?ProfilerInterface $profiler = null,
+        private readonly ?EventDispatcherInterface $events = null,
+    ) {
     }
 
     /**
@@ -101,7 +109,29 @@ class PrepareResponse implements PrepareResponseInterface
                 ->withHeader('X-Inertia', 'true');
         }
 
-        return $this->profiler?->collect($request, $response) ?? $response;
+        $response = $this->profiler?->collect($request, $response) ?? $response;
+
+        if (null !== $this->events) {
+            // Notification only: the response is already final. A listener
+            // that throws must not replace a finished response with a 500.
+            try {
+                $this->events->dispatch(new RequestHandledEvent($request, $response, self::durationMs($request)));
+            } catch (\Throwable) {
+            }
+        }
+
+        return $response;
+    }
+
+    /**
+     * Milliseconds since the server accepted the request, from
+     * REQUEST_TIME_FLOAT; null when the SAPI did not record one.
+     */
+    private static function durationMs(ServerRequestInterface $request): ?float
+    {
+        $started = $request->getServerParams()['REQUEST_TIME_FLOAT'] ?? null;
+
+        return is_numeric($started) ? round((microtime(true) - (float) $started) * 1000, 2) : null;
     }
 
     /** A response that names another URL for the client to go to. */

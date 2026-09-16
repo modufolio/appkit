@@ -12,6 +12,7 @@ use Modufolio\Appkit\DependencyInjection\ContainerFactoryInterface;
 use Modufolio\Appkit\DependencyInjection\ParameterBag;
 use Modufolio\Appkit\Doctrine\EntityManagerFactory;
 use Modufolio\Appkit\Doctrine\Middleware\Debug\DebugStack;
+use Modufolio\Appkit\Event\NullEventDispatcher;
 use Modufolio\Appkit\Exception\ExceptionHandler;
 use Modufolio\Appkit\Exception\ExceptionHandlerInterface;
 use Modufolio\Appkit\Http\TrustedHosts;
@@ -34,6 +35,7 @@ use Modufolio\Psr7\Http\ServerRequest;
 use Modufolio\Psr7\Http\Stream;
 use Modufolio\Psr7\Http\Uri;
 use Psr\Container\ContainerInterface;
+use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Log\LoggerInterface;
@@ -158,6 +160,10 @@ abstract class Kernel implements AppInterface
     protected ?Stopwatch $stopwatch = null;
     /** The profiling seam; NullProfiler until config/services.php or a module declares one */
     protected ?ProfilerInterface $profiler = null;
+    /** The notification seam; NullEventDispatcher until config/services.php declares one or setEventDispatcher() runs */
+    protected ?EventDispatcherInterface $eventDispatcher = null;
+    /** The kernel event currently being dispatched, if any — the re-entrancy guard in notify() */
+    private ?string $notifying = null;
 
     // Router configuration
     /** @var array<string, mixed> */
@@ -412,7 +418,8 @@ abstract class Kernel implements AppInterface
     {
         return $this->exceptionHandler ??= $this->configureExceptionHandler(new ExceptionHandler(
             $this->environment(),
-            $this->logger ?? null
+            $this->logger ?? null,
+            $this->eventDispatcher(),
         ));
     }
 
@@ -438,7 +445,96 @@ abstract class Kernel implements AppInterface
     #[Service]
     public function prepareResponse(): PrepareResponseInterface
     {
-        return $this->prepareResponse ??= new PrepareResponse($this->profiler());
+        return $this->prepareResponse ??= new PrepareResponse($this->profiler(), $this->eventDispatcher());
+    }
+
+    /**
+     * The notification seam: where the kernel says what just happened.
+     *
+     * A PSR-14 dispatcher — Symfony's, or any other — that the application
+     * declares as {@see EventDispatcherInterface} in config/services.php, or
+     * installs with {@see setEventDispatcher()}; a NullEventDispatcher until
+     * then, so dispatching costs nothing for an application that listens to
+     * nothing. One instance serves every request of the worker: listeners
+     * are process-level wiring, like routes.
+     *
+     * The events are notifications, not hooks. Each is dispatched after the
+     * state it reports is committed — the session saved, the row flushed —
+     * and nothing a listener does changes what the kernel decides next; see
+     * {@see notify()}. The catalogue is under `Modufolio\Appkit\Event`.
+     */
+    #[Service]
+    public function eventDispatcher(): EventDispatcherInterface
+    {
+        // Only an explicit declaration counts, for the same reason as
+        // sessionConfiguration(): has() would answer for the fallback
+        // container's bridge of this accessor and recurse.
+        return $this->eventDispatcher ??= isset($this->services[EventDispatcherInterface::class])
+            ? $this->get(EventDispatcherInterface::class, EventDispatcherInterface::class)
+            : new NullEventDispatcher();
+    }
+
+    /**
+     * Install the dispatcher. Modules call this from boot(); the application
+     * factory can call it after boot(). Takes effect for the next request.
+     */
+    public function setEventDispatcher(EventDispatcherInterface $eventDispatcher): static
+    {
+        $this->eventDispatcher = $eventDispatcher;
+        // Both captured the previous dispatcher; rebuild lazily.
+        $this->prepareResponse = null;
+        $this->exceptionHandler = null;
+
+        return $this;
+    }
+
+    /**
+     * Dispatch a notification from the kernel's own flow.
+     *
+     * Two rules make these notifications rather than infrastructure, and
+     * both are enforced here rather than left to discipline:
+     *
+     * - A listener that throws is logged and otherwise ignored: the login
+     *   that just succeeded, the logout that just completed, must not be
+     *   turned into a 500 by the mail server being down. The kernel has
+     *   already decided and is only saying so.
+     * - A kernel event cannot be dispatched from inside another's listener.
+     *   A listener on UserLoggedInEvent that calls logout() would dispatch
+     *   UserLoggedOutEvent, whose listener could log in again — the
+     *   circular flow an event bus invites. The nested notification is
+     *   refused and logged as an error naming both events, so such a cycle
+     *   cannot exist by construction. Listeners observe the kernel; they do
+     *   not drive it.
+     *
+     * Neither rule covers application code that calls the dispatcher
+     * directly for its own events: that code chooses its own policy, and
+     * should not be routing one service's calls to another through events
+     * at all — services call services, in config/services.php, where the
+     * graph can be read.
+     */
+    public function notify(object $event): void
+    {
+        if (null !== $this->notifying) {
+            $this->logger->error('A kernel event was dispatched from inside a listener and refused: listeners observe the kernel, they do not drive it.', [
+                'event' => $event::class,
+                'while_dispatching' => $this->notifying,
+            ]);
+
+            return;
+        }
+
+        $this->notifying = $event::class;
+
+        try {
+            $this->eventDispatcher()->dispatch($event);
+        } catch (\Throwable $e) {
+            $this->logger->error('An event listener failed; the request continues.', [
+                'event' => $event::class,
+                'exception' => $e,
+            ]);
+        } finally {
+            $this->notifying = null;
+        }
     }
 
     /**

@@ -10,9 +10,12 @@ use Endroid\QrCode\Encoding\Encoding;
 use Endroid\QrCode\ErrorCorrectionLevel;
 use Endroid\QrCode\RoundBlockSizeMode;
 use Endroid\QrCode\Writer\PngWriter;
+use Modufolio\Appkit\Event\Security\TwoFactorDisabledEvent;
+use Modufolio\Appkit\Event\Security\TwoFactorEnabledEvent;
 use Modufolio\Appkit\Security\User\UserInterface;
 use OTPHP\TOTP;
 use Psr\Clock\ClockInterface;
+use Psr\EventDispatcher\EventDispatcherInterface;
 
 /**
  * TOTP Service for Two-Factor Authentication.
@@ -65,6 +68,11 @@ class TotpService implements TwoFactorServiceInterface
          * @var positive-int
          */
         private int $secretBytes = self::DEFAULT_SECRET_BYTES,
+        /**
+         * Told when two-factor is enabled or disabled for a user, after the
+         * change is flushed — the "your security settings changed" mail.
+         */
+        private ?EventDispatcherInterface $events = null,
     ) {
         if ($secretBytes < self::MIN_SECRET_BYTES) {
             throw new \InvalidArgumentException(sprintf('A TOTP secret must be at least %d bytes (RFC 4226 §4); %d given.', self::MIN_SECRET_BYTES, $secretBytes));
@@ -282,6 +290,8 @@ class TotpService implements TwoFactorServiceInterface
         // In production, these should be shown only once
         $totpSecret->setPlainBackupCodes($backupCodes);
 
+        $this->events?->dispatch(new TwoFactorEnabledEvent($totpSecret->getUserIdentifier()));
+
         return true;
     }
 
@@ -298,6 +308,8 @@ class TotpService implements TwoFactorServiceInterface
 
         $this->entityManager->remove($totpSecret);
         $this->entityManager->flush();
+
+        $this->events?->dispatch(new TwoFactorDisabledEvent($user->getUserIdentifier()));
     }
 
     /**

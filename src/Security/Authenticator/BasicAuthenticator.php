@@ -23,7 +23,7 @@ use Psr\Http\Message\ServerRequestInterface;
  * @copyright Modufolio
  * @license   https://opensource.org/licenses/MIT
  */
-class BasicAuthenticator extends AbstractAuthenticator implements AmbientCredentialInterface
+class BasicAuthenticator extends AbstractAuthenticator implements AmbientCredentialInterface, AttemptedIdentifierInterface
 {
     /**
      * Pre-computed bcrypt hash of a random string. Used as a dummy target for
@@ -146,6 +146,15 @@ class BasicAuthenticator extends AbstractAuthenticator implements AmbientCredent
     public function createToken(UserInterface $user, string $firewallName): TokenInterface
     {
         return new UsernamePasswordToken($user, $firewallName, $user->getRoles());
+    }
+
+    public function attemptedIdentifier(ServerRequestInterface $request): ?string
+    {
+        try {
+            return $this->extractCredentials($request)[0];
+        } catch (AuthenticationException) {
+            return null;
+        }
     }
 
     /**

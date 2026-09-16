@@ -30,7 +30,7 @@ use Symfony\Component\HttpFoundation\Session\FlashBagAwareSessionInterface;
  * @copyright Modufolio
  * @license   https://opensource.org/licenses/MIT
  */
-class FormLoginAuthenticator extends AbstractAuthenticator
+class FormLoginAuthenticator extends AbstractAuthenticator implements AttemptedIdentifierInterface
 {
     /**
      * Fallback dummy hash used only when no UserPasswordHasher is injected.
@@ -218,6 +218,20 @@ class FormLoginAuthenticator extends AbstractAuthenticator
     public function createToken(UserInterface $user, string $firewallName): TokenInterface
     {
         return new UsernamePasswordToken($user, $firewallName, $user->getRoles());
+    }
+
+    public function attemptedIdentifier(ServerRequestInterface $request): ?string
+    {
+        $parsedBody = $request->getParsedBody();
+        $username = is_array($parsedBody) ? ($parsedBody[$this->options['username_parameter']] ?? null) : null;
+
+        if (!is_string($username) || '' === trim($username)) {
+            return null;
+        }
+
+        // Bounded like the credential itself: an oversized value must not
+        // reach a log or a mail either.
+        return substr(trim($username), 0, self::MAX_USERNAME_LENGTH);
     }
 
     /**

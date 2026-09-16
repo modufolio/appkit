@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Modufolio\Appkit\Http;
 
+use Modufolio\Appkit\Event\Http\UploadStoredEvent;
 use Modufolio\Appkit\Toolkit\F;
+use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Http\Message\UploadedFileInterface;
 
 /**
@@ -25,6 +27,8 @@ class Upload
     private array $errors = [];
 
     private bool $hasErrors = false;
+
+    private ?EventDispatcherInterface $events = null;
 
     /**
      * Bytes read from an in-memory stream to sniff the MIME type. libmagic only
@@ -63,10 +67,27 @@ class Upload
 
     /**
      * Factory method to create a new wrapper instance.
+     *
+     * @param EventDispatcherInterface|null $events told when saveTo() has stored the file — pass
+     *                                              the application's dispatcher to queue a scan
+     *                                              or a thumbnail job off {@see UploadStoredEvent}
      */
-    public static function from(UploadedFileInterface $file): self
+    public static function from(UploadedFileInterface $file, ?EventDispatcherInterface $events = null): self
     {
-        return new self($file);
+        $upload = new self($file);
+        $upload->events = $events;
+
+        return $upload;
+    }
+
+    /**
+     * Dispatch {@see UploadStoredEvent} through this dispatcher once the file is saved.
+     */
+    public function notifying(EventDispatcherInterface $events): self
+    {
+        $this->events = $events;
+
+        return $this;
     }
 
     /**
@@ -257,6 +278,21 @@ class Upload
         $this->file->moveTo($fullPath);
 
         $this->storedFilePath = $fullPath;
+
+        // The file is on disk: whatever listens (a scan, a thumbnail job, an
+        // index) now has a path to work with. The type is sniffed from that
+        // file — the upload stream is gone once moved.
+        if (null !== $this->events) {
+            $mimeType = (new \finfo(\FILEINFO_MIME_TYPE))->file($fullPath);
+
+            $this->events->dispatch(new UploadStoredEvent(
+                path: $fullPath,
+                filename: $filename,
+                clientFilename: $this->file->getClientFilename(),
+                size: $this->file->getSize(),
+                mimeType: false === $mimeType ? null : $mimeType,
+            ));
+        }
 
         return $this;
     }

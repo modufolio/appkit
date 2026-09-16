@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Modufolio\Appkit\Exception;
 
 use Modufolio\Appkit\Core\Environment;
+use Modufolio\Appkit\Event\ExceptionCaughtEvent;
+use Modufolio\Appkit\Event\NullEventDispatcher;
 use Modufolio\Appkit\Inertia\Header;
 use Modufolio\Appkit\Security\Exception\AccessDeniedException;
 use Modufolio\Appkit\Security\Exception\AuthenticationException;
@@ -13,6 +15,7 @@ use Modufolio\Appkit\Security\TwoFactor\TwoFactorExceptionInterface;
 use Modufolio\Psr7\Http\Response;
 use Negotiation\BaseAccept;
 use Negotiation\Negotiator;
+use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Log\LoggerInterface;
@@ -48,9 +51,15 @@ final class ExceptionHandler implements ExceptionHandlerInterface
     private Negotiator $negotiator;
     private Environment $environment;
     private LoggerInterface $logger;
+    private EventDispatcherInterface $events;
 
-    public function __construct(?Environment $environment = null, ?LoggerInterface $logger = null)
+    /**
+     * @param EventDispatcherInterface|null $events told about every throwable before it is
+     *                                              rendered — the error-reporting seam
+     */
+    public function __construct(?Environment $environment = null, ?LoggerInterface $logger = null, ?EventDispatcherInterface $events = null)
     {
+        $this->events = $events ?? new NullEventDispatcher();
         $this->negotiator = new Negotiator();
         $this->environment = $environment ?? Environment::from(env('APP_ENV', 'prod'));
         $this->logger = $logger ?? new NullLogger();
@@ -81,6 +90,18 @@ final class ExceptionHandler implements ExceptionHandlerInterface
 
     public function handle(\Throwable $e, ServerRequestInterface $request): ResponseInterface
     {
+        // Every throwable the handler sees, before any of them is mapped to a
+        // status. A listener that throws must not stop the error from being
+        // rendered — that is the one response this request has left.
+        try {
+            $this->events->dispatch(new ExceptionCaughtEvent($e, $request));
+        } catch (\Throwable $listenerException) {
+            $this->logger->error('An event listener failed while reporting an exception.', [
+                'listener_exception' => $listenerException->getMessage(),
+                'original_exception_class' => $e::class,
+            ]);
+        }
+
         // A required-channel violation is a redirect to the https URL, not an
         // error payload — issue it before the error-formatting machinery runs.
         if ($e instanceof InsecureChannelException) {
@@ -113,6 +134,7 @@ final class ExceptionHandler implements ExceptionHandlerInterface
         $this->logException($e, $data, $matchedClass);
 
         $mimeType = $this->negotiateFormat($request);
+        $response = $this->format($data, $mimeType);
 
         return $this->format($data, $mimeType);
     }

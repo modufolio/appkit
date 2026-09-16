@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Modufolio\Appkit\Tests\App;
 
 use Doctrine\DBAL\Exception as DbalException;
-use Modufolio\Appkit\Core\Kernel;
 use Modufolio\Appkit\Core\ApplicationState;
+use Modufolio\Appkit\Core\Kernel;
 use Modufolio\Appkit\Core\ResetInterface;
 use Modufolio\Appkit\Exception\ExceptionHandlerInterface;
 use Modufolio\Appkit\Resolver\AssociativeArrayResolver;
@@ -225,6 +225,7 @@ class App extends Kernel
             UserTotpSecret::class,
             new Clock(),
             'Appkit Test',
+            events: $this->eventDispatcher(),
         );
     }
 
