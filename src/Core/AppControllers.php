@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modufolio\Appkit\Core;
 
+use Modufolio\Appkit\Attributes\RateLimit;
 use Modufolio\Appkit\Attributes\Service;
 use Modufolio\Appkit\DependencyInjection\ReflectionControllerArgumentResolver;
 use Modufolio\Appkit\Event\Security\AccessDeniedEvent;
@@ -74,6 +75,17 @@ trait AppControllers
             $this->notifyAccessDenied($request, $e);
 
             throw $e;
+        }
+
+        // Route-level throttling, after access control: a request that is
+        // not allowed in is refused for that reason and does not spend the
+        // caller's window. Every declared limit applies.
+        foreach ($parameters['_rate_limits'] ?? [] as $rateLimit) {
+            $this->enforceRateLimit(
+                (string) $rateLimit['limiter'],
+                $this->rateLimitKey((string) ($rateLimit['by'] ?? RateLimit::BY_AUTO), $request),
+                $request,
+            );
         }
 
         if (!is_array($controller) || 2 !== count($controller)) {

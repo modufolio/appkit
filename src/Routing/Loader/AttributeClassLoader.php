@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modufolio\Appkit\Routing\Loader;
 
 use Modufolio\Appkit\Attributes\IsGranted;
+use Modufolio\Appkit\Attributes\RateLimit;
 use Symfony\Component\Routing\Route;
 
 /**
@@ -57,6 +58,21 @@ class AttributeClassLoader extends \Symfony\Component\Routing\Loader\AttributeCl
 
         if (!empty($requiredRoleGroups)) {
             $route->setDefault('_is_granted_roles', $requiredRoleGroups);
+        }
+
+        // Every #[RateLimit] applies (AND): a class-level one for the
+        // controller, a stricter method-level one for one action.
+        $rateLimits = [];
+        foreach (array_merge(
+            $class->getAttributes(RateLimit::class, \ReflectionAttribute::IS_INSTANCEOF),
+            $method->getAttributes(RateLimit::class, \ReflectionAttribute::IS_INSTANCEOF),
+        ) as $attribute) {
+            $instance = $attribute->newInstance();
+            $rateLimits[] = ['limiter' => $instance->limiter, 'by' => $instance->by];
+        }
+
+        if ([] !== $rateLimits) {
+            $route->setDefault('_rate_limits', $rateLimits);
         }
     }
 }

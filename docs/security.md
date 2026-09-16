@@ -11,6 +11,7 @@ AppKit's security system is configured through `config/security.php` using a flu
 | [Accounts](security/accounts.md) | What a failed login does, locking and expiring accounts, expiring credentials, temporary passwords |
 | [Trusted hosts](security/trusted-hosts.md) | The `Host` header allowlist, and why absolute URLs depend on it |
 | [Impersonation](security/impersonation.md) | Switch user: POST plus CSRF, switching by hand, exiting, detecting |
+| [Rate limiting](security/rate-limiting.md) | Declaring limiters, the firewall's login throttle, `#[RateLimit]` on routes, shared storage |
 
 Authenticators — form login, remember-me, JWT, API key, OAuth, Google sign-in, 2FA — have their own reference in [Authenticators](authenticators.md).
 

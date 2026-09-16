@@ -39,9 +39,15 @@ use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\Cache\Adapter\FilesystemAdapter;
 use Symfony\Component\Config\Loader\LoaderInterface;
 use Symfony\Component\HttpFoundation\Session\FlashBagAwareSessionInterface;
 use Symfony\Component\HttpFoundation\Session\Storage\Handler\NativeFileSessionHandler;
+use Symfony\Component\Lock\LockFactory;
+use Symfony\Component\Lock\Store\FlockStore;
+use Symfony\Component\RateLimiter\RateLimiterFactory;
+use Symfony\Component\RateLimiter\Storage\CacheStorage;
+use Symfony\Component\RateLimiter\Storage\StorageInterface;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Stopwatch\Stopwatch;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
@@ -165,6 +171,13 @@ abstract class Kernel implements AppInterface
     /** The kernel event currently being dispatched, if any — the re-entrancy guard in notify() */
     private ?string $notifying = null;
 
+    // Rate limiting: limiters declared in config/security.php, built on first use
+    /** @var array<string, array<string, mixed>> Limiter name => symfony/rate-limiter options */
+    protected array $rateLimiterConfig = [];
+    /** @var array<string, RateLimiterFactory> Built once per worker */
+    private array $rateLimiterFactories = [];
+    protected ?StorageInterface $rateLimiterStorage = null;
+    protected ?LockFactory $lockFactory = null;
     // Router configuration
     /** @var array<string, mixed> */
     protected array $routerOptions = [];
@@ -486,6 +499,80 @@ abstract class Kernel implements AppInterface
         $this->exceptionHandler = null;
 
         return $this;
+    }
+
+    /**
+     * The factory for a rate limiter declared with
+     * {@see \Modufolio\Appkit\Security\SecurityConfigurator::rateLimiter()}.
+     *
+     * `create($key)` on it gives the limiter for one client — one address,
+     * one user — and `consume()` on that decides. The kernel uses it for a
+     * firewall's `rate_limit` and a route's `#[RateLimit]`; application code
+     * uses it for anything else worth throttling (a password-reset mail, an
+     * export), keyed however makes sense there.
+     *
+     * Built once per worker over {@see rateLimiterStorage()} and
+     * {@see LockFactory()}. An undeclared name is a wiring bug and throws.
+     */
+    #[Service]
+    public function rateLimiter(string $name): RateLimiterFactory
+    {
+        if (isset($this->rateLimiterFactories[$name])) {
+            return $this->rateLimiterFactories[$name];
+        }
+
+        if (!isset($this->rateLimiterConfig[$name])) {
+            throw new \LogicException(sprintf('No rate limiter named "%s" is declared. Declare it with $security->rateLimiter(\'%s\', [...]) in config/security.php%s.', $name, $name, [] === $this->rateLimiterConfig ? '' : sprintf(' (declared: "%s")', implode('", "', array_keys($this->rateLimiterConfig)))));
+        }
+
+        return $this->rateLimiterFactories[$name] = new RateLimiterFactory(
+            ['id' => $name] + $this->rateLimiterConfig[$name],
+            $this->rateLimiterStorage(),
+            $this->lockFactory(),
+        );
+    }
+
+    /**
+     * Where limiter windows are counted. A cache pool on disk under
+     * var/cache/<env>/rate_limiter unless the application declares
+     * symfony/rate-limiter's {@see StorageInterface} in config/services.php
+     * — `new CacheStorage(new RedisAdapter(...))` once one server is not
+     * enough, since a per-server file count lets each server admit the
+     * full limit.
+     */
+    #[Service]
+    public function rateLimiterStorage(): StorageInterface
+    {
+        return $this->rateLimiterStorage ??= isset($this->services[StorageInterface::class])
+            ? $this->get(StorageInterface::class, StorageInterface::class)
+            : new CacheStorage(new FilesystemAdapter('rate_limiter', 0, $this->cacheDir()));
+    }
+
+    /**
+     * Replace the storage, and forget the factories built over the old one.
+     * Tests give each case a fresh InMemoryStorage this way.
+     */
+    public function setRateLimiterStorage(StorageInterface $storage): static
+    {
+        $this->rateLimiterStorage = $storage;
+        $this->rateLimiterFactories = [];
+
+        return $this;
+    }
+
+    /**
+     * The lock factory the rate limiters serialise their read-modify-write
+     * through. A flock store under var/lock unless the application declares
+     * symfony/lock's {@see LockFactory} in config/services.php; pair a shared
+     * limiter storage with a shared lock store (Redis for both), or the lock
+     * protects nothing across servers.
+     */
+    #[Service]
+    public function lockFactory(): LockFactory
+    {
+        return $this->lockFactory ??= isset($this->services[LockFactory::class])
+            ? $this->get(LockFactory::class, LockFactory::class)
+            : new LockFactory(new FlockStore($this->varDir().'/lock'));
     }
 
     /**

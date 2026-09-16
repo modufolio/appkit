@@ -11,6 +11,7 @@ use Modufolio\Appkit\Inertia\Header;
 use Modufolio\Appkit\Security\Exception\AccessDeniedException;
 use Modufolio\Appkit\Security\Exception\AuthenticationException;
 use Modufolio\Appkit\Security\Exception\InsecureChannelException;
+use Modufolio\Appkit\Security\Exception\RateLimitExceededException;
 use Modufolio\Appkit\Security\TwoFactor\TwoFactorExceptionInterface;
 use Modufolio\Psr7\Http\Response;
 use Negotiation\BaseAccept;
@@ -136,7 +137,16 @@ final class ExceptionHandler implements ExceptionHandlerInterface
         $mimeType = $this->negotiateFormat($request);
         $response = $this->format($data, $mimeType);
 
-        return $this->format($data, $mimeType);
+        // A handler may name headers the status needs — Retry-After on a
+        // 429 — which the formatters, keyed on the media type, know nothing
+        // about.
+        foreach ($data['headers'] ?? [] as $name => $value) {
+            if (\is_string($name) && (\is_string($value) || \is_int($value))) {
+                $response = $response->withHeader($name, (string) $value);
+            }
+        }
+
+        return $response;
     }
 
     /**
@@ -551,6 +561,20 @@ final class ExceptionHandler implements ExceptionHandlerInterface
                 'status' => 401,
                 'title' => 'Authentication failed',
                 'detail' => 'Authentication required.',
+            ];
+        });
+
+        // Throttled: neither unauthenticated nor forbidden, and the client
+        // is told when to come back.
+        $this->registerException(RateLimitExceededException::class, static function (RateLimitExceededException $e) {
+            return [
+                'status' => 429,
+                'title' => 'Too many requests',
+                'detail' => sprintf('Rate limit exceeded. Try again in %d seconds.', $e->getRetryAfterSeconds()),
+                'headers' => [
+                    'Retry-After' => $e->getRetryAfterSeconds(),
+                    'RateLimit-Limit' => $e->getLimit(),
+                ],
             ];
         });
 

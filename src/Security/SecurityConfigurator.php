@@ -67,6 +67,9 @@ final class SecurityConfigurator
     /** When true, a request matching no access-control rule is denied (fail-closed). */
     public bool $denyUnmatched = false;
 
+    /** @var array<string, array<string, mixed>> Rate limiter name => symfony/rate-limiter options */
+    public array $rateLimiters = [];
+
     /**
      * Configure a firewall.
      *
@@ -187,6 +190,43 @@ final class SecurityConfigurator
     public function deniesUnmatchedRequests(): bool
     {
         return $this->denyUnmatched;
+    }
+
+    /**
+     * Declare a rate limiter, by name, for a firewall's `rate_limit` option or
+     * a route's `#[RateLimit]` attribute to refer to.
+     *
+     * The options are symfony/rate-limiter's own, validated when the limiter
+     * is first built: `policy` (`fixed_window`, `sliding_window`,
+     * `token_bucket`, `no_limit`), `limit`, `interval` (`'15 minutes'`) and,
+     * for a token bucket, `rate` (`['interval' => '1 minute', 'amount' => 10]`).
+     *
+     *     $security->rateLimiter('login', [
+     *         'policy'   => 'sliding_window',
+     *         'limit'    => 5,
+     *         'interval' => '15 minutes',
+     *     ]);
+     *
+     * @param array<string, mixed> $options
+     */
+    public function rateLimiter(string $name, array $options): self
+    {
+        if ('' === $name) {
+            throw new \InvalidArgumentException('A rate limiter needs a name.');
+        }
+        if (!isset($options['policy']) || !\is_string($options['policy'])) {
+            throw new \InvalidArgumentException(sprintf('Rate limiter "%s" must declare a "policy".', $name));
+        }
+
+        $this->rateLimiters[$name] = $options;
+
+        return $this;
+    }
+
+    /** @return array<string, array<string, mixed>> */
+    public function getRateLimiters(): array
+    {
+        return $this->rateLimiters;
     }
 
     /** @return array<string, array<string, mixed>> */

@@ -53,6 +53,12 @@ final class FirewallConfiguration implements ConfigurationInterface
                             ->arrayNode('csrf_delegated_paths')
                                 ->scalarPrototype()->end()
                             ->end()
+                            // The name of a rate limiter declared with
+                            // SecurityConfigurator::rateLimiter(). Counted per
+                            // client address on every request that reaches the
+                            // authenticators — a login throttle, before any
+                            // credential is read.
+                            ->scalarNode('rate_limit')->cannotBeEmpty()->end()
                             // Seconds of inactivity after which an
                             // authenticated session is terminated. Absent or 0
                             // disables the check.

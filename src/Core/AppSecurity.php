@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Modufolio\Appkit\Core;
 
+use Modufolio\Appkit\Attributes\RateLimit;
 use Modufolio\Appkit\Event\Security\ImpersonationEndedEvent;
 use Modufolio\Appkit\Event\Security\ImpersonationStartedEvent;
 use Modufolio\Appkit\Event\Security\LoginFailedEvent;
+use Modufolio\Appkit\Event\Security\RateLimitExceededEvent;
 use Modufolio\Appkit\Event\Security\RememberMeCookieTheftDetectedEvent;
 use Modufolio\Appkit\Event\Security\UserLoggedInEvent;
 use Modufolio\Appkit\Event\Security\UserLoggedOutEvent;
@@ -22,6 +24,7 @@ use Modufolio\Appkit\Security\Exception\AccountStatusException;
 use Modufolio\Appkit\Security\Exception\AuthenticationException;
 use Modufolio\Appkit\Security\Exception\BadCredentialsException;
 use Modufolio\Appkit\Security\Exception\CookieTheftException;
+use Modufolio\Appkit\Security\Exception\RateLimitExceededException;
 use Modufolio\Appkit\Security\Exception\TwoFactorRequiredException;
 use Modufolio\Appkit\Security\Exception\UnsupportedUserException;
 use Modufolio\Appkit\Security\Exception\UserNotFoundException;
@@ -194,6 +197,7 @@ trait AppSecurity
         $reissueCookies = [];
 
         $ambientCredential = false;
+        $authenticatorName = null;
         $this->stopwatch()->start('security.authenticate', 'security');
         try {
             $result = $this->tryAuthenticators($request, $config, $firewallName, $stateless, $staleCookies, $reissueCookies, $ambientCredential, $authenticatorName);
@@ -1014,6 +1018,19 @@ trait AppSecurity
             $supports = $authenticator->supports($request);
 
             if ($supports) {
+                // The login throttle: a presented credential counts against
+                // the firewall's limiter, per client address, before it is
+                // read. Only presented ones — an anonymous visitor browsing
+                // public pages presents nothing and is not counted — and not
+                // a remember-me cookie, which is signed and not guessable.
+                if (isset($config['rate_limit']) && !$authenticator instanceof RememberMeAuthenticator) {
+                    $this->enforceRateLimit(
+                        (string) $config['rate_limit'],
+                        'ip:'.($this->clientIp($request) ?? 'unknown'),
+                        $request,
+                    );
+                }
+
                 try {
                     $user = $authenticator->authenticate($request);
 
@@ -1564,6 +1581,48 @@ trait AppSecurity
         return $result;
     }
 
+    /**
+     * Consume one hit from a limiter for a client, and refuse the request
+     * when the window is spent.
+     *
+     * The refusal is a RateLimitExceededException the handler turns into a
+     * 429 with Retry-After; RateLimitExceededEvent goes out first. Shared by
+     * the firewall's login throttle and the route-level #[RateLimit].
+     *
+     * @throws RateLimitExceededException
+     */
+    private function enforceRateLimit(string $limiter, string $key, ServerRequestInterface $request): void
+    {
+        $limit = $this->rateLimiter($limiter)->create($key)->consume();
+
+        if ($limit->isAccepted()) {
+            return;
+        }
+
+        $exception = new RateLimitExceededException($limiter, $limit->getRetryAfter(), $limit->getLimit());
+
+        $this->notify(new RateLimitExceededEvent(
+            limiter: $limiter,
+            key: $key,
+            path: $this->securityPath($request),
+            method: $request->getMethod(),
+            userIdentifier: $this->state?->getTokenStorage()->getToken()?->getUserIdentifier(),
+            clientIp: $this->clientIp($request),
+            retryAfterSeconds: $exception->getRetryAfterSeconds(),
+        ));
+
+        throw $exception;
+    }
+
+    /**
+     * The key a route-level #[RateLimit] counts a request under.
+     */
+    private function rateLimitKey(string $by, ServerRequestInterface $request): string
+    {
+        $user = RateLimit::BY_IP === $by ? null : $this->tokenStorage()->getToken()?->getUserIdentifier();
+
+        return null !== $user ? 'user:'.$user : 'ip:'.($this->clientIp($request) ?? 'unknown');
+    }
 
     /**
      * The client address as the server reported it, for the notifications.

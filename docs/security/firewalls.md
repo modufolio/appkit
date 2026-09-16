@@ -57,6 +57,7 @@ Firewall options:
 | `csrf_form_tokens` | `array<string,string>` | Symfony-form token shapes the kernel accepts: form name → token id, e.g. `['contact' => 'contact_form']` accepts `contact[_token]`. See below. |
 | `csrf` | `bool` | `false` turns the kernel CSRF check off for this firewall. Defaults to `true`. See below. |
 | `idle_timeout` | `int` | Seconds of inactivity after which the session is terminated. Absent or `0` disables it. See [Idle timeout](sessions.md#idle-timeout). |
+| `rate_limit` | `string` | The name of a limiter from `rateLimiter()`; every credential presented to this firewall counts against it, per client address. See [Rate limiting](rate-limiting.md). |
 | `idle_ignore_paths` | `string[]` | Paths (firewall pattern syntax) that are served without counting as activity. See [Idle timeout](sessions.md#idle-timeout). |
 | `csrf_token_id` | `string` | Id of the session token fetch/XHR clients send in the `X-CSRF-Token` header. Defaults to `csrf`. |
 | `csrf_validator` | `callable` | `function ($request, $tokenManager): ?bool` for token shapes the options above cannot express: `true` accepts, `false` rejects, `null` falls through to the default check. Must be callable — config validation refuses anything else. |
