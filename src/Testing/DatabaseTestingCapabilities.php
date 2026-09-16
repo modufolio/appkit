@@ -502,7 +502,7 @@ trait DatabaseTestingCapabilities
     protected function createDatabaseSnapshot(): void
     {
         $this->databaseSnapshot = [];
-        $tables = $this->connection()->createSchemaManager()->listTableNames();
+        $tables = $this->connection()->createSchemaManager()->introspectTableNames();
 
         foreach ($tables as $table) {
             $this->databaseSnapshot[$table] = $this->connection()

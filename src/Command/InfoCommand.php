@@ -92,7 +92,7 @@ final class InfoCommand extends Command
         }
 
         try {
-            return [] !== $this->connection->createSchemaManager()->listTableNames();
+            return [] !== $this->connection->createSchemaManager()->introspectTableNames();
         } catch (\Throwable) {
             return false;
         }

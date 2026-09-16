@@ -131,12 +131,12 @@ abstract class AppTestCase extends BaseTestCase
             // Get list of all tables
             $schemaManager = $connection->createSchemaManager();
             try {
-                $tables = $schemaManager->listTableNames();
+                $tables = $schemaManager->introspectTableNames();
 
                 // Drop each table
                 foreach ($tables as $table) {
                     try {
-                        $connection->executeStatement(sprintf('DROP TABLE IF EXISTS %s', $table));
+                        $connection->executeStatement(sprintf('DROP TABLE IF EXISTS %s', $table->toString()));
                     } catch (DbalException $e) {
                         // Continue even if drop fails
                     }
@@ -164,7 +164,7 @@ abstract class AppTestCase extends BaseTestCase
 
             try {
                 do {
-                    $remaining = $schemaManager->listTableNames();
+                    $remaining = $schemaManager->introspectTableNames();
                     $dropped = 0;
                     foreach ($remaining as $table) {
                         try {
