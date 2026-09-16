@@ -52,7 +52,11 @@
         "symfony/process": "^7.4",
         "psr/http-client": "^1.0",
         "symfony/stopwatch": "^7.4",
-        "modufolio/http": "^0.2"
+        "modufolio/http": "^0.2",
+        "symfony/event-dispatcher": "^7.4",
+        "psr/event-dispatcher": "^1.0",
+        "symfony/rate-limiter": "^7.4",
+        "symfony/lock": "^7.4"
     },
     "require-dev": {
         "phpunit/phpunit": "^10.5 || ^11",
