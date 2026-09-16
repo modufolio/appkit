@@ -6,8 +6,13 @@ namespace Modufolio\Appkit\Tests\Unit\Module;
 
 use Modufolio\Appkit\Core\Environment;
 use Modufolio\Appkit\Inertia\InertiaModule;
+use Modufolio\Appkit\DependencyInjection\ServiceConfigurator;
+use Modufolio\Appkit\Module\DefinitionsModule;
 use Modufolio\Appkit\Module\ModuleRegistry;
 use Modufolio\Appkit\Tests\App\Module\Bare\BareModule;
+use Modufolio\Appkit\Tests\App\Module\Defs\Greeter;
+use Modufolio\Appkit\Tests\App\Module\Defs\GreeterInterface;
+use Modufolio\Appkit\Tests\App\Module\Defs\GreetingDefinitions;
 use Modufolio\Appkit\Tests\App\Module\Demo\DemoModule;
 use PHPUnit\Framework\TestCase;
 
@@ -37,6 +42,35 @@ class ModuleRegistryTest extends TestCase
 
         $this->assertSame(['per_page' => 25], ModuleRegistry::configFor('base-a', $modules[0]));
         $this->assertSame([], ModuleRegistry::configFor('base-a', $modules[1]));
+    }
+
+    public function testADefinitionSetIsListedLikeAModule(): void
+    {
+        $modules = ModuleRegistry::load('base-defs', __DIR__.'/../../fixtures/config/modules_definitions.php');
+
+        $this->assertCount(2, $modules);
+        $this->assertInstanceOf(DefinitionsModule::class, $modules[0]);
+        $this->assertInstanceOf(GreetingDefinitions::class, $modules[0]->definitions());
+        $this->assertSame('greeting', $modules[0]->name());
+        $this->assertSame(\dirname((new \ReflectionClass(GreetingDefinitions::class))->getFileName() ?: ''), $modules[0]->path());
+        $this->assertSame([], $modules[0]->controllers());
+        $this->assertSame([], $modules[0]->entityPaths());
+
+        $services = new ServiceConfigurator();
+        $modules[0]->services($services, []);
+
+        $this->assertArrayHasKey(Greeter::class, $services->definitions);
+        $this->assertArrayHasKey(GreeterInterface::class, $services->definitions);
+    }
+
+    public function testADefinitionSetTakesNoConfiguration(): void
+    {
+        $module = new DefinitionsModule(new GreetingDefinitions());
+
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('takes no configuration');
+
+        $module->services(new ServiceConfigurator(), ['per_page' => 5]);
     }
 
     public function testAnEntryIsLoadedOnlyInTheEnvironmentsItNames(): void

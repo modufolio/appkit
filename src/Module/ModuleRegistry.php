@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modufolio\Appkit\Module;
 
 use Modufolio\Appkit\Core\Environment;
+use Modufolio\Appkit\DependencyInjection\DefinitionsInterface;
 
 /**
  * Single source of truth for the registered modules.
@@ -118,8 +119,13 @@ final class ModuleRegistry
             }
 
             $module = new $class();
+            // A bare definition set rides along as a module, so it sits in
+            // the same override order and passes the same checks.
+            if ($module instanceof DefinitionsInterface && !$module instanceof ModuleInterface) {
+                $module = new DefinitionsModule($module);
+            }
             if (!$module instanceof ModuleInterface) {
-                $errors[] = sprintf('Module "%s" must implement %s.', $class, ModuleInterface::class);
+                $errors[] = sprintf('Module "%s" must implement %s or %s.', $class, ModuleInterface::class, DefinitionsInterface::class);
                 continue;
             }
 
@@ -223,7 +229,8 @@ final class ModuleRegistry
     private static function listedBefore(array $modules, string $requiredClass, ModuleInterface $module): bool
     {
         foreach ($modules as $candidate) {
-            if ($candidate::class === $requiredClass) {
+            $class = $candidate instanceof DefinitionsModule ? $candidate->definitions()::class : $candidate::class;
+            if ($class === $requiredClass) {
                 return true;
             }
             if ($candidate === $module) {

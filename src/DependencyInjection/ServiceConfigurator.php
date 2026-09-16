@@ -117,6 +117,45 @@ final class ServiceConfigurator
     }
 
     /**
+     * Load a definition set: a plain array of id => factory, or an object
+     * that returns one. A closure value is registered with set() — or
+     * shared() when `$shared` is true — and a string value is an alias of
+     * the id it names. Anything else is a wiring bug and fails here.
+     *
+     * The array shape is the one a PSR-11 container consumes directly, so a
+     * package's {@see DefinitionsInterface} loads into the kernel through
+     * this method and into PHP-DI as it is. The closure receives the
+     * container; a factory written against `ContainerInterface` gets the
+     * application, which is one.
+     *
+     * @param array<array-key, \Closure|string>|DefinitionsInterface $definitions
+     */
+    public function load(array|DefinitionsInterface $definitions, bool $shared = false): self
+    {
+        $source = $definitions instanceof DefinitionsInterface ? $definitions::class : 'definitions array';
+
+        if ($definitions instanceof DefinitionsInterface) {
+            $definitions = $definitions->getDefinitions();
+        }
+
+        foreach ($definitions as $id => $definition) {
+            if (!\is_string($id)) {
+                throw new \LogicException(sprintf('%s: every definition must be keyed by a service id, found key %s.', $source, json_encode($id)));
+            }
+
+            if ($definition instanceof \Closure) {
+                $shared ? $this->shared($id, $definition) : $this->set($id, $definition);
+            } elseif (\is_string($definition)) {
+                $this->alias($id, $definition);
+            } else {
+                throw new \LogicException(sprintf('%s: the definition of "%s" must be a factory closure or the id it aliases, %s given.', $source, $id, get_debug_type($definition)));
+            }
+        }
+
+        return $this;
+    }
+
+    /**
      * Mark a service id as deprecated: resolving it still works but triggers
      * an E_USER_DEPRECATED warning once per process, pointing consumers at
      * the replacement. Works on aliases too — the classic use is renaming a

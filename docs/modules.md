@@ -142,6 +142,31 @@ protected function loadServices(ServiceConfigurator $services, array $config): v
 }
 ```
 
+### Definition sets
+
+A package that contributes services and nothing else — no entities,
+migrations, templates or lifecycle — need not be a module. It ships a
+`DependencyInjection\DefinitionsInterface`, the array a PSR-11 container
+consumes (see [Definition sets](dependency-injection.md#definition-sets-load)),
+and the manifest lists it where it would list a module:
+
+```php
+// config/modules.php
+return [
+    \Acme\Panel\PanelDefinitions::class,
+    \Acme\Blog\BlogModule::class => ['per_page' => 20],
+];
+```
+
+The registry wraps it in a `Module\DefinitionsModule` on load, so it sits in
+the same override order (core → modules, in manifest order → the app), is
+checked for duplicate names and can be named in another module's
+`requires()`. Its name is the class short name minus a trailing
+`Definitions`, lowercased; it takes no configuration and contributes no
+paths. A set that needs any of those is a module — and a module that wants
+the array shape loads its set with `$services->load(...)` from
+`loadServices()`.
+
 ### Modules as bundles
 
 When the application opted in to [the Symfony container behind the

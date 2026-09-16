@@ -102,6 +102,32 @@ trait AppContainer
     }
 
     /**
+     * Build undeclared services from their constructor types.
+     *
+     * Off by default: the container answers declared ids only, and an unknown
+     * id is a wiring mistake reported with near-misses. Switched on, an id
+     * that names an instantiable class — and that no declaration, core
+     * service, repository or fallback container answers — is constructed
+     * with each constructor parameter resolved by its class type through
+     * this container, or given its default when the container has nothing
+     * for it. The plan is reflected once per class per process and kept, so
+     * the cost after the first resolve is the constructor call. Autowired
+     * services are built on every get(), like set(); declare an id with
+     * shared() when one object per request matters.
+     *
+     * A package's services, with fully typed constructors, then need no
+     * definition at all; the application's own wiring stays explicit, as
+     * `#[Service]` accessors and config/services.php.
+     */
+    public function configureAutowiring(bool $enabled = true): static
+    {
+        $this->autowire = $enabled;
+        $this->autowirePlans = [];
+
+        return $this;
+    }
+
+    /**
      * Core services the kernel wires itself — every interface backed by a
      * kernel accessor or a dependency-free construction. Applications on
      * config/services.php only declare what they add on top; the legacy
@@ -117,6 +143,7 @@ trait AppContainer
             DebugStack::class => fn () => $this->debugStack,
             EntityManagerInterface::class => fn () => $this->entityManager(),
             Environment::class => fn () => $this->environment(),
+            EventDispatcherInterface::class => fn () => $this->eventDispatcher(),
             FlashBagAwareSessionInterface::class => fn () => $this->session(),
             FlashBagInterface::class => fn () => $this->session()->getFlashBag(),
             ParameterResolverInterface::class => fn () => $this->parameterResolver(),
@@ -190,6 +217,8 @@ trait AppContainer
                 $instance = $this->getRepository($id);
             } elseif ($this->fallbackHas($id)) {
                 $instance = $this->fallbackContainer->get($id);
+            } elseif ($this->autowire && null !== $plan = $this->autowirePlan($id)) {
+                $instance = $this->autowireInstance($id, $plan);
             } else {
                 throw new NotFoundException($this->notFoundMessage($id));
             }
@@ -231,6 +260,11 @@ trait AppContainer
         // dropped it. Say exactly that instead of guessing near-misses.
         if (null !== $hint = $this->fallbackRemovalHint($id)) {
             return $message.' '.$hint;
+        }
+
+        // Autowiring is on and the class exists, but one parameter stopped it.
+        if (isset($this->autowireRefusals[$id])) {
+            return $message.sprintf(' It could not be autowired: %s.', $this->autowireRefusals[$id]);
         }
 
         $known = [
@@ -328,7 +362,73 @@ trait AppContainer
             || isset($this->authenticators[$id])
             || isset($this->factories[$id])
             || array_key_exists($id, $this->repositories())
-            || $this->fallbackHas($id);
+            || $this->fallbackHas($id)
+            || ($this->autowire && null !== $this->autowirePlan($id));
+    }
+
+    /**
+     * How to build $id from its constructor, or null when it cannot be: not
+     * a class, not instantiable, or a parameter nothing can fill. Reflected
+     * once per class per process.
+     *
+     * @return list<array{name: string, service?: string, value?: mixed}>|null
+     */
+    private function autowirePlan(string $id): ?array
+    {
+        if (\array_key_exists($id, $this->autowirePlans)) {
+            return $this->autowirePlans[$id];
+        }
+
+        if (!class_exists($id) || $this->isKernelClass($id)) {
+            return $this->autowirePlans[$id] = null;
+        }
+
+        $class = new \ReflectionClass($id);
+
+        if (!$class->isInstantiable()) {
+            return $this->autowirePlans[$id] = null;
+        }
+
+        $plan = [];
+
+        foreach ($class->getConstructor()?->getParameters() ?? [] as $parameter) {
+            $type = $parameter->getType();
+            $name = $parameter->getName();
+
+            // A class type the container answers is a service; otherwise the
+            // parameter's own default, or null when it allows one. A required
+            // parameter nothing can fill makes the class not autowirable —
+            // the miss is reported as not found, with the reason.
+            if ($type instanceof \ReflectionNamedType && !$type->isBuiltin() && $this->has($type->getName())) {
+                $plan[] = ['name' => $name, 'service' => $type->getName()];
+            } elseif ($parameter->isDefaultValueAvailable()) {
+                $plan[] = ['name' => $name, 'value' => $parameter->getDefaultValue()];
+            } elseif ($type === null || $type->allowsNull()) {
+                $plan[] = ['name' => $name, 'value' => null];
+            } else {
+                $this->autowireRefusals[$id] = sprintf('its constructor parameter $%s (%s) is neither a service this container answers nor optional', $name, $type instanceof \ReflectionNamedType ? $type->getName() : (string) $type);
+
+                return $this->autowirePlans[$id] = null;
+            }
+        }
+
+        return $this->autowirePlans[$id] = $plan;
+    }
+
+    /**
+     * @param list<array{name: string, service?: string, value?: mixed}> $plan
+     */
+    private function autowireInstance(string $id, array $plan): object
+    {
+        $arguments = [];
+
+        foreach ($plan as $parameter) {
+            $arguments[$parameter['name']] = isset($parameter['service'])
+                ? $this->get($parameter['service'])
+                : ($parameter['value'] ?? null);
+        }
+
+        return new $id(...$arguments);
     }
 
     /**

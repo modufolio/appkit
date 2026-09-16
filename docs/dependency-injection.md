@@ -175,6 +175,41 @@ $services
 
 Aliasing a `shared()` target returns the same cached instance; aliasing a `set()` target builds fresh, like any other `get()`.
 
+### Definition sets: `load()`
+
+A package that wants to run on more than one host writes its wiring once, as
+the array a PSR-11 container consumes: id => factory closure receiving the
+container, or id => the id it aliases. `load()` takes that array — or an
+object implementing `DependencyInjection\DefinitionsInterface` that returns
+one — and registers each entry with `set()` (or `shared()` with
+`shared: true`) and `alias()`:
+
+```php
+// A package's definitions, framework-free
+namespace Acme\Panel;
+
+final class PanelDefinitions implements DefinitionsInterface
+{
+    public function getDefinitions(): array
+    {
+        return [
+            FormResolver::class    => fn (ContainerInterface $c) => new FormResolver($c->get(EntityManagerInterface::class)),
+            ChangePublisher::class => NullChangePublisher::class,
+        ];
+    }
+}
+
+// config/services.php — the same set, into the kernel
+$services->load(new \Acme\Panel\PanelDefinitions());
+```
+
+The closure receives the application, which is a `ContainerInterface`, so a
+factory typed against PSR-11 needs no adapter; the same array loads into
+PHP-DI as it is. Symfony's compiled container cannot hold closures, so a
+package that also ships a bundle declares those ids in the Symfony DSL there.
+A definitions class may also be listed in `config/modules.php` in place of a
+module — see [Modules](modules.md#definition-sets).
+
 ## Wiring repositories
 
 `config/repositories.php` is optional. When the kernel's `$repositories` property is left `null`, `repositories()` derives the map from Doctrine's metadata on first use — every mapped entity's repository class, keyed by repository class — so `get(PostRepository::class)` works with no file at all (`AppContainer::getRepositoriesAndEntities()`).
@@ -233,6 +268,39 @@ If a controller class is not listed in `config/controllers.php`, AppKit falls ba
 > **Treat this as a safety net, not a wiring strategy.** It exists so a freshly scaffolded controller runs before you have wired it — nothing more. It runs reflection at request time, and it can silently produce wrong results: a parameter with a default value receives that default instead of the wired service. Every request that takes the fallback **logs a warning** naming the unwired controller, so the miss is visible in your logs rather than silent. Wire every controller explicitly in `config/controllers.php`; a controller that only works through the fallback is working by accident.
 
 The full order for a controller is: `config/controllers.php` → [the Symfony container behind the kernel](#the-symfony-container-behind-the-kernel), when the application configured one and it knows the class (autowired, no warning) → reflection. An application that has outgrown `controllers.php` moves its controllers to Symfony, not to the fallback.
+
+## Autowiring, opt-in
+
+The container answers declared ids only. An application may switch on a
+fallback for the ids nothing declares:
+
+```php
+$app->configureModules()
+    ->configureServices($serviceConfigurator)
+    ->configureAutowiring()
+    ->boot();
+```
+
+From then on `get()` of an undeclared id that names an instantiable class
+builds it from its constructor: each parameter with a class type the
+container answers is resolved through `get()`, any other parameter takes its
+default, or null when it allows one, and a required parameter nothing can
+fill makes the class not autowirable — `get()` reports it as not found, with
+the parameter named. `has()` agrees with `get()`.
+
+This is the last source, after `config/services.php`, modules, the kernel's
+core services, repositories and the Symfony container behind the kernel, so
+a declared id always wins and nothing already wired changes behaviour. The
+plan for a class is reflected once per process and kept; after the first
+resolve the cost is the constructor call. Autowired services are built on
+every `get()`, like `set()`; declare an id with `shared()` when one object
+per request matters.
+
+The point is packages: a service with a fully typed constructor needs no
+definition, on this container or on Symfony's. The application's own wiring
+stays where it is — `#[Service]` accessors and `config/services.php` — and
+stays explicit; autowiring does not replace the [reflection fallback for
+controllers](#reflection-fallback), which keeps its warning.
 
 ## Circular dependency detection
 

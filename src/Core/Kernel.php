@@ -144,6 +144,12 @@ abstract class Kernel implements AppInterface
     private ?ContainerInterface $fallbackContainer = null;
     /** Builds the fallback container during boot(), when set by configureContainer() */
     private ?ContainerFactoryInterface $containerFactory = null;
+    /** Whether an undeclared, instantiable class is built from its constructor types — see configureAutowiring() */
+    private bool $autowire = false;
+    /** @var array<string, list<array{name: string, service?: string, value?: mixed}>|null> Constructor plans by class, reflected once per process; null marks a class that cannot be autowired */
+    private array $autowirePlans = [];
+    /** @var array<string, string> Why a class could not be autowired, for the not-found message */
+    private array $autowireRefusals = [];
 
     // Security components
     /** @var array<string, array<string, mixed>> */
