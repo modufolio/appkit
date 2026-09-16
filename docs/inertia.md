@@ -82,7 +82,13 @@ for one request, and the kernel's `reset()` clears it between them.
   scroll component asks.
 - **The version handshake.** An XHR GET whose `X-Inertia-Version` differs
   from yours gets a 409 with `X-Inertia-Location`, and the client reloads in
-  full before rendering props its components no longer understand.
+  full before rendering props its components no longer understand. With
+  `version_file` the version is the file's hash, re-taken whenever the file's
+  mtime changes — not once per process. A long-lived worker (RoadRunner) that
+  hashed once kept the version it booted with, so after an asset build a
+  pool answered old and new at once and every browser met the handshake on
+  every other request. A prefetch that meets the handshake is not an error:
+  it cannot reload, and the click it was made for will.
 - **`Inertia::location($url)`** for leaving the app: a download, an external
   page.
 - **Flash.** `->flash('saved', true)` on a page, or

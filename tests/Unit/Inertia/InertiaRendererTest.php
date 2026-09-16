@@ -84,8 +84,17 @@ final class InertiaRendererTest extends TestCase
         file_put_contents($file, 'assets-1');
 
         try {
-            self::assertSame(md5('assets-1'), InertiaRenderer::versionFromFile($file)());
+            $version = InertiaRenderer::versionFromFile($file);
+
+            self::assertSame(md5('assets-1'), $version());
             self::assertSame('', InertiaRenderer::versionFromFile($file.'.missing')());
+
+            // A rebuilt file is a new version in the same process: a worker
+            // must not keep the hash it computed before the build.
+            file_put_contents($file, 'assets-2');
+            touch($file, time() + 10);
+
+            self::assertSame(md5('assets-2'), $version());
         } finally {
             unlink($file);
         }

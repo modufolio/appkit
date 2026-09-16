@@ -33,7 +33,7 @@ use Psr\Http\Message\ServerRequestInterface;
  */
 final class InertiaRenderer implements InertiaRendererInterface
 {
-    /** @var array<string, string> Hashed once per process, per file */
+    /** @var array<string, array{mtime: int, hash: string}> the hash per file, and the mtime it was taken at */
     private static array $fileVersions = [];
 
     private readonly FlashStoreInterface $flashStore;
@@ -163,7 +163,27 @@ final class InertiaRenderer implements InertiaRendererInterface
     public static function versionFromFile(string $path): \Closure
     {
         return static function () use ($path): string {
-            return self::$fileVersions[$path] ??= is_file($path) ? (string) md5_file($path) : '';
+            // Re-hashed when the file changes, not once per process: a
+            // long-lived worker that hashed the file once kept answering the
+            // old version after a build, while a worker started since answered
+            // the new one — and a browser talking to that pool met the
+            // handshake on every other request. One stat per request is the
+            // price of every worker agreeing.
+            clearstatcache(true, $path);
+            $mtime = is_file($path) ? (int) filemtime($path) : null;
+
+            if ($mtime === null) {
+                return '';
+            }
+
+            $cached = self::$fileVersions[$path] ?? null;
+
+            if ($cached === null || $cached['mtime'] !== $mtime) {
+                $cached = ['mtime' => $mtime, 'hash' => (string) md5_file($path)];
+                self::$fileVersions[$path] = $cached;
+            }
+
+            return $cached['hash'];
         };
     }
 
