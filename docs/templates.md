@@ -98,6 +98,8 @@ Snippets are reusable partial templates. They share the parent's asset collectio
 
 AppKit looks for `resources/views/cards/post.php`. The array passed as the second argument becomes available as variables inside the snippet.
 
+Snippet directories are derived from the *template* paths (`/templates` becomes `/snippets`), and a layout keeps those paths, so `$this->snippet()` resolves the same way from a layout as from the template it wrapped.
+
 ## Template helper reference
 
 `$template` and `$this` are the same object inside a template file — the table below uses whichever form the examples in this page use, but every helper works on both.
@@ -110,7 +112,8 @@ AppKit looks for `resources/views/cards/post.php`. The array passed as the secon
 | `$template->section(string $name, string $default = '')` | Output a named section in the layout. |
 | `$template->snippet(string $name, array $data = [])` | Render a partial template. |
 | `$this->esc(string\|int\|float\|\Stringable\|null $value, string $context = 'html')` | Context-aware output escaping (`html`, `attr`, `js`, `css`, `url`). |
-| `$this->url(string $path = '')` | Prepend the request's base URL (scheme + host + port) to a path. |
+| `$this->url(string $path = '')` | Prepend the request's base URL (scheme + host + port) to a path; an absolute URL is returned as is. |
+| `$this->asset(string $path)` | The versioned URL of an asset under the base URL — see [Versioned assets](#versioned-assets-and-subresource-integrity). |
 | `$this->css(string\|array $url)` | Queue a stylesheet for `renderCss()`. |
 | `$this->js(string\|array $url)` | Queue a script for `renderJs()`. |
 | `$this->renderCss()` | Emit all queued `<link>` tags. |
@@ -131,6 +134,51 @@ Call `$this->css()` or `$this->js()` inside any template or snippet to queue an 
 ```
 
 The `charts.js` script tag will appear in the layout's `renderJs()` output.
+
+## Versioned assets and Subresource Integrity
+
+Queued paths name files as they are written; what the browser fetches can
+carry a content hash, so a far-future `Cache-Control` is safe and a deploy
+is picked up at once. Declare the strategy once, in `config/services.php`,
+and every template applies it in `renderCss()`, `renderJs()` and the
+`$this->asset()` helper:
+
+```php
+use Modufolio\Appkit\Template\Asset\AssetVersioningInterface;
+use Modufolio\Appkit\Template\Asset\FileHashVersioning;
+
+$services->set(AssetVersioningInterface::class, fn (App $app) => new FileHashVersioning($app->publicDir()));
+```
+
+| Strategy | Renders | Needs |
+|----------|---------|-------|
+| `NoVersioning` (default) | `/assets/css/app.css` | nothing |
+| `FileHashVersioning($publicDir)` | `/assets/css/app.<hash>.css` | a rewrite from the hashed name to the file — see [Deployment › Versioned assets](deployment.md#versioned-assets) |
+| `FileHashVersioning($publicDir, FileHashVersioning::IN_QUERY)` | `/assets/css/app.css?v=<hash>` | nothing; some caches ignore the query |
+| `ManifestVersioning($file, $prefix)` | whatever the build wrote | a Vite `manifest.json` or a flat `{queued: built}` map |
+
+`FileHashVersioning` hashes each file once per process and again when its
+modification time changes. Absolute URLs pass through every strategy, and
+through `url()`, untouched — a CDN asset is queued as itself.
+
+For a Subresource Integrity attribute on every `<link>` and `<script>`, run
+`assets:sri` after each build; it writes `config/sri.php`, which the kernel
+reads through `assetIntegrity()`. The map is keyed by the *queued* path,
+so it works with any versioning strategy:
+
+```html
+<link href="https://example.com/assets/css/app.3f2a….css" rel="stylesheet"
+      integrity="sha384-…" crossorigin="anonymous">
+```
+
+Templates built by `#[Template]` receive both from the resolver; hand
+`versioning:` and `integrity:` to a `Template` you construct yourself, from
+`$app->assetVersioning()` and `$app->assetIntegrity()`. Images and fonts
+take the `asset()` helper:
+
+```php
+<img src="<?= $this->asset('/assets/img/logo.svg') ?>" alt="">
+```
 
 ## Escaping output
 

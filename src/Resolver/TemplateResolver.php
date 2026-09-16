@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Modufolio\Appkit\Resolver;
 
 use Modufolio\Appkit\Attributes\Template as TemplateAttribute;
+use Modufolio\Appkit\Template\Asset\AssetIntegrity;
+use Modufolio\Appkit\Template\Asset\AssetVersioningInterface;
 use Modufolio\Appkit\Template\Template;
 use Psr\Http\Message\ServerRequestInterface;
 
@@ -30,6 +32,8 @@ final readonly class TemplateResolver implements AttributeResolverInterface
         private array $templatePaths,
         private array $layoutPaths,
         private ServerRequestInterface $request,
+        private ?AssetVersioningInterface $versioning = null,
+        private ?AssetIntegrity $integrity = null,
     ) {
     }
 
@@ -50,6 +54,8 @@ final readonly class TemplateResolver implements AttributeResolverInterface
             templatePaths: $this->templatePaths,
             layoutPaths: $this->layoutPaths,
             request: $this->request,
+            versioning: $this->versioning,
+            integrity: $this->integrity,
         );
 
         if (null !== $attribute->layout) {

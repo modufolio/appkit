@@ -1,1 +1,1 @@
-<button><?= $text ?? 'Button' ?></button>
+<button><?= $text ?? 'Button'; ?></button>

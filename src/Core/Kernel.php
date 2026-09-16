@@ -29,6 +29,9 @@ use Modufolio\Appkit\Security\RoleHierarchy;
 use Modufolio\Appkit\Security\Token\TokenStorageInterface;
 use Modufolio\Appkit\Security\TokenUnserializer;
 use Modufolio\Appkit\Security\User\UserProviderInterface;
+use Modufolio\Appkit\Template\Asset\AssetIntegrity;
+use Modufolio\Appkit\Template\Asset\AssetVersioningInterface;
+use Modufolio\Appkit\Template\Asset\NoVersioning;
 use Modufolio\Psr7\Http\Emitter;
 use Modufolio\Psr7\Http\EmitterInterface;
 use Modufolio\Psr7\Http\ServerRequest;
@@ -184,6 +187,12 @@ abstract class Kernel implements AppInterface
     private array $rateLimiterFactories = [];
     protected ?StorageInterface $rateLimiterStorage = null;
     protected ?LockFactory $lockFactory = null;
+
+    // Assets: the web root, and how templates version and sign what they render
+    protected ?string $publicDir = null;
+    protected ?AssetVersioningInterface $assetVersioning = null;
+    protected ?AssetIntegrity $assetIntegrity = null;
+
     // Router configuration
     /** @var array<string, mixed> */
     protected array $routerOptions = [];
@@ -380,6 +389,54 @@ abstract class Kernel implements AppInterface
      * var/cache/dev, …) so switching APP_ENV on one machine can never serve a
      * cache built by another environment.
      */
+    /**
+     * The web root: where root-relative asset paths resolve. `public` under
+     * the base directory unless {@see setPublicDir()} says otherwise.
+     */
+    public function publicDir(): string
+    {
+        return $this->publicDir ??= $this->baseDir.'/public';
+    }
+
+    public function setPublicDir(string $publicDir): static
+    {
+        $this->publicDir = rtrim($publicDir, '/');
+
+        return $this;
+    }
+
+    /**
+     * How templates turn a queued asset path into the one the browser
+     * fetches. None unless the application declares
+     * {@see AssetVersioningInterface} in config/services.php:
+     *
+     *     ->set(AssetVersioningInterface::class, fn (App $app) => new FileHashVersioning($app->publicDir()))
+     *
+     * Hand it to {@see \Modufolio\Appkit\Resolver\TemplateResolver} and to
+     * any Template built by hand.
+     */
+    #[Service]
+    public function assetVersioning(): AssetVersioningInterface
+    {
+        return $this->assetVersioning ??= isset($this->services[AssetVersioningInterface::class])
+            ? $this->get(AssetVersioningInterface::class, AssetVersioningInterface::class)
+            : new NoVersioning();
+    }
+
+    /**
+     * The Subresource Integrity map templates render from: what
+     * `assets:sri` wrote to config/sri.php, or an explicit
+     * {@see AssetIntegrity} declared in config/services.php. Empty when
+     * neither exists.
+     */
+    #[Service]
+    public function assetIntegrity(): AssetIntegrity
+    {
+        return $this->assetIntegrity ??= isset($this->services[AssetIntegrity::class])
+            ? $this->get(AssetIntegrity::class, AssetIntegrity::class)
+            : AssetIntegrity::fromFile($this->baseDir.'/config/sri.php');
+    }
+
     public function cacheDir(): string
     {
         return $this->varDir().'/cache/'.$this->environment()->value;

@@ -86,7 +86,26 @@ npm ci
 npm run build
 ```
 
-If you use a CDN or object storage for assets, copy the compiled files there and reference them with plain `<link>`/`<script>` tags in your layout. `$this->css()` and `$this->js()` cannot take a full URL: `Template::url()` prefixes every queued asset with the request's base URL, so `css('https://cdn.example.com/app.css')` renders `href="https://example.com/https://cdn.example.com/app.css"`. Setting `APP_URL` changes nothing: neither the framework nor the skeleton's shipped code reads it, so it only matters if your own code does through `env('APP_URL')`.
+If you use a CDN or object storage for assets, copy the compiled files there and queue them by full URL: `$this->css('https://cdn.example.com/app.css')` renders that URL as is, since `Template::url()` leaves absolute URLs alone. Setting `APP_URL` changes nothing: neither the framework nor the skeleton's shipped code reads it, so it only matters if your own code does through `env('APP_URL')`.
+
+### Versioned assets
+
+With `FileHashVersioning` in its default placement, templates render
+`/assets/css/app.<hash>.css` for a file that exists on disk as
+`/assets/css/app.css`, so the web server has to map the hashed name back.
+One rewrite before `try_files` does it:
+
+```nginx
+location ~ ^(.+)\.[0-9a-f]{32}\.(css|js|png|jpe?g|gif|svg|webp|avif|woff2?|ico)$ {
+    try_files $uri $1.$2 =404;
+    expires 1y;
+    add_header Cache-Control "public, immutable";
+}
+```
+
+Caddy: `@versioned path_regexp v ^(.+)\.[0-9a-f]{32}\.(css|js|png|jpe?g|gif|svg|webp|avif|woff2?|ico)$` then `rewrite @versioned {re.v.1}.{re.v.2}`. PHP's built-in server needs the same in a router script; `FileHashVersioning::unversion($path)` gives the real path. The query placement (`?v=<hash>`) needs none of this. With `ManifestVersioning` the build already wrote the hashed files, so nothing is rewritten either.
+
+Run `assets:sri` after every build when templates render integrity attributes: a stale `config/sri.php` makes the browser refuse the new files, which is the check doing its job.
 
 ## Switching from SQLite
 
@@ -243,6 +262,16 @@ AppKit runs under RoadRunner's persistent worker model. The relevant behaviours:
 - Controller instances are cached per request, not across requests
 - Static state in core classes is *managed*, not absent — `Router` keeps a static
   compiled-route cache and clears it in `Router::reset()`
+- Anything derived from a file that a deploy or a build rewrites must be keyed
+  on the file, not on the process. The Inertia asset version is the example:
+  hashed once per worker, a pool answered the old and the new version at once
+  after a build, and browsers met the 409 handshake on every other request
+  until every worker had been replaced. It is re-hashed on mtime change now;
+  a cache of your own that reads a manifest, a config file or a route file
+  needs the same rule, or a rolling reset to make the pool agree
+- Workers keep the code they booted with. In development, the `reload` block
+  in the reference `.rr.yaml` resets them when a PHP file changes; in
+  production a deploy restarts them
 
 There is no framework-supplied runtime. The worker loop is written explicitly, so
 what happens per request is visible in your own code rather than hidden behind a

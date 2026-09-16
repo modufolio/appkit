@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Modufolio\Appkit\Template;
 
+use Modufolio\Appkit\Template\Asset\AssetIntegrity;
+use Modufolio\Appkit\Template\Asset\AssetVersioningInterface;
+use Modufolio\Appkit\Template\Asset\NoVersioning;
 use Modufolio\Appkit\Toolkit\Str;
 use Psr\Http\Message\ServerRequestInterface;
 
@@ -39,19 +42,32 @@ class Template implements \Stringable
     protected ?ServerRequestInterface $request = null;
     protected ?string $baseUrl = null;
     protected AssetCollection $assets;
+    protected AssetVersioningInterface $versioning;
+    protected AssetIntegrity $integrity;
 
     /**
-     * @param list<string>         $templatePaths
-     * @param list<string>         $layoutPaths
-     * @param array<string, mixed> $data
+     * @param list<string>                  $templatePaths
+     * @param list<string>                  $layoutPaths
+     * @param array<string, mixed>          $data
+     * @param AssetVersioningInterface|null $versioning    how queued asset paths become the paths
+     *                                                     fetched — a content hash, a build manifest;
+     *                                                     none by default
+     * @param AssetIntegrity|null           $integrity     SRI hashes to render on `<link>` and
+     *                                                     `<script>`; none by default
+     *
+     * Final so that render() can build the layout as `new static`: a
+     * subclass keeps its behaviour for layouts without copying render(),
+     * and adds state through a setter or a factory rather than the signature
      */
-    public function __construct(
+    final public function __construct(
         string $name,
         array $templatePaths = [],
         array $layoutPaths = [],
         array $data = [],
         ?ServerRequestInterface $request = null,
         ?AssetCollection $assets = null,
+        ?AssetVersioningInterface $versioning = null,
+        ?AssetIntegrity $integrity = null,
     ) {
         $this->name = strtolower($name);
         $this->templatePaths = $templatePaths;
@@ -59,6 +75,8 @@ class Template implements \Stringable
         $this->data = $data;
         $this->request = $request;
         $this->assets = $assets ?? new AssetCollection();
+        $this->versioning = $versioning ?? new NoVersioning();
+        $this->integrity = $integrity ?? new AssetIntegrity();
 
         if (null !== $request) {
             $this->baseUrl = $this->calculateBaseUrl($request);
@@ -282,7 +300,24 @@ class Template implements \Stringable
     }
 
     /**
+     * The URL to fetch an asset from: the queued path, versioned by the
+     * configured strategy, under the request's base URL. What `renderCss()`
+     * and `renderJs()` use; call it yourself for an image or a font:
+     *
+     *     <img src="<?= $this->asset('/assets/img/logo.svg') ?>">
+     *
+     * An absolute URL passes through untouched.
+     */
+    public function asset(string $path): string
+    {
+        return $this->url($this->versioning->version($path));
+    }
+
+    /**
      * Render all collected CSS link tags.
+     *
+     * Each carries `integrity` and `crossorigin="anonymous"` when the SRI
+     * map knows the queued path.
      */
     public function renderCss(): string
     {
@@ -290,29 +325,47 @@ class Template implements \Stringable
 
         foreach ($this->assets->getCss() as $url => $options) {
             $attr = array_merge($options, [
-                'href' => $this->url($url),
+                'href' => $this->asset($url),
                 'rel' => 'stylesheet',
             ]);
 
-            $links[] = '<link '.\Modufolio\Appkit\Toolkit\Html::attr($attr).'>';
+            $links[] = '<link '.\Modufolio\Appkit\Toolkit\Html::attr($this->withIntegrity($url, $attr)).'>';
         }
 
         return implode(PHP_EOL, $links);
     }
 
     /**
-     * Render all collected JavaScript script tags.
+     * Render all collected JavaScript script tags, with `integrity` where
+     * the SRI map knows the queued path.
      */
     public function renderJs(): string
     {
         $scripts = [];
 
         foreach ($this->assets->getJs() as $url => $options) {
-            $attr = array_merge($options, ['src' => $this->url($url)]);
-            $scripts[] = '<script '.\Modufolio\Appkit\Toolkit\Html::attr($attr).'></script>';
+            $attr = array_merge($options, ['src' => $this->asset($url)]);
+            $scripts[] = '<script '.\Modufolio\Appkit\Toolkit\Html::attr($this->withIntegrity($url, $attr)).'></script>';
         }
 
         return implode(PHP_EOL, $scripts);
+    }
+
+    /**
+     * @param array<string, mixed> $attr
+     *
+     * @return array<string, mixed>
+     */
+    private function withIntegrity(string $queuedPath, array $attr): array
+    {
+        $integrity = $this->integrity->for($queuedPath);
+        if (null === $integrity) {
+            return $attr;
+        }
+
+        // The map is keyed by the queued path so versioning does not change
+        // the lookup; the hash is of the content, which versioning keeps.
+        return $attr + ['integrity' => $integrity, 'crossorigin' => 'anonymous'];
     }
 
     /**
@@ -354,6 +407,11 @@ class Template implements \Stringable
      */
     public function url(string $path = ''): string
     {
+        // A full URL — a CDN, another origin — is already where to fetch from.
+        if (str_contains($path, '://') || str_starts_with($path, '//')) {
+            return $path;
+        }
+
         if (null !== $this->baseUrl) {
             $baseUrl = rtrim($this->baseUrl, '/');
             $path = ltrim($path, '/');
@@ -492,15 +550,23 @@ class Template implements \Stringable
 
         // Render the layout if one is defined
         if (null !== $layout) {
-            $layoutTemplate = new self(
+            // `static`, so a subclass renders its layouts as itself and keeps
+            // its own behaviour without copying this method.
+            $layoutTemplate = new static(
                 $layout,
-                $this->layoutPaths,
+                // Layout paths first — the layout file lives there — with the
+                // template paths kept behind them, so a snippet() call from
+                // inside a layout still resolves site/snippets: snippet() derives
+                // its search directories from templatePaths.
+                [...$this->layoutPaths, ...$this->templatePaths],
                 [],
                 array_merge($this->data, [
                     'content' => $content,
                 ]),
                 $this->request,
-                $this->assets  // Share the same asset collection
+                $this->assets,  // Share the same asset collection
+                $this->versioning,
+                $this->integrity,
             );
 
             // Copy sections to layout template

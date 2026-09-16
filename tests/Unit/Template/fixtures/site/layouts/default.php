@@ -1,5 +1,5 @@
 Hello, World!
 
-<?= $this->section('content') ?>
+<?= $this->section('content'); ?>
 
 Goodbye, World!

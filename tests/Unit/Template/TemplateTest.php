@@ -30,6 +30,23 @@ class TemplateTest extends TestCase
         );
     }
 
+    public function testALayoutResolvesSnippetsFromTheTemplatePaths(): void
+    {
+        // A layout is rendered with the layout paths in front, but snippet()
+        // derives its directories from the template paths, so those have to
+        // survive into the layout or every snippet call from a layout fails.
+        $template = new Template(
+            name: 'with-snippet-layout',
+            templatePaths: [$this->templatePath],
+            layoutPaths: [$this->layoutPath],
+        );
+
+        $output = $template->render();
+
+        $this->assertStringContainsString('<button>From the layout</button>', $output);
+        $this->assertStringContainsString('Some content', $output);
+    }
+
     public function testConstructor(): void
     {
         $this->assertEquals('default', (string) $this->template);
