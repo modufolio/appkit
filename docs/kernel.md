@@ -11,6 +11,7 @@ The kernel does not profile; it makes profiling possible through one interface a
 - **`stopwatch()`** — a `Symfony\Component\Stopwatch\Stopwatch` on which the kernel records the phases it owns: `security.session`, `security.authenticate`, `security.access_control`, `routing`, `controller`. Application code can `start()`/`stop()` its own events around anything it wants on the timeline. Reset by `resetModules()`.
 - **`profiler()`** — a `Debug\ProfilerInterface` whose `collect(request, response)` is called by `PrepareResponse` once the response is final, the last thing every `handle()` does; it returns the response to send, so a profiler can add a header naming the stored profile. The default is `NullProfiler`. Install one with `setProfiler()` — from a module's `boot()`, or in the application factory after `boot()` — or override the accessor.
 - **Query origins.** In `dev` the `DebugStack` records the application file and line that issued each query (`Query::$file` / `$line`), so a repeated-query report can name the loop. A backtrace per query, so never outside dev; `DebugStack::collectOrigin()` toggles it.
+- **Query shapes.** `Debug\QueryFingerprinter` reduces each recorded statement to its shape — bindings and literals masked, `IN` lists of any length made one — and `analyzeStack($debugStack)` reports every shape repeated three or more times in the request, most repeated first, with the time it cost. That is the N+1 finder; a profiler calls it from `collect()`, a test asserts `suspects` is empty.
 
 What a profiler *sees* beyond that comes from decorators, not hooks: wrap an authenticator, the validator or the exception handler in `config/services.php` with a recording decorator in dev, exactly as Symfony's `Traceable*` classes do. Symfony reaches the same three points through event listeners; here they are explicit calls because the request flow is.
 
@@ -123,6 +124,11 @@ The Kernel exposes lazy-loaded services as methods. Use these inside `App` or co
 | `serializer()` | `SerializerInterface` |
 | `parameterResolver()` | `ParameterResolverInterface` |
 | `exceptionHandler()` | `ExceptionHandlerInterface` |
+| `eventDispatcher()` | `EventDispatcherInterface` (PSR-14) — the notification seam, see [Events](events.md) |
+| `rateLimiter(string $name)` | `RateLimiterFactory` for a limiter declared in `config/security.php`, see [Rate limiting](security/rate-limiting.md) |
+| `publicDir()` | The web root, `public` under the base directory unless `setPublicDir()` changes it |
+| `assetVersioning()` | `AssetVersioningInterface` — how templates version asset paths, see [Templates](templates.md#versioned-assets-and-subresource-integrity) |
+| `assetIntegrity()` | `AssetIntegrity` — the SRI map from `config/sri.php` |
 | `csrfTokenManager()` | `CsrfTokenManagerInterface` |
 | `request()` | `ServerRequestInterface` (the current request) |
 | `urlGenerator()` | `UrlGeneratorInterface` |

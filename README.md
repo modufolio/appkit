@@ -9,7 +9,7 @@ A PHP framework for security-conscious SaaS applications, built from Symfony
 components and Doctrine ORM around a kernel you can read end to end. Routing,
 firewalls, authenticators, forms, Inertia, modules, image processing, and a
 console with generators are all here. What is missing is the machinery:
-no compiled container, no event dispatcher, no bundles, no bootstrap you have
+no compiled container, no plugin system, no bundles, no bootstrap you have
 to regenerate.
 
 **In AppKit, your App class is the container.** Most frameworks either
@@ -41,7 +41,7 @@ password hasher that does not leak timing. Assembling these from individual
 packages means every team makes the same fifty decisions, slightly
 differently, and gets a few of them slightly wrong. Reaching for a full-stack
 framework gets the decisions made, but wrapped in a compiled container, an
-event dispatcher, a plugin system, and a generated bootstrap that exist to
+event-driven kernel, a plugin system, and a generated bootstrap that exist to
 manage the framework's own size rather than yours.
 
 AppKit is the middle that was missing. The components are Symfony's and
@@ -57,12 +57,14 @@ comes along; tooling that exists to manage indirection does not.
 
 Each of these is a stated choice with a documented alternative, not a gap:
 
-- **No application-level event bus.** Extension happens through named seams:
+- **No event-driven control flow.** Extension happens through named seams:
   explicit interfaces (authenticators, user checkers, CSRF validators,
   package contracts answered in `config/services.php`), Doctrine's lifecycle
   events at the persistence layer, and plain method override — subclass your
-  `App` and replace an accessor. Internal control flow stays a readable call
-  stack.
+  `App` and replace an accessor. The kernel does dispatch PSR-14
+  [events](docs/events.md), but as notifications after the fact — a login,
+  a stored upload, a handled request — never as hooks a listener can steer.
+  Internal control flow stays a readable call stack.
 - **No queue abstraction.** Background jobs run on RoadRunner's first-party
   jobs plugin — you are already running RoadRunner, and durability is a
   config swap, not a PHP layer. See
@@ -87,8 +89,10 @@ Each of these is a stated choice with a documented alternative, not a gap:
   Config files are loaded with `require`; OPcache handles the rest. The
   opt-in Symfony container is compiled per boot outside prod and dumped
   once in prod.
-- **Transparent control flow.** No event dispatcher by design. Reading
-  `handleAuthentication()` top-to-bottom shows exactly what runs.
+- **Transparent control flow.** No listener can change a decision. Reading
+  `handleAuthentication()` top-to-bottom shows exactly what runs; the
+  events it dispatches are inline and greppable, and dispatched after the
+  state they report is committed.
 - **RoadRunner-aware.** Every stateful service implements
   [`ResetInterface`](src/Core/ResetInterface.php); the kernel rebuilds its
   `ApplicationStateInterface` state (`ApplicationState`) per request.

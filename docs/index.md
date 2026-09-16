@@ -2,7 +2,7 @@
 
 AppKit is a lean PHP framework for building modern web applications. It works well with [Inertia.js](https://inertiajs.com/) and Vue.js — controllers return JSON props to Inertia while the PHP template engine handles server-rendered views. Routes are declared with attributes, dependencies are wired in config files. No magic, no auto-wiring surprises — and when an application grows past hand-wiring, Symfony's DI container is one line away, behind the kernel rather than in front of it.
 
-AppKit makes deliberate choices to stay small and fast. There is no application-level event bus — extension happens through named interfaces, plus Doctrine's lifecycle events at the persistence layer. If you need a full event system, use Symfony.
+AppKit makes deliberate choices to stay small and fast. Extension happens through named interfaces, plus Doctrine's lifecycle events at the persistence layer; the kernel's own [events](events.md) are notifications of what already happened — a login, a stored upload, a handled request — not hooks that steer it.
 
 ## Design philosophy
 
@@ -31,6 +31,7 @@ AppKit makes deliberate choices to stay small and fast. There is no application-
 - Form validation with request payload mapping
 - File upload validation and storage
 - Image processing (GD and ImageMagick)
+- Rate limiting via symfony/rate-limiter: a login throttle per firewall, `#[RateLimit]` per route
 - Brute-force protection (file-based or Redis)
 - Console commands with Doctrine and maker support
 - Array, string, file, and directory utilities
@@ -59,11 +60,12 @@ next LTS ships; interim 8.x releases are not targeted. See the
 | [Dependency injection](dependency-injection.md) | The App-class container, `services.php`, controller wiring |
 | [Modules](modules.md) | Self-contained feature packages: manifest, conventions, lifecycle |
 | [Templates](templates.md) | Layouts, snippets, sections, and asset helpers |
-| [Security](security.md) | Firewalls, access control rules, CSRF, roles |
+| [Security](security.md) | Firewalls, access control rules, CSRF, roles, rate limiting |
 | [Authenticators](authenticators.md) | Form login, JWT, OAuth 2.1, 2FA, brute-force protection |
 | [Database](database.md) | Doctrine ORM, QueryBuilder, pagination, soft delete |
 | [Forms](forms.md) | Validation, `ValidationResult`, request payload mapping |
 | [Exception handling](exception-handling.md) | Turning exceptions into HTTP responses, custom handlers and formatters |
+| [Events](events.md) | What the kernel announces — logins, failures, impersonation, uploads, handled requests — and how to listen |
 | [File uploads](file-uploads.md) | Validating and storing uploaded files |
 | [Image processing](image-processing.md) | Darkroom (GD/ImageMagick), Dimensions, DiskManager |
 | [Console](console.md) | Built-in commands, `make:entity`, writing your own |
