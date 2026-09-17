@@ -50,10 +50,16 @@ jobs:
       - name: Install dependencies
         run: composer update --no-interaction --prefer-dist --optimize-autoloader ${{ matrix.php == '8.6' && '--ignore-platform-req=php+' || '' }}
 
+      # ParaTest, because the suite parallelises cleanly: every worker gets
+      # its own in-memory SQLite database and its own var/test/<TEST_TOKEN>
+      # directory for sessions, proxies and the compiled container. Same test
+      # and assertion counts as the sequential run, in a fraction of the time.
       - name: Run tests
         if: matrix.php != '8.4'
-        run: vendor/bin/phpunit --no-coverage
+        run: composer test:par
 
+      # Coverage stays sequential: merging per-worker coverage buys nothing
+      # here, and this job is not the slow one.
       - name: Run tests with coverage
         if: matrix.php == '8.4'
         run: vendor/bin/phpunit --coverage-clover=coverage.xml
@@ -185,6 +191,10 @@ jobs:
           DB_NAME: appkit_test
           DB_USER: ${{ matrix.user }}
           DB_PASSWORD: ${{ matrix.password }}
+        # Sequential on purpose: every worker would share this one database,
+        # and refreshDatabase() drops and recreates the schema. DB_NAME is not
+        # scoped per worker, so ParaTest here would have them tearing down
+        # each other's tables.
         run: composer test:db
 
   phpstan:

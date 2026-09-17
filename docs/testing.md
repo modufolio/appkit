@@ -10,6 +10,23 @@ composer test
 vendor/bin/phpunit
 ```
 
+For the whole suite, run it in parallel instead — this is what CI does:
+
+```bash
+composer test:par
+```
+
+ParaTest gives every worker its own in-memory database and its own
+`var/test/<TEST_TOKEN>` directory for sessions, Doctrine proxies and the
+compiled container, so the workers cannot read or unlink each other's files.
+It reports the same test and assertion counts as the sequential run, in a
+fraction of the time.
+
+Two things stay sequential. Coverage, because merging per-worker data is not
+worth it here. And the Database suite against a *real* engine, because every
+worker would share that one database while `refreshDatabase()` drops and
+recreates the schema.
+
 Run a single test suite:
 
 ```bash
