@@ -10,6 +10,115 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **CI runs the suite with ParaTest.** The SQLite job now calls
+  `composer test:par` instead of PHPUnit directly. The suite already
+  parallelised cleanly — each worker gets its own in-memory database and its
+  own `var/test/<TEST_TOKEN>` directory for sessions, proxies and the compiled
+  container — and three runs produced the same 2599 tests and 6651 assertions
+  as the sequential run, in roughly a quarter of the wall clock. The coverage
+  job and the database matrix stay sequential: the latter must, because every
+  worker would share one database and the schema refresh would drop the tables
+  out from under the others.
+
+- **The long-running Composer test scripts disable the process timeout.**
+  `composer test`, `test:par`, `test:db` and `test:coverage` were being killed
+  at Composer's 300-second default, which is why CI invoked the binaries
+  directly. They now run to completion.
+
+### Fixed
+
+- **A kernel parameter could not be set before `boot()` at all.** The bag was
+  a typed property created inside `boot()`, so `setParameter()` before it
+  raised "must not be accessed before initialization" and there was no way to
+  give `config/container.php` a `%name%` to resolve. It is created on first
+  use now, and `boot()` no longer replaces it — what an application sets
+  before booting is what `build()` copies in and what the compiler resolves
+  into the dumped class.
+
+  That is also what makes the companion fix mean anything: `manifestHash()`
+  covers the bag, sorted by name, the same way it covers the module set, so a
+  changed parameter rebuilds a dumped container that no file speaks for. A
+  parameter set *after* `boot()` — as an application factory does for a
+  reflection-autowired argument — never reached the container and does not
+  invalidate it either, so this does not put the container in a rebuild loop.
+
+### Added
+
+- **A cold cache let every process compile the container at once.** There was
+  no lock: on a worker pool starting with an empty `var/cache/prod/`, or on a
+  deploy that cleared it under traffic, each process built the whole graph
+  independently. One compiles now and the rest wait on a lock beside the
+  dumped class, then re-check and load what it wrote — the dance Symfony's own
+  `Kernel` does, for the same reason.
+
+  Two smaller things in the same path. The manifest is written with
+  `Filesystem::dumpFile()` rather than `file_put_contents()`, so a reader
+  cannot catch it half-written; it is still written after the class, because a
+  crash between the two should leave a stale manifest and rebuild. And the
+  dumped class is passed to `F::invalidateOpcodeCache()` after it is written:
+  `ConfigCache` does not do this and does not need to — Symfony dumps to a
+  content-hashed directory, so a rebuild is always a new path — but this dumps
+  to a fixed one, and under `opcache.validate_timestamps=0` behind php-fpm the
+  next `require` would otherwise run the bytecode of the file just replaced.
+
+- **Listeners were wired too early in the compilation.**
+  `RegisterListenersPass` ran at the default `TYPE_BEFORE_OPTIMIZATION`, where
+  `ResolveChildDefinitionsPass` has not run — so a listener declared with
+  `parent()` had no class yet and compilation failed telling the user to add
+  an `event` attribute that would not have helped. It runs at
+  `TYPE_BEFORE_REMOVING` now, which is where FrameworkBundle puts it and for
+  its reasons: late enough for resolved parameters and decorated services,
+  early enough that a private listener has not been removed.
+
+- **Only one of the three dispatcher interfaces resolved.** The container
+  aliased `Psr\EventDispatcher\EventDispatcherInterface` and nothing else, so
+  a service autowiring `Symfony\Component\EventDispatcher\EventDispatcherInterface`
+  — the one you type-hint to reach `addListener()` — failed at compile time
+  with no service id to point at. All three are aliased now, as FrameworkBundle
+  aliases them.
+
+- **The kernel and the container disagreed about the dispatcher after a
+  reset.** `Kernel::eventDispatcher()` memoised the container's dispatcher,
+  but `resetModules()` resets the container between requests and the next
+  `get()` builds a new one — so from request two the kernel dispatched into an
+  instance nothing else could reach, while a service autowiring the dispatcher
+  got the container's current one. It is no longer memoised. That also keeps
+  listeners request-scoped, matching the kernel's own container: the pass
+  wires them as service closures and `optimizeListeners()` pins each resolved
+  instance for the dispatcher's life, so a dispatcher held across requests
+  pinned request one's listeners and whatever request-scoped services they
+  were built from.
+
+- **`#[AsEventListener]` and `EventSubscriberInterface` in the Symfony
+  container.** An application running the container layer no longer writes a
+  factory closure that calls `addListener()` for each listener: the factory
+  registers the dispatcher as `event_dispatcher` (aliased to
+  `Psr\EventDispatcher\EventDispatcherInterface`) unless `container.php`
+  declares one, autoconfigures the attribute into `kernel.event_listener` and
+  the interface into `kernel.event_subscriber`, and runs Symfony's
+  `RegisterListenersPass` over both. A listener is a class with an attribute
+  and nothing else, and `Kernel::eventDispatcher()` adopts that dispatcher, so
+  the framework's own events reach it.
+
+  Nothing is scanned at boot: the pass resolves every attribute into
+  `addListener()` calls while the container compiles, and in prod those calls
+  are baked into the dumped class. The listener service stays lazy.
+
+  Precedence is unchanged for anyone who set a dispatcher explicitly: an
+  `EventDispatcherInterface` declared in `config/services.php` still wins over
+  the container's, and `setEventDispatcher()` still wins over both. An
+  application that declared neither and runs the container layer now gets
+  Symfony's dispatcher where it previously got `NullEventDispatcher` — the
+  events it dispatches are the same, and with no listeners registered the
+  difference is not observable.
+
+  `ContainerFactory` takes a new `eventAliases` argument for listeners tagged
+  with a short event name rather than a class (Symfony's
+  `AddEventAliasesPass`). `ContainerFactoryInterface::DISPATCHER_ID` names the
+  id. See [Events](docs/events.md#listeners-the-container-wires).
+
 ## [0.22.0] - 2026-09-17
 
 ### Added
