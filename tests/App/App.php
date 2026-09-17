@@ -320,4 +320,45 @@ class App extends Kernel
 
         return $repository;
     }
+
+    private ?\Closure $declaredEventDispatcher = null;
+
+    /**
+     * Drop the config/services.php declaration of the PSR-14 dispatcher and
+     * the cached instance, so eventDispatcher() takes the branch an
+     * application without such a declaration takes: the one the container
+     * layer fills. Test seam only; {@see restoreDeclaredEventDispatcher()}
+     * puts it back, because the test app is shared across a run.
+     */
+    public function forgetDeclaredEventDispatcher(): void
+    {
+        $id = \Psr\EventDispatcher\EventDispatcherInterface::class;
+
+        $this->declaredEventDispatcher = $this->services[$id] ?? null;
+        unset($this->services[$id]);
+        $this->dropCachedEventDispatcher();
+    }
+
+    public function restoreDeclaredEventDispatcher(): void
+    {
+        $id = \Psr\EventDispatcher\EventDispatcherInterface::class;
+
+        if (null !== $this->declaredEventDispatcher) {
+            $this->services[$id] = $this->declaredEventDispatcher;
+        }
+
+        $this->declaredEventDispatcher = null;
+        $this->dropCachedEventDispatcher();
+    }
+
+    /**
+     * Both collaborators captured the previous dispatcher; rebuild them
+     * lazily, exactly as Kernel::setEventDispatcher() does.
+     */
+    private function dropCachedEventDispatcher(): void
+    {
+        $this->eventDispatcher = null;
+        $this->prepareResponse = null;
+        $this->exceptionHandler = null;
+    }
 }

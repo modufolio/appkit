@@ -166,6 +166,100 @@ class SymfonyContainerTest extends AppTestCase
         }
     }
 
+    public function testAParameterSetAfterBootDoesNotInvalidateTheDumpedContainer(): void
+    {
+        $varDir = sys_get_temp_dir().'/appkit-params-'.bin2hex(random_bytes(4));
+        $factory = new ContainerFactory(AppFactory::containerFile($this->app()->baseDir), dump: true);
+
+        try {
+            // First boot writes the class and its sidecar.
+            AppFactory::create($this->app()->baseDir, null, $factory, $varDir);
+
+            [$file] = glob($varDir.'/cache/*/container/AppkitContainer_*.php') ?: [null];
+            $this->assertNotNull($file);
+
+            $sidecar = (string) file_get_contents($file.'.manifest');
+            $sentinel = '// not rewritten';
+            file_put_contents($file, "\n".$sentinel."\n", \FILE_APPEND);
+
+            // A second boot. AppFactory sets configPath after boot() again, so
+            // the live bag differs from the one that was dumped — but the hash
+            // is taken during create(), before that happens, so both boots
+            // describe the same state and nothing is rebuilt. Were it
+            // otherwise, every boot in prod would rebuild the container.
+            AppFactory::create($this->app()->baseDir, null, $factory, $varDir);
+
+            $this->assertStringContainsString(
+                $sentinel,
+                (string) file_get_contents($file),
+                'A parameter set after boot() must not put the container in a rebuild loop.'
+            );
+            $this->assertSame($sidecar, (string) file_get_contents($file.'.manifest'), 'Both boots describe the same state.');
+        } finally {
+            if (is_dir($varDir)) {
+                exec('rm -rf '.escapeshellarg($varDir));
+            }
+        }
+    }
+
+    public function testTheManifestHashCoversTheKernelParameterBag(): void
+    {
+        $factory = new ContainerFactory(AppFactory::containerFile($this->app()->baseDir));
+        $app = AppFactory::create($this->app()->baseDir);
+
+        $before = $factory->manifestHash($app);
+
+        $app->setParameter('audit_channel', 'security');
+        $this->assertNotSame($before, $factory->manifestHash($app), 'A new parameter moves the hash.');
+
+        $withParameter = $factory->manifestHash($app);
+        $app->setParameter('audit_channel', 'billing');
+        $this->assertNotSame($withParameter, $factory->manifestHash($app), 'A changed value moves it too.');
+
+        // Nothing else moved it: back to the same value, back to the same hash.
+        $app->setParameter('audit_channel', 'security');
+        $this->assertSame($withParameter, $factory->manifestHash($app), 'The hash is stable for the same bag.');
+    }
+
+    public function testADumpedContainerIsRebuiltWhenAKernelParameterChanges(): void
+    {
+        $varDir = sys_get_temp_dir().'/appkit-params-'.bin2hex(random_bytes(4));
+        $factory = new ContainerFactory(AppFactory::containerFile($this->app()->baseDir), dump: true);
+
+        try {
+            $app = AppFactory::create($this->app()->baseDir, null, $factory, $varDir);
+
+            // AppFactory sets its own parameters after boot(), so the class on
+            // disk was dumped without this one; dump once more so the sidecar
+            // describes a bag that contains it.
+            $app->setParameter('audit_channel', 'security');
+            $factory->create($app);
+
+            [$file] = glob($app->cacheDir().'/container/AppkitContainer_*.php') ?: [null];
+            $this->assertNotNull($file);
+            $manifest = $file.'.manifest';
+            $this->assertSame($factory->manifestHash($app), trim((string) file_get_contents($manifest)));
+
+            $sentinel = '// not rewritten';
+            file_put_contents($file, "\n".$sentinel."\n", \FILE_APPEND);
+
+            // Same bag: the class is left alone.
+            $factory->create($app);
+            $this->assertStringContainsString($sentinel, (string) file_get_contents($file), 'An unchanged bag is not a reason to rebuild.');
+
+            // Changed value: rebuilt, even though ConfigCache still calls the
+            // file fresh — no resource tracks a kernel parameter.
+            $app->setParameter('audit_channel', 'billing');
+            $factory->create($app);
+            $this->assertStringNotContainsString($sentinel, (string) file_get_contents($file), 'A changed parameter rebuilds the class.');
+            $this->assertSame($factory->manifestHash($app), trim((string) file_get_contents($manifest)));
+        } finally {
+            if (is_dir($varDir)) {
+                exec('rm -rf '.escapeshellarg($varDir));
+            }
+        }
+    }
+
     public function testADumpedContainerIsRebuiltWhenTheModuleSetChanges(): void
     {
         $varDir = sys_get_temp_dir().'/appkit-symfony-'.bin2hex(random_bytes(4));
@@ -178,6 +272,12 @@ class SymfonyContainerTest extends AppTestCase
             $this->assertNotNull($file);
             $manifest = $file.'.manifest';
             $this->assertFileExists($manifest, 'The module-set hash sits beside the compiled class.');
+
+            // The sidecar describes the bag as it stood when the container was
+            // built, during boot(); AppFactory sets its own parameters after
+            // that, so recomputing here reads a bag the build never saw. One
+            // more dump settles the two on the same state.
+            $factory->create($app);
             $this->assertSame($factory->manifestHash($app), trim((string) file_get_contents($manifest)));
 
             // Same module set: the class is left alone (the class is already
