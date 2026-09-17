@@ -124,6 +124,22 @@ interface ModuleInterface
     public function controllerPaths(): array;
 
     /**
+     * Listeners as an array, read by the `array` loader — the event
+     * counterpart of {@see controllers()}.
+     *
+     * @return array<array-key, mixed>
+     */
+    public function listeners(): array;
+
+    /**
+     * Directories read for `#[AsEventListener]` — the event counterpart of
+     * {@see controllerPaths()}.
+     *
+     * @return string[]
+     */
+    public function listenerPaths(): array;
+
+    /**
      * Directories containing Doctrine migration classes.
      *
      * @return list<string>

@@ -100,6 +100,16 @@ final class DefinitionsModule implements ModuleInterface
         return [];
     }
 
+    public function listeners(): array
+    {
+        return [];
+    }
+
+    public function listenerPaths(): array
+    {
+        return [];
+    }
+
     public function migrationPaths(): array
     {
         return [];

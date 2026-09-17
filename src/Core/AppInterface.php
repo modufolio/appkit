@@ -94,6 +94,15 @@ interface AppInterface extends ContainerInterface, RequestHandlerInterface, Rese
      */
     public function initializeConsoleState(): static;
 
+    /**
+     * The resolved listener wiring the kernel dispatches through: a name, an
+     * event, a `[class, method]` pair and a priority, highest first. Read by
+     * `debug:events`; see {@see AppEvents}.
+     *
+     * @return array<string, array{event: string, listener: array{0: class-string, 1: string}, priority: int}>
+     */
+    public function listenerMap(): array;
+
     // ============================================================================
     // REQUEST & SESSION
     // ============================================================================

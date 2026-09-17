@@ -164,6 +164,28 @@ abstract class AbstractModule implements ModuleInterface
         return $this->existingDir('Controller');
     }
 
+    /**
+     * `config/events.php` inside the module, if it has one.
+     *
+     * @return array<array-key, mixed>
+     */
+    public function listeners(): array
+    {
+        $file = $this->path().'/config/events.php';
+
+        return is_file($file) ? (array) require $file : [];
+    }
+
+    /**
+     * The module's `Listener/` directory, if it has one.
+     *
+     * @return string[]
+     */
+    public function listenerPaths(): array
+    {
+        return $this->existingDir('Listener');
+    }
+
     public function migrationPaths(): array
     {
         // Capitalized to match the PSR-4 namespace segment "\Migrations".

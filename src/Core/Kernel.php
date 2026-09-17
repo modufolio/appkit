@@ -12,6 +12,7 @@ use Modufolio\Appkit\DependencyInjection\ContainerFactoryInterface;
 use Modufolio\Appkit\DependencyInjection\ParameterBag;
 use Modufolio\Appkit\Doctrine\EntityManagerFactory;
 use Modufolio\Appkit\Doctrine\Middleware\Debug\DebugStack;
+use Modufolio\Appkit\Event\EventConfigurator;
 use Modufolio\Appkit\Event\NullEventDispatcher;
 use Modufolio\Appkit\Exception\ExceptionHandler;
 use Modufolio\Appkit\Exception\ExceptionHandlerInterface;
@@ -44,6 +45,7 @@ use Psr\Http\Message\ServerRequestInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Cache\Adapter\FilesystemAdapter;
 use Symfony\Component\Config\Loader\LoaderInterface;
+use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\HttpFoundation\Session\FlashBagAwareSessionInterface;
 use Symfony\Component\HttpFoundation\Session\Storage\Handler\NativeFileSessionHandler;
 use Symfony\Component\Lock\LockFactory;
@@ -84,6 +86,7 @@ abstract class Kernel implements AppInterface
 {
     use AppContainer;
     use AppControllers;
+    use AppEvents;
     use AppModules;
     use AppRouting;
     use AppSecurity;
@@ -100,6 +103,21 @@ abstract class Kernel implements AppInterface
 
     /** @var array<class-string, array<int|string, mixed>> */
     protected array $controllers = [];
+
+    /** Listeners for the kernel's own dispatcher; see {@see AppEvents}. */
+    protected ?EventConfigurator $eventConfigurator = null;
+
+    /** @var array<string, array{event: string, listener: array{0: class-string, 1: string}, priority: int}>|null */
+    protected ?array $listenerMap = null;
+
+    /** Whether the modules' listeners have been folded into the configurator. */
+    protected bool $eventListenersResolved = false;
+
+    /**
+     * The loaders `EventConfigurator::import()` can name a type from — the
+     * event counterpart of {@see $routeLoader}. Null uses the framework's.
+     */
+    protected ?LoaderInterface $listenerLoader = null;
 
     /** @var array<string, \Closure> */
     protected array $factories = [];
@@ -123,7 +141,8 @@ abstract class Kernel implements AppInterface
     protected ?RouterInterface $router = null;
     protected ?SerializerInterface $serializer = null;
     protected ?ValidatorInterface $validator = null;
-    protected ParameterBag $parameterBag;
+    /** Lazily created, so a parameter can be set before boot(). */
+    protected ?ParameterBag $parameterBag = null;
     /** @var array<class-string, \Closure> */
     protected array $interfaceMap = [];
     /** @var array<string, \Closure> Definitions from config/services.php via configureServices() */
@@ -210,7 +229,9 @@ abstract class Kernel implements AppInterface
             Debug::harden();
         }
 
-        $this->parameterBag = new ParameterBag();
+        // Not re-created: what was set before boot() is what a container
+        // definition resolving '%name%' sees, and what manifestHash() hashes.
+        $this->parameterBag ??= new ParameterBag();
         // Query origins cost a backtrace per query: dev only.
         $this->debugStack = new DebugStack(collectOrigin: $this->environment()->isDev());
         $this->routeResource = 'routes.php';
@@ -239,7 +260,7 @@ abstract class Kernel implements AppInterface
         // boot() can reach core services. Each module's merged config is
         // published as the "module.<name>" parameter first.
         foreach ($this->modules as $module) {
-            $this->parameterBag->set('module.'.$module->name(), $module->config());
+            $this->getParameterBag()->set('module.'.$module->name(), $module->config());
         }
 
         // The optional second container is built here, not in
@@ -534,6 +555,13 @@ abstract class Kernel implements AppInterface
      * nothing. One instance serves every request of the worker: listeners
      * are process-level wiring, like routes.
      *
+     * An application running the Symfony container layer gets a third
+     * source, between those two: that container declares `event_dispatcher`
+     * and Symfony's RegisterListenersPass has already wired every listener
+     * tagged there or carrying {@see AsEventListener} onto it. An explicit
+     * declaration in config/services.php still wins, so an application can
+     * take the dispatcher back.
+     *
      * The events are notifications, not hooks. Each is dispatched after the
      * state it reports is committed — the session saved, the row flushed —
      * and nothing a listener does changes what the kernel decides next; see
@@ -542,12 +570,49 @@ abstract class Kernel implements AppInterface
     #[Service]
     public function eventDispatcher(): EventDispatcherInterface
     {
+        if (null !== $this->eventDispatcher) {
+            return $this->eventDispatcher;
+        }
+
         // Only an explicit declaration counts, for the same reason as
         // sessionConfiguration(): has() would answer for the fallback
         // container's bridge of this accessor and recurse.
-        return $this->eventDispatcher ??= isset($this->services[EventDispatcherInterface::class])
-            ? $this->get(EventDispatcherInterface::class, EventDispatcherInterface::class)
-            : new NullEventDispatcher();
+        if (isset($this->services[EventDispatcherInterface::class])) {
+            return $this->eventDispatcher = $this->get(EventDispatcherInterface::class, EventDispatcherInterface::class);
+        }
+
+        // 'event_dispatcher' is the container's own id, never a bridged one:
+        // the bridge only registers ids the kernel declares, and the kernel
+        // declares this one under the interface. So asking cannot come back
+        // here, and what comes back carries the listeners the pass wired.
+        //
+        // Deliberately not memoised: resetModules() drops this service
+        // between requests, so a kernel holding the first instance would
+        // dispatch into one nothing else can reach. Asking every time also
+        // keeps listeners request-scoped, since optimizeListeners() pins
+        // each resolved instance for the dispatcher's life.
+        if ($this->fallbackHas(ContainerFactoryInterface::DISPATCHER_ID)) {
+            $dispatcher = $this->fallbackContainer->get(ContainerFactoryInterface::DISPATCHER_ID);
+
+            if ($dispatcher instanceof EventDispatcherInterface) {
+                return $dispatcher;
+            }
+        }
+
+        // Nothing declared a dispatcher, but something declared listeners:
+        // they need one to be wired onto. With neither, the null dispatcher
+        // stays, and dispatching stays free.
+        $dispatcher = [] === $this->listenerMap() && [] === $this->eventConfiguration()->getCallables()
+            ? new NullEventDispatcher()
+            : new EventDispatcher();
+
+        // Assigned before wiring: building a listener is deferred to dispatch
+        // time, but reading config/events.php is not, and that file is
+        // allowed to reach back into the app.
+        $this->eventDispatcher = $dispatcher;
+        $this->registerListeners($dispatcher);
+
+        return $dispatcher;
     }
 
     /**

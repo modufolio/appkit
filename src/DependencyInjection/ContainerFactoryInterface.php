@@ -41,5 +41,17 @@ interface ContainerFactoryInterface
      */
     public const USER_PROVIDER_ID = 'appkit.user_provider';
 
+    /**
+     * The id the fallback container publishes its PSR-14 dispatcher under.
+     * Symfony's own name, because Symfony's RegisterListenersPass looks for
+     * exactly this id when it wires tagged listeners.
+     *
+     * The kernel asks the fallback container for this id — never for
+     * EventDispatcherInterface, which the bridge would answer by calling
+     * back into the kernel. An application that declares the interface in
+     * config/services.php still wins; see {@see Kernel::eventDispatcher()}.
+     */
+    public const DISPATCHER_ID = 'event_dispatcher';
+
     public function create(Kernel $kernel): ContainerInterface;
 }

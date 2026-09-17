@@ -403,7 +403,7 @@ trait AppContainer
                 $plan[] = ['name' => $name, 'service' => $type->getName()];
             } elseif ($parameter->isDefaultValueAvailable()) {
                 $plan[] = ['name' => $name, 'value' => $parameter->getDefaultValue()];
-            } elseif ($type === null || $type->allowsNull()) {
+            } elseif (null === $type || $type->allowsNull()) {
                 $plan[] = ['name' => $name, 'value' => null];
             } else {
                 $this->autowireRefusals[$id] = sprintf('its constructor parameter $%s (%s) is neither a service this container answers nor optional', $name, $type instanceof \ReflectionNamedType ? $type->getName() : (string) $type);
@@ -504,7 +504,7 @@ trait AppContainer
 
     public function getParameterBag(): ParameterBag
     {
-        return $this->parameterBag;
+        return $this->parameterBag ??= new ParameterBag();
     }
 
     /**
@@ -512,12 +512,12 @@ trait AppContainer
      */
     public function getParameter(string $name): array|bool|string|int|float|null
     {
-        return $this->parameterBag->get($name);
+        return $this->getParameterBag()->get($name);
     }
 
     public function hasParameter(string $name): bool
     {
-        return $this->parameterBag->has($name);
+        return $this->getParameterBag()->has($name);
     }
 
     /**
@@ -525,6 +525,6 @@ trait AppContainer
      */
     public function setParameter(string $name, array|bool|string|int|float|null $value): void
     {
-        $this->parameterBag->set($name, $value);
+        $this->getParameterBag()->set($name, $value);
     }
 }
