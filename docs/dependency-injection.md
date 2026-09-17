@@ -542,10 +542,21 @@ and each module's configuration as `module.<name>` (the array) and
   forces either mode. A deploy that changes `config/container.php` or a
   module's definitions still clears `var/cache/prod/` as usual — with one
   guard: a hash of the resolved module set (each module's class and merged
-  config) is written beside the dumped class, and a mismatch rebuilds the
-  container in every environment. The kernel reads `config/modules.php` live
-  on every boot; a stale dump could otherwise disagree with it about which
-  modules exist.
+  config) and of the kernel's parameter bag is written beside the dumped
+  class, and a mismatch rebuilds the container in every environment. The
+  kernel reads `config/modules.php` live on every boot; a stale dump could
+  otherwise disagree with it about which modules exist. Parameters are in the
+  hash for the same reason: `build()` copies the bag in and the compiler
+  resolves every `%name%` into the dumped class, but a parameter is set in
+  PHP, so there is no file for `ConfigCache` to stat.
+
+  The hash is taken during `create()`, so it describes the bag the container
+  was built from. A parameter set *after* `boot()` never reached the container
+  and does not invalidate it either — which is what keeps a factory that sets
+  one (for a reflection-autowired argument) from rebuilding the container on
+  every boot. A parameter a `container.php` definition references as `%name%`
+  has to exist before `boot()`, and `setParameter()` works there: the bag is
+  created on first use and `boot()` does not replace it.
 
 ### Tags the framework owns
 
@@ -553,6 +564,7 @@ and each module's configuration as `module.<name>` (the array) and
 |-----|--------|
 | `appkit.controller` | Keeps the definition public under `public: false`, so `getController()` can fetch it — for a controller not named `*Controller`. |
 | `appkit.user_provider` | Elects the firewall's user provider inside the Symfony graph: `UserProviderPass` aliases `UserProviderInterface` to the tagged service and publishes it as `appkit.user_provider`, so the application's `userProvider()` can be one line — `return $this->get('appkit.user_provider')`. Exactly one tagged service; two fail at compile time, none leaves the bridged kernel provider in place. |
+| `kernel.event_listener`, `kernel.event_subscriber` | Symfony's own, and they mean what they mean there. The factory registers `event_dispatcher` (aliased to the PSR-14, contracts and component `EventDispatcherInterface`s, as FrameworkBundle aliases them) unless `container.php` declares one, autoconfigures `#[AsEventListener]` into the first tag and `EventSubscriberInterface` into the second, and runs Symfony's `RegisterListenersPass` at `TYPE_BEFORE_REMOVING` over both. The kernel then dispatches its own events through that dispatcher. See [Events](events.md#listeners-the-container-wires). |
 
 There is deliberately no `appkit.command` tag: the console does not build the
 container — see [Console](console.md#how-the-console-is-bootstrapped) for why

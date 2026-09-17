@@ -50,6 +50,115 @@ PSR-14 implementation, or a class of your own is not the kernel's concern.
 Symfony's `#[AsEventListener]` attribute and subscriber classes work as they
 do anywhere: register them on the dispatcher in the same factory.
 
+## Listeners the kernel wires
+
+`config/events.php` declares them, the way `config/routes.php` declares
+routes: a resource, and the type of the loader that reads it.
+
+```php
+use Modufolio\Appkit\Event\EventConfigurator;
+
+return function (EventConfigurator $events): void {
+    // Every class under the directory, read for #[AsEventListener] and for
+    // EventSubscriberInterface.
+    $events->import('src/Listener/', 'attribute');
+
+    // One class, without walking a directory.
+    $events->import(App\Listener\OrderMailer::class, 'attribute');
+
+    // A file returning a literal declaration, in the shape a route array
+    // file uses: a name, an event, a [class, method] pair and a priority.
+    $events->import('config/listeners.php', 'array');
+};
+```
+
+Which types exist is up to the loaders the application registered, exactly as
+it is for routes: `attribute` and `array` ship with the framework, and a
+loader of your own becomes usable here by being added to the resolver the
+application hands the kernel — no change to `EventConfigurator`.
+
+Nothing is scanned per request. The imports are resolved once and cached
+beside the router's routes, checked for staleness outside prod and trusted in
+it. The listener itself stays lazy: the dispatcher holds a closure that builds
+it the first time its event is dispatched, and that instance lives for the
+request, like a controller's.
+
+`$events->on(SomeEvent::class, $callable)` is the one declaration that is not
+an import, because a closure cannot come out of a loader — it is neither
+cached nor lazy.
+
+## Listeners the container wires
+
+An application running the [Symfony container
+layer](dependency-injection.md#the-symfony-container-behind-the-kernel) does not
+write that factory. The container declares the dispatcher itself, under
+Symfony's own id `event_dispatcher` and aliased to
+`Psr\EventDispatcher\EventDispatcherInterface`, and a listener is a class
+with an attribute on it:
+
+```php
+use Modufolio\Appkit\Event\Security\UserLoggedInEvent;
+use Modufolio\Appkit\Event\Security\UserLoggedOutEvent;
+use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
+
+final class SecurityAuditListener
+{
+    public function __construct(private readonly LoggerInterface $audit)
+    {
+    }
+
+    #[AsEventListener]
+    public function onLogin(UserLoggedInEvent $event): void
+    {
+        $this->audit->info('login', ['user' => $event->userIdentifier]);
+    }
+
+    #[AsEventListener]
+    public function onLogout(UserLoggedOutEvent $event): void
+    {
+        $this->audit->info('logout', ['user' => $event->userIdentifier]);
+    }
+}
+```
+
+`load()` over the directory in `config/container.php` is the whole
+registration, provided the defaults there `autoconfigure()`:
+
+```php
+$services = $container->services()->defaults()->autowire()->autoconfigure();
+$services->load('App\\Listener\\', '../src/Listener/');
+```
+
+The event comes from the parameter type, so neither the attribute nor the
+method name has to repeat it. On a class the attribute goes on an invokable
+`__invoke()`; on a method it goes on the method, and naming a `method:` there
+too is a contradiction rather than a preference. It is repeatable, so one
+class can take the same event twice at different priorities:
+
+```php
+#[AsEventListener(event: UserLoggedInEvent::class, method: 'first', priority: 10)]
+#[AsEventListener(event: UserLoggedInEvent::class, method: 'last', priority: -10)]
+```
+
+`EventSubscriberInterface` is autoconfigured the same way, so a subscriber
+class needs no tag either.
+
+None of this is discovery: Symfony's `RegisterListenersPass` resolves every
+attribute and tag into `addListener()` calls on the dispatcher definition
+while the container compiles, and in prod those calls are baked into the
+dumped container. Nothing scans a directory or parses an attribute at boot,
+which is the same bargain the rest of AppKit makes. The listener service
+itself is still lazy: the dispatcher holds a closure that builds it the first
+time its event is actually dispatched.
+
+Precedence is worth stating once. An explicit
+`EventDispatcherInterface` in `config/services.php` wins over the container's,
+and `setEventDispatcher()` wins over both, so an application that wants the
+dispatcher back can take it — at the cost of the attribute wiring, which lives
+on the one it left behind. Short event *names* rather than classes (Symfony's
+own `kernel.request` and friends) need the alias map; pass it to the factory
+as `new ContainerFactory(eventAliases: [...])`.
+
 ## The rules
 
 Every event the framework dispatches follows these, and listeners can rely
